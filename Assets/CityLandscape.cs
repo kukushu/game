@@ -1,17 +1,20 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Rendering;
 
 namespace HarborCity
 {
     // Fixed landscape seed/shape: older city saves keep exactly the same lot coordinates.
     public sealed class CityLandscape : MonoBehaviour
     {
-        const int Resolution = 241;
+        const int Resolution = 513;
         const float HalfSize = 120f;
-        readonly float[,] heights = new float[Resolution, Resolution];
-        MeshCollider ground;
-        readonly List<Material> materials = new List<Material>();
+        const float BaseHeight = -8f;
+        const float HeightRange = 64f;
+        Terrain terrain;
+        TerrainData data;
+        TerrainCollider ground;
+        readonly List<Object> ownedAssets = new List<Object>();
+        public Terrain Terrain => terrain;
         public const float SeaLevel = 0f;
 
         static float Hill(float x, float z, float cx, float cz, float radius, float height)
@@ -40,55 +43,70 @@ namespace HarborCity
 
         public void Build()
         {
-            var vertices = new Vector3[Resolution * Resolution];
-            var triangles = new List<int>[4];
-            for (int i = 0; i < 4; i++) triangles[i] = new List<int>();
+            if (terrain != null) return;
+            var material = Resources.Load<Material>("HarborCity/Terrain");
+            if (material == null) throw new System.InvalidOperationException("Missing HarborCity Terrain material.");
+            data = new TerrainData { name = "Harbor Island v1", heightmapResolution = Resolution,
+                size = new Vector3(HalfSize * 2,HeightRange,HalfSize * 2), alphamapResolution = 256, baseMapResolution = 512 };
+            ownedAssets.Add(data);
+            var heights = new float[Resolution, Resolution];
             for (int z = 0; z < Resolution; z++) for (int x = 0; x < Resolution; x++)
             {
-                float y = Elevation(x - HalfSize, z - HalfSize);
-                heights[x,z] = y;
-                vertices[z * Resolution + x] = new Vector3(x - HalfSize,y,z - HalfSize);
+                float wx = x / (float)(Resolution - 1) * HalfSize * 2 - HalfSize;
+                float wz = z / (float)(Resolution - 1) * HalfSize * 2 - HalfSize;
+                heights[z,x] = Mathf.Clamp01((Elevation(wx,wz) - BaseHeight) / HeightRange);
             }
-            for (int z = 0; z < Resolution - 1; z++) for (int x = 0; x < Resolution - 1; x++)
-            {
-                int a = z * Resolution + x, b = a + Resolution;
-                AddTriangle(vertices,triangles,a,b,a + 1);
-                AddTriangle(vertices,triangles,a + 1,b,b + 1);
-            }
-            var mesh = new Mesh { name = "Harbor hills and coastline", indexFormat = IndexFormat.UInt32 };
-            mesh.vertices = vertices; mesh.subMeshCount = 4;
-            for (int i = 0; i < 4; i++) mesh.SetTriangles(triangles[i],i);
-            mesh.RecalculateNormals(); mesh.RecalculateBounds();
-            gameObject.AddComponent<MeshFilter>().sharedMesh = mesh;
-            gameObject.AddComponent<CityGeneratedMesh>();
+            data.SetHeights(0,0,heights);
             var colors = new[] { new Color(.39f,.54f,.32f), new Color(.30f,.43f,.28f),
                 new Color(.49f,.50f,.45f), new Color(.75f,.70f,.52f) };
-            foreach (Color color in colors)
+            var layers = new TerrainLayer[colors.Length];
+            for (int i = 0; i < layers.Length; i++)
             {
-                var mat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-                mat.color = color; mat.SetFloat("_Smoothness",.05f); materials.Add(mat);
+                // Original procedural placeholders; replace with approved art assets later.
+                var texture = new Texture2D(64,64,TextureFormat.RGBA32,true) { name = "Ground layer " + i, wrapMode = TextureWrapMode.Repeat };
+                var pixels = new Color[64 * 64];
+                for (int z = 0; z < 64; z++) for (int x = 0; x < 64; x++)
+                {
+                    float shade = .92f + .16f * Mathf.PerlinNoise(x * .19f + i * 13,z * .19f + 7);
+                    pixels[z * 64 + x] = new Color(colors[i].r * shade,colors[i].g * shade,colors[i].b * shade,1);
+                }
+                texture.SetPixels(pixels); texture.Apply(true,true); ownedAssets.Add(texture);
+                layers[i] = new TerrainLayer { name = "Harbor surface " + i, diffuseTexture = texture,
+                    tileSize = new Vector2(12,12), smoothness = .05f,
+                    smoothnessSource = TerrainLayerSmoothnessSource.ConstantOnly, metallic = 0 };
+                ownedAssets.Add(layers[i]);
             }
-            gameObject.AddComponent<MeshRenderer>().sharedMaterials = materials.ToArray();
-            ground = gameObject.AddComponent<MeshCollider>(); ground.sharedMesh = mesh;
+            data.terrainLayers = layers;
+            int size = data.alphamapResolution;
+            var weights = new float[size,size,4];
+            for (int z = 0; z < size; z++) for (int x = 0; x < size; x++)
+            {
+                float u = x / (float)(size - 1), v = z / (float)(size - 1);
+                float h = data.GetInterpolatedHeight(u,v) + BaseHeight;
+                float sand = 1 - Mathf.SmoothStep(0,1,Mathf.InverseLerp(.5f,2.2f,h));
+                float rock = Mathf.Max(Mathf.SmoothStep(0,1,Mathf.InverseLerp(27,43,data.GetSteepness(u,v))),
+                    Mathf.SmoothStep(0,1,Mathf.InverseLerp(20,27,h))) * (1 - sand);
+                float upland = Mathf.SmoothStep(0,1,Mathf.InverseLerp(6,15,h)) * (1 - sand - rock);
+                weights[z,x,0] = 1 - sand - rock - upland;
+                weights[z,x,1] = upland; weights[z,x,2] = rock; weights[z,x,3] = sand;
+            }
+            data.SetAlphamaps(0,0,weights);
+            var obj = UnityEngine.Terrain.CreateTerrainGameObject(data);
+            obj.name = "Harbor Terrain";
+            obj.transform.SetParent(transform,false);
+            obj.transform.localPosition = new Vector3(-HalfSize,BaseHeight,-HalfSize);
+            terrain = obj.GetComponent<Terrain>(); ground = obj.GetComponent<TerrainCollider>();
+            terrain.materialTemplate = material; terrain.drawInstanced = true;
+            terrain.heightmapPixelError = 2; terrain.basemapDistance = 300;
+            terrain.Flush(); Physics.SyncTransforms();
         }
 
-        static void AddTriangle(Vector3[] vertices, List<int>[] groups, int a, int b, int c)
-        {
-            float height = (vertices[a].y + vertices[b].y + vertices[c].y) / 3;
-            float slope = Vector3.Angle(Vector3.Cross(vertices[b] - vertices[a],vertices[c] - vertices[a]),Vector3.up);
-            int material = height < 1.3f ? 3 : slope > 34 || height > 23 ? 2 : height > 10 ? 1 : 0;
-            groups[material].Add(a); groups[material].Add(b); groups[material].Add(c);
-        }
-
-        // Match the mesh's two triangles per square, rather than sampling a different surface.
+        // All placement and camera height queries now use Unity Terrain's height data.
         public float Height(float x, float z)
         {
-            float gx = Mathf.Clamp(x + HalfSize,0,Resolution - 1.001f);
-            float gz = Mathf.Clamp(z + HalfSize,0,Resolution - 1.001f);
-            int ix = Mathf.FloorToInt(gx), iz = Mathf.FloorToInt(gz);
-            float u = gx - ix, v = gz - iz;
-            if (u + v <= 1) return heights[ix,iz] * (1 - u - v) + heights[ix + 1,iz] * u + heights[ix,iz + 1] * v;
-            return heights[ix + 1,iz + 1] * (u + v - 1) + heights[ix,iz + 1] * (1 - u) + heights[ix + 1,iz] * (1 - v);
+            Vector3 origin = terrain.transform.position;
+            return data.GetInterpolatedHeight(Mathf.Clamp01((x - origin.x) / data.size.x),
+                Mathf.Clamp01((z - origin.z) / data.size.z)) + origin.y;
         }
 
         public bool Raycast(Ray ray, out Vector3 point)
@@ -133,7 +151,12 @@ namespace HarborCity
             obj.AddComponent<CityGeneratedMesh>(); return obj;
         }
 
-        void OnDestroy() { foreach (var material in materials) Destroy(material); }
+        void OnDestroy()
+        {
+            if (ground != null) ground.terrainData = null;
+            if (terrain != null) terrain.terrainData = null;
+            foreach (var asset in ownedAssets) if (asset != null) Destroy(asset);
+        }
     }
 
     public sealed class CityGeneratedMesh : MonoBehaviour

@@ -6,7 +6,7 @@ $compilerPath = Join-Path $UnityData 'MonoBleedingEdge/lib/mono/4.5/csc.exe'
 $tempPath = Join-Path $projectPath 'Temp'
 New-Item -ItemType Directory -Path $tempPath -Force | Out-Null
 $outputPath = Join-Path $tempPath 'CityModelChecks.exe'
-& $monoPath $compilerPath /nologo "/out:$outputPath" (Join-Path $projectPath 'Assets/CityModel.cs') (Join-Path $PSScriptRoot 'CityModelChecks.cs')
+& $monoPath $compilerPath /nologo "/out:$outputPath" (Join-Path $projectPath 'Assets/CityModel.cs') (Join-Path $projectPath 'Assets/CityTraffic.cs') (Join-Path $PSScriptRoot 'CityModelChecks.cs') (Join-Path $PSScriptRoot 'TrafficChecks.cs')
 if ($LASTEXITCODE -ne 0) { throw 'Simulation checks failed to compile.' }
 & $monoPath $outputPath
 if ($LASTEXITCODE -ne 0) { throw 'Simulation checks failed.' }

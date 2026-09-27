@@ -41,5 +41,6 @@ public static class CityModelChecks
         foreach (int level in city.levels) after += level;
         Check(after == sum, "No development without power");
         Console.WriteLine("PASS: " + checks + " simulation checks");
+        TrafficChecks.Run();
     }
 }

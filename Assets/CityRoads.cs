@@ -1,0 +1,337 @@
+using System;
+using System.Collections.Generic;
+
+namespace HarborCity
+{
+    [Serializable]
+    public sealed class RoadNode
+    {
+        public int id;
+        public float x, y, z;
+        public RoadNode Copy() => new RoadNode { id = id, x = x, y = y, z = z };
+    }
+    [Serializable]
+    public sealed class RoadEdge
+    {
+        public int id, a, b, stroke;
+        public RoadEdge Copy() => new RoadEdge { id = id, a = a, b = b, stroke = stroke };
+    }
+    public sealed class RoadSplit
+    {
+        public int a, b;
+        public List<int> path;
+    }
+    public sealed class RoadPlan
+    {
+        public CityRoads network;
+        public RoadNode start, end;
+        public string error;
+        public float length, grade;
+        public int cost, stroke, revision;
+        public readonly List<RoadSplit> splits = new List<RoadSplit>();
+        public bool Valid => error == null && network != null;
+    }
+
+    [Serializable]
+    public sealed class CityRoads
+    {
+        public const float Width = 2.7f;
+        public const int Entrance = 648;
+        public int nextNode = 1296, nextEdge = 1, nextStroke = 1, revision;
+        public List<RoadNode> nodes = new List<RoadNode>();
+        public List<RoadEdge> edges = new List<RoadEdge>();
+        [NonSerialized] Dictionary<int, RoadNode> lookup;
+        [NonSerialized] Dictionary<int, List<int>> adjacency;
+        [NonSerialized] Dictionary<int, List<int>> entrances;
+        [NonSerialized] HashSet<int> connected;
+
+        public static float Length(RoadNode a, RoadNode b) => (float)Math.Sqrt((a.x-b.x)*(a.x-b.x)+(a.z-b.z)*(a.z-b.z));
+        public static RoadNode Lot(int i) => new RoadNode { x = (i % 36 - 17.5f) * 3, z = (i / 36 - 17.5f) * 3 };
+        static float Cross(float ax, float az, float bx, float bz) => ax*bz-az*bx;
+        public static RoadNode Lerp(RoadNode a, RoadNode b, float t) => new RoadNode { x=a.x+(b.x-a.x)*t, y=a.y+(b.y-a.y)*t, z=a.z+(b.z-a.z)*t };
+        public static float Projection(RoadNode p, RoadNode a, RoadNode b)
+        {
+            float dx=b.x-a.x, dz=b.z-a.z, d=dx*dx+dz*dz;
+            return d < .0001f ? 0 : Math.Clamp(((p.x-a.x)*dx+(p.z-a.z)*dz)/d,0,1);
+        }
+        public static float Distance(RoadNode p, RoadNode a, RoadNode b) => Length(p,Lerp(a,b,Projection(p,a,b)));
+
+        void Cache()
+        {
+            if (lookup != null) return;
+            lookup = new Dictionary<int,RoadNode>(); adjacency = new Dictionary<int,List<int>>(); entrances = new Dictionary<int,List<int>>();
+            foreach (var n in nodes) { lookup[n.id]=n; adjacency[n.id]=new List<int>(); }
+            foreach (var e in edges) { adjacency[e.a].Add(e.b); adjacency[e.b].Add(e.a); }
+            connected = new HashSet<int>(); var queue = new Queue<int>();
+            if (lookup.ContainsKey(Entrance)) { connected.Add(Entrance); queue.Enqueue(Entrance); }
+            while (queue.Count > 0)
+            {
+                int n=queue.Dequeue();
+                foreach (int next in adjacency[n]) if (connected.Add(next)) queue.Enqueue(next);
+            }
+        }
+        public void Changed() { revision++; lookup=null; adjacency=null; entrances=null; connected=null; }
+        public RoadNode Node(int id) { Cache(); return lookup.TryGetValue(id,out var n) ? n : null; }
+        public List<int> Neighbors(int id) { Cache(); return adjacency.TryGetValue(id,out var n) ? n : new List<int>(); }
+        public bool Active(int id) => Node(id) != null && Neighbors(id).Count > 0;
+        public bool Linked(int a,int b) => Neighbors(a).Contains(b);
+        public float EdgeLength(int a,int b) => Math.Max(.1f,Length(Node(a),Node(b)));
+        public bool Connected(int id) { Cache(); return connected.Contains(id) && Active(id); }
+
+        public List<int> Access(int lot)
+        {
+            Cache();
+            if (lot == -1) return Active(Entrance) ? new List<int>{Entrance} : new List<int>();
+            if (entrances.TryGetValue(lot,out var access)) return access;
+            // A building gets one specific roadside access node on its nearest segment.
+            var p=Lot(lot); RoadEdge best=null; float distance=3.85f;
+            foreach (var e in edges)
+            {
+                float d=Distance(p,Node(e.a),Node(e.b));
+                if (d < distance) { distance=d; best=e; }
+            }
+            access=new List<int>();
+            if (best != null) access.Add(Length(p,Node(best.a)) <= Length(p,Node(best.b)) ? best.a : best.b);
+            entrances[lot]=access; return access;
+        }
+        public bool LotAccess(int lot)
+        {
+            foreach (int id in Access(lot)) if (Connected(id)) return true;
+            return false;
+        }
+        public CityRoads Copy()
+        {
+            var copy=new CityRoads { nextNode=nextNode,nextEdge=nextEdge,nextStroke=nextStroke,revision=revision };
+            foreach(var n in nodes) copy.nodes.Add(n.Copy());
+            foreach(var e in edges) copy.edges.Add(e.Copy());
+            return copy;
+        }
+        public static CityRoads FromGrid(CityModel city, Func<float,float,float> height)
+        {
+            var roads=new CityRoads();
+            for(int i=0;i<city.tiles.Length;i++) if(city.tiles[i]==1)
+            {
+                var n=Lot(i); n.id=i; n.y=height(n.x,n.z); roads.nodes.Add(n);
+            }
+            foreach(var n in roads.nodes)
+            {
+                if(n.id%36<35 && city.tiles[n.id+1]==1) roads.AddEdge(n.id,n.id+1,0);
+                if(n.id/36<35 && city.tiles[n.id+36]==1) roads.AddEdge(n.id,n.id+36,0);
+            }
+            roads.Changed(); return roads;
+        }
+        void AddEdge(int a,int b,int stroke)
+        {
+            if(a!=b) edges.Add(new RoadEdge { id=nextEdge++,a=a,b=b,stroke=stroke });
+        }
+        int AddNode(RoadNode p)
+        {
+            foreach(var n in nodes) if(Length(n,p)<.08f) return n.id;
+            var added=p.Copy(); added.id=nextNode++; nodes.Add(added); lookup=null; return added.id;
+        }
+        public RoadNode Snap(float x,float z,Func<float,float,float> height)
+        {
+            var p=new RoadNode { x=x,z=z,y=height(x,z) }; RoadNode best=null; float nearest=.85f;
+            foreach(var n in nodes) if(Active(n.id) && Length(n,p)<nearest) { best=n; nearest=Length(n,p); }
+            if(best!=null) return best.Copy();
+            nearest=1.1f;
+            foreach(var e in edges)
+            {
+                var q=Lerp(Node(e.a),Node(e.b),Projection(p,Node(e.a),Node(e.b)));
+                if(Length(q,p)<nearest) { best=q; nearest=Length(q,p); }
+            }
+            return best ?? p;
+        }
+        public RoadEdge Pick(float x,float z,float radius=1.6f)
+        {
+            var p=new RoadNode{x=x,z=z}; RoadEdge best=null;
+            foreach(var e in edges)
+            {
+                float d=Distance(p,Node(e.a),Node(e.b));
+                if(d<radius) { radius=d; best=e; }
+            }
+            return best;
+        }
+
+        // Conservative expanded lot rectangles protect the entire zoned footprint.
+        static bool HitsLot(RoadNode a,RoadNode b,RoadNode lot,float padding)
+        {
+            float low=0,high=1;
+            return Clip(a.x,b.x-a.x,lot.x-padding,lot.x+padding,ref low,ref high)
+                && Clip(a.z,b.z-a.z,lot.z-padding,lot.z+padding,ref low,ref high);
+        }
+        static bool Clip(float origin,float delta,float min,float max,ref float low,ref float high)
+        {
+            if(Math.Abs(delta)<.00001f) return origin>=min && origin<=max;
+            float a=(min-origin)/delta,b=(max-origin)/delta;
+            if(a>b) { float temp=a; a=b; b=temp; }
+            low=Math.Max(low,a); high=Math.Min(high,b); return low<=high;
+        }
+        public bool OverlapsLot(int lot)
+        {
+            var p=Lot(lot);
+            foreach(var e in edges) if(HitsLot(Node(e.a),Node(e.b),p,1.4f+Width/2)) return true;
+            return false;
+        }
+
+        public RoadPlan Plan(CityModel city,RoadNode from,RoadNode to,Func<float,float,float> height)
+        {
+            var plan=new RoadPlan { start=from.Copy(),end=to.Copy(),revision=revision,stroke=nextStroke };
+            plan.length=Length(from,to); plan.cost=(int)Math.Ceiling(plan.length*100/3);
+            if(plan.length<1.5f) { plan.error="道路太短（至少 1.5 米）"; return plan; }
+            if(Math.Abs(from.x)>52.5f || Math.Abs(from.z)>52.5f || Math.Abs(to.x)>52.5f || Math.Abs(to.z)>52.5f)
+            { plan.error="道路超出当前建设边界"; return plan; }
+            for(int i=0;i<city.tiles.Length;i++) if(city.tiles[i]>1 && HitsLot(from,to,Lot(i),1.4f+Width/2))
+            { plan.error="道路侵占建筑或分区，请先拆除或绕行"; return plan; }
+            float previous=height(from.x,from.z); int samples=(int)Math.Ceiling(plan.length/.5f);
+            float rx=-(to.z-from.z)/plan.length,rz=(to.x-from.x)/plan.length;
+            for(int i=0;i<=samples;i++)
+            {
+                var p=Lerp(from,to,(float)i/samples); float y=height(p.x,p.z);
+                if(i>0) plan.grade=Math.Max(plan.grade,Math.Abs(y-previous)/(plan.length/samples));
+                previous=y;
+                float left=height(p.x+rx*Width/2,p.z+rz*Width/2),right=height(p.x-rx*Width/2,p.z-rz*Width/2);
+                if(Math.Min(y,Math.Min(left,right))<=.15f) { plan.error="水面暂不能修路，桥梁将在后续加入"; return plan; }
+                if(Math.Abs(left-right)>.95f || plan.grade>.35f) { plan.error="坡度过大，请沿缓坡绕行"; return plan; }
+            }
+            var copy=Copy(); var crossings=new List<RoadNode>{from.Copy(),to.Copy()};
+            float dx=to.x-from.x,dz=to.z-from.z;
+            foreach(var e in edges)
+            {
+                var a=Node(e.a); var b=Node(e.b); float ex=b.x-a.x,ez=b.z-a.z;
+                float cross=Cross(dx,dz,ex,ez);
+                if(Math.Abs(cross)<.0001f)
+                {
+                    if(Distance(a,from,to)<Width && Distance(b,from,to)<Width
+                        && Math.Max(Math.Min(Projection(a,from,to),Projection(b,from,to)),0)<.999f)
+                    {
+                        float t1=((a.x-from.x)*dx+(a.z-from.z)*dz)/(plan.length*plan.length);
+                        float t2=((b.x-from.x)*dx+(b.z-from.z)*dz)/(plan.length*plan.length);
+                        if(Math.Min(1,Math.Max(t1,t2))-Math.Max(0,Math.Min(t1,t2))>.01f)
+                        { plan.error="与已有道路重叠或间距太小"; return plan; }
+                    }
+                    continue;
+                }
+                float t=Cross(a.x-from.x,a.z-from.z,ex,ez)/cross;
+                float u=Cross(a.x-from.x,a.z-from.z,dx,dz)/cross;
+                if(t<-.0001f || t>1.0001f || u<-.0001f || u>1.0001f) continue;
+                var point=Lerp(a,b,Math.Clamp(u,0,1));
+                if(Length(point,a)<.08f) point=a.Copy(); else if(Length(point,b)<.08f) point=b.Copy();
+                crossings.Add(point);
+                if(Length(point,a)>.08f && Length(point,b)>.08f)
+                {
+                    if(Math.Min(Length(point,a),Length(point,b))<.4f) { plan.error="路口过近，请吸附到已有节点"; return plan; }
+                    int id=copy.AddNode(point); copy.edges.RemoveAll(edge=>edge.id==e.id);
+                    copy.AddEdge(e.a,id,e.stroke); copy.AddEdge(id,e.b,e.stroke);
+                    plan.splits.Add(new RoadSplit { a=e.a,b=e.b,path=new List<int>{e.a,id,e.b} });
+                }
+            }
+            crossings.Sort((a,b)=>Projection(a,from,to).CompareTo(Projection(b,from,to)));
+            var distinct=new List<RoadNode>();
+            foreach(var n in crossings) if(distinct.Count==0 || Length(n,distinct[distinct.Count-1])>.08f) distinct.Add(n);
+            for(int k=0;k<distinct.Count-1;k++)
+            {
+                var a=distinct[k]; var b=distinct[k+1]; float length=Length(a,b);
+                if(length<.4f) { plan.error="路口间距过小"; return plan; }
+                int count=Math.Max(1,(int)Math.Ceiling(length/3)),last=copy.AddNode(a);
+                for(int i=1;i<=count;i++)
+                {
+                    var p=Lerp(a,b,(float)i/count); p.y=i==count ? b.y : height(p.x,p.z);
+                    int next=copy.AddNode(p); copy.AddEdge(last,next,plan.stroke); last=next;
+                }
+            }
+            copy.Changed();
+            // Reject acute branches that would need a much larger junction footprint.
+            foreach(var n in distinct)
+            {
+                int id=copy.AddNode(n); var neighbors=copy.Neighbors(id);
+                for(int a=0;a<neighbors.Count;a++) for(int b=a+1;b<neighbors.Count;b++)
+                {
+                    var p=copy.Node(neighbors[a]); var q=copy.Node(neighbors[b]);
+                    float dot=((p.x-n.x)*(q.x-n.x)+(p.z-n.z)*(q.z-n.z))/(Length(p,n)*Length(q,n));
+                    if(dot>.94f) { plan.error="交叉角度太小，请扩大转角"; return plan; }
+                }
+            }
+            copy.nextStroke++; plan.network=copy;
+            if(city.money<plan.cost) plan.error="资金不足";
+            return plan;
+        }
+
+        public void ApplySplits(TrafficState traffic,List<RoadSplit> splits)
+        {
+            if(traffic==null) return;
+            foreach(var split in splits) foreach(var trip in traffic.trips)
+                for(int i=0;i<trip.route.Count-1;i++)
+                {
+                    int a=trip.route[i],b=trip.route[i+1];
+                    if(!(a==split.a && b==split.b || a==split.b && b==split.a)) continue;
+                    var path=new List<int>(split.path); if(a==split.b) path.Reverse();
+                    int oldSegment=trip.segment;
+                    if(i==oldSegment)
+                    {
+                        float distance=Length(Node(a),Node(b))*trip.progress;
+                        int offset=0;
+                        while(offset<path.Count-2 && distance>=EdgeLength(path[offset],path[offset+1]))
+                        { distance-=EdgeLength(path[offset],path[offset+1]); offset++; }
+                        trip.segment+=offset; trip.progress=Math.Min(.99999f,distance/EdgeLength(path[offset],path[offset+1]));
+                    }
+                    else if(i<oldSegment) trip.segment+=path.Count-2;
+                    trip.route.InsertRange(i+1,path.GetRange(1,path.Count-2)); i+=path.Count-2;
+                }
+        }
+
+        public List<int> Run(int edgeId)
+        {
+            var edge=edges.Find(e=>e.id==edgeId); var result=new List<int>(); if(edge==null) return result;
+            result.Add(edge.id);
+            foreach(int end in new[]{edge.a,edge.b})
+            {
+                int current=end,previous=end==edge.a ? edge.b : edge.a;
+                while(Neighbors(current).Count==2)
+                {
+                    int next=Neighbors(current).Find(n=>n!=previous);
+                    var a=Node(previous); var b=Node(current); var c=Node(next);
+                    float dot=((b.x-a.x)*(c.x-b.x)+(b.z-a.z)*(c.z-b.z))/(Length(a,b)*Length(b,c));
+                    if(dot<.995f) break;
+                    var following=edges.Find(e=>e.a==current && e.b==next || e.b==current && e.a==next);
+                    if(following==null || result.Contains(following.id)) break;
+                    result.Add(following.id); previous=current; current=next;
+                }
+            }
+            return result;
+        }
+        public void Remove(List<int> ids) { edges.RemoveAll(e=>ids.Contains(e.id)); Changed(); }
+        public List<int> FindPath(List<int> starts,List<int> goals)
+        {
+            var path=new List<int>(); if(starts.Count==0 || goals.Count==0) return path;
+            var distance=new Dictionary<int,float>(); var previous=new Dictionary<int,int>();
+            var open=new SortedSet<(float cost,int id)>();
+            foreach(int s in starts) if(Active(s)) { distance[s]=0; previous[s]=-1; open.Add((0,s)); }
+            while(open.Count>0)
+            {
+                var item=open.Min; open.Remove(item); int n=item.id;
+                if(goals.Contains(n)) { for(int p=n;p!=-1;p=previous[p]) path.Add(p); path.Reverse(); return path; }
+                foreach(int next in Neighbors(n))
+                {
+                    float cost=item.cost+EdgeLength(n,next)/3.6f;
+                    if(distance.TryGetValue(next,out float old) && old<=cost) continue;
+                    if(distance.ContainsKey(next)) open.Remove((old,next));
+                    distance[next]=cost; previous[next]=n; open.Add((cost,next));
+                }
+            }
+            return path;
+        }
+        public bool Valid()
+        {
+            if(nodes==null || edges==null || nodes.Count>20000 || edges.Count>40000 || nextNode<1296 || nextEdge<1 || nextStroke<1) return false;
+            var ids=new HashSet<int>(); var edgeIds=new HashSet<int>(); var pairs=new HashSet<string>();
+            foreach(var n in nodes) if(n==null || n.id<0 || n.id>=nextNode || !ids.Add(n.id)
+                || float.IsNaN(n.x+n.y+n.z) || float.IsInfinity(n.x+n.y+n.z) || Math.Abs(n.x)>54 || Math.Abs(n.z)>54 || Math.Abs(n.y)>100) return false;
+            foreach(var e in edges) if(e==null || e.id<1 || e.id>=nextEdge || !edgeIds.Add(e.id) || !ids.Contains(e.a) || !ids.Contains(e.b)
+                || e.a==e.b || e.stroke<0 || e.stroke>=nextStroke || !pairs.Add(Math.Min(e.a,e.b)+":"+Math.Max(e.a,e.b))) return false;
+            lookup=null;
+            foreach(var e in edges) if(EdgeLength(e.a,e.b)<.39f) return false;
+            return ids.Contains(Entrance);
+        }
+    }
+}

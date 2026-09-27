@@ -14,6 +14,7 @@ namespace HarborCity
         public int day = 1;
         public int[] tiles = new int[Size * Size];
         public int[] levels = new int[Size * Size];
+        public TrafficState traffic;
         [NonSerialized] public bool[] connected = new bool[Size * Size];
         [NonSerialized] public int population, jobs, income, upkeep, power, water, demand;
         [NonSerialized] public int happiness = 70;
@@ -123,7 +124,8 @@ namespace HarborCity
 
         public bool Valid() => version == 1 && tiles != null && levels != null && tiles.Length == Size * Size
             && levels.Length == tiles.Length && day > 0 && Array.TrueForAll(tiles, t => t >= 0 && t <= (int)LandUse.Park)
-            && Array.TrueForAll(levels, l => l >= 0 && l <= 3) && tiles[Index(0, Size / 2)] == (int)LandUse.Road;
+            && Array.TrueForAll(levels, l => l >= 0 && l <= 3) && tiles[Index(0, Size / 2)] == (int)LandUse.Road
+            && CityTraffic.Valid(traffic);
 
         public static CityModel Create()
         {

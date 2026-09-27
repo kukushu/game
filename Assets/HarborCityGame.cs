@@ -17,7 +17,10 @@ namespace HarborCity
         readonly Dictionary<int, GameObject> visuals = new Dictionary<int, GameObject>();
         readonly Dictionary<Color, Material> materials = new Dictionary<Color, Material>();
         readonly List<Transform> cars = new List<Transform>();
-        readonly List<int> roadCells = new List<int>();
+        readonly Dictionary<int, Transform> trafficViews = new Dictionary<int, Transform>();
+        CityTraffic traffic;
+        LineRenderer routeLine;
+        int inspectedTrip = -1;
         readonly string[] names = { "选择", "道路", "住宅", "商业", "工业", "电站", "水塔", "公园", "拆除" };
         readonly Color[] palette = { new Color(.27f,.43f,.32f), new Color(.19f,.23f,.27f), new Color(.37f,.76f,.52f),
             new Color(.32f,.64f,.83f), new Color(.89f,.68f,.32f), new Color(.96f,.65f,.3f), new Color(.37f,.77f,.83f),
@@ -53,6 +56,7 @@ namespace HarborCity
         void Start()
         {
             city = CityModel.Create();
+            traffic = new CityTraffic(city);
             foreach (var c in FindObjectsByType<Camera>()) c.gameObject.SetActive(false);
             cam = new GameObject("City Camera").AddComponent<Camera>();
             cam.tag = "MainCamera";
@@ -81,10 +85,45 @@ namespace HarborCity
             }
             cursor = Box("Placement", Vector3.zero, new Vector3(2.9f,.08f,2.9f), palette[2], transform).transform;
             Rebuild();
-            for (int i = 0; i < 18; i++)
-                cars.Add(Box("Traffic", Vector3.zero, new Vector3(.5f,.35f,.85f), i % 3 == 0 ? Color.white : palette[3 + i % 3], transform).transform);
+            EnsureTrafficViews();
             font = Font.CreateDynamicFontFromOSFont(new[] { "Microsoft YaHei", "SimHei", "Arial" }, 18);
             UpdateCamera();
+        }
+
+        void OnEnable()
+        {
+            // Unity can reload scripts while a city is running. Rebind transient controllers.
+            if (city == null || landscape == null) return;
+            city.Recalculate();
+            if (world != null)
+                foreach (Transform lot in world)
+                {
+                    int x = Mathf.RoundToInt(lot.position.x / Cell + 17.5f), z = Mathf.RoundToInt(lot.position.z / Cell + 17.5f);
+                    if (CityModel.Inside(x,z)) visuals[CityModel.Index(x,z)] = lot.gameObject;
+                }
+            traffic = new CityTraffic(city);
+            EnsureTrafficViews();
+        }
+
+        void EnsureTrafficViews()
+        {
+            if (cars.Count == 0)
+                foreach (Transform child in transform)
+                    if (child.name == "Traffic" || child.name.StartsWith("Vehicle ")) cars.Add(child);
+            for (int i = cars.Count; i < CityTraffic.Capacity; i++)
+            {
+                var car = Box("Traffic", Vector3.zero, new Vector3(.5f,.35f,.85f), Color.white, transform).transform;
+                car.gameObject.SetActive(false); cars.Add(car);
+            }
+            foreach (var car in cars) car.gameObject.SetActive(false);
+            trafficViews.Clear();
+            if (routeLine != null) return;
+            routeLine = new GameObject("Selected vehicle route").AddComponent<LineRenderer>();
+            routeLine.transform.SetParent(transform, false);
+            routeLine.sharedMaterial = Mat(new Color(1,.85f,.18f));
+            routeLine.startWidth = routeLine.endWidth = .16f;
+            routeLine.shadowCastingMode = ShadowCastingMode.Off;
+            routeLine.receiveShadows = false; routeLine.positionCount = 0;
         }
 
         Vector3 Position(int x, int z)
@@ -177,13 +216,6 @@ namespace HarborCity
         void Rebuild()
         {
             for (int i = 0; i < city.tiles.Length; i++) DrawLot(i);
-            RefreshRoads();
-        }
-
-        void RefreshRoads()
-        {
-            roadCells.Clear();
-            for (int i = 0; i < city.tiles.Length; i++) if (city.connected[i]) roadCells.Add(i);
         }
 
         void UpdateCamera()
@@ -214,6 +246,7 @@ namespace HarborCity
                 if (keyboard.eKey.isPressed) yaw += Time.deltaTime * 55;
                 if (keyboard.spaceKey.wasPressedThisFrame) speed = speed == 0 ? 1 : 0;
                 if (keyboard.escapeKey.wasPressedThisFrame) selected = LandUse.Empty;
+                if (keyboard.digit0Key.wasPressedThisFrame) selected = LandUse.Empty;
                 for (int n = 1; n <= 8; n++) if (keyboard[(Key)((int)Key.Digit1 + n - 1)].wasPressedThisFrame) selected = (LandUse)n;
             }
             if (mouse != null)
@@ -244,6 +277,8 @@ namespace HarborCity
                     hoverX = Mathf.FloorToInt((hit.x + 54) / Cell); hoverZ = Mathf.FloorToInt((hit.z + 54) / Cell);
                 }
                 bool inside = CityModel.Inside(hoverX,hoverZ);
+                if (selected == LandUse.Empty && mouse.leftButton.wasPressedThisFrame && !overUI
+                    && !draggingView && !mouse.rightButton.isPressed) InspectTraffic(mp);
                 cursor.gameObject.SetActive(inside && selected != LandUse.Empty);
                 if (inside)
                 {
@@ -280,6 +315,7 @@ namespace HarborCity
                 timer -= 2.5f;
                 foreach (int i in city.Tick()) DrawLot(i);
             }
+            traffic.Advance(Time.deltaTime * speed);
             AnimateTraffic();
         }
 
@@ -373,7 +409,7 @@ namespace HarborCity
             }
             if (city.Place(x,z,selected,out string error))
             {
-                DrawLot(CityModel.Index(x,z)); RefreshRoads();
+                DrawLot(CityModel.Index(x,z));
                 for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++)
                     if (Math.Abs(dx) + Math.Abs(dz) == 1 && CityModel.Inside(x + dx,z + dz)
                         && city.Get(x + dx,z + dz) == LandUse.Road) DrawLot(CityModel.Index(x + dx,z + dz));
@@ -384,34 +420,100 @@ namespace HarborCity
 
         void AnimateTraffic()
         {
-            for (int c = 0; c < cars.Count; c++)
+            var expired = new List<int>();
+            foreach (var pair in trafficViews)
+                if (!traffic.State.trips.Exists(t => t.id == pair.Key)) { pair.Value.gameObject.SetActive(false); expired.Add(pair.Key); }
+            foreach (int id in expired) trafficViews.Remove(id);
+            foreach (var trip in traffic.State.trips)
             {
-                var car = cars[c];
-                if (roadCells.Count == 0) { car.gameObject.SetActive(false); continue; }
-                car.gameObject.SetActive(true);
-                int seed = roadCells[(c * 7) % roadCells.Count], x = seed % 36, z = seed / 36;
-                int next = city.Get(x + 1,z) == LandUse.Road ? seed + 1 : city.Get(x,z + 1) == LandUse.Road ? seed + 36 : seed;
-                float fraction = Mathf.PingPong(Time.time * .4f + c * .17f, 1);
-                Vector3 a = Position(x,z), b = Position(next % 36,next / 36);
-                Vector3 carPosition = Vector3.Lerp(a,b,fraction) + new Vector3(.35f,0,.35f);
-                carPosition.y = landscape.Height(carPosition.x,carPosition.z) + .3f;
-                car.position = carPosition;
-                if (a != b)
+                if (!trafficViews.TryGetValue(trip.id, out var car))
                 {
-                    Vector3 heading = (b - a).normalized;
-                    Vector3 ahead = carPosition + heading * .4f;
-                    ahead.y = landscape.Height(ahead.x,ahead.z) + .3f;
-                    car.rotation = Quaternion.LookRotation(ahead - carPosition);
+                    car = cars.Find(c => !trafficViews.ContainsValue(c));
+                    if (car == null) continue;
+                    trafficViews[trip.id] = car;
+                }
+                bool visible = trip.status != TripStatus.Visiting && city.tiles[trip.Current] == (int)LandUse.Road;
+                car.gameObject.SetActive(visible);
+                if (!visible) continue;
+                bool freight = trip.purpose >= TripPurpose.Delivery;
+                car.localScale = freight ? new Vector3(.65f,.5f,1.15f) : new Vector3(.5f,.35f,.85f);
+                Color color = trip.id == inspectedTrip ? new Color(1,.85f,.18f) : freight ? palette[4]
+                    : trip.purpose == TripPurpose.Commute ? Color.white : palette[3];
+                car.GetComponent<Renderer>().sharedMaterial = Mat(color);
+                car.name = "Vehicle " + trip.id + " " + Purpose(trip);
+                car.position = TrafficPoint(trip,trip.segment,trip.progress);
+                if (trip.Current != trip.Next)
+                {
+                    Vector3 forward = TrafficPoint(trip,trip.segment,Mathf.Min(1,trip.progress + .02f)) - car.position;
+                    if (forward.sqrMagnitude > .000001f) car.rotation = Quaternion.LookRotation(forward);
                 }
             }
+            var inspected = traffic.State.trips.Find(t => t.id == inspectedTrip);
+            routeLine.positionCount = 0;
+            if (inspected != null && inspected.status != TripStatus.Visiting)
+            {
+                var points = new List<Vector3>();
+                for (int segment = inspected.segment; segment < inspected.route.Count - 1; segment++)
+                    for (int k = 0; k <= 8; k++)
+                    {
+                        float fraction = segment == inspected.segment ? Mathf.Lerp(inspected.progress,1,k / 8f) : k / 8f;
+                        points.Add(TrafficPoint(inspected,segment,fraction) - Vector3.up * .09f);
+                    }
+                routeLine.positionCount = points.Count; routeLine.SetPositions(points.ToArray());
+            }
         }
+
+        Vector3 TrafficPoint(TrafficTrip trip, int segment, float fraction)
+        {
+            int a = trip.route[segment], b = trip.route[Mathf.Min(segment + 1,trip.route.Count - 1)];
+            Vector3 start = Position(a % 36,a / 36), end = Position(b % 36,b / 36);
+            Vector3 direction = end - start; direction.y = 0; direction.Normalize();
+            Vector3 right = Vector3.Cross(Vector3.up,direction);
+            Vector3 startRight = right, endRight = right;
+            if (segment > 0)
+            {
+                int previous = trip.route[segment - 1];
+                Vector3 incoming = start - Position(previous % 36,previous / 36); incoming.y = 0;
+                startRight = (right + Vector3.Cross(Vector3.up,incoming.normalized)) * .5f;
+            }
+            if (segment + 2 < trip.route.Count)
+            {
+                int next = trip.route[segment + 2];
+                Vector3 outgoing = Position(next % 36,next / 36) - end; outgoing.y = 0;
+                endRight = (right + Vector3.Cross(Vector3.up,outgoing.normalized)) * .5f;
+            }
+            Vector3 point = Vector3.Lerp(start + startRight * .55f,end + endRight * .55f,fraction);
+            point.y = landscape.Height(point.x,point.z) + .32f;
+            return point;
+        }
+
+        void InspectTraffic(Vector2 pointer)
+        {
+            inspectedTrip = -1;
+            float closest = 18 * 18;
+            foreach (var pair in trafficViews)
+            {
+                if (!pair.Value.gameObject.activeSelf) continue;
+                Vector3 screen = cam.WorldToScreenPoint(pair.Value.position);
+                float distance = ((Vector2)screen - pointer).sqrMagnitude;
+                if (screen.z > 0 && distance < closest) { closest = distance; inspectedTrip = pair.Key; }
+            }
+        }
+
+        string Purpose(TrafficTrip trip)
+        {
+            string[] purposes = { "通勤", "购物", "配送商品", "进口商品", "出口商品" };
+            return trip.returning ? purposes[(int)trip.purpose] + " · 返程" : purposes[(int)trip.purpose];
+        }
+        string EndpointName(int i) => i == CityTraffic.Outside ? "西侧城外入口" : names[city.tiles[i]] + " (" + (i % 36 + 1) + ", " + (i / 36 + 1) + ")";
 
         bool OverUI(Vector2 position)
         {
             float scale = Mathf.Min(Screen.width / 1440f, Screen.height / 900f);
             float x = position.x / scale, y = (Screen.height - position.y) / scale;
             float width = Screen.width / scale, height = Screen.height / scale;
-            return y < 108 || y > height - 142 || (x > width - 290 && y < 450) || (help && x < 485 && y < 470);
+            return y < 108 || y > height - 185 || (x > width - 290 && y < 450)
+                || (help && x < 485 && y < 470) || (!help && x < 345 && y > 115 && y < 385);
         }
 
         void Styles()
@@ -437,7 +539,7 @@ namespace HarborCity
 
         void OnGUI()
         {
-            if (city == null) return;
+            if (city == null || traffic == null) return;
             Styles();
             float scale = Mathf.Min(Screen.width / 1440f, Screen.height / 900f);
             GUI.matrix = Matrix4x4.Scale(new Vector3(scale,scale,1));
@@ -462,7 +564,26 @@ namespace HarborCity
             Meter(rx + 20,238,"供水",city.demand,city.water,palette[6]);
             GUI.Label(new Rect(rx + 20,293,225,26),"税收  +" + city.income + " / 天",label);
             GUI.Label(new Rect(rx + 20,322,225,26),"维护  −" + city.upkeep + " / 天",label);
-            GUI.Label(new Rect(rx + 20,365,212,55),city.power == 0 || city.water == 0 ? "建造临路的电站与水塔，恢复发展。" : "分区须紧邻连通入口的道路；每格最多成长 3 级。",small);
+            GUI.Label(new Rect(rx + 20,365,212,60),"交通任务 " + traffic.State.trips.Count + "  /  完成 " + traffic.State.completed
+                + "\n送货 " + traffic.State.delivered + "  /  购物 " + traffic.State.purchases + "  /  失败 " + traffic.State.failed,small);
+
+            if (!help)
+            {
+                Panel(new Rect(24,120,310,258),navy);
+                if (GUI.Button(new Rect(40,134,278,32),"0  查看车辆与路线",button)) selected = LandUse.Empty;
+                var trip = traffic.State.trips.Find(t => t.id == inspectedTrip);
+                if (trip == null)
+                    GUI.Label(new Rect(40,180,278,180),"按 0 或 Esc 取消建造，再点击车辆。\n\n白色：通勤   蓝色：购物\n橙色：配送 / 进出口\n\n车辆有明确目的地；到达后停留并返程。黄色线显示所选车辆的剩余路线。",small);
+                else
+                {
+                    string status = trip.status == TripStatus.Visiting ? "已到达 / 停留" : trip.status == TripStatus.Waiting ? "等待道路恢复"
+                        : trip.blocked > .1f ? "排队让行" : "行驶中";
+                    GUI.Label(new Rect(40,180,278,184),"车辆 #" + trip.id + "  " + Purpose(trip) + "\n从：" + EndpointName(trip.origin)
+                        + "\n到：" + EndpointName(trip.destination) + "\n状态：" + status + "\n剩余路段：" + (trip.route.Count - 1 - trip.segment)
+                        + (trip.cargo > 0 ? "   载货：" + trip.cargo : "")
+                        + (trip.destination >= 0 && city.tiles[trip.destination] == 3 ? "\n目的地库存：" + traffic.State.stock[trip.destination] : ""),small);
+                }
+            }
 
             Panel(new Rect(24,h - 136,w - 48,108),navy);
             for (int n = 1; n <= 8; n++)
@@ -516,7 +637,9 @@ namespace HarborCity
                 if (!File.Exists(SavePath)) { notice = "还没有存档，请先保存城市。"; return; }
                 var loaded = JsonUtility.FromJson<CityModel>(File.ReadAllText(SavePath));
                 if (loaded == null || !loaded.Valid()) { notice = "存档格式无效，当前城市已保留。"; return; }
-                city = loaded; city.Recalculate(); timer = 0; Rebuild(); notice = "已读取第 " + city.day + " 天的城市。";
+                city = loaded; city.Recalculate(); traffic = new CityTraffic(city); inspectedTrip = -1;
+                foreach (var car in cars) car.gameObject.SetActive(false);
+                trafficViews.Clear(); timer = 0; Rebuild(); AnimateTraffic(); notice = "已读取第 " + city.day + " 天的城市。";
             }
             catch (Exception e) { notice = "读取失败：" + e.Message; }
         }
