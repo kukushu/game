@@ -118,6 +118,10 @@ namespace HarborCity
                 if(n.id%36<35 && city.tiles[n.id+1]==1) roads.AddEdge(n.id,n.id+1,0);
                 if(n.id/36<35 && city.tiles[n.id+36]==1) roads.AddEdge(n.id,n.id+36,0);
             }
+            if(city.traffic!=null)
+                foreach(var trip in city.traffic.trips) foreach(int id in trip.route)
+                    if(!roads.nodes.Exists(n=>n.id==id))
+                    { var n=Lot(id); n.id=id; n.y=height(n.x,n.z); roads.nodes.Add(n); }
             roads.Changed(); return roads;
         }
         void AddEdge(int a,int b,int stroke)
@@ -181,7 +185,7 @@ namespace HarborCity
             if(plan.length<1.5f) { plan.error="道路太短（至少 1.5 米）"; return plan; }
             if(Math.Abs(from.x)>52.5f || Math.Abs(from.z)>52.5f || Math.Abs(to.x)>52.5f || Math.Abs(to.z)>52.5f)
             { plan.error="道路超出当前建设边界"; return plan; }
-            for(int i=0;i<city.tiles.Length;i++) if(city.tiles[i]>1 && HitsLot(from,to,Lot(i),1.4f+Width/2))
+            for(int i=0;i<city.tiles.Length;i++) if(city.tiles[i]>1 && (city.version >= 3 ? city.buildings[i].HitsRoad(from,to) : HitsLot(from,to,Lot(i),1.4f+Width/2)))
             { plan.error="道路侵占建筑或分区，请先拆除或绕行"; return plan; }
             float previous=height(from.x,from.z); int samples=(int)Math.Ceiling(plan.length/.5f);
             float rx=-(to.z-from.z)/plan.length,rz=(to.x-from.x)/plan.length;

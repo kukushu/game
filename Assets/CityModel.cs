@@ -6,7 +6,7 @@ namespace HarborCity
     public enum LandUse { Empty, Road, Residential, Commercial, Industrial, Power, Water, Park, Bulldoze }
 
     [Serializable]
-    public sealed class CityModel
+    public sealed partial class CityModel
     {
         public const int Size = 36;
         public int version = 1;
@@ -15,6 +15,7 @@ namespace HarborCity
         public int[] tiles = new int[Size * Size];
         public int[] levels = new int[Size * Size];
         public TrafficState traffic;
+        public CityRoads roads;
         [NonSerialized] public bool[] connected = new bool[Size * Size];
         [NonSerialized] public int population, jobs, income, upkeep, power, water, demand;
         [NonSerialized] public int happiness = 70;
@@ -39,11 +40,14 @@ namespace HarborCity
         public bool Place(int x, int z, LandUse use, out string message)
         {
             message = "";
+            if (version >= 3) { message = "请使用沿路地块工具"; return false; }
             if (!Inside(x, z) || use == LandUse.Empty) return false;
+            if (roads != null && use == LandUse.Road) { message = "请使用自由道路工具"; return false; }
             int i = Index(x, z);
             if (x == 0 && z == Size / 2) { message = "保留西侧城市入口道路"; return false; }
             if (use == LandUse.Bulldoze && tiles[i] == 0) return false;
             if (use != LandUse.Bulldoze && tiles[i] != 0) { message = "请先拆除已有设施"; return false; }
+            if (use != LandUse.Bulldoze && roads != null && roads.OverlapsLot(i)) { message = "地块与道路重叠，请移到道路两侧"; return false; }
             if (money < Cost(use)) { message = "资金不足，请等待税收或减少支出"; return false; }
             money -= Cost(use);
             tiles[i] = use == LandUse.Bulldoze ? 0 : (int)use;
@@ -54,10 +58,13 @@ namespace HarborCity
 
         public bool RoadAccess(int x, int z)
         {
+            if (version >= 3) return BuildingAccess(Index(x,z));
+            if (roads != null) return Inside(x,z) && roads.LotAccess(Index(x,z));
             return IsConnected(x - 1, z) || IsConnected(x + 1, z) || IsConnected(x, z - 1) || IsConnected(x, z + 1);
         }
 
         bool IsConnected(int x, int z) => Inside(x, z) && connected[Index(x, z)];
+        public bool EntityRoadAccess(int id) => version >= 3 ? BuildingAccess(id) : RoadAccess(id % Size,id / Size);
 
         public void Recalculate()
         {
@@ -72,12 +79,18 @@ namespace HarborCity
                 Visit(x - 1, z, queue); Visit(x + 1, z, queue); Visit(x, z - 1, queue); Visit(x, z + 1, queue);
             }
             population = jobs = income = upkeep = power = water = demand = 0;
-            int parks = 0, pollution = 0;
-            for (int z = 0; z < Size; z++) for (int x = 0; x < Size; x++)
+            if (roads != null)
             {
-                int i = Index(x, z), level = levels[i];
+                float length = 0;
+                foreach (var edge in roads.edges) length += roads.EdgeLength(edge.a,edge.b);
+                upkeep = (int)Math.Ceiling(length / 3);
+            }
+            int parks = 0, pollution = 0;
+            for (int i = 0; i < tiles.Length; i++)
+            {
+                int level = levels[i];
                 var use = (LandUse)tiles[i];
-                bool access = RoadAccess(x, z);
+                bool access = EntityRoadAccess(i);
                 if (use == LandUse.Road) upkeep += 1;
                 if (use == LandUse.Power) { upkeep += 90; if (access) power += 160; }
                 if (use == LandUse.Water) { upkeep += 65; if (access) water += 160; }
@@ -111,7 +124,7 @@ namespace HarborCity
             {
                 var use = (LandUse)tiles[i];
                 if (use < LandUse.Residential || use > LandUse.Industrial) continue;
-                if (!RoadAccess(i % Size, i / Size) || power <= demand || water <= demand) continue;
+                if (!EntityRoadAccess(i) || power <= demand || water <= demand) continue;
                 if (levels[i] >= 3 || (i + day) % 5 != 0) continue;
                 if (use == LandUse.Residential && population > jobs * 3 + 100) continue;
                 if (use != LandUse.Residential && jobs > population + 40) continue;
@@ -122,10 +135,25 @@ namespace HarborCity
             return changes;
         }
 
-        public bool Valid() => version == 1 && tiles != null && levels != null && tiles.Length == Size * Size
+        public void EnableRoads(Func<float,float,float> height)
+        {
+            if (roads != null) return;
+            roads = CityRoads.FromGrid(this,height);
+            for (int i = 0; i < tiles.Length; i++) if (tiles[i] == (int)LandUse.Road) tiles[i] = 0;
+            version = 2; Recalculate();
+        }
+
+        public bool CommitRoad(RoadPlan plan)
+        {
+            if (roads == null || !plan.Valid || plan.revision != roads.revision || money < plan.cost) return false;
+            roads = plan.network; roads.ApplySplits(traffic,plan.splits); money -= plan.cost; Recalculate(); return true;
+        }
+
+        public bool Valid() => (version == 1 || version == 2 || version == 3) && tiles != null && levels != null && (version == 3 ? ValidBuildings() : tiles.Length == Size * Size)
             && levels.Length == tiles.Length && day > 0 && Array.TrueForAll(tiles, t => t >= 0 && t <= (int)LandUse.Park)
-            && Array.TrueForAll(levels, l => l >= 0 && l <= 3) && tiles[Index(0, Size / 2)] == (int)LandUse.Road
-            && CityTraffic.Valid(traffic);
+            && Array.TrueForAll(levels, l => l >= 0 && l <= 3)
+            && (version == 1 ? roads == null && tiles[Index(0, Size / 2)] == (int)LandUse.Road : roads != null && roads.Valid())
+            && CityTraffic.Valid(traffic,roads,tiles.Length);
 
         public static CityModel Create()
         {

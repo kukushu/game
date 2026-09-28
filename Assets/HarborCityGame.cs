@@ -7,7 +7,7 @@ using UnityEngine.Rendering;
 
 namespace HarborCity
 {
-    public sealed class HarborCityGame : MonoBehaviour
+    public sealed partial class HarborCityGame : MonoBehaviour
     {
         const float Cell = 3f;
         const float MinZoom = 10f;
@@ -53,54 +53,222 @@ namespace HarborCity
             if (FindAnyObjectByType<HarborCityGame>() == null) new GameObject("Harbor City").AddComponent<HarborCityGame>();
         }
 
+
         void Start()
         {
+            // 1. 创建城市的数据模型
+            // 这里一般会初始化：地图格子、资金、人口、建筑状态之类的数据
             city = CityModel.Create();
+
+            // 2. 创建交通系统，并把刚才的 city 数据交给它
+            // 交通系统后面会根据道路、建筑等信息生成车辆和路线
             traffic = new CityTraffic(city);
-            foreach (var c in FindObjectsByType<Camera>()) c.gameObject.SetActive(false);
+
+
+            // 3. 找到场景里现有的所有 Camera，并全部关闭
+            // 因为这个游戏不打算使用 Unity 场景里原本的 Main Camera，
+            // 而是下面自己创建一台相机
+            foreach (var c in FindObjectsByType<Camera>())
+                c.gameObject.SetActive(false);
+
+
+            // 4. 代码动态创建一台新的相机
+            // new GameObject("City Camera")：创建一个 GameObject
+            // AddComponent<Camera>()：给它挂一个 Camera 组件
             cam = new GameObject("City Camera").AddComponent<Camera>();
+
+            // 把它标记为 MainCamera
             cam.tag = "MainCamera";
-            cam.orthographic = true; cam.nearClipPlane = .1f; cam.farClipPlane = 500;
-            cam.clearFlags = CameraClearFlags.SolidColor; cam.backgroundColor = new Color(.66f,.79f,.81f);
+
+            // 使用正交相机，而不是透视相机
+            // 类似很多城市建设游戏那种“模型不会近大远小得特别明显”的视角
+            cam.orthographic = true;
+
+            // 相机最近和最远能看到多远
+            cam.nearClipPlane = .1f;
+            cam.farClipPlane = 500;
+
+            // 背景使用纯色
+            cam.clearFlags = CameraClearFlags.SolidColor;
+
+            // 设置天空/背景颜色
+            cam.backgroundColor = new Color(.66f, .79f, .81f);
+
+            // 给相机挂 AudioListener
+            // 可以理解成“玩家的耳朵”，用来接收场景中的声音
             cam.gameObject.AddComponent<AudioListener>();
+
+
+            // 5. 找场景里有没有灯光
             var sun = FindAnyObjectByType<Light>();
-            if (sun == null) sun = new GameObject("Sun").AddComponent<Light>();
-            sun.type = LightType.Directional; sun.intensity = 1.8f;
+
+            // 如果没有，就自己创建一个叫 Sun 的 GameObject，并挂 Light 组件
+            if (sun == null)
+                sun = new GameObject("Sun").AddComponent<Light>();
+
+            // 设置成 Directional Light
+            // 这种灯常用来模拟太阳光
+            sun.type = LightType.Directional;
+
+            // 设置光照强度
+            sun.intensity = 1.8f;
+
+            // 设置太阳照射方向
             sun.transform.rotation = Quaternion.Euler(50, -35, 0);
+
+            // 开启柔和阴影
             sun.shadows = LightShadows.Soft;
+
+
+            // 6. 设置整个场景的环境光
+            // Flat 表示使用一个统一的环境光颜色
             RenderSettings.ambientMode = AmbientMode.Flat;
-            RenderSettings.ambientLight = new Color(.66f,.73f,.79f);
+
+            // 设置环境光颜色
+            RenderSettings.ambientLight = new Color(.66f, .73f, .79f);
+
+
+            // 7. 创建一个叫 "City lots" 的 GameObject
+            // 后面道路、住宅、商业、工业等地块，大概率都会挂在它下面
             world = new GameObject("City lots").transform;
-            var terrainObject = new GameObject("Landscape"); terrainObject.transform.SetParent(transform,false);
-            landscape = terrainObject.AddComponent<CityLandscape>(); landscape.Build();
-            Box("Sea", new Vector3(0,-.18f,0), new Vector3(700,.3f,700), new Color(.24f,.53f,.63f), transform);
+
+
+            // 8. 创建一个 Landscape GameObject
+            var terrainObject = new GameObject("Landscape");
+
+            // 把 Landscape 挂到当前 HarborCityGame 这个 GameObject 下面
+            terrainObject.transform.SetParent(transform, false);
+
+            // 给 Landscape 添加 CityLandscape 组件
+            landscape = terrainObject.AddComponent<CityLandscape>();
+
+            // 调用 CityLandscape.Build()
+            // 真正开始生成地形
+            landscape.Build();
+
+
+            // 9. 创建一个巨大的扁平 Cube，当作海面
+            //
+            // 位置：
+            // y = -0.18，稍微低于陆地
+            //
+            // 尺寸：
+            // 700 x 0.3 x 700
+            //
+            // 颜色：
+            // 蓝绿色
+            Box(
+                "Sea",
+                new Vector3(0, -.18f, 0),
+                new Vector3(700, .3f, 700),
+                new Color(.24f, .53f, .63f),
+                transform
+            );
+
+
+            // 10. 创建一个固定随机数生成器
+            // 14 是随机种子
+            //
+            // 好处是：
+            // 每次运行时生成的树的位置都一样，
+            // 不会每次启动游戏地形都变
             var random = new System.Random(14);
+
+
+            // 11. 尝试随机生成 700 棵树
             for (int i = 0; i < 700; i++)
             {
-                float x = (float)random.NextDouble() * 190 - 95, z = (float)random.NextDouble() * 190 - 95;
-                if (Mathf.Abs(x) < 56 && Mathf.Abs(z) < 56) continue;
-                float height = landscape.Height(x,z);
-                if (height < 1.5f || height > 23) continue;
-                Tree(new Vector3(x,height,z), transform, .9f + (float)random.NextDouble());
+                // 随机生成 x、z 坐标
+                // 范围大约是 -95 ~ 95
+                float x = (float)random.NextDouble() * 190 - 95;
+                float z = (float)random.NextDouble() * 190 - 95;
+
+
+                // 如果位置在城市中心区域，就跳过
+                //
+                // 也就是说：
+                // 城市核心区域大约是 -56 ~ 56，
+                // 树主要生成在城市外围
+                if (Mathf.Abs(x) < 56 && Mathf.Abs(z) < 56)
+                    continue;
+
+
+                // 查询这个 x,z 坐标对应的地形高度
+                float height = landscape.Height(x, z);
+
+
+                // 太低的不种，可能接近海面
+                //
+                // 太高的不种，可能在山顶
+                if (height < 1.5f || height > 23)
+                    continue;
+
+
+                // 真正生成树
+                //
+                // y 坐标直接使用地形高度，
+                // 所以树会贴在地面上
+                //
+                // 最后一个参数是随机大小
+                Tree(
+                    new Vector3(x, height, z),
+                    transform,
+                    .9f + (float)random.NextDouble()
+                );
             }
-            cursor = Box("Placement", Vector3.zero, new Vector3(2.9f,.08f,2.9f), palette[2], transform).transform;
+
+
+            // 12. 创建一个“放置预览块”
+            //
+            // 就是鼠标移动到地图上时，
+            // 提示你“当前准备在这里放道路/住宅”的那个方块
+            cursor = Box(
+                "Placement",
+                Vector3.zero,
+                new Vector3(2.9f, .08f, 2.9f),
+                palette[2],
+                transform
+            ).transform;
+
+
+            // 13. 根据当前 city 数据，
+            // 把所有已有地块重新画出来
+            //
+            // 里面最终会调用 DrawLot()
             Rebuild();
+
+
+            // 14. 创建/准备交通车辆对应的 GameObject
             EnsureTrafficViews();
-            font = Font.CreateDynamicFontFromOSFont(new[] { "Microsoft YaHei", "SimHei", "Arial" }, 18);
+
+
+            // 15. 从系统字体中创建 Unity 字体
+            //
+            // 优先尝试：
+            // Microsoft YaHei
+            // SimHei
+            // Arial
+            //
+            // 用于显示中文 UI
+            font = Font.CreateDynamicFontFromOSFont(
+                new[] { "Microsoft YaHei", "SimHei", "Arial" },
+                18
+            );
+
+
+            // 16. 根据当前 yaw、pitch、zoom、focus
+            // 更新相机的位置和角度
             UpdateCamera();
         }
+
+
 
         void OnEnable()
         {
             // Unity can reload scripts while a city is running. Rebind transient controllers.
             if (city == null || landscape == null) return;
             city.Recalculate();
-            if (world != null)
-                foreach (Transform lot in world)
-                {
-                    int x = Mathf.RoundToInt(lot.position.x / Cell + 17.5f), z = Mathf.RoundToInt(lot.position.z / Cell + 17.5f);
-                    if (CityModel.Inside(x,z)) visuals[CityModel.Index(x,z)] = lot.gameObject;
-                }
+            Rebuild();
             traffic = new CityTraffic(city);
             EnsureTrafficViews();
         }
@@ -166,10 +334,12 @@ namespace HarborCity
             var use = (LandUse)city.tiles[i];
             if (use == LandUse.Empty) return;
             var root = new GameObject(names[(int)use]); root.transform.SetParent(world, false);
-            root.transform.position = Position(i % CityModel.Size, i / CityModel.Size);
+            var pose = city.buildings[i];
+            root.transform.position = new Vector3(pose.x,landscape.Height(pose.x,pose.z),pose.z);
+            root.transform.rotation = Quaternion.Euler(0,pose.yaw,0);
             visuals[i] = root;
             Transform t = root.transform;
-            landscape.Surface("Lot",t,t.position,3,3,.06f,Mat(palette[(int)use]));
+            landscape.Surface("Lot",t,t.position,pose.width,pose.depth,.06f,Mat(palette[(int)use]),pose.yaw);
             if (use == LandUse.Road)
             {
                 bool horizontal = city.Get(i % 36 - 1, i / 36) == use || city.Get(i % 36 + 1, i / 36) == use;
@@ -177,11 +347,11 @@ namespace HarborCity
                 return;
             }
             if (use >= LandUse.Residential && use <= LandUse.Industrial && city.levels[i] == 0) return;
-            landscape.LotRange(t.position,out float low,out float high);
+            BuildingHeight(pose,out float low,out float high);
             // A level foundation keeps buildings upright while the ground remains sloped.
             Vector3 basePosition = t.position; basePosition.y = high + .1f;
             var foundation = new GameObject("Level building base").transform;
-            foundation.SetParent(t,true); foundation.position = basePosition; t = foundation;
+            foundation.SetParent(t,false); foundation.position = basePosition; t = foundation;
             float depth = high - low + .2f;
             Box("Foundation",new Vector3(0,-depth / 2,0),new Vector3(2.85f,depth,2.85f),new Color(.48f,.48f,.42f),t);
             if (use == LandUse.Park)
@@ -215,7 +385,13 @@ namespace HarborCity
 
         void Rebuild()
         {
+            InitializeRoads();
+            city.EnableBuildings();
+            foreach (Transform child in world) { child.gameObject.SetActive(false); Destroy(child.gameObject); }
+            visuals.Clear();
+            zoningRoads = null;
             for (int i = 0; i < city.tiles.Length; i++) DrawLot(i);
+            RefreshRoadView();
         }
 
         void UpdateCamera()
@@ -245,7 +421,8 @@ namespace HarborCity
                 if (keyboard.qKey.isPressed) yaw -= Time.deltaTime * 55;
                 if (keyboard.eKey.isPressed) yaw += Time.deltaTime * 55;
                 if (keyboard.spaceKey.wasPressedThisFrame) speed = speed == 0 ? 1 : 0;
-                if (keyboard.escapeKey.wasPressedThisFrame) selected = LandUse.Empty;
+                if (keyboard.escapeKey.wasPressedThisFrame && !CancelRoad()) selected = LandUse.Empty;
+                if (keyboard.zKey.wasPressedThisFrame && (keyboard.leftCtrlKey.isPressed || keyboard.rightCtrlKey.isPressed)) UndoRoad();
                 if (keyboard.digit0Key.wasPressedThisFrame) selected = LandUse.Empty;
                 for (int n = 1; n <= 8; n++) if (keyboard[(Key)((int)Key.Digit1 + n - 1)].wasPressedThisFrame) selected = (LandUse)n;
             }
@@ -277,37 +454,11 @@ namespace HarborCity
                     hoverX = Mathf.FloorToInt((hit.x + 54) / Cell); hoverZ = Mathf.FloorToInt((hit.z + 54) / Cell);
                 }
                 bool inside = CityModel.Inside(hoverX,hoverZ);
+                bool roadHandled = HandleRoadInput(mouse,ray,overUI || draggingView || mouse.rightButton.isPressed);
                 if (selected == LandUse.Empty && mouse.leftButton.wasPressedThisFrame && !overUI
                     && !draggingView && !mouse.rightButton.isPressed) InspectTraffic(mp);
-                cursor.gameObject.SetActive(inside && selected != LandUse.Empty);
-                if (inside)
-                {
-                    int hovered = CityModel.Index(hoverX,hoverZ);
-                    if (cursorCell != hovered)
-                    {
-                        cursor.gameObject.SetActive(false); Destroy(cursor.gameObject);
-                        cursor = landscape.Surface("Placement",transform,Position(hoverX,hoverZ),2.9f,2.9f,.16f,Mat(palette[(int)selected])).transform;
-                        cursorCell = hovered;
-                    }
-                    cursor.gameObject.SetActive(selected != LandUse.Empty);
-                    cursor.GetComponent<Renderer>().sharedMaterial = Mat(palette[(int)selected]);
-                    int i = CityModel.Index(hoverX,hoverZ);
-                    if (mouse.leftButton.isPressed && lastPaint != i && selected != LandUse.Empty)
-                    {
-                        int px = lastPaint < 0 ? hoverX : lastPaint % CityModel.Size;
-                        int pz = lastPaint < 0 ? hoverZ : lastPaint / CityModel.Size;
-                        // Fill crossed cells so a fast drag cannot leave disconnected roads.
-                        while (px != hoverX || pz != hoverZ)
-                        {
-                            if (Mathf.Abs(hoverX - px) >= Mathf.Abs(hoverZ - pz)) px += Math.Sign(hoverX - px);
-                            else pz += Math.Sign(hoverZ - pz);
-                            Paint(px,pz);
-                        }
-                        Paint(hoverX,hoverZ);
-                        lastPaint = i;
-                    }
-                }
-                if (!mouse.leftButton.isPressed || !inside) lastPaint = -1;
+                HandleBuildingInput(mouse,ray,overUI || draggingView || mouse.rightButton.isPressed || roadHandled);
+
             }
             timer += Time.deltaTime * speed;
             if (timer >= 2.5f)
@@ -353,7 +504,7 @@ namespace HarborCity
             previousRotatePointer = pointer;
             if (mouse.rightButton.wasReleasedThisFrame)
             {
-                if (!rotatingView) selected = LandUse.Empty;
+                if (!rotatingView && !CancelRoad()) selected = LandUse.Empty;
                 rightGesture = rotatingView = false;
             }
             else if (!mouse.rightButton.isPressed) rightGesture = rotatingView = false;
@@ -432,7 +583,9 @@ namespace HarborCity
                     if (car == null) continue;
                     trafficViews[trip.id] = car;
                 }
-                bool visible = trip.status != TripStatus.Visiting && city.tiles[trip.Current] == (int)LandUse.Road;
+                bool visible = trip.status != TripStatus.Visiting && (city.roads != null
+                    ? city.roads.Active(trip.Current) && (trip.progress == 0 || city.roads.Linked(trip.Current,trip.Next))
+                    : city.tiles[trip.Current] == (int)LandUse.Road);
                 car.gameObject.SetActive(visible);
                 if (!visible) continue;
                 bool freight = trip.purpose >= TripPurpose.Delivery;
@@ -466,24 +619,24 @@ namespace HarborCity
         Vector3 TrafficPoint(TrafficTrip trip, int segment, float fraction)
         {
             int a = trip.route[segment], b = trip.route[Mathf.Min(segment + 1,trip.route.Count - 1)];
-            Vector3 start = Position(a % 36,a / 36), end = Position(b % 36,b / 36);
+            Vector3 start = RoadPosition(a), end = RoadPosition(b);
             Vector3 direction = end - start; direction.y = 0; direction.Normalize();
             Vector3 right = Vector3.Cross(Vector3.up,direction);
             Vector3 startRight = right, endRight = right;
             if (segment > 0)
             {
                 int previous = trip.route[segment - 1];
-                Vector3 incoming = start - Position(previous % 36,previous / 36); incoming.y = 0;
+                Vector3 incoming = start - RoadPosition(previous); incoming.y = 0;
                 startRight = (right + Vector3.Cross(Vector3.up,incoming.normalized)) * .5f;
             }
             if (segment + 2 < trip.route.Count)
             {
                 int next = trip.route[segment + 2];
-                Vector3 outgoing = Position(next % 36,next / 36) - end; outgoing.y = 0;
+                Vector3 outgoing = RoadPosition(next) - end; outgoing.y = 0;
                 endRight = (right + Vector3.Cross(Vector3.up,outgoing.normalized)) * .5f;
             }
             Vector3 point = Vector3.Lerp(start + startRight * .55f,end + endRight * .55f,fraction);
-            point.y = landscape.Height(point.x,point.z) + .32f;
+            point.y = (city.roads == null ? landscape.Height(point.x,point.z) : CityRoadView.SurfaceHeight(city.roads,landscape,point,a,b)) + .32f;
             return point;
         }
 
@@ -505,7 +658,7 @@ namespace HarborCity
             string[] purposes = { "通勤", "购物", "配送商品", "进口商品", "出口商品" };
             return trip.returning ? purposes[(int)trip.purpose] + " · 返程" : purposes[(int)trip.purpose];
         }
-        string EndpointName(int i) => i == CityTraffic.Outside ? "西侧城外入口" : names[city.tiles[i]] + " (" + (i % 36 + 1) + ", " + (i / 36 + 1) + ")";
+        string EndpointName(int i) => i == CityTraffic.Outside ? "西侧城外入口" : names[city.tiles[i]] + " #" + i;
 
         bool OverUI(Vector2 position)
         {
@@ -567,7 +720,8 @@ namespace HarborCity
             GUI.Label(new Rect(rx + 20,365,212,60),"交通任务 " + traffic.State.trips.Count + "  /  完成 " + traffic.State.completed
                 + "\n送货 " + traffic.State.delivered + "  /  购物 " + traffic.State.purchases + "  /  失败 " + traffic.State.failed,small);
 
-            if (!help)
+            if (!help && selected == LandUse.Road) RoadToolPanel(navy);
+            if (!help && selected != LandUse.Road)
             {
                 Panel(new Rect(24,120,310,258),navy);
                 if (GUI.Button(new Rect(40,134,278,32),"0  查看车辆与路线",button)) selected = LandUse.Empty;
@@ -591,7 +745,7 @@ namespace HarborCity
                 Rect r = new Rect(40 + (n - 1) * 111,h - 120,101,74);
                 Panel(r,selected == (LandUse)n ? new Color(.23f,.39f,.43f) : new Color(.1f,.17f,.21f));
                 Panel(new Rect(r.x,r.y,101,4),palette[n]);
-                if (GUI.Button(r,n + "  " + names[n] + "\n¥ " + CityModel.Cost((LandUse)n),button)) selected = (LandUse)n;
+                if (GUI.Button(r,n + "  " + names[n] + (n == 1 ? "\n¥ 100 / 3米" : "\n¥ " + CityModel.Cost((LandUse)n)),button)) selected = (LandUse)n;
             }
             if (GUI.Button(new Rect(955,h - 118,76,31),speed == 0 ? "继续" : "暂停",button)) speed = speed == 0 ? 1 : 0;
             if (GUI.Button(new Rect(1039,h - 118,76,31),speed == 3 ? "3×" : "1×",button)) speed = speed == 3 ? 1 : 3;
@@ -606,7 +760,7 @@ namespace HarborCity
             {
                 Panel(new Rect(24,120,450,337),navy);
                 GUI.Label(new Rect(44,140,410,40),"从一条道路开始",title);
-                GUI.Label(new Rect(44,190,400,250),"1   道路须连接地图西侧的入口。\n\n2   在路边拖拽划分住宅、商业和工业区。\n\n3   临路电站与水塔提供全城容量；不足时扩建。\n\n4   平衡人口与就业，建公园提升幸福度。\n\n数字 1–8 切换工具，左键拖拽施工。\n右键拖动旋转，中键拖动平移。\n右键单击 / Esc 取消工具，空格暂停。\n存档保存在本机，读取会替换当前进度。",small);
+                GUI.Label(new Rect(44,190,400,250),"1   道路须连接地图西侧的入口。\n\n2   在路边拖拽划分住宅、商业和工业区。\n\n3   临路电站与水塔提供全城容量；不足时扩建。\n\n4   平衡人口与就业，建公园提升幸福度。\n\n按 1 点击起点、终点修路；2–8 切换工具。\n右键拖动旋转，中键拖动平移。\n右键 / Esc 撤回道路起点或退出；空格暂停。\n存档保存在本机，读取会替换当前进度。",small);
             }
         }
 
@@ -637,7 +791,9 @@ namespace HarborCity
                 if (!File.Exists(SavePath)) { notice = "还没有存档，请先保存城市。"; return; }
                 var loaded = JsonUtility.FromJson<CityModel>(File.ReadAllText(SavePath));
                 if (loaded == null || !loaded.Valid()) { notice = "存档格式无效，当前城市已保留。"; return; }
-                city = loaded; city.Recalculate(); traffic = new CityTraffic(city); inspectedTrip = -1;
+                loaded.EnableRoads(landscape.Height);
+                loaded.EnableBuildings();
+                city = loaded; city.Recalculate(); traffic = new CityTraffic(city); inspectedTrip = -1; roadUndo.Clear();
                 foreach (var car in cars) car.gameObject.SetActive(false);
                 trafficViews.Clear(); timer = 0; Rebuild(); AnimateTraffic(); notice = "已读取第 " + city.day + " 天的城市。";
             }

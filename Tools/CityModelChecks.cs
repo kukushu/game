@@ -42,5 +42,7 @@ public static class CityModelChecks
         Check(after == sum, "No development without power");
         Console.WriteLine("PASS: " + checks + " simulation checks");
         TrafficChecks.Run();
+        RoadChecks.Run();
+        BuildingChecks.Run();
     }
 }

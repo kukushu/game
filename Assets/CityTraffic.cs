@@ -44,24 +44,24 @@ namespace HarborCity
         public CityTraffic(CityModel city)
         {
             this.city = city;
-            if (city.traffic == null) city.traffic = new TrafficState();
+            if (city.traffic == null) city.traffic = new TrafficState {
+                stock=new int[city.tiles.Length], nextCommute=new float[city.tiles.Length], nextShopping=new float[city.tiles.Length] };
             // Restore junction ownership from the saved physical positions, departures first.
             foreach (var t in State.trips)
-                if (t.status == TripStatus.Driving && t.progress < .4f) Reserve(t.Current,t.id);
+                if (t.status == TripStatus.Driving && Behind(t) < .4f) Reserve(t.Current,t.id);
             foreach (var t in State.trips)
-                if (t.status == TripStatus.Driving && t.progress >= .65f) Reserve(t.Next,t.id);
+                if (t.status == TripStatus.Driving && Ahead(t) <= .35f) Reserve(t.Next,t.id);
         }
 
         static bool Finite(float n) => !float.IsNaN(n) && !float.IsInfinity(n) && n >= 0;
-        static bool Lot(int n) => n >= Outside && n < CityModel.Size * CityModel.Size;
-        public static bool Valid(TrafficState s)
+        static bool Lot(int n, int count) => n >= Outside && n < count;
+        public static bool Valid(TrafficState s, CityRoads roads = null, int count = CityModel.Size * CityModel.Size)
         {
             if (s == null) return true; // Additive migration of the original city saves.
-            int count = CityModel.Size * CityModel.Size;
             if (s.trips == null || s.trips.Count > Capacity || s.stock == null || s.stock.Length != count
                 || s.nextCommute == null || s.nextCommute.Length != count || s.nextShopping == null || s.nextShopping.Length != count
                 || !Finite(s.clock) || !Finite(s.dispatchTimer) || !Finite(s.productionTimer) || !Finite(s.remainder)
-                || s.remainder > Step + .001f || s.nextId < 1 || s.nextId == int.MaxValue || s.scheduler < 0
+                || s.remainder > Step + .001f || s.nextId < 1 || s.nextId == int.MaxValue || s.scheduler < 0 || s.scheduler >= count
                 || s.completed < 0 || s.failed < 0 || s.delivered < 0 || s.purchases < 0) return false;
             var ids = new HashSet<int>();
             foreach (int n in s.stock) if (n < 0 || n > 32) return false;
@@ -69,24 +69,30 @@ namespace HarborCity
             foreach (float n in s.nextShopping) if (!Finite(n)) return false;
             foreach (var t in s.trips)
             {
-                if (t == null || t.id <= 0 || t.id >= s.nextId || !ids.Add(t.id) || !Lot(t.origin) || !Lot(t.destination)
-                    || !Lot(t.home) || t.route == null || t.route.Count == 0 || t.route.Count > count
+                if (t == null || t.id <= 0 || t.id >= s.nextId || !ids.Add(t.id) || !Lot(t.origin,count) || !Lot(t.destination,count)
+                    || !Lot(t.home,count) || t.route == null || t.route.Count == 0 || t.route.Count > (roads == null ? count : 20000)
                     || t.segment < 0 || t.segment >= t.route.Count || !Finite(t.progress) || t.progress >= 1
                     || !Finite(t.delay) || !Finite(t.blocked) || t.cargo < 0 || t.cargo > 8
                     || (int)t.purpose < 0 || (int)t.purpose > 4 || (int)t.status < 0 || (int)t.status > 2) return false;
                 for (int i = 0; i < t.route.Count; i++)
-                    if (t.route[i] < 0 || t.route[i] >= count || (i > 0 && Distance(t.route[i - 1], t.route[i]) != 1)) return false;
+                    if (roads != null ? roads.Node(t.route[i]) == null
+                        : t.route[i] < 0 || t.route[i] >= count || (i > 0 && Distance(t.route[i - 1], t.route[i]) != 1)) return false;
             }
             return true;
         }
 
         static int Distance(int a, int b) => Math.Abs(a % CityModel.Size - b % CityModel.Size) + Math.Abs(a / CityModel.Size - b / CityModel.Size);
-        bool Road(int i) => i >= 0 && i < city.tiles.Length && city.tiles[i] == (int)LandUse.Road;
+        bool Road(int i) => city.roads != null ? city.roads.Active(i) : i >= 0 && i < city.tiles.Length && city.tiles[i] == (int)LandUse.Road;
+        bool Linked(int a,int b) => a == b || (city.roads != null ? city.roads.Linked(a,b) : Road(a) && Road(b) && Distance(a,b)==1);
+        float Units(int a,int b) => city.roads == null || a == b ? 1 : city.roads.EdgeLength(a,b) / 3;
+        float Ahead(TrafficTrip t) => (1-t.progress)*Units(t.Current,t.Next);
+        float Behind(TrafficTrip t) => t.progress*Units(t.Current,t.Next);
         bool Building(int i) => i >= 0 && i < city.tiles.Length && city.levels[i] > 0
             && city.tiles[i] >= (int)LandUse.Residential && city.tiles[i] <= (int)LandUse.Industrial;
         bool Endpoint(int i) => i == Outside ? Road(Entrance) : Building(i);
         IEnumerable<int> Neighbors(int i)
         {
+            if (city.roads != null) { foreach (int n in city.roads.Neighbors(i)) yield return n; yield break; }
             int x = i % CityModel.Size, z = i / CityModel.Size;
             if (x > 0) yield return i - 1;
             if (x + 1 < CityModel.Size) yield return i + 1;
@@ -95,6 +101,8 @@ namespace HarborCity
         }
         List<int> Access(int endpoint)
         {
+            if (city.version >= 3) return endpoint == Outside || Building(endpoint) ? city.AccessBuilding(endpoint) : new List<int>();
+            if (city.roads != null) return endpoint == Outside || Building(endpoint) ? city.roads.Access(endpoint) : new List<int>();
             var result = new List<int>();
             if (endpoint == Outside) { if (Road(Entrance)) result.Add(Entrance); }
             else if (Building(endpoint)) foreach (int n in Neighbors(endpoint)) if (Road(n)) result.Add(n);
@@ -106,6 +114,7 @@ namespace HarborCity
         public List<int> FindRoute(int origin, int destination) => Search(Access(origin), Access(destination));
         List<int> Search(List<int> starts, List<int> goals)
         {
+            if (city.roads != null) return city.roads.FindPath(starts,goals);
             var result = new List<int>();
             if (starts.Count == 0 || goals.Count == 0) return result;
             var previous = new int[city.tiles.Length];
@@ -162,8 +171,8 @@ namespace HarborCity
             foreach (var other in State.trips)
             {
                 if (other == self || other.status == TripStatus.Visiting) continue;
-                if (other.Current == route[0] && (route.Count == 1 || other.Next == route[1]) && other.progress < Gap) return false;
-                if (other.Next == route[0] && other.progress > 1 - Gap) return false;
+                if (other.Current == route[0] && (route.Count == 1 || other.Next == route[1]) && Behind(other) < Gap) return false;
+                if (other.Next == route[0] && Ahead(other) < Gap) return false;
             }
             return true;
         }
@@ -189,7 +198,7 @@ namespace HarborCity
                 for (int i = 0; i < city.tiles.Length; i++)
                 {
                     if (!Building(i)) State.stock[i] = 0;
-                    else if (city.tiles[i] == (int)LandUse.Industrial && city.RoadAccess(i % CityModel.Size, i / CityModel.Size))
+                    else if (city.tiles[i] == (int)LandUse.Industrial && city.EntityRoadAccess(i))
                         State.stock[i] = Math.Min(24, State.stock[i] + city.levels[i]);
                 }
             }
@@ -199,7 +208,7 @@ namespace HarborCity
             {
                 var owner = State.trips.Find(t => t.id == pair.Value);
                 if (owner == null || owner.status != TripStatus.Driving
-                    || !(owner.Next == pair.Key && owner.progress >= .64f || owner.Current == pair.Key && owner.progress < .4f)) release.Add(pair.Key);
+                    || !(owner.Next == pair.Key && Ahead(owner) <= .36f || owner.Current == pair.Key && Behind(owner) < .4f)) release.Add(pair.Key);
             }
             foreach (int node in release) junctions.Remove(node);
             foreach (var t in State.trips.ToArray()) Move(t);
@@ -219,7 +228,7 @@ namespace HarborCity
             {
                 int i = State.scheduler;
                 State.scheduler = (State.scheduler + 1) % city.tiles.Length;
-                if (!Building(i) || !city.RoadAccess(i % CityModel.Size, i / CityModel.Size)) continue;
+                if (!Building(i) || !city.EntityRoadAccess(i)) continue;
                 var use = (LandUse)city.tiles[i];
                 if (use == LandUse.Residential)
                 {
@@ -268,6 +277,7 @@ namespace HarborCity
         bool RouteValid(TrafficTrip t)
         {
             for (int i = t.segment; i < t.route.Count; i++) if (!Road(t.route[i])) return false;
+            for (int i = t.segment; i < t.route.Count-1; i++) if (!Linked(t.route[i],t.route[i+1])) return false;
             return Access(t.destination).Contains(t.route[t.route.Count - 1]);
         }
         void Wait(TrafficTrip t)
@@ -301,7 +311,7 @@ namespace HarborCity
             if (!RouteValid(t))
             {
                 // Finish an intact edge before replanning; don't teleport to a distant road.
-                if (!Road(t.Current) || !Road(t.Next)) { Wait(t); return; }
+                if (!Road(t.Current) || (t.progress > 0 && (!Road(t.Next) || !Linked(t.Current,t.Next)))) { Wait(t); return; }
                 if (t.progress == 0)
                 {
                     t.delay = Math.Max(0, t.delay - Step);
@@ -313,18 +323,26 @@ namespace HarborCity
             }
             t.status = TripStatus.Driving;
             if (t.segment == t.route.Count - 1) { Arrive(t); return; }
-            float advance = Step * (t.purpose >= TripPurpose.Delivery ? .9f : 1.2f);
+            float units = Units(t.Current,t.Next);
+            float advance = Step * (t.purpose >= TripPurpose.Delivery ? .9f : 1.2f) / units;
             float proposed = Math.Min(1, t.progress + advance);
             foreach (var other in State.trips)
             {
                 if (other == t || other.status == TripStatus.Visiting) continue;
-                if (other.Current == t.Current && other.Next == t.Next && other.progress > t.progress)
-                    proposed = Math.Min(proposed, other.progress - Gap);
-                if (other.Current == t.Next && t.segment + 2 < t.route.Count && other.Next == t.route[t.segment + 2])
-                    proposed = Math.Min(proposed, 1 + other.progress - Gap);
+                // Splitting a road can create edges shorter than one car's headway.
+                float offset = -Behind(t);
+                for (int s = t.segment; s < t.route.Count-1 && offset < Gap + units; s++)
+                {
+                    if (other.Current == t.route[s] && other.Next == t.route[s+1])
+                    {
+                        float distance = offset + Behind(other);
+                        if (distance > .0001f) proposed = Math.Min(proposed,t.progress+(distance-Gap)/units);
+                    }
+                    offset += Units(t.route[s],t.route[s+1]);
+                }
             }
-            if (t.progress < .4f && !Reserve(t.Current, t.id)) proposed = t.progress;
-            if (proposed >= .65f && !Reserve(t.Next, t.id)) proposed = Math.Min(proposed, .64f);
+            if (Behind(t) < .4f && !Reserve(t.Current, t.id)) proposed = t.progress;
+            if ((1-proposed)*units <= .35f && !Reserve(t.Next, t.id)) proposed = Math.Min(proposed, Math.Max(0,1-.36f/units));
             if (proposed <= t.progress + .00001f) { t.blocked += Step; if (t.blocked >= 120) Fail(t); return; }
             t.progress = proposed; t.blocked = 0;
             if (t.progress >= 1) { t.segment++; t.progress = 0; }
