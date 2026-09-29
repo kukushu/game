@@ -32,6 +32,9 @@ public static class TrafficChecks
         var trip = sim.Dispatch(I(1,17),I(34,19),TripPurpose.Commute);
         Check(trip != null && trip.route.Count == 34, "Cross-map trip has complete route");
         sim.Advance(0); Check(trip.progress == 0 && sim.State.clock == 0, "Paused traffic does not advance");
+        trip.progress=.99999988f;
+        sim.Advance(.05f);
+        Check(trip.segment==1 && trip.progress==0 && trip.blocked==0,"Final float increment completes segment instead of permanently blocking");
         sim.Advance(8); Check(trip.Current % 36 > 8, "Car leaves its initial neighborhood");
         Until(sim, () => trip.status == TripStatus.Visiting, 40);
         Check(sim.State.completed == 1 && trip.Current == I(34,18), "Arrival counted at destination only");

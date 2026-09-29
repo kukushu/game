@@ -12,6 +12,9 @@ namespace HarborCity
         GameObject zoningOverlay;
         CityBuilding previewLot;
         LandUse previewUse;
+        HousingKind housingChoice=HousingKind.Apartment;
+        HousingKind zoningHousing;
+        LandUse zoningUse;
 
         void BuildingHeight(CityBuilding lot,out float low,out float high)
         {
@@ -24,7 +27,8 @@ namespace HarborCity
         }
         void RefreshZoning()
         {
-            if(zoningRoads==city.roads && zoningRevision==city.roads.revision && zoningBuildings==city.buildingRevision) return;
+            if(zoningRoads==city.roads && zoningRevision==city.roads.revision && zoningBuildings==city.buildingRevision && zoningHousing==housingChoice && zoningUse==selected) return;
+            zoningHousing=housingChoice; zoningUse=selected;
             zoningRoads=city.roads; zoningRevision=city.roads.revision; zoningBuildings=city.buildingRevision;
             zoningLots.Clear();
             if(zoningOverlay!=null) { zoningOverlay.SetActive(false); Destroy(zoningOverlay); }
@@ -32,12 +36,20 @@ namespace HarborCity
             var vertices=new List<Vector3>(); var indices=new List<int>();
             foreach(var lot in city.RoadsideLots())
             {
+                if(selected==LandUse.Residential && city.society!=null)
+                {
+                    lot.housing=housingChoice; lot.width=housingChoice==HousingKind.Villa?5.9f:2.9f;
+                    lot.depth=5.9f;
+                    var centre=lot.Point(0,1.5f); lot.x=centre.x; lot.z=centre.z;
+                    // Entrance remains at the original road frontage.
+                    if(zoningLots.Exists(other=>lot.Overlaps(other))) continue;
+                }
                 if(!city.CanBuild(lot,landscape.Height,out _)) continue;
                 zoningLots.Add(lot);
                 for(int edge=0;edge<4;edge++)
                 {
-                    var a=lot.Point(edge<2 ? -1.45f:1.45f,edge==0 || edge==3 ? -1.45f:1.45f);
-                    var b=lot.Point(edge==0 || edge==3 ? -1.45f:1.45f,edge<2 ? 1.45f:-1.45f);
+                    var a=lot.Point(edge<2 ? -lot.width/2:lot.width/2,edge==0 || edge==3 ? -lot.depth/2:lot.depth/2);
+                    var b=lot.Point(edge==0 || edge==3 ? -lot.width/2:lot.width/2,edge<2 ? lot.depth/2:-lot.depth/2);
                     Vector3 start=new Vector3(a.x,0,a.z), end=new Vector3(b.x,0,b.z);
                     Vector3 normal=Vector3.Cross(Vector3.up,(end-start).normalized)*.025f;
                     int n=vertices.Count;

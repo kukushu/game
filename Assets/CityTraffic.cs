@@ -10,6 +10,9 @@ namespace HarborCity
     public sealed class TrafficTrip
     {
         public int id, origin, destination, home, segment, cargo;
+        public int householdId;
+        public int residentId;
+        public float departedAt;
         public TripPurpose purpose;
         public TripStatus status;
         public bool returning;
@@ -31,9 +34,10 @@ namespace HarborCity
     }
 
     // Pure simulation: representative building trips, separate from Unity rendering.
-    public sealed class CityTraffic
+    public sealed partial class CityTraffic
     {
         public const int Capacity = 48;
+        public const int TaskCapacity = 10048;
         public const int Outside = -1;
         const float Step = .05f, Gap = .48f;
         readonly CityModel city;
@@ -58,7 +62,7 @@ namespace HarborCity
         public static bool Valid(TrafficState s, CityRoads roads = null, int count = CityModel.Size * CityModel.Size)
         {
             if (s == null) return true; // Additive migration of the original city saves.
-            if (s.trips == null || s.trips.Count > Capacity || s.stock == null || s.stock.Length != count
+            if (s.trips == null || s.trips.Count > TaskCapacity || s.stock == null || s.stock.Length != count
                 || s.nextCommute == null || s.nextCommute.Length != count || s.nextShopping == null || s.nextShopping.Length != count
                 || !Finite(s.clock) || !Finite(s.dispatchTimer) || !Finite(s.productionTimer) || !Finite(s.remainder)
                 || s.remainder > Step + .001f || s.nextId < 1 || s.nextId == int.MaxValue || s.scheduler < 0 || s.scheduler >= count
@@ -71,7 +75,7 @@ namespace HarborCity
             {
                 if (t == null || t.id <= 0 || t.id >= s.nextId || !ids.Add(t.id) || !Lot(t.origin,count) || !Lot(t.destination,count)
                     || !Lot(t.home,count) || t.route == null || t.route.Count == 0 || t.route.Count > (roads == null ? count : 20000)
-                    || t.segment < 0 || t.segment >= t.route.Count || !Finite(t.progress) || t.progress >= 1
+                    || t.segment < 0 || t.segment >= t.route.Count || !Finite(t.progress) || t.progress >= 1 || t.residentId<0 || !Finite(t.departedAt)
                     || !Finite(t.delay) || !Finite(t.blocked) || t.cargo < 0 || t.cargo > 8
                     || (int)t.purpose < 0 || (int)t.purpose > 4 || (int)t.status < 0 || (int)t.status > 2) return false;
                 for (int i = 0; i < t.route.Count; i++)
@@ -135,16 +139,17 @@ namespace HarborCity
             return result;
         }
 
-        public TrafficTrip Dispatch(int origin, int destination, TripPurpose purpose)
+        public TrafficTrip Dispatch(int origin, int destination, TripPurpose purpose, int residentId=0)
         {
-            if (State.trips.Count >= Capacity || origin == destination || !Endpoint(origin) || !Endpoint(destination)) return null;
+            int background=0; foreach(var existing in State.trips) if(existing.residentId==0) background++;
+            if (State.trips.Count >= TaskCapacity || (residentId==0 && background>=Capacity) || origin == destination || !Endpoint(origin) || !Endpoint(destination)) return null;
             int cargo = purpose == TripPurpose.Delivery || purpose == TripPurpose.Import || purpose == TripPurpose.Export ? 8 : 0;
             if (cargo > 0 && origin != Outside && State.stock[origin] < cargo) return null;
             if (purpose == TripPurpose.Shopping && State.stock[destination] <= ReservedShopping(destination)) return null;
             var route = FindRoute(origin, destination);
             if (route.Count == 0 || !CanEnter(route, null)) return null;
             var trip = new TrafficTrip { id = State.nextId++, origin = origin, destination = destination, home = origin,
-                purpose = purpose, cargo = cargo, route = route };
+                purpose = purpose, cargo = cargo, route = route, residentId=residentId, departedAt=State.clock };
             if (cargo > 0 && origin != Outside) State.stock[origin] -= cargo;
             State.trips.Add(trip);
             return trip;
@@ -212,6 +217,7 @@ namespace HarborCity
             }
             foreach (int node in release) junctions.Remove(node);
             foreach (var t in State.trips.ToArray()) Move(t);
+            if(city.society!=null && city.society.transportEnabled) AdvanceResidents();
             State.dispatchTimer += Step;
             if (State.dispatchTimer >= .6f)
             {
@@ -222,7 +228,7 @@ namespace HarborCity
 
         void Schedule()
         {
-            if (State.trips.Count >= Capacity) return;
+            if (State.trips.Count >= TaskCapacity) return;
             // Rotate sources so adding a remote district does not starve its trips.
             for (int k = 0; k < city.tiles.Length; k++)
             {
@@ -232,6 +238,18 @@ namespace HarborCity
                 var use = (LandUse)city.tiles[i];
                 if (use == LandUse.Residential)
                 {
+                    if(city.society!=null)
+                    {
+                        if(city.society.transportEnabled) continue;
+                        // These cars visualize a sample; salary and employment never depend on this pool.
+                        foreach(var h in city.society.families)
+                        {
+                            if(!h.resident || h.home!=i || h.work<0 || State.clock<State.nextCommute[i] || BusyHome(i,TripPurpose.Commute)) continue;
+                            var commute=Dispatch(i,h.work,TripPurpose.Commute);
+                            if(commute!=null) {commute.householdId=h.id; State.nextCommute[i]=State.clock+45; return;}
+                        }
+                        continue;
+                    }
                     if (State.clock >= State.nextCommute[i] && !BusyHome(i, TripPurpose.Commute))
                     {
                         // Stable preferred workplace per building, with reachable alternatives.
@@ -283,7 +301,7 @@ namespace HarborCity
         void Wait(TrafficTrip t)
         {
             t.status = TripStatus.Waiting; t.blocked += Step;
-            if (t.blocked >= 120) Fail(t);
+            if (t.blocked >= 120 && t.residentId==0) Fail(t);
         }
         void Fail(TrafficTrip t)
         {
@@ -294,6 +312,7 @@ namespace HarborCity
 
         void Move(TrafficTrip t)
         {
+            if(t.residentId>0 && !ValidateResidentTrip(t)) return;
             if (!Endpoint(t.destination) || !Endpoint(t.home)) { Fail(t); return; }
             if (t.status == TripStatus.Visiting)
             {
@@ -324,7 +343,8 @@ namespace HarborCity
             t.status = TripStatus.Driving;
             if (t.segment == t.route.Count - 1) { Arrive(t); return; }
             float units = Units(t.Current,t.Next);
-            float advance = Step * (t.purpose >= TripPurpose.Delivery ? .9f : 1.2f) / units;
+            float velocity=t.residentId>0 ? 480f/city.society.settings.secondsPerDay : t.purpose >= TripPurpose.Delivery ? .9f : 1.2f;
+            float advance = Step * velocity / units;
             float proposed = Math.Min(1, t.progress + advance);
             foreach (var other in State.trips)
             {
@@ -343,13 +363,17 @@ namespace HarborCity
             }
             if (Behind(t) < .4f && !Reserve(t.Current, t.id)) proposed = t.progress;
             if ((1-proposed)*units <= .35f && !Reserve(t.Next, t.id)) proposed = Math.Min(proposed, Math.Max(0,1-.36f/units));
-            if (proposed <= t.progress + .00001f) { t.blocked += Step; if (t.blocked >= 120) Fail(t); return; }
+            // A split edge can leave progress one float below 1. Do not classify
+            // the final representable increment as blocked: it must reach the next
+            // segment and release its junction reservation.
+            if (proposed <= t.progress) { t.blocked += Step; if (t.blocked >= 120 && t.residentId==0) Fail(t); return; }
             t.progress = proposed; t.blocked = 0;
             if (t.progress >= 1) { t.segment++; t.progress = 0; }
         }
 
         void Arrive(TrafficTrip t)
         {
+            if(t.residentId>0) { ArriveResident(t); return; }
             if (t.returning) { State.trips.Remove(t); return; }
             if (t.cargo > 0)
             {

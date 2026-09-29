@@ -31,7 +31,7 @@ namespace HarborCity
             if(game!=null)
             {
                 var live=(CityModel)typeof(HarborCityGame).GetField("city",BindingFlags.NonPublic|BindingFlags.Instance).GetValue(game);
-                if(!live.Valid() || live.version!=3) throw new Exception("Live city migration failed");
+                if(!live.Valid() || live.version<3) throw new Exception("Live city migration failed");
                 var visuals=(System.Collections.Generic.Dictionary<int,GameObject>)typeof(HarborCityGame).GetField("visuals",BindingFlags.NonPublic|BindingFlags.Instance).GetValue(game);
                 foreach(var pair in visuals)
                 {

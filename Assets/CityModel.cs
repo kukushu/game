@@ -68,6 +68,7 @@ namespace HarborCity
 
         public void Recalculate()
         {
+            if(version>=4 && society!=null) {RecalculateHouseholds(); return;}
             if (connected == null || connected.Length != tiles.Length) connected = new bool[tiles.Length];
             Array.Clear(connected, 0, connected.Length);
             var queue = new Queue<int>();
@@ -117,6 +118,7 @@ namespace HarborCity
 
         public List<int> Tick()
         {
+            if(version>=4 && society!=null) {HouseholdTick(); return new List<int>();}
             day++;
             Recalculate();
             var changes = new List<int>();
@@ -137,7 +139,7 @@ namespace HarborCity
 
         public void EnableRoads(Func<float,float,float> height)
         {
-            if (roads != null) return;
+            if (version>=2 && roads != null) return;
             roads = CityRoads.FromGrid(this,height);
             for (int i = 0; i < tiles.Length; i++) if (tiles[i] == (int)LandUse.Road) tiles[i] = 0;
             version = 2; Recalculate();
@@ -149,11 +151,11 @@ namespace HarborCity
             roads = plan.network; roads.ApplySplits(traffic,plan.splits); money -= plan.cost; Recalculate(); return true;
         }
 
-        public bool Valid() => (version == 1 || version == 2 || version == 3) && tiles != null && levels != null && (version == 3 ? ValidBuildings() : tiles.Length == Size * Size)
+        public bool Valid() => (version >= 1 && version <= 4) && tiles != null && levels != null && (version >= 3 ? ValidBuildings() : tiles.Length == Size * Size)
             && levels.Length == tiles.Length && day > 0 && Array.TrueForAll(tiles, t => t >= 0 && t <= (int)LandUse.Park)
             && Array.TrueForAll(levels, l => l >= 0 && l <= 3)
-            && (version == 1 ? roads == null && tiles[Index(0, Size / 2)] == (int)LandUse.Road : roads != null && roads.Valid())
-            && CityTraffic.Valid(traffic,roads,tiles.Length);
+            && (version == 1 ? (roads == null || (roads.nodes!=null && roads.nodes.Count==0 && roads.edges!=null && roads.edges.Count==0)) && tiles[Index(0, Size / 2)] == (int)LandUse.Road : roads != null && roads.Valid())
+            && CityTraffic.Valid(traffic,version==1?null:roads,tiles.Length) && (version<4 || ValidHouseholds());
 
         public static CityModel Create()
         {

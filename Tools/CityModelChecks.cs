@@ -44,5 +44,7 @@ public static class CityModelChecks
         TrafficChecks.Run();
         RoadChecks.Run();
         BuildingChecks.Run();
+        HouseholdChecks.Run();
+        ResidentTransportChecks.Run();
     }
 }

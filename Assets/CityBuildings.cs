@@ -10,6 +10,9 @@ namespace HarborCity
         public float x, z, yaw, entranceX, entranceZ;
         public float width = 2.9f, depth = 2.9f;
         public bool legacy;
+        public HousingKind housing;
+        public int housingUnits, askingRent, vacantDays, applications;
+        public List<int> interestedFamilies=new List<int>();
         public RoadNode Point(float right, float forward)
         {
             double angle = yaw * Math.PI / 180;
@@ -114,16 +117,22 @@ namespace HarborCity
         public int PlaceBuilding(CityBuilding lot,LandUse use,Func<float,float,float> height,out string error)
         {
             error="";
-            if(version!=3 || use<LandUse.Residential || use>LandUse.Park || tiles.Length>=100000) return -1;
+            if(version<3 || use<LandUse.Residential || use>LandUse.Park || tiles.Length>=100000) return -1;
             if(!CanBuild(lot,height,out error)) return -1;
-            if(money<Cost(use)) { error="资金不足"; return -1; }
+            int cost=society!=null && use==LandUse.Residential ? (lot.housing==HousingKind.Villa?society.settings.villaCost:society.settings.apartmentCost) : Cost(use);
+            if(money<cost) { error="资金不足"; return -1; }
             int id=tiles.Length; Array.Resize(ref tiles,id+1); Array.Resize(ref levels,id+1);
             lot.id=id; buildings.Add(lot); tiles[id]=(int)use;
+            if(society!=null)
+            {
+                levels[id]=1;
+                if(use==LandUse.Residential) {lot.housingUnits=lot.housing==HousingKind.Villa?1:8; lot.askingRent=lot.housing==HousingKind.Villa?society.settings.villaRent:society.settings.apartmentRent;}
+            }
             if(traffic!=null)
             {
                 Array.Resize(ref traffic.stock,id+1); Array.Resize(ref traffic.nextCommute,id+1); Array.Resize(ref traffic.nextShopping,id+1);
             }
-            money-=Cost(use); buildingRevision++; Recalculate(); return id;
+            money-=cost; buildingRevision++; Recalculate(); return id;
         }
         public bool DemolishBuilding(int id)
         {
@@ -164,7 +173,8 @@ namespace HarborCity
                 var b=buildings[i];
                 if(b==null || b.id!=i || !FinitePosition(b.x) || !FinitePosition(b.z) || !FinitePosition(b.entranceX)
                     || !FinitePosition(b.entranceZ) || float.IsNaN(b.yaw) || float.IsInfinity(b.yaw)
-                    || b.width!=2.9f || b.depth!=2.9f || tiles[i]==1) return false;
+                    || float.IsNaN(b.width) || float.IsNaN(b.depth) || b.width<2.9f || b.width>8.9f || b.depth<2.9f || b.depth>8.9f || tiles[i]==1
+                    || version>=4 && tiles[i]==2 && (b.housingUnits<1 || b.housingUnits>100 || b.askingRent<0 || (int)b.housing<0 || (int)b.housing>2)) return false;
             }
             return true;
         }
