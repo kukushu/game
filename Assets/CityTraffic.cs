@@ -37,7 +37,7 @@ namespace HarborCity
     public sealed partial class CityTraffic
     {
         public const int Capacity = 48;
-        public const int TaskCapacity = 10048;
+        public const int TaskCapacity = 100048;
         public const int Outside = -1;
         const float Step = .05f, Gap = .48f;
         readonly CityModel city;
@@ -240,14 +240,7 @@ namespace HarborCity
                 {
                     if(city.society!=null)
                     {
-                        if(city.society.transportEnabled) continue;
-                        // These cars visualize a sample; salary and employment never depend on this pool.
-                        foreach(var h in city.society.families)
-                        {
-                            if(!h.resident || h.home!=i || h.work<0 || State.clock<State.nextCommute[i] || BusyHome(i,TripPurpose.Commute)) continue;
-                            var commute=Dispatch(i,h.work,TripPurpose.Commute);
-                            if(commute!=null) {commute.householdId=h.id; State.nextCommute[i]=State.clock+45; return;}
-                        }
+                        // Household cities dispatch through real citizen jobs in AdvanceResidents.
                         continue;
                     }
                     if (State.clock >= State.nextCommute[i] && !BusyHome(i, TripPurpose.Commute))

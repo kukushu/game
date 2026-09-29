@@ -139,7 +139,13 @@ namespace HarborCity
 
         public void EnableRoads(Func<float,float,float> height)
         {
-            if (version>=2 && roads != null) return;
+            if (version>=2 && roads != null)
+            {
+                // A new map has only an unbuilt outside connection anchor.
+                if(roads.edges.Count==0 && roads.nodes.Count==1)
+                {var n=roads.Node(CityRoads.Entrance); if(n!=null) {n.y=height(n.x,n.z); roads.Changed();}}
+                return;
+            }
             roads = CityRoads.FromGrid(this,height);
             for (int i = 0; i < tiles.Length; i++) if (tiles[i] == (int)LandUse.Road) tiles[i] = 0;
             version = 2; Recalculate();
@@ -151,13 +157,23 @@ namespace HarborCity
             roads = plan.network; roads.ApplySplits(traffic,plan.splits); money -= plan.cost; Recalculate(); return true;
         }
 
-        public bool Valid() => (version >= 1 && version <= 4) && tiles != null && levels != null && (version >= 3 ? ValidBuildings() : tiles.Length == Size * Size)
+        public bool Valid() => (version >= 1 && version <= 5) && tiles != null && levels != null && (version >= 3 ? ValidBuildings() : tiles.Length == Size * Size)
             && levels.Length == tiles.Length && day > 0 && Array.TrueForAll(tiles, t => t >= 0 && t <= (int)LandUse.Park)
             && Array.TrueForAll(levels, l => l >= 0 && l <= 3)
             && (version == 1 ? (roads == null || (roads.nodes!=null && roads.nodes.Count==0 && roads.edges!=null && roads.edges.Count==0)) && tiles[Index(0, Size / 2)] == (int)LandUse.Road : roads != null && roads.Valid())
             && CityTraffic.Valid(traffic,version==1?null:roads,tiles.Length) && (version<4 || ValidHouseholds());
 
         public static CityModel Create()
+        {
+            var city=new CityModel {version=2,roads=new CityRoads()};
+            var entrance=CityRoads.Lot(CityRoads.Entrance); entrance.id=CityRoads.Entrance;
+            city.roads.nodes.Add(entrance);
+            city.Recalculate();
+            return city;
+        }
+
+        // Historical fixture for migration/regression checks; never used by new-game startup.
+        public static CityModel CreateLegacySample()
         {
             var city = new CityModel();
             for (int x = 0; x <= 26; x++) city.tiles[Index(x, 18)] = (int)LandUse.Road;

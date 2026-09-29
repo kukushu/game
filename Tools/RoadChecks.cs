@@ -19,7 +19,7 @@ public static class RoadChecks
     }
     public static void Run()
     {
-        var c=CityModel.Create(); var traffic=new CityTraffic(c); traffic.Advance(8);
+        var c=CityModel.CreateLegacySample(); var traffic=new CityTraffic(c); traffic.Advance(8);
         int population=c.population,jobs=c.jobs,trips=c.traffic.trips.Count;
         c.EnableRoads(Flat);
         Check(c.version==2 && c.Valid(),"Old grid and active routes migrate to version 2");

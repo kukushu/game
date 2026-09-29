@@ -8,9 +8,33 @@ public static class BuildingChecks
     static float Flat(float x,float z)=>1;
     static RoadNode P(float x,float z)=>new RoadNode{x=x,z=z,y=1};
     static void Check(bool ok,string message) { if(!ok) throw new Exception("Buildings: "+message); checks++; }
+    static void CheckEmptyStart()
+    {
+        var c=CityModel.Create(); var sim=new CityTraffic(c);
+        c.EnableRoads(Flat); c.EnableBuildings(); c.EnableHouseholds(); c.EnableResidentTransport();
+        Check(c.Valid() && c.tiles.All(t=>t==0) && c.roads.edges.Count==0 && c.population==0 && c.jobs==0 && c.society.families.Count==0,"New game is an empty valid city");
+        sim.Advance(121);
+        Check(c.population==0 && c.traffic.trips.Count==0 && c.money==65000,"Empty map creates no residents, traffic or expenses");
+        var entry=c.roads.Node(CityRoads.Entrance);
+        Check(c.roads.Snap(entry.x+.2f,entry.z,Flat).id==entry.id && entry.y==1,"Unbuilt outside anchor follows terrain and accepts snapping");
+        var plan=c.roads.Plan(c,entry,P(-12,1.5f),Flat);
+        Check(c.CommitRoad(plan),"First player road can connect an empty map: "+plan.error);
+        foreach(var use in new[]{LandUse.Power,LandUse.Water,LandUse.Commercial,LandUse.Industrial,LandUse.Residential})
+        {
+            var lots=c.RoadsideLots();
+            if(use==LandUse.Residential) foreach(var lot in lots)
+            {lot.housing=HousingKind.Apartment; lot.depth=5.9f; var center=lot.Point(0,1.5f); lot.x=center.x; lot.z=center.z;}
+            var choice=lots.First(l=>c.CanBuild(l,Flat,out _));
+            Check(c.PlaceBuilding(choice,use,Flat,out _)>=0,"Player constructs "+use+" on new map");
+        }
+        sim.Advance(1200);
+        Check(c.population>0 && c.Employed>0 && c.society.history.Any(d=>d.wages>0) && c.Valid(),"Player-built city attracts residents with actual jobs, trips and wages");
+        Check(c.buildings.Where(b=>c.tiles[b.id]==2).All(b=>b.housing==HousingKind.Apartment && !b.legacy && b.housingUnits==8),"New map uses standard player housing only");
+    }
     public static void Run()
     {
-        var c=CityModel.Create(); var traffic=new CityTraffic(c); traffic.Advance(8);
+        CheckEmptyStart();
+        var c=CityModel.CreateLegacySample(); var traffic=new CityTraffic(c); traffic.Advance(8);
         int pop=c.population,jobs=c.jobs,stock=c.traffic.stock.Sum(),tripCount=c.traffic.trips.Count;
         c.EnableRoads(Flat); c.EnableBuildings();
         Check(c.Valid() && c.version==3,"v1/v2 migrate to valid v3");

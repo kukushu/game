@@ -11,7 +11,7 @@ namespace HarborCity
         [MenuItem("Harbor/Validate free roads")]
         public static void Validate()
         {
-            var city=CityModel.Create();
+            var city=CityModel.CreateLegacySample();
             var traffic=new CityTraffic(city); traffic.Advance(10);
             city.EnableRoads((x,z)=>1);
             var plan=city.roads.Plan(city,new RoadNode{x=-45,z=1.5f,y=1},new RoadNode{x=-40,z=-22,y=1},(x,z)=>1);

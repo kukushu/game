@@ -56,19 +56,19 @@ namespace HarborCity
             if(GUILayout.Button("关闭",button,GUILayout.Width(60))) inspectedHome=-1;
             GUILayout.EndHorizontal();
             GUILayout.Label((b.housing==HousingKind.Villa?"小别墅":"公寓")+" · 入住 "+occupants.Count+" / "+b.housingUnits+" 户",label);
-            GUILayout.Label("居民 "+occupants.Sum(f=>f.members)+" 人 · 空房 "+(b.housingUnits-occupants.Count)+" 套\n挂牌租金 ¥"+b.askingRent+" / 日 · "+(city.EntityRoadAccess(b.id)?"道路已接通":"道路未接通"),small);
+            GUILayout.Label("居民 "+occupants.Sum(f=>f.people.Count)+" 人 · 空房 "+(b.housingUnits-occupants.Count)+" 套\n挂牌租金 ¥"+b.askingRent+" / 日 · "+(city.EntityRoadAccess(b.id)?"道路已接通":"道路未接通"),small);
             householdListScroll=GUILayout.BeginScrollView(householdListScroll);
             if(occupants.Count==0) GUILayout.Label("暂时没有住户。\n住房已提供容量，等待家庭选择入住。",small);
             foreach(var f in occupants)
             {
-                if(GUILayout.Button("单元 "+(f.unit+1)+" · 家庭 #"+f.id+" · "+f.members+" 人",button))
+                if(GUILayout.Button("单元 "+(f.unit+1)+" · 家庭 #"+f.id+" · "+f.people.Count+" 人",button))
                 {
                     familyIndex=city.society.families.IndexOf(f); familySearch=f.id.ToString();
                     simulationTab=1; simulationScroll=Vector2.zero; showSimulation=true;
                 }
-                float minutes=city.CommuteMinutes(f.home,f.work);
-                GUILayout.Label("日薪 ¥"+city.Wage(f.work)+" · 租金 ¥"+f.rent+"\n储蓄 ¥"+f.savings+" · "+(f.work<0?"待业":"工作 #"+f.work)+"\n通勤："+(minutes<0?"不可达":minutes.ToString("F1")+" 分钟"),small);
-                GUILayout.Label("工作目的地："+WorkplaceName(f)+(commuteFamily==f.id?"（已标出）":""),small);
+                float minutes=city.HouseholdCommute(f);
+                GUILayout.Label("日薪 ¥"+city.HouseholdSalary(f)+" · 租金 ¥"+f.rent+"\n储蓄 ¥"+f.savings+" · "+"就业成员 "+f.people.Count(p=>city.ResidentJob(p)!=null)+"\n通勤："+(minutes<0?"不可达":minutes.ToString("F1")+" 分钟"),small);
+                GUILayout.Label("工作目的地："+string.Join("、",f.people.Where(p=>city.ResidentJob(p)!=null).Select(p=>p.name+" → "+WorkplaceName(p)))+(commuteFamily==f.id?"（已标出）":""),small);
                 if(HasWorkplace(f))
                 {
                     GUILayout.BeginHorizontal();
@@ -145,8 +145,8 @@ namespace HarborCity
                     GUILayout.Label("实际通勤任务 "+commuters.Count+" / 排队或断路 "+commuters.Count(t=>t.blocked>.1f || t.status==TripStatus.Waiting)+
                         " / 工作场所内 "+residents.Sum(h=>h.people.Count(p=>p.atWork && p.tripId==0))+" / 今日已挣工资 ¥"+residents.Sum(h=>h.people.Sum(p=>p.earnedWages)).ToString("F0"),label);
                 }
-                GUILayout.Label("住房 "+units+" 套 / 空置 "+Math.Max(0,units-residents.Count)+" / 已就业 "+residents.Count(f=>city.CommuteMinutes(f.home,f.work)>=0)+" / 岗位容量 "+city.jobs,label);
-                GUILayout.Label("每户 1 名劳动者；通勤车到达才算到岗，工资按实际在岗时间日结。生活与通勤费用流向外部。",small);
+                GUILayout.Label("住房 "+units+" 套 / 空置 "+Math.Max(0,units-residents.Count)+" / 已就业 "+city.Employed+" / 岗位容量 "+city.jobs,label);
+                GUILayout.Label("成年劳动成员分别占用岗位；通勤车到达才算到岗，工资按实际在岗时间日结。生活与通勤费用流向外部。",small);
                 GUILayout.Label("每个道路出行任务都有对应车辆，不限制显示数量。住房选择参考本户最近实际通勤；未尝试的方案按畅通道路估算。偏好每 "+s.settings.reviewDays+" 天评估，租约 "+s.settings.leaseDays+" 天。",small);
                 var r=s.history.LastOrDefault();
                 if(r==null) GUILayout.Label("尚未日结。可先暂停，再点‘推进 1 天’观察现金流和决策。",small);
@@ -180,15 +180,15 @@ namespace HarborCity
                     var f=s.families[familyIndex];
                     if(f.home>=0 && GUILayout.Button("定位这户的住宅",button))
                     {var home=city.buildings[f.home]; focus=new Vector3(home.x,0,home.z); zoom=24; showSimulation=false; UpdateCamera();}
-                    GUILayout.Label("家庭 #"+f.id+" · "+f.members+" 人 · "+(f.resident?"本城住户":"城外申请者")+" · 技能 "+f.skill,label);
-                    GUILayout.Label("住宅 #"+f.home+" / 单元 "+f.unit+" / 工作 #"+f.work+" / 储蓄 ¥"+f.savings+" / 欠租 ¥"+f.arrears,small);
-                    float minutes=city.CommuteMinutes(f.home,f.work);
-                    GUILayout.Label("当前通勤 "+(minutes<0?"不可达":minutes.ToString("F1")+" 分钟")+" / 合同租金 "+f.rent+" / 薪资 "+city.Wage(f.work)+" / 下次评估第 "+f.nextReview+" 天",small);
+                    GUILayout.Label("家庭 #"+f.id+" · "+f.people.Count+" 人 · "+(f.resident?"本城住户":"城外申请者")+" · 技能 "+string.Join(" / ",f.people.Select(p=>p.skill)),label);
+                    GUILayout.Label("住宅 #"+f.home+" / 单元 "+f.unit+" / 就业成员 "+f.people.Count(p=>city.ResidentJob(p)!=null)+" / 储蓄 ¥"+f.savings+" / 欠租 ¥"+f.arrears,small);
+                    float minutes=city.HouseholdCommute(f);
+                    GUILayout.Label("成员通勤合计 "+(minutes<0?"不可达":minutes.ToString("F1")+" 分钟")+" / 合同租金 "+f.rent+" / 薪资 "+city.HouseholdSalary(f)+" / 下次评估第 "+f.nextReview+" 天",small);
                     GUILayout.Label("偏好 0–1：空间 "+f.spacePreference.ToString("F2")+"  私密 "+f.privacyPreference.ToString("F2")+"  时间 "+f.timePreference.ToString("F2")+"  储蓄 "+f.savingPreference.ToString("F2"),small);
                     GUILayout.Label("最近决定："+f.reason,small);
                     GUILayout.Label("第 "+f.evaluatedDay+" 天评估快照（0 为尚未评估）：正项为空间、私密、结余；负项为时间、变更成本",small);
                     foreach(var o in f.options)
-                        GUILayout.Label("房 #"+o.home+" / 工作 #"+o.work+"："+(o.rejection!=""?o.rejection:"总分 "+o.score.ToString("F1")+" = "+o.spaceScore.ToString("F1")+" + "+o.privacyScore.ToString("F1")+" + "+o.moneyScore.ToString("F1")+" − "+o.timeScore.ToString("F1")+" − "+o.changeCost)+"\n租 "+o.rent+" / 工资 "+o.wage+" / 结余 "+o.surplus+" / 通勤 "+o.minutes.ToString("F1"),small);
+                        GUILayout.Label("房 #"+o.home+" / 成员岗位 "+(o.jobIds==null?"旧记录":string.Join(",",o.jobIds))+"："+(o.rejection!=""?o.rejection:"总分 "+o.score.ToString("F1")+" = "+o.spaceScore.ToString("F1")+" + "+o.privacyScore.ToString("F1")+" + "+o.moneyScore.ToString("F1")+" − "+o.timeScore.ToString("F1")+" − "+o.changeCost)+"\n租 "+o.rent+" / 工资 "+o.wage+" / 结余 "+o.surplus+" / 通勤 "+o.minutes.ToString("F1"),small);
                 }
             }
             else if(simulationTab==2)

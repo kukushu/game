@@ -23,6 +23,8 @@ namespace HarborCity
             foreach(var mesh in meshes) Destroy(mesh); meshes.Clear();
             content=new GameObject("Road geometry").transform; content.SetParent(transform,false);
             var baseMesh=new Builder(); var roadMesh=new Builder(); var markings=new Builder();
+            var entry=city.roads.Node(CityRoads.Entrance);
+            if(entry!=null && !city.roads.Active(entry.id)) Disk(markings,entry,.6f,.10f,landscape);
             foreach(var edge in city.roads.edges)
             {
                 Vector3 a=Point(city.roads.Node(edge.a)),b=Point(city.roads.Node(edge.b));

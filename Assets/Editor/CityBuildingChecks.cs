@@ -12,7 +12,7 @@ namespace HarborCity
         [MenuItem("Harbor/Validate roadside buildings")]
         public static void Validate()
         {
-            var city=CityModel.Create(); var traffic=new CityTraffic(city); traffic.Advance(8);
+            var city=CityModel.CreateLegacySample(); var traffic=new CityTraffic(city); traffic.Advance(8);
             // Exercise the actual JSON boundary before and after migration.
             city=JsonUtility.FromJson<CityModel>(JsonUtility.ToJson(city));
             city.EnableRoads((x,z)=>1); city.EnableBuildings();

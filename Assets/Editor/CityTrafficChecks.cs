@@ -16,7 +16,7 @@ namespace HarborCity
         [MenuItem("Harbor/Validate traffic saves")]
         public static void Validate()
         {
-            var city = CityModel.Create();
+            var city = CityModel.CreateLegacySample();
             var simulation = new CityTraffic(city);
             simulation.Advance(30);
             string json = JsonUtility.ToJson(city);
@@ -29,7 +29,7 @@ namespace HarborCity
             resumed.Advance(60);
             if (!restored.Valid() || restored.traffic.completed <= city.traffic.completed)
                 throw new Exception("Restored traffic did not continue.");
-            var legacy = CityModel.Create();
+            var legacy = CityModel.CreateLegacySample();
             legacy = JsonUtility.FromJson<CityModel>(JsonUtility.ToJson(new LegacyCity { tiles = legacy.tiles, levels = legacy.levels }));
             if (!legacy.Valid()) throw new Exception("Legacy city rejected before migration.");
             legacy.Recalculate();

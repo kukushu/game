@@ -99,7 +99,7 @@ public static class TrafficChecks
         trip = sim.Dispatch(I(1,17),I(1,19),TripPurpose.Shopping); sim.Advance(.05f);
         Check(trip.status == TripStatus.Visiting && sim.State.purchases == 1, "Shared access cell still completes a real local trip");
 
-        c = CityModel.Create(); sim = new CityTraffic(c);
+        c = CityModel.CreateLegacySample(); sim = new CityTraffic(c);
         var purposes = new bool[5]; int maxDistance = 0;
         for (int i = 0; i < 4800; i++)
         {
@@ -112,8 +112,8 @@ public static class TrafficChecks
         Check(sim.State.trips.Count <= CityTraffic.Capacity && c.Valid(), "Long simulation remains bounded and saveable");
         Console.WriteLine("Traffic stress: completed=" + sim.State.completed + ", failed=" + sim.State.failed + ", purchases=" + sim.State.purchases + ", goods=" + sim.State.delivered);
 
-        var c2 = CityModel.Create(); var a = new CityTraffic(c2);
-        var c3 = CityModel.Create(); var b = new CityTraffic(c3);
+        var c2 = CityModel.CreateLegacySample(); var a = new CityTraffic(c2);
+        var c3 = CityModel.CreateLegacySample(); var b = new CityTraffic(c3);
         for (int i = 0; i < 600; i++) a.Advance(.05f);
         for (int i = 0; i < 100; i++) b.Advance(.3f);
         Check(a.State.completed == b.State.completed && a.State.trips.Count == b.State.trips.Count

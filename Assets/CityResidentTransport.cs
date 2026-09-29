@@ -15,11 +15,10 @@ namespace HarborCity
             {p.location=h.home; p.requestedAt=-1; p.departureDay=-1; p.tripId=0; p.atWork=false;}
             society.transportEnabled=true;
         }
-        public float ExpectedCommute(Household h,int home,int work)
+        public float ExpectedCommute(CityResident p,int home,int work)
         {
             float estimate=CommuteMinutes(home,work);
-            if(estimate<0 || !society.transportEnabled || h.people==null) return estimate;
-            var p=h.people.Find(person=>person.worker);
+            if(estimate<0 || !society.transportEnabled || p==null) return estimate;
             // Only reuse observations for this exact home/job and road revision.
             // New alternatives retain a free-flow estimate until actually tried.
             return p!=null && p.lastCommute>=0 && p.observedHome==home && p.observedWork==work && p.observedRevision==roads.revision
@@ -27,6 +26,7 @@ namespace HarborCity
         }
         public ResidentActivity ObserveTransport(Household h,CityResident p)
         {
+            int work=Workplace(p);
             var a=new ResidentActivity();
             var trip=traffic.trips.Find(t=>t.id==p.tripId && t.residentId==p.id);
             if(trip!=null)
@@ -46,9 +46,9 @@ namespace HarborCity
             if(a.located) {a.x=buildings[location].x; a.z=buildings[location].z;}
             float shift=480+p.id%3*30;
             a.state=!h.resident?"城外":p.atWork?(ResidentMinute<shift+480 && p.arrivedDay==day?"工作中":"等待返程"):
-                p.worker && h.work>=0 && ResidentMinute>=Math.Max(0,shift-Math.Max(0,ExpectedCommute(h,h.home,h.work))) && p.departureDay!=day?"等待出发":"在家";
-            a.destination=a.state=="等待返程"?h.home:a.state=="等待出发"?h.work:-1;
-            a.reason=!p.worker?"家庭成员；暂未安排独立就业、上学或购物":
+                p.canWork && work>=0 && ResidentMinute>=Math.Max(0,shift-Math.Max(0,ExpectedCommute(p,h.home,work))) && p.departureDay!=day?"等待出发":"在家";
+            a.destination=a.state=="等待返程"?h.home:a.state=="等待出发"?work:-1;
+            a.reason=!p.canWork?"家庭成员；暂未安排独立就业、上学或购物":
                 "今日实际在岗 "+p.workedMinutes.ToString("F1")+" / 480 分钟，已挣 ¥"+p.earnedWages.ToString("F1")+"（日末入账）"+
                 (p.lastCommute>=0?"；最近上班耗时 "+p.lastCommute.ToString("F1")+" 分钟，迟到 "+p.lastDelay.ToString("F1")+" 分钟":"；尚无实际到岗记录");
             if(a.state=="等待出发" || a.state=="等待返程") a.reason+="；入口排队或道路不可达，尚未发车";
@@ -64,7 +64,7 @@ namespace HarborCity
             var h=TripFamily(t); var p=h?.people.Find(person=>person.id==t.residentId);
             if(h==null || p==null || !h.resident)
             {if(p!=null) {p.tripId=0; p.atWork=false;} State.trips.Remove(t); return false;}
-            if(!Endpoint(t.destination) || (t.returning && t.destination!=h.home))
+            if(!Endpoint(t.destination) || (!t.returning && city.Workplace(p)!=t.destination) || (t.returning && t.destination!=h.home))
             {
                 // A removed workplace sends the resident home via the surviving route graph.
                 t.destination=h.home; t.home=h.home; t.returning=true;
@@ -100,21 +100,22 @@ namespace HarborCity
                 if(!h.resident || h.people==null) continue;
                 foreach(var p in h.people)
                 {
-                    if(!p.worker) continue;
+                    if(!p.canWork && !p.atWork) continue;
+                    int work=city.Workplace(p);
                     float shift=480+p.id%3*30, end=shift+480;
-                    if(p.atWork && p.tripId==0 && p.arrivedDay==city.day && city.JobCapacity(p.location)>0)
+                    if(p.atWork && p.tripId==0 && p.arrivedDay==city.day && work==p.location && city.ResidentJob(p)!=null)
                     {
                         float worked=Math.Max(0,Math.Min(minute+minutes,end)-Math.Max(minute,shift));
-                        p.workedMinutes+=worked; p.earnedWages+=worked/480*city.Wage(p.location);
+                        p.workedMinutes+=worked; p.earnedWages+=worked/480*city.ResidentWage(p);
                     }
                     if(p.tripId>0 || State.clock<p.retryAt) continue;
-                    bool returning=p.atWork && (minute>=end || p.arrivedDay<city.day || city.JobCapacity(p.location)==0);
-                    float estimate=city.ExpectedCommute(h,h.home,h.work);
-                    bool departing=!p.atWork && p.departureDay!=city.day && estimate>=0 && minute>=Math.Max(0,shift-estimate) && minute<end;
+                    bool returning=p.atWork && (minute>=end || p.arrivedDay<city.day || work!=p.location);
+                    float estimate=city.ExpectedCommute(p,h.home,work);
+                    bool departing=p.canWork && !p.atWork && p.departureDay!=city.day && estimate>=0 && minute>=Math.Max(0,shift-estimate) && minute<end;
                     if(!returning && !departing) continue;
                     if(p.requestedAt<0) p.requestedAt=State.clock;
                     p.retryAt=State.clock+.25f;
-                    var trip=Dispatch(returning?p.location:h.home,returning?h.home:h.work,TripPurpose.Commute,p.id);
+                    var trip=Dispatch(returning?p.location:h.home,returning?h.home:work,TripPurpose.Commute,p.id);
                     // If the workplace was demolished after arrival, depart from its
                     // recorded road access instead of inventing a new position.
                     if(trip==null && returning && !Endpoint(p.location) && Endpoint(h.home) && Road(p.accessNode))

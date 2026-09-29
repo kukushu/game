@@ -136,7 +136,7 @@ namespace HarborCity
         public RoadNode Snap(float x,float z,Func<float,float,float> height)
         {
             var p=new RoadNode { x=x,z=z,y=height(x,z) }; RoadNode best=null; float nearest=.85f;
-            foreach(var n in nodes) if(Active(n.id) && Length(n,p)<nearest) { best=n; nearest=Length(n,p); }
+            foreach(var n in nodes) if((Active(n.id) || n.id==Entrance) && Length(n,p)<nearest) { best=n; nearest=Length(n,p); }
             if(best!=null) return best.Copy();
             nearest=1.1f;
             foreach(var e in edges)

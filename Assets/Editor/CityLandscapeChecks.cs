@@ -28,7 +28,7 @@ namespace HarborCity
                 minimum = Mathf.Min(minimum,h); maximum = Mathf.Max(maximum,h); samples++;
             }
             if (maximum - minimum < 20) throw new Exception("Landscape lacks expected elevation range.");
-            var city = CityModel.Create();
+            var city = CityModel.CreateLegacySample();
             for (int i = 0; i < city.tiles.Length; i++)
             {
                 if (city.tiles[i] == 0) continue;

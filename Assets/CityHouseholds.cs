@@ -7,10 +7,13 @@ namespace HarborCity
     public enum HousingKind { Legacy, Apartment, Villa }
     [Serializable] public sealed class Household
     {
-        public int id, members=3, skill, home=-1, unit=-1, work=-1, savings=600;
+        public int id, home=-1, unit=-1, savings=600;
+        // v1-v4 import-only fields. v5 simulation never reads these as authority.
+        public int members=3, skill, work=-1;
         public int rent, leaseEnd, lastMove=-100, nextReview, hardship, arrears;
         public bool resident;
         public float spacePreference, privacyPreference, timePreference, savingPreference;
+        // v4 import-only commute value. Individual observations live on CityResident.
         public float commute=-1;
         public int wagePaid, rentPaid, livingPaid, travelPaid;
         public int evaluatedDay;
@@ -20,12 +23,14 @@ namespace HarborCity
     }
     [Serializable] public sealed class HouseholdOption
     {
-        public int home, work, rent, wage, surplus;
+        public int home, work=-1, rent, wage, surplus;
+        public List<int> citizenIds=new List<int>(), jobIds=new List<int>();
         public float minutes, spaceScore, privacyScore, moneyScore, timeScore, changeCost, score;
         public string rejection="";
     }
     [Serializable] public sealed class HouseholdDay
     {
+        public int unemployed;
         public int day, households, population, units, employed, wages, rent, living, travel, maintenance, moved, arrived, left;
         public int openingTreasury, closingTreasury, openingSavings, closingSavings, movingCosts, unpaidRent;
         public float averageCommute;
@@ -43,6 +48,8 @@ namespace HarborCity
         public int nextId=1, seed=19237, lastSettledDay;
         public float dayElapsed;
         public bool transportEnabled;
+        public int nextJobId=1;
+        public List<CityJob> jobEntities=new List<CityJob>();
         public HouseholdSettings settings=new HouseholdSettings();
         public List<Household> families=new List<Household>();
         public List<HouseholdDay> history=new List<HouseholdDay>();
@@ -56,11 +63,11 @@ namespace HarborCity
         [NonSerialized] int commuteRevision=-1;
         [NonSerialized] Dictionary<long,float> commuteCache=new Dictionary<long,float>();
         public int HousingCapacity(int id) => id>=0 && id<tiles.Length && tiles[id]==2 ? buildings[id].housingUnits : 0;
-        public int Occupancy(int id) => society.families.Count(h=>h.resident && h.home==id);
-        public int JobCapacity(int id) => id>=0 && id<tiles.Length && (tiles[id]==3 || tiles[id]==4) && EntityRoadAccess(id) ? Math.Max(1,levels[id])*4 : 0;
-        public int EmployedAt(int id) => society.families.Count(h=>h.resident && h.work==id);
-        public int Wage(int id) => JobCapacity(id)>0 ? 95+(id%5)*12+(tiles[id]==4?20:0) : 0;
-        public int SkillRequired(int id) => id>=0 && tiles[id]==4 ? 1 : 0;
+        public int Occupancy(int id) => HousingCapacity(id)==0?0:society.families.Count(h=>h.resident && h.home==id && h.unit>=0 && h.unit<HousingCapacity(id));
+        public int JobCapacity(int id) => version>=5 ? society.jobEntities.Count(j=>j.buildingId==id) : BuildingJobSlots(id);
+        public int EmployedAt(int id) => society.jobEntities.Count(j=>j.buildingId==id && j.occupiedCitizenId>=0);
+        public int Wage(int id) => society.jobEntities.Where(j=>j.buildingId==id).Select(j=>j.wage).FirstOrDefault();
+        public int SkillRequired(int id) => society.jobEntities.Where(j=>j.buildingId==id).Select(j=>j.requiredSkill).FirstOrDefault();
         public float CommuteMinutes(int home,int work)
         {
             if(home<0 || work<0 || home>=tiles.Length || work>=tiles.Length || tiles[home]!=2 || JobCapacity(work)==0) return -1;
@@ -89,7 +96,9 @@ namespace HarborCity
         {
             var h=new Household {id=society.nextId++,spacePreference=NextPreference(),privacyPreference=NextPreference(),
                 timePreference=NextPreference(),savingPreference=NextPreference()};
-            h.members=2+h.id%3; h.skill=h.id%3; h.savings=450+h.id%7*100;
+            int memberCount=2+h.id%3; h.savings=450+h.id%7*100;
+            if(version>=5) InitializeResidents(h,memberCount);
+            else {h.members=memberCount; h.skill=h.id%3;}
             society.families.Add(h); return h;
         }
         void Event(string message)
@@ -101,7 +110,7 @@ namespace HarborCity
         {
             // Unity hot reload may instantiate a newly added serializable field in an old city.
             // Schema version, rather than non-null, determines whether migration has run.
-            if(version>=4 && society!=null) { EnsureResidents(); return; }
+            if(version>=4 && society!=null) { EnsureResidents(); EnableJobs(); return; }
             EnableBuildings(); society=new HouseholdState {lastSettledDay=day};
             for(int i=0;i<tiles.Length;i++) if(tiles[i]==2)
             {
@@ -116,75 +125,78 @@ namespace HarborCity
             }
             // Preserve cargo; old representative passenger trips have no resident identity.
             if(traffic!=null) traffic.trips.RemoveAll(t=>t.purpose==TripPurpose.Commute || t.purpose==TripPurpose.Shopping);
-            foreach(var h in society.families)
-            {
-                int best=-1; float score=float.MinValue;
-                for(int j=0;j<tiles.Length;j++) if(JobCapacity(j)>EmployedAt(j) && h.skill>=SkillRequired(j))
-                {
-                    float minutes=CommuteMinutes(h.home,j); if(minutes<0) continue;
-                    float s=Wage(j)-minutes*h.timePreference;
-                    if(s>score) {score=s; best=j;}
-                }
-                h.work=best; h.commute=CommuteMinutes(h.home,best);
-            }
             EnsureResidents();
-            version=4; Event("家庭模拟已启用；旧住宅保留占地，居民偏好为迁移初始化。工资来自简化外部经营收入。"); Recalculate();
+            version=4; EnableJobs(true);
+            Event("家庭模拟已启用；住房保留占地，成年居民分别占用实际岗位。"); Recalculate();
         }
-        public HouseholdOption Evaluate(Household h,int home,int work,bool ignoreHousingCapacity=false)
+        public HouseholdOption Evaluate(Household h,int home,bool ignoreHousingCapacity=false,bool keepJobs=false)
         {
-            var o=new HouseholdOption {home=home,work=work,score=-10000};
+            var o=new HouseholdOption {home=home,score=-10000};
             if(HousingCapacity(home)==0) {o.rejection="没有住房"; return o;}
             var b=buildings[home];
             o.rent=h.resident && h.home==home && day<h.leaseEnd ? h.rent : b.askingRent;
-            o.wage=Wage(work); o.minutes=ExpectedCommute(h,home,work);
+            var used=new HashSet<int>(); bool unreachable=false; int changes=0;
+            foreach(var p in h.people.OrderByDescending(p=>p.skill).ThenBy(p=>p.id))
+            {
+                bool keep=keepJobs || p.tripId>0 || p.atWork;
+                var existing=ResidentJob(p); CityJob best=keep?existing:null; float bestScore=float.MinValue;
+                if(!keep && p.canWork)
+                    foreach(var job in society.jobEntities)
+                    {
+                        if(used.Contains(job.id) || p.skill<job.requiredSkill || job.occupiedCitizenId>=0 && job.occupiedCitizenId!=p.id) continue;
+                        float minutes=ExpectedCommute(p,home,job.buildingId); if(minutes<0) continue;
+                        float score=job.wage-minutes*(.3f+h.timePreference*.7f)-(p.jobId!=job.id?5:0);
+                        if(score>bestScore) {best=job; bestScore=score;}
+                    }
+                o.citizenIds.Add(p.id); o.jobIds.Add(best?.id ?? -1);
+                if((best?.id ?? -1)!=p.jobId) changes++;
+                if(best==null) continue;
+                used.Add(best.id); o.wage+=best.wage;
+                float travel=ExpectedCommute(p,home,best.buildingId);
+                if(travel<0) unreachable=true; else o.minutes+=travel;
+            }
             if(!ignoreHousingCapacity && h.home!=home && Occupancy(home)>=HousingCapacity(home)) o.rejection="住房已满";
             else if(!EntityRoadAccess(home)) o.rejection="住宅未接入城市道路";
-            else if(JobCapacity(work)==0 || h.work!=work && EmployedAt(work)>=JobCapacity(work)) o.rejection="没有空缺岗位";
-            else if(h.skill<SkillRequired(work)) o.rejection="岗位技能不符";
-            else if(o.minutes<0) o.rejection="工作地点不可达";
-            int travel=o.minutes<0?0:(int)Math.Ceiling(o.minutes*.3f);
-            o.surplus=o.wage-o.rent-h.members*9-travel;
+            else if(unreachable) o.rejection="成员工作地点不可达";
+            int travelCost=(int)Math.Ceiling(o.minutes*.3f);
+            int members=Math.Max(1,h.people.Count);
+            o.surplus=o.wage-o.rent-members*9-travelCost;
             if(o.rejection=="" && (o.surplus<0 || h.home!=home && h.savings<society.settings.moveCost)) o.rejection="收入或搬迁储蓄不足";
             float area=b.housing==HousingKind.Villa?110:55;
-            o.spaceScore=h.spacePreference*25*(float)Math.Log(1+area/h.members/15);
+            o.spaceScore=h.spacePreference*25*(float)Math.Log(1+area/members/15);
             float privacy=b.housing==HousingKind.Villa?1:.35f-.12f*Occupancy(home)/Math.Max(1,HousingCapacity(home));
             o.privacyScore=h.privacyPreference*35*privacy;
             o.moneyScore=(.25f+h.savingPreference)*20*(float)Math.Log(1+Math.Max(0,o.surplus)/25f);
-            o.timeScore=h.timePreference*Math.Max(0,o.minutes)*.7f;
-            o.changeCost=(h.resident && home!=h.home?10:0)+(h.resident && work!=h.work?5:0);
+            o.timeScore=h.timePreference*o.minutes*.7f;
+            o.changeCost=(h.resident && home!=h.home?10:0)+(h.resident?changes*5:0);
             if(o.rejection=="") o.score=o.spaceScore+o.privacyScore+o.moneyScore-o.timeScore-o.changeCost;
             return o;
         }
         void Review(Household h,HouseholdDay report)
         {
-            if(society.transportEnabled && h.resident && HousingCapacity(h.home)>0 && JobCapacity(h.work)>0
+            if(society.transportEnabled && h.resident && HousingCapacity(h.home)>0
                 && h.people!=null && h.people.Exists(p=>p.tripId>0 || p.atWork))
             { h.nextReview=day+1; h.reason="正在出行或尚未回家，延后住房和工作变更"; return; }
             h.evaluatedDay=day;
-            var current=Evaluate(h,h.home,h.work); var best=current;
+            var current=Evaluate(h,h.home,keepJobs:true); var best=current;
             var options=new List<HouseholdOption> {current};
             // Small prototype: inspect all buildings. Cached road queries avoid repeated Dijkstra.
             for(int home=0;home<tiles.Length;home++) if(HousingCapacity(home)>0)
             {
-            bool applied=false;
-            for(int work=0;work<tiles.Length;work++) if(JobCapacity(work)>0 && (work==h.work || EmployedAt(work)<JobCapacity(work)))
-            {
-                if(home==h.home && work==h.work) continue;
                 if(home!=h.home && h.resident && current.rejection=="" && day-h.lastMove<society.settings.minimumStay) continue;
-                var option=Evaluate(h,home,work); options.Add(option);
-                if(!applied && home!=h.home)
+                var option=Evaluate(h,home); options.Add(option);
+                if(home!=h.home)
                 {
-                    var demandOption=Evaluate(h,home,work,true);
+                    var demandOption=Evaluate(h,home,true);
                     if(demandOption.rejection=="" && demandOption.score>current.score+society.settings.improvement)
                     {
                         var building=buildings[home];
                         if(building.interestedFamilies==null) building.interestedFamilies=new List<int>();
                         if(!building.interestedFamilies.Contains(h.id)) building.interestedFamilies.Add(h.id);
-                        building.applications=building.interestedFamilies.Count; applied=true;
+                        building.applications=building.interestedFamilies.Count;
                     }
                 }
                 if(option.rejection=="" && option.score>best.score) best=option;
-            }
             }
             h.options=options.OrderBy(o=>o.rejection!="").ThenByDescending(o=>o.score).Take(8).ToList();
             if(!h.options.Contains(current)) h.options.Add(current);
@@ -205,19 +217,25 @@ namespace HarborCity
                 unit=0;
                 while(society.families.Any(f=>f.resident && f.home==best.home && f.unit==unit)) unit++;
                 if(unit>=HousingCapacity(best.home)) return;
+            }
+            if(!ApplyJobPlan(h,best)) {h.nextReview=day+1; return;}
+            if(moving)
+            {
                 h.savings-=society.settings.moveCost; report.movingCosts+=society.settings.moveCost;
                 h.rent=best.rent; h.leaseEnd=day+society.settings.leaseDays; h.lastMove=day;
             }
-            string before="住宅 #"+h.home+" / 工作 #"+h.work;
-            h.home=best.home; h.unit=unit; h.work=best.work; h.resident=true; h.commute=best.minutes; h.hardship=0;
+            string before="住宅 #"+h.home;
+            h.home=best.home; h.unit=unit; h.resident=true; h.hardship=0;
             if(day>=h.leaseEnd) {h.rent=best.rent; h.leaseEnd=day+society.settings.leaseDays;}
-            h.reason=(entering?"迁入":moving?"搬家":"换工作")+"："+before+" → 住宅 #"+h.home+" / 工作 #"+h.work
+            h.reason=(entering?"迁入":moving?"搬家":"换工作")+"："+before+" → 住宅 #"+h.home+" / 家庭岗位 "+string.Join(",",best.jobIds)
                 +"；评分 "+current.score.ToString("F1")+" → "+best.score.ToString("F1")+"，通勤 "+best.minutes.ToString("F1")+" 分钟";
             if(entering) report.arrived++; else if(moving) report.moved++;
             Event("家庭 #"+h.id+" "+h.reason);
         }
         public void RecalculateHouseholds()
         {
+            if(version<5) EnableJobs();
+            SyncJobs();
             population=jobs=income=upkeep=power=water=demand=0;
             foreach(var e in roads.edges) upkeep+=(int)Math.Ceiling(roads.EdgeLength(e.a,e.b)/3);
             for(int i=0;i<tiles.Length;i++)
@@ -227,11 +245,11 @@ namespace HarborCity
                 if(tiles[i]==6) {upkeep+=65; if(access) water+=160;}
                 if(tiles[i]==7) upkeep+=8;
                 if(tiles[i]==2) upkeep+=buildings[i].housing==HousingKind.Villa?society.settings.villaMaintenance:society.settings.apartmentMaintenance;
-                jobs+=JobCapacity(i);
             }
-            foreach(var h in society.families) if(h.resident) {population+=h.members; demand++;}
+            foreach(var h in society.families) if(h.resident) {population+=h.people.Count; demand++;}
+            jobs=society.jobEntities.Count;
             income=society.history.Count>0?society.history[society.history.Count-1].rent:0;
-            happiness=society.families.Any(h=>h.resident)?(int)society.families.Where(h=>h.resident).Average(h=>Math.Clamp(85-h.hardship*5-(int)Math.Max(0,h.commute)/3,10,100)):70;
+            happiness=society.families.Any(h=>h.resident)?(int)society.families.Where(h=>h.resident).Average(h=>Math.Clamp(85-h.hardship*5-(int)HouseholdCommute(h)/3,10,100)):70;
         }
         public void HouseholdTick()
         {
@@ -242,17 +260,17 @@ namespace HarborCity
             {
                 h.wagePaid=h.rentPaid=h.livingPaid=h.travelPaid=0;
                 if(!h.resident) continue;
-                h.commute=ExpectedCommute(h,h.home,h.work);
-                h.wagePaid=society.transportEnabled ? (int)Math.Round(h.people.Sum(p=>p.earnedWages)) : h.commute>=0?Wage(h.work):0;
+                h.wagePaid=0;
+                foreach(var person in h.people) {person.wagePaid=(int)Math.Round(person.earnedWages); h.wagePaid+=person.wagePaid;}
                 h.savings+=h.wagePaid; r.wages+=h.wagePaid;
                 foreach(var person in h.people) {person.earnedWages=0; person.workedMinutes=0;}
-                h.livingPaid=Math.Min(h.savings,h.members*9); h.savings-=h.livingPaid; r.living+=h.livingPaid;
-                h.travelPaid=Math.Min(h.savings,h.commute<0?0:(int)Math.Ceiling(h.commute*.3f)); h.savings-=h.travelPaid; r.travel+=h.travelPaid;
+                h.livingPaid=Math.Min(h.savings,h.people.Count*9); h.savings-=h.livingPaid; r.living+=h.livingPaid;
+                h.travelPaid=Math.Min(h.savings,(int)Math.Ceiling(HouseholdCommute(h)*.3f)); h.savings-=h.travelPaid; r.travel+=h.travelPaid;
                 int due=HousingCapacity(h.home)>0?h.rent+h.arrears:0;
                 h.rentPaid=Math.Min(h.savings,due); h.savings-=h.rentPaid; r.rent+=h.rentPaid;
                 if(HousingCapacity(h.home)>0) h.arrears=due-h.rentPaid;
                 r.unpaidRent+=Math.Max(0,h.rent-h.rentPaid);
-                bool trouble=h.commute<0 || HousingCapacity(h.home)==0 || h.rentPaid<due || h.livingPaid<h.members*9;
+                bool trouble=!h.people.Any(p=>ResidentJob(p)!=null && CommuteMinutes(h.home,Workplace(p))>=0) || HousingCapacity(h.home)==0 || h.rentPaid<due || h.livingPaid<h.people.Count*9;
                 h.hardship=trouble?h.hardship+1:0;
                 if(trouble || day>=h.leaseEnd) h.nextReview=day;
             }
@@ -266,7 +284,8 @@ namespace HarborCity
                 if(day>=h.nextReview) Review(h,r);
                 if(h.resident && h.hardship>=30)
                 {
-                    h.resident=false; h.home=h.work=h.unit=-1; h.reason="迁出：连续 30 天无法维持居住和就业";
+                    h.resident=false; h.home=h.unit=-1;
+                    foreach(var p in h.people) {ReleaseJob(p); if(traffic!=null) traffic.trips.RemoveAll(t=>t.residentId==p.id); p.tripId=0; p.atWork=false;} h.reason="迁出：连续 30 天无法维持居住和就业";
                     h.nextReview=day+30; r.left++; Event("家庭 #"+h.id+" "+h.reason);
                 }
             }
@@ -281,9 +300,9 @@ namespace HarborCity
                     b.askingRent=Math.Min(b.housing==HousingKind.Villa?90:45,b.askingRent+1);
             }
             money+=r.rent-r.maintenance; society.lastSettledDay=day;
-            r.households=society.families.Count(h=>h.resident); r.population=society.families.Where(h=>h.resident).Sum(h=>h.members);
-            r.units=Enumerable.Range(0,tiles.Length).Sum(HousingCapacity); r.employed=society.families.Count(h=>h.resident && h.commute>=0);
-            r.averageCommute=r.employed==0?0:society.families.Where(h=>h.resident && h.commute>=0).Average(h=>h.commute);
+            r.households=society.families.Count(h=>h.resident); r.population=society.families.Where(h=>h.resident).Sum(h=>h.people.Count);
+            r.units=Enumerable.Range(0,tiles.Length).Sum(HousingCapacity); r.employed=Employed; r.unemployed=Unemployed;
+            r.averageCommute=AverageCommute;
             r.closingTreasury=money; r.closingSavings=society.families.Sum(h=>h.savings);
             society.history.Add(r); if(society.history.Count>180) society.history.RemoveAt(0);
             EnsureResidents(); RecalculateHouseholds();
@@ -302,15 +321,15 @@ namespace HarborCity
             var ids=new HashSet<int>(); var units=new HashSet<string>();
             foreach(var h in society.families)
             {
-                if(h==null || h.id<1 || h.id>=society.nextId || !ids.Add(h.id) || h.members<1 || h.members>4 || h.savings<0 || h.rent<0 || h.arrears<0 || h.options==null) return false;
+                if(h==null || h.id<1 || h.id>=society.nextId || !ids.Add(h.id) || (version<5 && (h.members<1 || h.members>4)) || h.savings<0 || h.rent<0 || h.arrears<0 || h.options==null) return false;
                 // Missing records are accepted only for additive migration of older v4 saves.
                 if(h.people!=null && h.people.Count>0)
                 {
-                    if(h.people.Count!=h.members) return false;
+                    if(version<5 && h.people.Count!=h.members) return false;
                     for(int p=0;p<h.people.Count;p++)
                     {
-                        if(h.people[p]==null || h.people[p].id!=h.id*10+p || h.people[p].age<0 || h.people[p].age>120
-                            || string.IsNullOrEmpty(h.people[p].name) || h.people[p].worker!=(p==0)) return false;
+                        if(h.people[p]==null || (version<5 && h.people[p].id!=h.id*10+p) || h.people[p].age<0 || h.people[p].age>120
+                            || string.IsNullOrEmpty(h.people[p].name) || (version<5 && h.people[p].worker!=(p==0))) return false;
                         var person=h.people[p];
                         foreach(float value in new[]{person.earnedWages,person.workedMinutes,person.lastCommute,person.lastDelay,person.retryAt,person.requestedAt})
                             if(float.IsNaN(value) || float.IsInfinity(value)) return false;
@@ -320,13 +339,13 @@ namespace HarborCity
                 }
                 foreach(float p in new[]{h.spacePreference,h.privacyPreference,h.timePreference,h.savingPreference})
                     if(float.IsNaN(p) || p<0 || p>1) return false;
-                if(h.home < -1 || h.home>=tiles.Length || h.work < -1 || h.work>=tiles.Length) return false;
+                if(h.home < -1 || h.home>=tiles.Length || (version<5 && (h.work < -1 || h.work>=tiles.Length))) return false;
                 // Demolition can leave temporarily displaced households pending their next review.
                 if(h.resident && HousingCapacity(h.home)>0 && (h.unit<0 || h.unit>=HousingCapacity(h.home) || !units.Add(h.home+":"+h.unit))) return false;
             }
             if(society.transportEnabled && traffic!=null)
                 foreach(var trip in traffic.trips) if(trip.residentId>0 && !society.families.Any(h=>h.id==trip.householdId && h.people!=null && h.people.Any(p=>p.id==trip.residentId && p.tripId==trip.id))) return false;
-            return true;
+            return version<5 || ValidJobs();
         }
     }
 }

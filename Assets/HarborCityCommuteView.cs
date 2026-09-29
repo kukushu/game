@@ -47,15 +47,18 @@ namespace HarborCity
             GUI.Label(new Rect(r.x+10,r.y+5,r.width-15,r.height-8),(locatedTrafficOrigin?"出发地：":"目的地：")+name,small);
         }
         Household VisibleCommuter() => city.society?.families.Find(f=>f.id==commuteFamily && f.resident && f.home==inspectedHome);
-        bool HasWorkplace(Household f) => f!=null && f.work>=0 && f.work<city.tiles.Length && (city.tiles[f.work]==3 || city.tiles[f.work]==4);
-        string WorkplaceName(Household f) => !HasWorkplace(f)?"暂无工作地点":names[city.tiles[f.work]]+" #"+f.work;
+        CityResident FamilyCommuter(Household f) => f?.people.Find(p=>p.id==inspectedResident && city.Workplace(p)>=0) ?? f?.people.Find(p=>city.Workplace(p)>=0);
+        int FamilyWorkplace(Household f) => city.Workplace(FamilyCommuter(f));
+        bool HasWorkplace(Household f) => FamilyWorkplace(f)>=0;
+        string WorkplaceName(CityResident p) => city.Workplace(p)<0?"暂无工作地点":names[city.tiles[city.Workplace(p)]]+" #"+city.Workplace(p);
+        string WorkplaceName(Household f) => WorkplaceName(FamilyCommuter(f));
         void ShowWorkplace(Household family,bool locate)
         {
             commuteFamily=family.id; inspectedTrip=-1; showSimulation=false;
             if(!HasWorkplace(family)) {notice="这户目前没有有效的工作地点。"; return;}
             if(locate)
             {
-                var b=city.buildings[family.work]; focus=new Vector3(b.x,0,b.z); zoom=24; UpdateCamera();
+                var b=city.buildings[FamilyWorkplace(family)]; focus=new Vector3(b.x,0,b.z); zoom=24; UpdateCamera();
             }
             notice="家庭 #"+family.id+"：住宅 #"+family.home+" → "+WorkplaceName(family)+"。绿色为住宅，橙色为工作地点；显示预计通勤路线。";
             UpdateCommuteView();
@@ -99,14 +102,14 @@ namespace HarborCity
             if(commuteLine==null) commuteLine=CommuteRenderer("Household commute route",new Color(1,.72f,.15f),.23f);
             if(homeMarker==null) homeMarker=CommuteRenderer("Household home marker",new Color(.3f,1,.55f),.18f);
             if(workMarker==null) workMarker=CommuteRenderer("Household work marker",new Color(1,.55f,.1f),.23f);
-            MarkBuilding(homeMarker,family.home); MarkBuilding(workMarker,family.work);
-            if(shownHome==family.home && shownWork==family.work && shownRoads==city.roads && shownRevision==city.roads.revision) return;
-            shownHome=family.home; shownWork=family.work; shownRoads=city.roads; shownRevision=city.roads.revision;
-            var path=city.roads.FindPath(city.AccessBuilding(family.home),city.AccessBuilding(family.work));
+            MarkBuilding(homeMarker,family.home); MarkBuilding(workMarker,FamilyWorkplace(family));
+            if(shownHome==family.home && shownWork==FamilyWorkplace(family) && shownRoads==city.roads && shownRevision==city.roads.revision) return;
+            shownHome=family.home; shownWork=FamilyWorkplace(family); shownRoads=city.roads; shownRevision=city.roads.revision;
+            var path=city.roads.FindPath(city.AccessBuilding(family.home),city.AccessBuilding(FamilyWorkplace(family)));
             var points=new List<Vector3>();
             if(path.Count>0)
             {
-                var home=city.buildings[family.home]; var work=city.buildings[family.work];
+                var home=city.buildings[family.home]; var work=city.buildings[FamilyWorkplace(family)];
                 var anchors=new List<Vector3>{new Vector3(home.entranceX,0,home.entranceZ)};
                 foreach(int node in path) anchors.Add(RoadPosition(node));
                 anchors.Add(new Vector3(work.entranceX,0,work.entranceZ));
@@ -122,7 +125,7 @@ namespace HarborCity
         {
             var family=VisibleCommuter();
             if(selected!=LandUse.Empty || !HasWorkplace(family) || showSimulation || help) return;
-            foreach(int id in new[]{family.home,family.work})
+            foreach(int id in new[]{family.home,FamilyWorkplace(family)})
             {
                 Vector3 p=cam.WorldToScreenPoint(BuildingMarker(id)+Vector3.up*.5f);
                 if(p.z<=0 || p.x<0 || p.x>Screen.width || p.y<0 || p.y>Screen.height) continue;

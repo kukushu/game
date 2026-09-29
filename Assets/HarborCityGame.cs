@@ -35,7 +35,7 @@ namespace HarborCity
         const float MaxPitch = 80f;
         int hoverX = -1, hoverZ = -1, lastPaint = -1;
         LandUse selected = LandUse.Road;
-        string notice = "欢迎来到湾岸。沿道路划分区域，让城市开始生长。";
+        string notice = "空白城市：从地图西侧的浅色连接点修路，再建设住房和工作场所。";
         GUIStyle label, title, small, button, number;
         Font font;
         bool help;

@@ -90,15 +90,15 @@ namespace HarborCity
             if(h.people==null) return;
             foreach(var person in h.people)
             {
-                if(GUILayout.Button(person.name+" · "+person.age+" 岁 · "+(person.worker?"劳动者":"家庭成员"),button))
+                if(GUILayout.Button(person.name+" · "+person.age+" 岁 · "+(person.canWork?"劳动者":"家庭成员"),button))
                 {inspectedResident=person.id; followResident=false; commuteFamily=-1;}
                 if(inspectedResident!=person.id) continue;
                 var a=city.ObserveResident(h,person); int minute=(int)city.ResidentMinute;
                 GUILayout.Label("居民 #"+person.id+" · "+minute/60+":"+(minute%60).ToString("00")+"\n状态："+a.state+
                     "\n当前位置："+(a.building>=0?names[city.tiles[a.building]]+" #"+a.building:a.located?"道路上":"城外 / 无住所")+
                     "\n目的地："+(a.destination>=0?names[city.tiles[a.destination]]+" #"+a.destination:"暂无出行")+
-                    "\n工作："+(person.worker?WorkplaceName(h):"未安排")+
-                    "\n日薪：¥"+(person.worker?city.Wage(h.work):0)+"（进入家庭共同预算）\n"+a.reason,small);
+                    "\n工作："+(person.canWork?WorkplaceName(person):"未安排")+
+                    "\n日薪：¥"+(person.canWork?city.ResidentWage(person):0)+"（进入家庭共同预算）\n"+a.reason,small);
                 if(a.travelling) GUILayout.Label("行程进度："+(a.progress*100).ToString("F0")+"%",small);
                 GUILayout.BeginHorizontal();
                 GUI.enabled=a.located;

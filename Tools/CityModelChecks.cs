@@ -11,7 +11,7 @@ public static class CityModelChecks
     }
     public static void Main()
     {
-        var city = CityModel.Create();
+        var city = CityModel.CreateLegacySample();
         Check(city.Valid(), "Initial city valid");
         Check(city.population == 180 && city.power == 160 && city.water == 160, "Initial economy");
         int before = city.money;
@@ -32,7 +32,7 @@ public static class CityModelChecks
         Check(!city.Place(1,1,LandUse.Power,out _) && city.Get(1,1) == LandUse.Empty, "Insufficient funds preserve map");
         city.levels[0] = 4;
         Check(!city.Valid(), "Malformed levels rejected");
-        city = CityModel.Create();
+        city = CityModel.CreateLegacySample();
         city.Place(5,19,LandUse.Bulldoze,out _);
         int sum = 0;
         foreach (int level in city.levels) sum += level;
@@ -46,5 +46,6 @@ public static class CityModelChecks
         BuildingChecks.Run();
         HouseholdChecks.Run();
         ResidentTransportChecks.Run();
+        JobChecks.Run();
     }
 }
