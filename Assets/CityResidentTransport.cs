@@ -63,11 +63,12 @@ namespace HarborCity
         {
             var h=TripFamily(t); var p=h?.people.Find(person=>person.id==t.residentId);
             if(h==null || p==null || !h.resident)
-            {if(p!=null) {p.tripId=0; p.atWork=false;} State.trips.Remove(t); return false;}
+            {city.Trace("trip.cancelled","居民或家庭不再居住本城",t,household:t.householdId,citizen:t.residentId,trip:t.id); if(p!=null) {p.tripId=0; p.atWork=false;} State.trips.Remove(t); return false;}
             if(!Endpoint(t.destination) || (!t.returning && city.Workplace(p)!=t.destination) || (t.returning && t.destination!=h.home))
             {
                 // A removed workplace sends the resident home via the surviving route graph.
                 t.destination=h.home; t.home=h.home; t.returning=true;
+                city.Trace("trip.redirected","工作或住房目的地变化，尝试返家",t,household:h.id,citizen:p.id,trip:t.id,level:"warning");
                 if(!Endpoint(t.destination)) {Wait(t); return false;}
             }
             // The origin building may be demolished while a car is already on the road.
@@ -89,6 +90,8 @@ namespace HarborCity
                     p.observedHome=t.origin; p.observedWork=t.destination; p.observedRevision=city.roads.revision;
                 }
             }
+            city.Trace(t.returning?"trip.finished":"trip.arrived",t.returning?"居民实际到家":"居民实际到岗",t,household:t.householdId,citizen:t.residentId,trip:t.id);
+            if(p!=null && !t.returning) city.Trace("citizen.attendance","开始实际出勤；记录通勤和迟到",p,household:h.id,citizen:p.id,job:p.jobId,building:p.location,trip:t.id);
             State.completed++; State.trips.Remove(t);
         }
         void AdvanceResidents()
@@ -107,13 +110,15 @@ namespace HarborCity
                     {
                         float worked=Math.Max(0,Math.Min(minute+minutes,end)-Math.Max(minute,shift));
                         p.workedMinutes+=worked; p.earnedWages+=worked/480*city.ResidentWage(p);
+                        city.ProcessFactoryWork(p,worked);
                     }
                     if(p.tripId>0 || State.clock<p.retryAt) continue;
                     bool returning=p.atWork && (minute>=end || p.arrivedDay<city.day || work!=p.location);
                     float estimate=city.ExpectedCommute(p,h.home,work);
                     bool departing=p.canWork && !p.atWork && p.departureDay!=city.day && estimate>=0 && minute>=Math.Max(0,shift-estimate) && minute<end;
                     if(!returning && !departing) continue;
-                    if(p.requestedAt<0) p.requestedAt=State.clock;
+                    bool firstRequest=p.requestedAt<0;
+                    if(firstRequest) p.requestedAt=State.clock;
                     p.retryAt=State.clock+.25f;
                     var trip=Dispatch(returning?p.location:h.home,returning?h.home:work,TripPurpose.Commute,p.id);
                     // If the workplace was demolished after arrival, depart from its
@@ -124,13 +129,20 @@ namespace HarborCity
                         if(route.Count>0 && CanEnter(route,null) && State.trips.Count<TaskCapacity)
                         {trip=new TrafficTrip{id=State.nextId++,origin=p.location,destination=h.home,purpose=TripPurpose.Commute,residentId=p.id,route=route}; State.trips.Add(trip);}
                     }
-                    if(trip==null) continue;
+                    if(trip==null)
+                    {
+                        if(firstRequest) city.Trace("trip.departure_wait","入口排队、道路不可达或任务容量不足，尚未发车",
+                            new CityLogDetail {origin=returning?p.location:h.home,destination=returning?h.home:work},household:h.id,citizen:p.id,job:p.jobId,level:"warning");
+                        continue;
+                    }
                     trip.departedAt=p.requestedAt; p.requestedAt=-1;
                     trip.householdId=h.id; trip.home=h.home; trip.returning=returning;
                     p.tripId=trip.id; if(!returning) p.departureDay=city.day;
+                    city.Trace("trip.started",returning?"居民发车回家":"居民发车上班",trip,household:h.id,citizen:p.id,job:p.jobId,trip:trip.id);
                 }
             }
             // Traffic and the household clock advance on the same fixed step, including multi-day fast forward.
+            city.AdvanceIndustry(minutes);
             s.dayElapsed+=Step;
             if(s.dayElapsed+.00001f>=s.settings.secondsPerDay)
             {s.dayElapsed=Math.Max(0,s.dayElapsed-s.settings.secondsPerDay); city.Tick();}

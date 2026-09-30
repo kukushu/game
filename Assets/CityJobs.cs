@@ -33,6 +33,7 @@ namespace HarborCity
         public void ReleaseJob(CityResident p)
         {
             var job=ResidentJob(p); if(job!=null) job.occupiedCitizenId=-1;
+            if(job!=null) Trace("job.released","居民释放岗位",job,household:p.householdId,citizen:p.id,job:job.id,building:job.buildingId);
             p.jobId=-1; p.requestedAt=-1;
         }
         public bool AssignJob(CityResident p,int jobId)
@@ -44,7 +45,8 @@ namespace HarborCity
             if(p.jobId==jobId) return true;
             // Normal choices cannot change employment halfway through a trip/shift.
             if(p.tripId>0 || p.atWork) return false;
-            ReleaseJob(p); p.jobId=job.id; job.occupiedCitizenId=p.id; return true;
+            ReleaseJob(p); p.jobId=job.id; job.occupiedCitizenId=p.id;
+            Trace("job.assigned","居民占用岗位",job,household:p.householdId,citizen:p.id,job:job.id,building:job.buildingId); return true;
         }
         public void SyncJobs()
         {
@@ -57,14 +59,18 @@ namespace HarborCity
                 {
                     if(people.TryGetValue(job.occupiedCitizenId,out var p)) ReleaseJob(p);
                     society.jobEntities.Remove(job);
+                    Trace("job.removed","建筑岗位容量减少或建筑已拆除",job,job:job.id,building:job.buildingId);
                 }
             }
             var counts=society.jobEntities.GroupBy(j=>j.buildingId).ToDictionary(g=>g.Key,g=>g.Count());
             for(int i=0;i<tiles.Length;i++)
             {
                 counts.TryGetValue(i,out int existing);
-                for(int n=existing;n<BuildingJobSlots(i);n++) society.jobEntities.Add(new CityJob {
-                    id=society.nextJobId++,buildingId=i,wage=95+(i%5)*12+(tiles[i]==4?20:0),requiredSkill=tiles[i]==4?1:0});
+                for(int n=existing;n<BuildingJobSlots(i);n++)
+                {
+                    var job=new CityJob {id=society.nextJobId++,buildingId=i,wage=95+(i%5)*12+(tiles[i]==4?20:0),requiredSkill=tiles[i]==4?1:0};
+                    society.jobEntities.Add(job); Trace("job.created","建筑提供岗位",job,job:job.id,building:i);
+                }
             }
         }
         public void EnableJobs(bool newCity=false)
@@ -108,7 +114,7 @@ namespace HarborCity
                 int id=option.jobIds[i];
                 if(p.jobId==id) continue;
                 ReleaseJob(p);
-                if(id>=0) {p.jobId=id; Job(id).occupiedCitizenId=p.id;}
+                if(id>=0) {p.jobId=id; Job(id).occupiedCitizenId=p.id; Trace("job.assigned","家庭决策分配个人岗位",Job(id),household:h.id,citizen:p.id,job:id,building:Workplace(p));}
             }
             return true;
         }

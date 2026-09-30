@@ -11,7 +11,7 @@ namespace HarborCity
     {
         const float Cell = 3f;
         const float MinZoom = 10f;
-        const float MaxZoom = 100f;
+        const float MaxZoom = 155f;
         const float ZoomPerStep = .85f;
         CityModel city;
         readonly Dictionary<int, GameObject> visuals = new Dictionary<int, GameObject>();
@@ -259,9 +259,8 @@ namespace HarborCity
             // 16. 根据当前 yaw、pitch、zoom、focus
             // 更新相机的位置和角度
             UpdateCamera();
+            StartSimulationLog("新开局");
         }
-
-
 
         void OnEnable()
         {
@@ -271,6 +270,7 @@ namespace HarborCity
             Rebuild();
             traffic = new CityTraffic(city);
             EnsureTrafficViews();
+            StartSimulationLog("脚本重载或组件重新启用");
         }
 
         void EnsureTrafficViews()
@@ -419,7 +419,7 @@ namespace HarborCity
                 if (keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed) move.x++;
                 if (keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed) move.x--;
                 focus += Quaternion.Euler(0,yaw,0) * move * (zoom * .65f * Time.deltaTime);
-                focus.x = Mathf.Clamp(focus.x,-55,55); focus.z = Mathf.Clamp(focus.z,-55,55);
+                focus.x = Mathf.Clamp(focus.x,-CityModel.BuildHalfSize,CityModel.BuildHalfSize); focus.z = Mathf.Clamp(focus.z,-CityModel.BuildHalfSize,CityModel.BuildHalfSize);
                 if (keyboard.qKey.isPressed) yaw -= Time.deltaTime * 55;
                 if (keyboard.eKey.isPressed) yaw += Time.deltaTime * 55;
                 if (keyboard.spaceKey.wasPressedThisFrame) speed = speed == 0 ? 1 : 0;
@@ -463,6 +463,7 @@ namespace HarborCity
 
             }
             AdvanceSociety(Time.deltaTime * speed);
+            UpdateSimulationLog();
             AnimateTraffic();
             UpdateCommuteView();
             UpdateResidentView();
@@ -518,8 +519,8 @@ namespace HarborCity
             var toRay = cam.ScreenPointToRay(to);
             if (!ground.Raycast(fromRay, out float fromDistance) || !ground.Raycast(toRay, out float toDistance)) return;
             focus += fromRay.GetPoint(fromDistance) - toRay.GetPoint(toDistance);
-            focus.x = Mathf.Clamp(focus.x, -55, 55);
-            focus.z = Mathf.Clamp(focus.z, -55, 55);
+            focus.x = Mathf.Clamp(focus.x, -CityModel.BuildHalfSize, CityModel.BuildHalfSize);
+            focus.z = Mathf.Clamp(focus.z, -CityModel.BuildHalfSize, CityModel.BuildHalfSize);
             UpdateCamera();
         }
 
@@ -541,8 +542,8 @@ namespace HarborCity
             if (anchored && ground.Raycast(afterRay, out float afterDistance))
             {
                 focus += beforeRay.GetPoint(beforeDistance) - afterRay.GetPoint(afterDistance);
-                focus.x = Mathf.Clamp(focus.x, -55, 55);
-                focus.z = Mathf.Clamp(focus.z, -55, 55);
+                focus.x = Mathf.Clamp(focus.x, -CityModel.BuildHalfSize, CityModel.BuildHalfSize);
+                focus.z = Mathf.Clamp(focus.z, -CityModel.BuildHalfSize, CityModel.BuildHalfSize);
                 UpdateCamera();
             }
         }
@@ -665,6 +666,7 @@ namespace HarborCity
         string Purpose(TrafficTrip trip)
         {
             string[] purposes = { "通勤", "购物", "配送商品", "进口商品", "出口商品" };
+            if(trip.cargoKind==CargoKind.RawMaterial) return trip.returning?"进口原料 · 返程":"进口原料";
             return trip.returning ? purposes[(int)trip.purpose] + " · 返程" : purposes[(int)trip.purpose];
         }
         string EndpointName(int i) => i == CityTraffic.Outside ? "西侧城外入口" : names[city.tiles[i]] + " #" + i;
@@ -821,6 +823,7 @@ namespace HarborCity
                 File.WriteAllText(temp,JsonUtility.ToJson(city,true));
                 if (File.Exists(SavePath)) File.Copy(SavePath,SavePath + ".bak",true);
                 File.Copy(temp,SavePath,true); File.Delete(temp);
+                city.Trace("save.success","城市存档保存成功");
                 notice = "城市已保存。第 " + city.day + " 天 / " + city.population + " 人";
             }
             catch (Exception e) { notice = "保存失败：" + e.Message; }
@@ -836,9 +839,10 @@ namespace HarborCity
                 loaded.EnableRoads(landscape.Height);
                 loaded.EnableBuildings();
                 loaded.EnableHouseholds();
+                StopSimulationLog();
                 city = loaded; city.Recalculate(); traffic = new CityTraffic(city); inspectedTrip = -1; inspectedHome=-1; commuteFamily=-1; roadUndo.Clear();
                 foreach (var car in cars) car.gameObject.SetActive(false);
-                trafficViews.Clear(); timer = 0; Rebuild(); AnimateTraffic(); notice = "已读取第 " + city.day + " 天的城市。";
+                trafficViews.Clear(); timer = 0; Rebuild(); AnimateTraffic(); notice = "已读取第 " + city.day + " 天的城市。"; StartSimulationLog("读取存档");
             }
             catch (Exception e) { notice = "读取失败：" + e.Message; }
         }

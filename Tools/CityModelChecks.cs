@@ -47,5 +47,7 @@ public static class CityModelChecks
         HouseholdChecks.Run();
         ResidentTransportChecks.Run();
         JobChecks.Run();
+        IndustryChecks.Run();
+        LogChecks.Run();
     }
 }

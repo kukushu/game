@@ -13,6 +13,7 @@ namespace HarborCity
         public int rent, leaseEnd, lastMove=-100, nextReview, hardship, arrears;
         public bool resident;
         public float spacePreference, privacyPreference, timePreference, savingPreference;
+        public float noiseSensitivity, pollutionSensitivity, trafficSensitivity;
         // v4 import-only commute value. Individual observations live on CityResident.
         public float commute=-1;
         public int wagePaid, rentPaid, livingPaid, travelPaid;
@@ -26,6 +27,7 @@ namespace HarborCity
         public int home, work=-1, rent, wage, surplus;
         public List<int> citizenIds=new List<int>(), jobIds=new List<int>();
         public float minutes, spaceScore, privacyScore, moneyScore, timeScore, changeCost, score;
+        public float noise, pollution, heavyTraffic, environmentCost;
         public string rejection="";
     }
     [Serializable] public sealed class HouseholdDay
@@ -99,7 +101,8 @@ namespace HarborCity
             int memberCount=2+h.id%3; h.savings=450+h.id%7*100;
             if(version>=5) InitializeResidents(h,memberCount);
             else {h.members=memberCount; h.skill=h.id%3;}
-            society.families.Add(h); return h;
+            if(version>=6) InitializeEnvironmentPreferences(h);
+            society.families.Add(h); Trace("household.created","生成城外申请家庭",h,household:h.id); return h;
         }
         void Event(string message)
         {
@@ -110,7 +113,7 @@ namespace HarborCity
         {
             // Unity hot reload may instantiate a newly added serializable field in an old city.
             // Schema version, rather than non-null, determines whether migration has run.
-            if(version>=4 && society!=null) { EnsureResidents(); EnableJobs(); return; }
+            if(version>=4 && society!=null) { EnsureResidents(); EnableJobs(); EnableIndustry(); return; }
             EnableBuildings(); society=new HouseholdState {lastSettledDay=day};
             for(int i=0;i<tiles.Length;i++) if(tiles[i]==2)
             {
@@ -156,8 +159,9 @@ namespace HarborCity
                 if(travel<0) unreachable=true; else o.minutes+=travel;
             }
             if(!ignoreHousingCapacity && h.home!=home && Occupancy(home)>=HousingCapacity(home)) o.rejection="住房已满";
-            else if(!EntityRoadAccess(home)) o.rejection="住宅未接入城市道路";
+            else if(!EntityRoadAccess(home)) o.rejection="住宅道路未连通城外入口";
             else if(unreachable) o.rejection="成员工作地点不可达";
+            else if(o.jobIds.All(id=>id<0) && h.people.Any(p=>p.canWork)) o.rejection="没有可达且技能匹配的空缺岗位";
             int travelCost=(int)Math.Ceiling(o.minutes*.3f);
             int members=Math.Max(1,h.people.Count);
             o.surplus=o.wage-o.rent-members*9-travelCost;
@@ -169,14 +173,17 @@ namespace HarborCity
             o.moneyScore=(.25f+h.savingPreference)*20*(float)Math.Log(1+Math.Max(0,o.surplus)/25f);
             o.timeScore=h.timePreference*o.minutes*.7f;
             o.changeCost=(h.resident && home!=h.home?10:0)+(h.resident?changes*5:0);
-            if(o.rejection=="") o.score=o.spaceScore+o.privacyScore+o.moneyScore-o.timeScore-o.changeCost;
+            var environment=EnvironmentAt(home);
+            o.noise=environment.noise; o.pollution=environment.pollution; o.heavyTraffic=environment.heavyTraffic;
+            o.environmentCost=o.noise*h.noiseSensitivity*18+o.pollution*h.pollutionSensitivity*30+o.heavyTraffic*h.trafficSensitivity*12;
+            if(o.rejection=="") o.score=o.spaceScore+o.privacyScore+o.moneyScore-o.timeScore-o.changeCost-o.environmentCost;
             return o;
         }
         void Review(Household h,HouseholdDay report)
         {
             if(society.transportEnabled && h.resident && HousingCapacity(h.home)>0
                 && h.people!=null && h.people.Exists(p=>p.tripId>0 || p.atWork))
-            { h.nextReview=day+1; h.reason="正在出行或尚未回家，延后住房和工作变更"; return; }
+            { h.nextReview=day+1; h.reason="正在出行或尚未回家，延后住房和工作变更"; Trace("household.deferred",h.reason,household:h.id); return; }
             h.evaluatedDay=day;
             var current=Evaluate(h,h.home,keepJobs:true); var best=current;
             var options=new List<HouseholdOption> {current};
@@ -201,9 +208,12 @@ namespace HarborCity
             h.options=options.OrderBy(o=>o.rejection!="").ThenByDescending(o=>o.score).Take(8).ToList();
             if(!h.options.Contains(current)) h.options.Add(current);
             h.nextReview=day+society.settings.reviewDays;
+            Trace("household.decision","评估住房与全体成员岗位",new CityLogDetail {previous=h.home,destination=best.home,options=options},household:h.id);
             if(best.rejection!="" || best==current || current.rejection=="" && best.score<current.score+society.settings.improvement)
             {
-                h.reason=current.rejection!="" ? "暂未找到可行替代："+current.rejection : "维持现状：替代方案改善不足（门槛 "+society.settings.improvement+"）";
+                string reasons=string.Join("；",options.Where(o=>o.home>=0 && o.rejection!="").Select(o=>o.rejection).Distinct());
+                h.reason=current.rejection!="" ? "暂未找到可行替代："+(reasons.Length>0?reasons:current.rejection) : "维持现状：替代方案改善不足（门槛 "+society.settings.improvement+"）";
+                Trace("household.unchanged",h.reason,h,household:h.id,level:current.rejection!=""?"warning":"info");
                 if(day>=h.leaseEnd && HousingCapacity(h.home)>0)
                 {h.rent=buildings[h.home].askingRent; h.leaseEnd=day+society.settings.leaseDays;}
                 return;
@@ -231,11 +241,13 @@ namespace HarborCity
                 +"；评分 "+current.score.ToString("F1")+" → "+best.score.ToString("F1")+"，通勤 "+best.minutes.ToString("F1")+" 分钟";
             if(entering) report.arrived++; else if(moving) report.moved++;
             Event("家庭 #"+h.id+" "+h.reason);
+            Trace(entering?"household.arrived":moving?"household.moved":"household.jobs_changed",h.reason,h,household:h.id,building:h.home);
         }
         public void RecalculateHouseholds()
         {
             if(version<5) EnableJobs();
             SyncJobs();
+            EnableIndustry();
             population=jobs=income=upkeep=power=water=demand=0;
             foreach(var e in roads.edges) upkeep+=(int)Math.Ceiling(roads.EdgeLength(e.a,e.b)/3);
             for(int i=0;i<tiles.Length;i++)
@@ -261,7 +273,12 @@ namespace HarborCity
                 h.wagePaid=h.rentPaid=h.livingPaid=h.travelPaid=0;
                 if(!h.resident) continue;
                 h.wagePaid=0;
-                foreach(var person in h.people) {person.wagePaid=(int)Math.Round(person.earnedWages); h.wagePaid+=person.wagePaid;}
+                foreach(var person in h.people)
+                {
+                    person.wagePaid=(int)Math.Round(person.earnedWages); h.wagePaid+=person.wagePaid;
+                    Trace("citizen.pay","日末个人实际出勤与入账",new CityLogDetail {minutes=person.workedMinutes,earned=person.earnedWages,amount=person.wagePaid},
+                        household:h.id,citizen:person.id,job:person.jobId,building:Workplace(person));
+                }
                 h.savings+=h.wagePaid; r.wages+=h.wagePaid;
                 foreach(var person in h.people) {person.earnedWages=0; person.workedMinutes=0;}
                 h.livingPaid=Math.Min(h.savings,h.people.Count*9); h.savings-=h.livingPaid; r.living+=h.livingPaid;
@@ -273,6 +290,7 @@ namespace HarborCity
                 bool trouble=!h.people.Any(p=>ResidentJob(p)!=null && CommuteMinutes(h.home,Workplace(p))>=0) || HousingCapacity(h.home)==0 || h.rentPaid<due || h.livingPaid<h.people.Count*9;
                 h.hardship=trouble?h.hardship+1:0;
                 if(trouble || day>=h.leaseEnd) h.nextReview=day;
+                Trace("household.settlement","家庭工资、租金、生活费、通勤费和储蓄结算",h,household:h.id,building:h.home);
             }
             // Finite outside applicant pool; their starting savings are tracked as an external inflow.
             int supplied=0;
@@ -287,17 +305,19 @@ namespace HarborCity
                     h.resident=false; h.home=h.unit=-1;
                     foreach(var p in h.people) {ReleaseJob(p); if(traffic!=null) traffic.trips.RemoveAll(t=>t.residentId==p.id); p.tripId=0; p.atWork=false;} h.reason="迁出：连续 30 天无法维持居住和就业";
                     h.nextReview=day+30; r.left++; Event("家庭 #"+h.id+" "+h.reason);
+                    Trace("household.left",h.reason,h,household:h.id,level:"warning");
                 }
             }
             // Vacancy adjusts only advertised rent; existing leases remain locked.
             if(day%7==0) for(int i=0;i<tiles.Length;i++) if(HousingCapacity(i)>0)
             {
-                var b=buildings[i]; int occupied=Occupancy(i);
+                var b=buildings[i]; int occupied=Occupancy(i), previousRent=b.askingRent;
                 b.vacantDays=occupied<HousingCapacity(i)?b.vacantDays+7:0;
                 if(b.vacantDays>=14) b.askingRent=Math.Max(12,b.askingRent-1);
                 // Raise only when a real unmatched applicant can afford and prefers this full building.
                 else if(occupied==HousingCapacity(i) && b.applications>0)
                     b.askingRent=Math.Min(b.housing==HousingKind.Villa?90:45,b.askingRent+1);
+                if(b.askingRent!=previousRent) Trace("housing.rent_changed","挂牌租金随空置或真实申请需求调整",new CityLogDetail {previous=previousRent,amount=b.askingRent,count=occupied},building:i);
             }
             money+=r.rent-r.maintenance; society.lastSettledDay=day;
             r.households=society.families.Count(h=>h.resident); r.population=society.families.Where(h=>h.resident).Sum(h=>h.people.Count);
@@ -305,6 +325,11 @@ namespace HarborCity
             r.averageCommute=AverageCommute;
             r.closingTreasury=money; r.closingSavings=society.families.Sum(h=>h.savings);
             society.history.Add(r); if(society.history.Count>180) society.history.RemoveAt(0);
+            Trace("city.day","每日城市统计与资金核对",r);
+            foreach(var b in buildings) if(tiles[b.id]==4 && b.factory!=null)
+                Trace("factory.day","工厂累计生产、出勤、库存及环境记录",new FactoryReport {state=b.factory,goods=traffic.stock[b.id]},building:b.id);
+            if(r.closingTreasury!=r.openingTreasury+r.rent-r.maintenance || r.closingSavings!=r.openingSavings+r.wages-r.rent-r.living-r.travel-r.movingCosts)
+                Trace("invariant.cash","日结资金不守恒",r,level:"error");
             EnsureResidents(); RecalculateHouseholds();
         }
         public bool ValidHouseholds()
@@ -345,7 +370,7 @@ namespace HarborCity
             }
             if(society.transportEnabled && traffic!=null)
                 foreach(var trip in traffic.trips) if(trip.residentId>0 && !society.families.Any(h=>h.id==trip.householdId && h.people!=null && h.people.Any(p=>p.id==trip.residentId && p.tripId==trip.id))) return false;
-            return version<5 || ValidJobs();
+            return (version<5 || ValidJobs()) && (version<6 || ValidIndustry());
         }
     }
 }

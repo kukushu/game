@@ -9,6 +9,7 @@ namespace HarborCity
 {
     public static class CityHouseholdChecks
     {
+        [Serializable] sealed class LogPayloadCheck {public CityLogDetail data;}
         [MenuItem("Harbor/Validate household simulation")]
         public static void Validate()
         {
@@ -17,6 +18,18 @@ namespace HarborCity
             empty=JsonUtility.FromJson<CityModel>(JsonUtility.ToJson(empty));
             if(!empty.Valid() || empty.population!=0 || empty.society.families.Count!=0 || empty.roads.edges.Count!=0 || empty.tiles.Any(t=>t!=0))
                 throw new Exception("Empty new-game save round-trip failed");
+            using(var journal=new CitySimulationLog("Temp/UnityLogChecks",o=>JsonUtility.ToJson(o)))
+            {
+                empty.logSink=journal.Write; journal.Snapshot("baseline",empty);
+                empty.Trace("test.unity_json","中文\"引号\"\n换行",new CityLogDetail {reason="嵌套数据",amount=42},citizen:10);
+                string folder=journal.Export("Temp/UnityLogExports",empty);
+                string line=File.ReadAllLines(Path.Combine(folder,"events-0001.jsonl")).Single();
+                var record=JsonUtility.FromJson<CityLogEvent>(line);
+                if(record.seq!=1 || record.citizenId!=10 || record.message!="中文\"引号\"\n换行" || JsonUtility.FromJson<LogPayloadCheck>(line).data.amount!=42
+                    || !JsonUtility.FromJson<CityModel>(File.ReadAllText(Path.Combine(folder,"baseline.json"))).Valid())
+                    throw new Exception("Structured log Unity JSON/export failed");
+                empty.logSink=null;
+            }
             var c=CityModel.CreateLegacySample(); new CityTraffic(c);
             c=JsonUtility.FromJson<CityModel>(JsonUtility.ToJson(c));
             if(!c.Valid()) throw new Exception("Legacy JSON validation failed");
@@ -38,7 +51,7 @@ namespace HarborCity
             if(game!=null)
             {
                 var live=(CityModel)typeof(HarborCityGame).GetField("city",BindingFlags.NonPublic|BindingFlags.Instance).GetValue(game);
-                if(!live.Valid() || live.version!=5) throw new Exception("Live household model invalid");
+                if(!live.Valid() || live.version!=6) throw new Exception("Live household model invalid");
                 var snapshot=JsonUtility.FromJson<CityModel>(JsonUtility.ToJson(live)); snapshot.Tick();
                 if(!snapshot.Valid()) throw new Exception("Live snapshot failed daily settlement");
                 foreach(var day in snapshot.society.history)
@@ -73,9 +86,26 @@ namespace HarborCity
             if(!transportCopy.Valid()) throw new Exception("Resident transport save invalid");
             var resumed=new CityTraffic(transportCopy);
             driver.Advance(2); resumed.Advance(2);
-            if(JsonUtility.ToJson(transport.society)!=JsonUtility.ToJson(transportCopy.society) || JsonUtility.ToJson(transport.traffic)!=JsonUtility.ToJson(transportCopy.traffic))
-                throw new Exception("Resident transport diverged after reload");
-            string result="PASS: v5 JSON round-trip, partial-day time, deterministic 20-day continuation, resident transport save continuation, v4 job/journey migration. Live city ledger: "+(game!=null?"passed":"skipped (not in Play mode)");
+            if(JsonUtility.ToJson(transport.society)!=JsonUtility.ToJson(transportCopy.society) || JsonUtility.ToJson(transport.traffic)!=JsonUtility.ToJson(transportCopy.traffic)
+                || transport.buildings.Where((b,i)=>JsonUtility.ToJson(b)!=JsonUtility.ToJson(transportCopy.buildings[i])).Any())
+            {
+                File.WriteAllText("Temp/IndustryExpected.json",JsonUtility.ToJson(transport,true));
+                File.WriteAllText("Temp/IndustryActual.json",JsonUtility.ToJson(transportCopy,true));
+                throw new Exception("Resident transport diverged after reload; snapshots written to Temp/IndustryExpected.json and IndustryActual.json");
+            }
+            var industrial=transport.buildings.First(b=>transport.tiles[b.id]==4).factory;
+            industrial.raw=3; industrial.processing=true; industrial.progress=17; industrial.consumed=industrial.produced+1;
+            industrial.noise=.3f; industrial.pollution=.8f;
+            transportCopy=JsonUtility.FromJson<CityModel>(JsonUtility.ToJson(transport));
+            resumed=new CityTraffic(transportCopy); driver.Advance(2); resumed.Advance(2);
+            if(!transportCopy.Valid() || JsonUtility.ToJson(transport)!=JsonUtility.ToJson(transportCopy)) throw new Exception("Partial industrial batch or environmental history diverged after reload");
+            var v5=JsonUtility.FromJson<CityModel>(JsonUtility.ToJson(transport)); v5.version=5;
+            foreach(var b in v5.buildings) b.factory=null;
+            string preservedTraffic=JsonUtility.ToJson(v5.traffic);
+            v5=JsonUtility.FromJson<CityModel>(JsonUtility.ToJson(v5)); v5.EnableHouseholds();
+            if(!v5.Valid() || v5.version!=6 || preservedTraffic!=JsonUtility.ToJson(v5.traffic) || v5.buildings.Any(b=>b.factory!=null && b.factory.raw!=0))
+                throw new Exception("v5 industry migration changed existing stock or journeys");
+            string result="PASS: v6 JSON round-trip, partial-day time, deterministic 20-day continuation, resident transport save continuation, v4 job/journey migration. Live city ledger: "+(game!=null?"passed":"skipped (not in Play mode)");
             Directory.CreateDirectory("Temp"); File.WriteAllText("Temp/CityHouseholdChecks.txt",result); Debug.Log(result);
         }
     }

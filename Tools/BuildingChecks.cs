@@ -30,6 +30,13 @@ public static class BuildingChecks
         sim.Advance(1200);
         Check(c.population>0 && c.Employed>0 && c.society.history.Any(d=>d.wages>0) && c.Valid(),"Player-built city attracts residents with actual jobs, trips and wages");
         Check(c.buildings.Where(b=>c.tiles[b.id]==2).All(b=>b.housing==HousingKind.Apartment && !b.legacy && b.housingUnits==8),"New map uses standard player housing only");
+        c.money=65000;
+        plan=c.roads.Plan(c,P(-12,1.5f),P(78,1.5f),Flat);
+        Check(c.CommitRoad(plan),"Road extends beyond the former map boundary: "+plan.error);
+        var expanded=c.RoadsideLots().First(l=>l.x>60 && c.CanBuild(l,Flat,out _));
+        int expandedId=c.PlaceBuilding(expanded,LandUse.Industrial,Flat,out _);
+        Check(expandedId>=0 && c.BuildingAccess(expandedId) && c.PickBuilding(expanded.x,expanded.z)==expandedId,"Expanded region supports building, road access and picking");
+        Check(c.Valid() && sim.FindRoute(expandedId,CityTraffic.Outside).Count>1,"Expanded buildings remain saveable and connected to outside traffic");
     }
     public static void Run()
     {
@@ -67,7 +74,7 @@ public static class BuildingChecks
         Check(second>id,"Demolition never reuses a trip endpoint ID");
         Check(!c.CanBuild(new CityBuilding{x=0,z=0},(x,z)=>0,out _),"Water rejected");
         Check(!c.CanBuild(new CityBuilding{x=0,z=0},(x,z)=>x*3+10,out _),"Steep footprint rejected");
-        Check(!c.CanBuild(new CityBuilding{x=54,z=54,yaw=45},Flat,out _),"Rotated corners cannot exceed map");
+        Check(!c.CanBuild(new CityBuilding{x=CityModel.BuildHalfSize,z=CityModel.BuildHalfSize,yaw=45},Flat,out _),"Rotated corners cannot exceed map");
         c.buildings[second].x=float.NaN; Check(!c.Valid(),"Corrupt pose rejected");
         var a=new CityBuilding{x=0,z=0,yaw=45}; var b=new CityBuilding{x=3,z=3,yaw=45};
         Check(!a.Overlaps(b) && !b.Overlaps(a),"Separated rotated boxes");

@@ -129,6 +129,7 @@ namespace HarborCity
             if(GUILayout.Button("推进 1 天",button)) {speed=0; AdvanceSociety(city.society.settings.secondsPerDay-city.society.dayElapsed);}
             if(GUILayout.Button("20× 观察",button)) speed=20;
             if(GUILayout.Button("导出快照",button)) ExportSimulation();
+            if(GUILayout.Button("导出日志",button)) ExportSimulationLog();
             GUILayout.EndHorizontal();
             int newTab=GUILayout.Toolbar(simulationTab,new[]{"总览 / 账目","家庭 / 决策","住房 / 岗位","每日趋势","事件","人口 / 位置"},button);
             if(newTab!=simulationTab) {simulationTab=newTab; simulationScroll=Vector2.zero;}
@@ -186,9 +187,10 @@ namespace HarborCity
                     GUILayout.Label("成员通勤合计 "+(minutes<0?"不可达":minutes.ToString("F1")+" 分钟")+" / 合同租金 "+f.rent+" / 薪资 "+city.HouseholdSalary(f)+" / 下次评估第 "+f.nextReview+" 天",small);
                     GUILayout.Label("偏好 0–1：空间 "+f.spacePreference.ToString("F2")+"  私密 "+f.privacyPreference.ToString("F2")+"  时间 "+f.timePreference.ToString("F2")+"  储蓄 "+f.savingPreference.ToString("F2"),small);
                     GUILayout.Label("最近决定："+f.reason,small);
+                    GUILayout.Label("环境敏感度：噪声 "+f.noiseSensitivity.ToString("F2")+" / 污染 "+f.pollutionSensitivity.ToString("F2")+" / 货车 "+f.trafficSensitivity.ToString("F2"),small);
                     GUILayout.Label("第 "+f.evaluatedDay+" 天评估快照（0 为尚未评估）：正项为空间、私密、结余；负项为时间、变更成本",small);
                     foreach(var o in f.options)
-                        GUILayout.Label("房 #"+o.home+" / 成员岗位 "+(o.jobIds==null?"旧记录":string.Join(",",o.jobIds))+"："+(o.rejection!=""?o.rejection:"总分 "+o.score.ToString("F1")+" = "+o.spaceScore.ToString("F1")+" + "+o.privacyScore.ToString("F1")+" + "+o.moneyScore.ToString("F1")+" − "+o.timeScore.ToString("F1")+" − "+o.changeCost)+"\n租 "+o.rent+" / 工资 "+o.wage+" / 结余 "+o.surplus+" / 通勤 "+o.minutes.ToString("F1"),small);
+                        GUILayout.Label("房 #"+o.home+" / 成员岗位 "+(o.jobIds==null?"旧记录":string.Join(",",o.jobIds))+"："+(o.rejection!=""?o.rejection:"总分 "+o.score.ToString("F1")+" = "+o.spaceScore.ToString("F1")+" + "+o.privacyScore.ToString("F1")+" + "+o.moneyScore.ToString("F1")+" − "+o.timeScore.ToString("F1")+" − "+o.changeCost+" − 环境 "+o.environmentCost.ToString("F1"))+"\n租 "+o.rent+" / 工资 "+o.wage+" / 结余 "+o.surplus+" / 通勤 "+o.minutes.ToString("F1")+" / 噪声、污染、货车 "+o.noise.ToString("F2")+" / "+o.pollution.ToString("F2")+" / "+o.heavyTraffic.ToString("F2"),small);
                 }
             }
             else if(simulationTab==2)
@@ -201,6 +203,12 @@ namespace HarborCity
                         GUILayout.Label("住宅 #"+i+" "+(b.housing==HousingKind.Villa?"别墅":b.housing==HousingKind.Legacy?"旧城公寓":"公寓")+" · "+city.Occupancy(i)+" / "+b.housingUnits+" 户 · 挂牌 "+b.askingRent+" · 上日实收 "+actual+" · 本周意向 "+b.applications+" · "+(city.EntityRoadAccess(i)?"临路":"断路"),small);
                     }
                     else if(city.JobCapacity(i)>0) GUILayout.Label("工作场所 #"+i+" · 已雇 "+city.EmployedAt(i)+" / "+city.JobCapacity(i)+" · 日薪 "+city.Wage(i)+" · 技能要求 "+city.SkillRequired(i),small);
+                    var factory=city.Factory(i);
+                    if(factory!=null)
+                    {
+                        GUILayout.Label("工厂 #"+i+" · "+factory.status+" · 原料 "+factory.raw+" / 24 · 成品 "+city.traffic.stock[i]+" / 24 · 加工进度 "+factory.progress.ToString("F1")+" / 60 工人分钟",small);
+                        GUILayout.Label("累计：在岗 "+factory.attendanceMinutes.ToString("F0")+" 分钟 / 有效加工 "+factory.productiveMinutes.ToString("F0")+" 分钟 / 产量 "+factory.produced+" 件 · 噪声 "+factory.noise.ToString("F2")+" / 污染 "+factory.pollution.ToString("F2"),small);
+                    }
                 }
             }
             else if(simulationTab==3)

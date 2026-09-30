@@ -20,6 +20,26 @@ public static class ResidentTransportChecks
     }
     public static void Run()
     {
+        foreach(float dayLength in new[]{60f,120f,240f})
+        {
+            float reference=-1;
+            foreach(TripPurpose purpose in Enum.GetValues(typeof(TripPurpose)))
+            {
+                var sample=Create(out var driver,out var family,out var person);
+                sample.society.settings.secondsPerDay=dayLength; sample.society.dayElapsed=0;
+                var route=driver.FindRoute(family.home,sample.Workplace(person));
+                var task=new TrafficTrip {id=sample.traffic.nextId++,origin=family.home,home=family.home,
+                    destination=sample.Workplace(person),route=route,purpose=purpose,status=TripStatus.Driving,
+                    residentId=purpose==TripPurpose.Commute?person.id:0,householdId=family.id};
+                if(task.residentId>0) person.tripId=task.id;
+                sample.traffic.trips.Add(task); driver.Advance(.05f);
+                float distance=task.progress*sample.roads.EdgeLength(task.Current,task.Next)/3;
+                for(int n=0;n<task.segment;n++) distance+=sample.roads.EdgeLength(route[n],route[n+1])/3;
+                if(reference<0) reference=distance;
+                Check(distance>0 && Math.Abs(distance-reference)<.0001f && Math.Abs(distance-.05f*480/dayLength)<.0001f,
+                    purpose+" shares actual road movement and day-length scaling at "+dayLength+" seconds/day");
+            }
+        }
         var c=Create(out var sim,out var h,out var p);
         sim.Advance(.05f); Check(p.tripId>0 && !p.atWork,"Dispatch creates actual resident task without instant arrival");
         var trip=c.traffic.trips.Single(); var a=c.ObserveResident(h,p);

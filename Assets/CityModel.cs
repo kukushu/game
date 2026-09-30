@@ -9,6 +9,9 @@ namespace HarborCity
     public sealed partial class CityModel
     {
         public const int Size = 36;
+        // World-space construction limits are independent of legacy grid IDs.
+        public const float BuildHalfSize = 84f;
+        public const float RoadHalfSize = BuildHalfSize - 1.5f;
         public int version = 1;
         public int money = 65000;
         public int day = 1;
@@ -154,10 +157,11 @@ namespace HarborCity
         public bool CommitRoad(RoadPlan plan)
         {
             if (roads == null || !plan.Valid || plan.revision != roads.revision || money < plan.cost) return false;
-            roads = plan.network; roads.ApplySplits(traffic,plan.splits); money -= plan.cost; Recalculate(); return true;
+            roads = plan.network; roads.ApplySplits(traffic,plan.splits); money -= plan.cost; Recalculate();
+            Trace("road.created","道路施工成功",new CityLogDetail {amount=plan.cost,count=plan.stroke,origin=plan.start.id,destination=plan.end.id,x=plan.end.x,z=plan.end.z}); return true;
         }
 
-        public bool Valid() => (version >= 1 && version <= 5) && tiles != null && levels != null && (version >= 3 ? ValidBuildings() : tiles.Length == Size * Size)
+        public bool Valid() => (version >= 1 && version <= 6) && tiles != null && levels != null && (version >= 3 ? ValidBuildings() : tiles.Length == Size * Size)
             && levels.Length == tiles.Length && day > 0 && Array.TrueForAll(tiles, t => t >= 0 && t <= (int)LandUse.Park)
             && Array.TrueForAll(levels, l => l >= 0 && l <= 3)
             && (version == 1 ? (roads == null || (roads.nodes!=null && roads.nodes.Count==0 && roads.edges!=null && roads.edges.Count==0)) && tiles[Index(0, Size / 2)] == (int)LandUse.Road : roads != null && roads.Valid())

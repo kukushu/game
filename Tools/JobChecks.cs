@@ -51,7 +51,7 @@ public static class JobChecks
         h.work=shop.buildingId; h.skill=2; h.savings=1234; h.commute=17;
         a.tripId=123; a.earnedWages=9; a.workedMinutes=33; a.lastCommute=17;
         c.version=4; c.society.jobEntities.Clear(); c.EnableHouseholds();
-        Check(c.version==5 && c.Workplace(a)==h.work && a.skill==2,"Legacy household employer migrates to original worker");
+        Check(c.version==6 && c.Workplace(a)==h.work && a.skill==2,"Legacy household employer migrates to original worker");
         Check(a.tripId==123 && a.earnedWages==9 && a.workedMinutes==33 && a.lastCommute==17 && h.savings==1234,"Migration preserves trip, attendance, observations and savings");
         Check(h.people[1].canWork && h.people[1].jobId==-1,"Other legacy adults await independent job choice");
         int migrated=a.jobId; c.EnableHouseholds(); Check(a.jobId==migrated && c.ValidJobs(),"Migration is idempotent");

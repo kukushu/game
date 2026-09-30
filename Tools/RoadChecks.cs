@@ -19,6 +19,12 @@ public static class RoadChecks
     }
     public static void Run()
     {
+        var near=Empty(); Build(near,P(-52.5f,1.5f),P(20,1.5f));
+        var edgeSnap=near.roads.Snap(-13.15f,0,Flat);
+        Check(Math.Abs(edgeSnap.z-1.5f)<.001f,"Clicking visible shoulder snaps to main road instead of creating false junction");
+        Build(near,edgeSnap,P(-13.15f,-25));
+        var branch=near.roads.nodes.Find(n=>Math.Abs(n.z+25)<.01f);
+        Check(near.roads.Connected(branch.id) && near.Valid(),"Shoulder-started branch really connects to outside");
         var c=CityModel.CreateLegacySample(); var traffic=new CityTraffic(c); traffic.Advance(8);
         int population=c.population,jobs=c.jobs,trips=c.traffic.trips.Count;
         c.EnableRoads(Flat);
@@ -65,7 +71,7 @@ public static class RoadChecks
 
         c=Empty(); funds=c.money;
         Check(!c.roads.Plan(c,P(0,0),P(.2f,0),Flat).Valid,"Too-short road rejected");
-        Check(!c.roads.Plan(c,P(0,0),P(60,0),Flat).Valid,"Outside construction boundary rejected");
+        Check(!c.roads.Plan(c,P(0,0),P(CityModel.BuildHalfSize+6,0),Flat).Valid,"Outside construction boundary rejected");
         Check(!c.roads.Plan(c,P(0,0),P(10,0),(x,z)=>0).Valid,"Underwater road rejected");
         Check(!c.roads.Plan(c,P(0,0),P(10,0),(x,z)=>1+x).Valid,"Steep grade rejected");
         Check(c.money==funds && c.roads.edges.Count==0,"Failed previews never mutate city or charge money");

@@ -74,6 +74,7 @@ namespace HarborCity
                     else
                     {
                         city.roads.Remove(run); city.money-=40; city.Recalculate(); RefreshRoadView(); roadUndo.Clear();
+                        city.Trace("road.demolished","拆除道路",new CityLogDetail {ids=run,amount=40});
                         notice="已拆除这段道路；车辆会重新寻路或等待道路恢复。";
                     }
                 }
@@ -101,7 +102,7 @@ namespace HarborCity
             }
             if(mouse.leftButton.wasPressedThisFrame)
             {
-                if(!roadPlan.Valid) notice=roadPlan.error;
+                if(!roadPlan.Valid) {notice=roadPlan.error; city.Trace("road.rejected",notice,new CityLogDetail {x=end.x,z=end.z},level:"warning");}
                 else if(city.CommitRoad(roadPlan))
                 {
                     roadUndo.Add((roadPlan.stroke,roadPlan.cost)); RefreshRoadView();
@@ -118,6 +119,7 @@ namespace HarborCity
             var edit=roadUndo[roadUndo.Count-1]; roadUndo.RemoveAt(roadUndo.Count-1);
             var ids=new List<int>(); foreach(var e in city.roads.edges) if(e.stroke==edit.stroke) ids.Add(e.id);
             city.roads.Remove(ids); city.money+=edit.cost; city.Recalculate(); RefreshRoadView();
+            city.Trace("road.undone","撤销道路施工并退款",new CityLogDetail {ids=ids,amount=edit.cost});
             notice="已撤销上一笔道路并退还 ¥ "+edit.cost+"；原有路口连接保留。";
         }
         void RoadToolPanel(Color background)

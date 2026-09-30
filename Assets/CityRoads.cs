@@ -138,11 +138,17 @@ namespace HarborCity
             var p=new RoadNode { x=x,z=z,y=height(x,z) }; RoadNode best=null; float nearest=.85f;
             foreach(var n in nodes) if((Active(n.id) || n.id==Entrance) && Length(n,p)<nearest) { best=n; nearest=Length(n,p); }
             if(best!=null) return best.Copy();
-            nearest=1.1f;
+            // Include the visible road edge and shoulder, not just its centre line.
+            nearest=Width/2+.45f;
             foreach(var e in edges)
             {
                 var q=Lerp(Node(e.a),Node(e.b),Projection(p,Node(e.a),Node(e.b)));
-                if(Length(q,p)<nearest) { best=q; nearest=Length(q,p); }
+                if(Length(q,p)<nearest)
+                {
+                    nearest=Length(q,p);
+                    var a=Node(e.a); var b=Node(e.b);
+                    best=Length(q,a)<.4f?a.Copy():Length(q,b)<.4f?b.Copy():q;
+                }
             }
             return best ?? p;
         }
@@ -183,7 +189,7 @@ namespace HarborCity
             var plan=new RoadPlan { start=from.Copy(),end=to.Copy(),revision=revision,stroke=nextStroke };
             plan.length=Length(from,to); plan.cost=(int)Math.Ceiling(plan.length*100/3);
             if(plan.length<1.5f) { plan.error="道路太短（至少 1.5 米）"; return plan; }
-            if(Math.Abs(from.x)>52.5f || Math.Abs(from.z)>52.5f || Math.Abs(to.x)>52.5f || Math.Abs(to.z)>52.5f)
+            if(Math.Abs(from.x)>CityModel.RoadHalfSize || Math.Abs(from.z)>CityModel.RoadHalfSize || Math.Abs(to.x)>CityModel.RoadHalfSize || Math.Abs(to.z)>CityModel.RoadHalfSize)
             { plan.error="道路超出当前建设边界"; return plan; }
             for(int i=0;i<city.tiles.Length;i++) if(city.tiles[i]>1 && (city.version >= 3 ? city.buildings[i].HitsRoad(from,to) : HitsLot(from,to,Lot(i),1.4f+Width/2)))
             { plan.error="道路侵占建筑或分区，请先拆除或绕行"; return plan; }
@@ -330,7 +336,7 @@ namespace HarborCity
             if(nodes==null || edges==null || nodes.Count>20000 || edges.Count>40000 || nextNode<1296 || nextEdge<1 || nextStroke<1) return false;
             var ids=new HashSet<int>(); var edgeIds=new HashSet<int>(); var pairs=new HashSet<string>();
             foreach(var n in nodes) if(n==null || n.id<0 || n.id>=nextNode || !ids.Add(n.id)
-                || float.IsNaN(n.x+n.y+n.z) || float.IsInfinity(n.x+n.y+n.z) || Math.Abs(n.x)>54 || Math.Abs(n.z)>54 || Math.Abs(n.y)>100) return false;
+                || float.IsNaN(n.x+n.y+n.z) || float.IsInfinity(n.x+n.y+n.z) || Math.Abs(n.x)>CityModel.BuildHalfSize || Math.Abs(n.z)>CityModel.BuildHalfSize || Math.Abs(n.y)>100) return false;
             foreach(var e in edges) if(e==null || e.id<1 || e.id>=nextEdge || !edgeIds.Add(e.id) || !ids.Contains(e.a) || !ids.Contains(e.b)
                 || e.a==e.b || e.stroke<0 || e.stroke>=nextStroke || !pairs.Add(Math.Min(e.a,e.b)+":"+Math.Max(e.a,e.b))) return false;
             lookup=null;

@@ -93,7 +93,7 @@ namespace HarborCity
             {
                 int id=city.PlaceBuilding(lot,selected,landscape.Height,out string error);
                 if(id>=0) { DrawLot(id); notice="已划分沿路"+names[(int)selected]+"地块 #"+id+"。"; }
-                else notice=error;
+                else {notice=error; city.Trace("building.rejected",error,new CityLogDetail {x=lot.x,z=lot.z,reason=selected.ToString()},level:"warning");}
             }
         }
     }

@@ -11,6 +11,8 @@ namespace HarborCity
         public float width = 2.9f, depth = 2.9f;
         public bool legacy;
         public HousingKind housing;
+        public FactoryState factory;
+        public float heavyTraffic;
         public int housingUnits, askingRent, vacantDays, applications;
         public List<int> interestedFamilies=new List<int>();
         public RoadNode Point(float right, float forward)
@@ -104,7 +106,7 @@ namespace HarborCity
             for(int z=0;z<=6;z++) for(int x=0;x<=6;x++)
             {
                 var p=lot.Point((x/6f-.5f)*lot.width,(z/6f-.5f)*lot.depth);
-                if(Math.Abs(p.x)>54 || Math.Abs(p.z)>54) { error="超出建设边界"; return false; }
+                if(Math.Abs(p.x)>BuildHalfSize || Math.Abs(p.z)>BuildHalfSize) { error="超出建设边界"; return false; }
                 float y=height(p.x,p.z); low=Math.Min(low,y); high=Math.Max(high,y);
             }
             if(low<=.15f || high-low>1.5f) { error="水面或坡度过陡，不能建设"; return false; }
@@ -132,13 +134,26 @@ namespace HarborCity
             {
                 Array.Resize(ref traffic.stock,id+1); Array.Resize(ref traffic.nextCommute,id+1); Array.Resize(ref traffic.nextShopping,id+1);
             }
-            money-=cost; buildingRevision++; Recalculate(); return id;
+            money-=cost; buildingRevision++; Recalculate();
+            Trace("building.created","建设 "+use,new CityLogDetail {amount=cost,x=lot.x,z=lot.z,count=lot.housingUnits},building:id); return id;
         }
         public bool DemolishBuilding(int id)
         {
             if(id<0 || id>=tiles.Length || tiles[id]<2 || money<Cost(LandUse.Bulldoze)) return false;
+            Trace("building.demolished","拆除 "+(LandUse)tiles[id],buildings[id],building:id);
             money-=Cost(LandUse.Bulldoze); tiles[id]=levels[id]=0;
-            if(traffic!=null) traffic.stock[id]=0;
+            if(traffic!=null)
+            {
+                traffic.lostGoods+=traffic.stock[id]; traffic.stock[id]=0;
+                var f=buildings[id].factory;
+                if(f!=null && f.initialized)
+                {
+                    traffic.lostRaw+=f.raw+(f.processing?1:0);
+                    if(f.processing) f.discardedBatches++;
+                    f.raw=0; f.processing=false; f.progress=0;
+                    Trace("factory.demolished","拆除库存和在制品计入损失；残留环境影响逐步消退",f,building:id);
+                }
+            }
             buildingRevision++; Recalculate(); return true;
         }
         // A world-space phase along each straight line survives traffic-edge splitting.
@@ -178,6 +193,6 @@ namespace HarborCity
             }
             return true;
         }
-        static bool FinitePosition(float value) => !float.IsNaN(value) && !float.IsInfinity(value) && Math.Abs(value)<=54;
+        static bool FinitePosition(float value) => !float.IsNaN(value) && !float.IsInfinity(value) && Math.Abs(value)<=BuildHalfSize;
     }
 }
