@@ -33,8 +33,9 @@ public static class JobChecks
         h.members=999; h.work=-1; h.skill=0; h.commute=999; c.population=1; c.jobs=1;
         c.EnsureResidents(); c.Recalculate();
         Check(c.population==people && c.jobs==slots && c.Occupancy(h.home)==occupied && c.Workplace(a)==shop.buildingId,"Legacy fields and macro caches cannot change micro entities");
-        a.earnedWages=12; b.earnedWages=31; c.HouseholdTick();
-        Check(a.wagePaid==12 && b.wagePaid==31 && h.wagePaid==43 && c.society.history.Last().wages==43,"Daily family income sums only actual personal earnings");
+        int factoryPay=c.ResidentWage(b);
+        a.earnedWages=12; c.PayAttendance(b,480); c.HouseholdTick();
+        Check(a.wagePaid==12 && b.wagePaid==factoryPay && h.wagePaid==12+factoryPay && c.society.history.Last().wages==12+factoryPay,"Daily family income sums external earnings and employer-funded personal wages");
         c.HouseholdTick(); Check(h.wagePaid==0,"Assigned jobs alone do not mint wages");
         int[] jobIds=c.society.jobEntities.Select(j=>j.id).ToArray(); c.SyncJobs();
         Check(jobIds.SequenceEqual(c.society.jobEntities.Select(j=>j.id)),"Sync preserves stable job IDs");
@@ -51,7 +52,7 @@ public static class JobChecks
         h.work=shop.buildingId; h.skill=2; h.savings=1234; h.commute=17;
         a.tripId=123; a.earnedWages=9; a.workedMinutes=33; a.lastCommute=17;
         c.version=4; c.society.jobEntities.Clear(); c.EnableHouseholds();
-        Check(c.version==6 && c.Workplace(a)==h.work && a.skill==2,"Legacy household employer migrates to original worker");
+        Check(c.version==7 && c.Workplace(a)==h.work && a.skill==2,"Legacy household employer migrates to original worker");
         Check(a.tripId==123 && a.earnedWages==9 && a.workedMinutes==33 && a.lastCommute==17 && h.savings==1234,"Migration preserves trip, attendance, observations and savings");
         Check(h.people[1].canWork && h.people[1].jobId==-1,"Other legacy adults await independent job choice");
         int migrated=a.jobId; c.EnableHouseholds(); Check(a.jobId==migrated && c.ValidJobs(),"Migration is idempotent");

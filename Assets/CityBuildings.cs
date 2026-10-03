@@ -122,12 +122,14 @@ namespace HarborCity
             if(version<3 || use<LandUse.Residential || use>LandUse.Park || tiles.Length>=100000) return -1;
             if(!CanBuild(lot,height,out error)) return -1;
             int cost=society!=null && use==LandUse.Residential ? (lot.housing==HousingKind.Villa?society.settings.villaCost:society.settings.apartmentCost) : Cost(use);
+            if(society!=null && use==LandUse.Industrial) cost+=FactoryState.StartingCash;
             if(money<cost) { error="资金不足"; return -1; }
             int id=tiles.Length; Array.Resize(ref tiles,id+1); Array.Resize(ref levels,id+1);
             lot.id=id; buildings.Add(lot); tiles[id]=(int)use;
             if(society!=null)
             {
                 levels[id]=1;
+                if(use==LandUse.Industrial) lot.factory=new FactoryState {initialized=true,financeInitialized=true,capitalFromTreasury=true,cash=FactoryState.StartingCash,capital=FactoryState.StartingCash};
                 if(use==LandUse.Residential) {lot.housingUnits=lot.housing==HousingKind.Villa?1:8; lot.askingRent=lot.housing==HousingKind.Villa?society.settings.villaRent:society.settings.apartmentRent;}
             }
             if(traffic!=null)
@@ -135,7 +137,9 @@ namespace HarborCity
                 Array.Resize(ref traffic.stock,id+1); Array.Resize(ref traffic.nextCommute,id+1); Array.Resize(ref traffic.nextShopping,id+1);
             }
             money-=cost; buildingRevision++; Recalculate();
-            Trace("building.created","建设 "+use,new CityLogDetail {amount=cost,x=lot.x,z=lot.z,count=lot.housingUnits},building:id); return id;
+            Trace("building.created","建设 "+use,new CityLogDetail {amount=cost,x=lot.x,z=lot.z,count=lot.housingUnits},building:id);
+            if(lot.factory!=null) Trace("factory.capital","建设预算转入工厂期初经营资金；不自动补款",lot.factory,building:id);
+            return id;
         }
         public bool DemolishBuilding(int id)
         {

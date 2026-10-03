@@ -372,6 +372,9 @@ namespace HarborCity
             int level = city.levels[i];
             if (level == 0) return;
             float height = use == LandUse.Industrial ? 1.3f + level * .5f : 1.2f + level * 1.35f + (i % 3) * .3f;
+            var selection=t.gameObject.AddComponent<BoxCollider>();
+            selection.center=new Vector3(0,height/2+.15f,0);
+            selection.size=new Vector3(2.3f,height+.4f,2.3f);
             Color facade = use == LandUse.Residential ? new Color(.86f,.84f,.74f) : use == LandUse.Commercial ? new Color(.6f,.75f,.79f) : new Color(.72f,.65f,.5f);
             Box("Building", new Vector3(0,height / 2 + .1f,0), new Vector3(2.15f,height,2.15f), facade, t);
             Box("Roof", new Vector3(0,height + .16f,0), new Vector3(2.3f,.18f,2.3f), use == LandUse.Residential ? new Color(.36f,.45f,.46f) : palette[(int)use], t);
@@ -458,7 +461,7 @@ namespace HarborCity
                 bool inside = CityModel.Inside(hoverX,hoverZ);
                 bool roadHandled = HandleRoadInput(mouse,ray,overUI || draggingView || mouse.rightButton.isPressed);
                 if (selected == LandUse.Empty && mouse.leftButton.wasPressedThisFrame && !overUI
-                    && !draggingView && !mouse.rightButton.isPressed && !InspectHousing(ray)) InspectTraffic(mp);
+                    && !draggingView && !mouse.rightButton.isPressed && !InspectBuilding(ray)) InspectTraffic(mp);
                 HandleBuildingInput(mouse,ray,overUI || draggingView || mouse.rightButton.isPressed || roadHandled);
 
             }
@@ -467,6 +470,7 @@ namespace HarborCity
             AnimateTraffic();
             UpdateCommuteView();
             UpdateResidentView();
+            UpdateBusinessMarker();
             UpdateTrafficEndpointMarker();
         }
 
@@ -763,10 +767,10 @@ namespace HarborCity
             if (!help && selected != LandUse.Road && !(selected==LandUse.Empty && inspectedHome>=0))
             {
                 Panel(new Rect(24,120,310,258),navy);
-                if (GUI.Button(new Rect(40,134,278,32),"0  查看住宅 / 车辆",button)) selected = LandUse.Empty;
+                if (GUI.Button(new Rect(40,134,278,32),"0  查看建筑 / 车辆",button)) selected = LandUse.Empty;
                 var trip = traffic.State.trips.Find(t => t.id == inspectedTrip);
                 if (trip == null)
-                    GUI.Label(new Rect(40,180,278,180),"按 0 或 Esc 退出建造。点击住宅查看住户，点击车辆查看路线。\n\n白色：通勤   蓝色：购物\n橙色：配送 / 进出口\n\n车辆有明确目的地；到达后停留并返程。黄色线显示所选车辆的剩余路线。",small);
+                    GUI.Label(new Rect(40,180,278,180),"按 0 或 Esc 退出建造。点击住宅查看住户，点击工厂或商业查看经营，点击车辆查看路线。\n\n白色：通勤   蓝色：购物\n橙色：配送 / 进出口\n\n黄色线显示所选车辆的剩余路线。",small);
                 else
                 {
                     string status = trip.status == TripStatus.Visiting ? "已到达 / 停留" : trip.status == TripStatus.Waiting ? "等待道路恢复"
@@ -788,7 +792,7 @@ namespace HarborCity
                 Rect r = new Rect(40 + (n - 1) * 111,h - 120,101,74);
                 Panel(r,selected == (LandUse)n ? new Color(.23f,.39f,.43f) : new Color(.1f,.17f,.21f));
                 Panel(new Rect(r.x,r.y,101,4),palette[n]);
-                if (GUI.Button(r,n + "  " + names[n] + (n == 1 ? "\n¥ 100 / 3米" : n==2 ? "\n选择住宅类型" : "\n¥ " + CityModel.Cost((LandUse)n)),button)) selected = (LandUse)n;
+                if (GUI.Button(r,n + "  " + names[n] + (n == 1 ? "\n¥ 100 / 3米" : n==2 ? "\n选择住宅类型" : "\n¥ " + (CityModel.Cost((LandUse)n)+(n==4?FactoryState.StartingCash:0))),button)) selected = (LandUse)n;
             }
             if (GUI.Button(new Rect(955,h - 118,76,31),speed == 0 ? "继续" : "暂停",button)) speed = speed == 0 ? 1 : 0;
             if (GUI.Button(new Rect(1039,h - 118,76,31),speed == 3 ? "3×" : "1×",button)) speed = speed == 3 ? 1 : 3;

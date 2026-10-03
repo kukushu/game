@@ -158,6 +158,15 @@ namespace HarborCity
             if (purpose == TripPurpose.Shopping && State.stock[destination] <= ReservedShopping(destination)) return null;
             var route = FindRoute(origin, destination);
             if (route.Count == 0 || !CanEnter(route, null)) return null;
+            var buyer=cargoKind==CargoKind.RawMaterial?city.Factory(destination):null;
+            if(buyer!=null)
+            {
+                cargo=Math.Min(cargo,(int)Math.Min(8,Math.Floor(buyer.cash/FactoryState.RawPrice)));
+                if(cargo<=0) return null;
+                double cost=cargo*FactoryState.RawPrice;
+                buyer.cash-=cost; buyer.rawCosts+=cost;
+                city.Trace("factory.raw_paid","原料货车发车时支付货款；运输损失不退款",buyer,building:destination);
+            }
             var trip = new TrafficTrip { id = State.nextId++, origin = origin, destination = destination, home = origin,
                 purpose = purpose, cargo = cargo, cargoKind=cargoKind, route = route, residentId=residentId, departedAt=State.clock };
             if (cargo > 0 && origin != Outside) State.stock[origin] -= cargo;
@@ -234,6 +243,7 @@ namespace HarborCity
             }
             foreach (int node in release) junctions.Remove(node);
             foreach (var t in State.trips.ToArray()) Move(t);
+            city.ObserveAnalysisTraffic();
             if(city.society!=null && city.society.transportEnabled) AdvanceResidents();
             State.dispatchTimer += Step;
             if (State.dispatchTimer >= .6f)
@@ -420,6 +430,7 @@ namespace HarborCity
                     int added=Math.Min(t.cargo,32-State.stock[t.destination]); State.stock[t.destination]+=added; State.lostGoods+=t.cargo-added;
                     delivered=added;
                 }
+                if(t.cargoKind==CargoKind.Goods && !t.returning) city.RecordFactorySale(t.origin,delivered,t.id,t.destination);
                 State.delivered += delivered; t.cargo = 0;
             }
             if (t.purpose == TripPurpose.Shopping)

@@ -13,6 +13,8 @@ namespace HarborCity
         public int householdId, skill, jobId=-1, wagePaid;
         public int tripId, departureDay=-1, arrivedDay=-1, location=-1, observedHome=-1, observedWork=-1, observedRevision=-1;
         public bool atWork;
+        public double factoryWageCredit;
+        public int totalFactoryWagesPaid;
         public float earnedWages, workedMinutes, lastCommute=-1, lastDelay, retryAt, requestedAt=-1;
         public int accessNode=-1;
     }

@@ -43,9 +43,9 @@ public static class HouseholdChecks
         for(int day=0;day<365;day++)
         {
             // Isolate annual household accounting from the separate real-transport tests:
-            // supply an explicit earned-pay fixture for each employed citizen.
+            // Supply attendance fixtures, preserving each employer's real funding limit.
             foreach(var family in c.society.families.Where(h=>h.resident)) foreach(var p in family.people)
-                p.earnedWages=c.Workplace(p)>=0 && c.CommuteMinutes(family.home,c.Workplace(p))>=0?c.ResidentWage(p):0;
+                if(c.Workplace(p)>=0 && c.CommuteMinutes(family.home,c.Workplace(p))>=0) c.PayAttendance(p,480);
             c.Tick(); var r=c.society.history.Last();
             if(r.closingTreasury!=r.openingTreasury+r.rent-r.maintenance) throw new Exception("Treasury conservation day "+day);
             if(r.closingSavings!=r.openingSavings+r.wages-r.rent-r.living-r.travel-r.movingCosts) throw new Exception("Household conservation day "+day);

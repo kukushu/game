@@ -33,6 +33,7 @@ namespace HarborCity
     [Serializable] public sealed class HouseholdDay
     {
         public int unemployed;
+        public int factoryWages, externalWages;
         public int day, households, population, units, employed, wages, rent, living, travel, maintenance, moved, arrived, left;
         public int openingTreasury, closingTreasury, openingSavings, closingSavings, movingCosts, unpaidRent;
         public float averageCommute;
@@ -146,15 +147,15 @@ namespace HarborCity
                 if(!keep && p.canWork)
                     foreach(var job in society.jobEntities)
                     {
-                        if(used.Contains(job.id) || p.skill<job.requiredSkill || job.occupiedCitizenId>=0 && job.occupiedCitizenId!=p.id) continue;
+                        if(!JobFunded(job) || used.Contains(job.id) || p.skill<job.requiredSkill || job.occupiedCitizenId>=0 && job.occupiedCitizenId!=p.id) continue;
                         float minutes=ExpectedCommute(p,home,job.buildingId); if(minutes<0) continue;
-                        float score=job.wage-minutes*(.3f+h.timePreference*.7f)-(p.jobId!=job.id?5:0);
+                        float score=ExpectedJobWage(job)-minutes*(.3f+h.timePreference*.7f)-(p.jobId!=job.id?5:0);
                         if(score>bestScore) {best=job; bestScore=score;}
                     }
                 o.citizenIds.Add(p.id); o.jobIds.Add(best?.id ?? -1);
                 if((best?.id ?? -1)!=p.jobId) changes++;
                 if(best==null) continue;
-                used.Add(best.id); o.wage+=best.wage;
+                used.Add(best.id); o.wage+=ExpectedJobWage(best);
                 float travel=ExpectedCommute(p,home,best.buildingId);
                 if(travel<0) unreachable=true; else o.minutes+=travel;
             }
@@ -208,7 +209,7 @@ namespace HarborCity
             h.options=options.OrderBy(o=>o.rejection!="").ThenByDescending(o=>o.score).Take(8).ToList();
             if(!h.options.Contains(current)) h.options.Add(current);
             h.nextReview=day+society.settings.reviewDays;
-            Trace("household.decision","评估住房与全体成员岗位",new CityLogDetail {previous=h.home,destination=best.home,options=options},household:h.id);
+            Trace("household.decision","评估住房与全体成员岗位",new CityLogDetail {previous=h.home,destination=best.home,options=options,currentOption=current,selectedOption=best},household:h.id);
             if(best.rejection!="" || best==current || current.rejection=="" && best.score<current.score+society.settings.improvement)
             {
                 string reasons=string.Join("；",options.Where(o=>o.home>=0 && o.rejection!="").Select(o=>o.rejection).Distinct());
@@ -259,12 +260,13 @@ namespace HarborCity
                 if(tiles[i]==2) upkeep+=buildings[i].housing==HousingKind.Villa?society.settings.villaMaintenance:society.settings.apartmentMaintenance;
             }
             foreach(var h in society.families) if(h.resident) {population+=h.people.Count; demand++;}
-            jobs=society.jobEntities.Count;
+            jobs=society.jobEntities.Count(JobFunded);
             income=society.history.Count>0?society.history[society.history.Count-1].rent:0;
             happiness=society.families.Any(h=>h.resident)?(int)society.families.Where(h=>h.resident).Average(h=>Math.Clamp(85-h.hardship*5-(int)HouseholdCommute(h)/3,10,100)):70;
         }
         public void HouseholdTick()
         {
+            if(analysis!=null) try {analysis.PrepareSettlement();} catch(Exception ex) {analysis.Fail(ex);}
             day++; RecalculateHouseholds();
             if(day%7==1) foreach(var b in buildings) {b.applications=0; b.interestedFamilies=new List<int>();}
             var r=new HouseholdDay {day=day,openingTreasury=money,openingSavings=society.families.Sum(h=>h.savings),maintenance=upkeep};
@@ -275,8 +277,12 @@ namespace HarborCity
                 h.wagePaid=0;
                 foreach(var person in h.people)
                 {
-                    person.wagePaid=(int)Math.Round(person.earnedWages); h.wagePaid+=person.wagePaid;
-                    Trace("citizen.pay","日末个人实际出勤与入账",new CityLogDetail {minutes=person.workedMinutes,earned=person.earnedWages,amount=person.wagePaid},
+                    int factoryPay=(int)Math.Floor(person.factoryWageCredit);
+                    person.factoryWageCredit-=factoryPay;
+                    person.totalFactoryWagesPaid+=factoryPay; r.factoryWages+=factoryPay;
+                    r.externalWages+=(int)Math.Round(person.earnedWages);
+                    person.wagePaid=(int)Math.Round(person.earnedWages)+factoryPay; h.wagePaid+=person.wagePaid;
+                    Trace("citizen.pay","日末个人实际出勤与入账",new CityLogDetail {minutes=person.workedMinutes,earned=person.earnedWages+factoryPay,amount=person.wagePaid,reason="工厂实付 "+factoryPay+"；其余为商业或旧版已挣工资"},
                         household:h.id,citizen:person.id,job:person.jobId,building:Workplace(person));
                 }
                 h.savings+=h.wagePaid; r.wages+=h.wagePaid;
@@ -358,7 +364,7 @@ namespace HarborCity
                         var person=h.people[p];
                         foreach(float value in new[]{person.earnedWages,person.workedMinutes,person.lastCommute,person.lastDelay,person.retryAt,person.requestedAt})
                             if(float.IsNaN(value) || float.IsInfinity(value)) return false;
-                        if(person.tripId<0 || person.earnedWages<0 || person.workedMinutes<0) return false;
+                        if(person.tripId<0 || person.earnedWages<0 || person.workedMinutes<0 || person.totalFactoryWagesPaid<0 || !FinanceNumber(person.factoryWageCredit)) return false;
                         if(society.transportEnabled && person.tripId>0 && (traffic==null || !traffic.trips.Exists(t=>t.id==person.tripId && t.residentId==person.id && t.householdId==h.id))) return false;
                     }
                 }

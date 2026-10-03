@@ -25,7 +25,7 @@ public static class IndustryChecks
         var c=Create(out var sim,out var p,out int id); var f=c.Factory(id); f.raw=8;
         sim.Advance(3); Check(c.traffic.stock[id]==0 && f.productiveMinutes==0,"Jobs and raw stock cannot produce without actual attendance");
         f.raw=0; Arrive(c,p,id); sim.Advance(5);
-        Check(f.attendanceMinutes>0 && f.productiveMinutes==0 && f.produced==0 && p.earnedWages>0,"Idle attendance earns contractual wages but cannot create goods or bank productive labour");
+        Check(f.attendanceMinutes>0 && f.productiveMinutes==0 && f.produced==0 && p.factoryWageCredit>0,"Idle attendance uses finite employer cash but cannot create goods or bank productive labour");
         f.raw=2; sim.Advance(2);
         Check(f.processing && f.progress>0 && f.produced==0 && f.raw==1,"Starting a batch reserves exactly one real raw unit");
         sim.Advance(3.1f);
@@ -83,7 +83,7 @@ public static class IndustryChecks
         c=Create(out sim,out p,out id); f=c.Factory(id); c.traffic.stock[id]=7;
         c.version=5; foreach(var b in c.buildings) b.factory=null;
         int jobId=p.jobId; c.EnableHouseholds();
-        Check(c.version==6 && c.Factory(id).raw==0 && c.traffic.stock[id]==7 && p.jobId==jobId,"v5 migration preserves goods and jobs without inventing raw");
+        Check(c.version==7 && c.Factory(id).raw==0 && c.traffic.stock[id]==7 && p.jobId==jobId,"v5 migration preserves goods and jobs without inventing raw");
         c.Factory(id).raw=3; c.EnableHouseholds(); Check(c.Factory(id).raw==3,"Industry migration is idempotent");
         c.traffic.dispatchTimer=0; Check(c.Valid(),"Industrial state and preferences are save-valid");
 

@@ -22,7 +22,7 @@ namespace HarborCity
         public IEnumerable<CityResident> Citizens => society.families.Where(h=>h.resident).SelectMany(h=>h.people);
         public int Employed => Citizens.Count(p=>p.canWork && ResidentJob(p)!=null);
         public int Unemployed => Citizens.Count(p=>p.canWork && ResidentJob(p)==null);
-        public int HouseholdSalary(Household h) => h.people.Sum(ResidentWage);
+        public int HouseholdSalary(Household h) => h.people.Sum(p=>ExpectedJobWage(ResidentJob(p)));
         public float HouseholdCommute(Household h) => h.people.Where(p=>ResidentJob(p)!=null)
             .Sum(p=>Math.Max(0,ExpectedCommute(p,h.home,Workplace(p))));
         // No observation is invented for a worker who has never reached this workplace.
@@ -40,7 +40,7 @@ namespace HarborCity
         {
             if(p==null || !society.families.Any(h=>h.resident && h.id==p.householdId && h.people.Contains(p))) return false;
             var job=Job(jobId);
-            if(job==null || !p.canWork || p.age<18 || p.skill<job.requiredSkill ||
+            if(!JobFunded(job) || !p.canWork || p.age<18 || p.skill<job.requiredSkill ||
                 (job.occupiedCitizenId!=-1 && job.occupiedCitizenId!=p.id)) return false;
             if(p.jobId==jobId) return true;
             // Normal choices cannot change employment halfway through a trip/shift.
@@ -105,7 +105,7 @@ namespace HarborCity
                 if(p==null || (p.tripId>0 || p.atWork) && p.jobId!=id) return false;
                 if(id<0) continue;
                 var j=Job(id);
-                if(j==null || !p.canWork || p.age<18 || p.skill<j.requiredSkill || !reserved.Add(id) || j.occupiedCitizenId>=0 && j.occupiedCitizenId!=p.id) return false;
+                if(!JobFunded(j) || !p.canWork || p.age<18 || p.skill<j.requiredSkill || !reserved.Add(id) || j.occupiedCitizenId>=0 && j.occupiedCitizenId!=p.id) return false;
             }
             for(int i=0;i<option.citizenIds.Count;i++)
             {

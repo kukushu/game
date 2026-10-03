@@ -161,7 +161,7 @@ namespace HarborCity
             Trace("road.created","道路施工成功",new CityLogDetail {amount=plan.cost,count=plan.stroke,origin=plan.start.id,destination=plan.end.id,x=plan.end.x,z=plan.end.z}); return true;
         }
 
-        public bool Valid() => (version >= 1 && version <= 6) && tiles != null && levels != null && (version >= 3 ? ValidBuildings() : tiles.Length == Size * Size)
+        public bool Valid() => (version >= 1 && version <= 7) && tiles != null && levels != null && (version >= 3 ? ValidBuildings() : tiles.Length == Size * Size)
             && levels.Length == tiles.Length && day > 0 && Array.TrueForAll(tiles, t => t >= 0 && t <= (int)LandUse.Park)
             && Array.TrueForAll(levels, l => l >= 0 && l <= 3)
             && (version == 1 ? (roads == null || (roads.nodes!=null && roads.nodes.Count==0 && roads.edges!=null && roads.edges.Count==0)) && tiles[Index(0, Size / 2)] == (int)LandUse.Road : roads != null && roads.Valid())

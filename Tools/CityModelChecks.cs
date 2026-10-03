@@ -48,6 +48,8 @@ public static class CityModelChecks
         ResidentTransportChecks.Run();
         JobChecks.Run();
         IndustryChecks.Run();
+        FactoryFinanceChecks.Run();
+        AnalysisChecks.Run();
         LogChecks.Run();
     }
 }

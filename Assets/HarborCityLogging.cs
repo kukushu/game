@@ -49,6 +49,8 @@ namespace HarborCity
         void UpdateSimulationLog()
         {
             if(simulationLog==null) return;
+            if(simulationLog.AnalysisFailure!=null && reportedLogFailure!=simulationLog.AnalysisFailure)
+            {reportedLogFailure=simulationLog.AnalysisFailure; notice="城市分析报告失败，原始日志仍保留："+reportedLogFailure;}
             if(Time.realtimeSinceStartup>=nextLogFlush)
             {
                 nextLogFlush=Time.realtimeSinceStartup+2; simulationLog.Flush();

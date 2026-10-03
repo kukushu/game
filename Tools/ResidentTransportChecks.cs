@@ -46,7 +46,7 @@ public static class ResidentTransportChecks
         Check(a.travelling && a.destination==c.Workplace(p) && trip.residentId==p.id,"Observer and vehicle share identity and destination");
         for(int i=0;i<2000 && !p.atWork;i++) sim.Advance(.05f);
         Check(p.atWork && p.tripId==0 && p.location==c.Workplace(p) && p.lastCommute>0,"Only actual arrival starts work and records commute");
-        sim.Advance(10); Check(p.earnedWages>0 && p.workedMinutes>0,"Actual attendance earns wages");
+        sim.Advance(10); Check(p.earnedWages+p.factoryWageCredit>0 && p.workedMinutes>0,"Actual attendance earns wages");
         p.lastCommute=150; p.observedHome=h.home; p.observedWork=c.Workplace(p); p.observedRevision=c.roads.revision;
         Check(c.Evaluate(h,h.home,keepJobs:true).minutes>=150,"Experienced congestion enters household candidate score");
         c.roads.Changed(); Check(c.ExpectedCommute(p,h.home,c.Workplace(p))<150,"Road changes invalidate old commute observation");
