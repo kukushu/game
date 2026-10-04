@@ -393,7 +393,7 @@ namespace HarborCity
             city.EnableResidentTransport();
             foreach (Transform child in world) { child.gameObject.SetActive(false); Destroy(child.gameObject); }
             visuals.Clear();
-            zoningRoads = null;
+            ResetBuildingPreview();
             for (int i = 0; i < city.tiles.Length; i++) DrawLot(i);
             RefreshRoadView();
         }
@@ -769,7 +769,9 @@ namespace HarborCity
                 Panel(new Rect(24,120,310,258),navy);
                 if (GUI.Button(new Rect(40,134,278,32),"0  查看建筑 / 车辆",button)) selected = LandUse.Empty;
                 var trip = traffic.State.trips.Find(t => t.id == inspectedTrip);
-                if (trip == null)
+                if(selected>=LandUse.Residential && selected<=LandUse.Park)
+                    GUI.Label(new Rect(40,180,278,180),"沿道路连续移动鼠标，点击放置。\n绿色：可以建设；红色：当前位置无效。\n浅色边线是面向道路的正面。\n\n"+(previewLot==null?(string.IsNullOrEmpty(placementReason)?"将鼠标移到道路附近。":placementReason):(previewValid?"当前地块通过建造校验。":placementReason)),small);
+                else if (trip == null)
                     GUI.Label(new Rect(40,180,278,180),"按 0 或 Esc 退出建造。点击住宅查看住户，点击工厂或商业查看经营，点击车辆查看路线。\n\n白色：通勤   蓝色：购物\n橙色：配送 / 进出口\n\n黄色线显示所选车辆的剩余路线。",small);
                 else
                 {

@@ -27,6 +27,16 @@ namespace HarborCity
                 throw new Exception("Version 3 pose or traffic JSON failed");
             restored.Recalculate(); new CityTraffic(restored).Advance(120);
             if(!restored.Valid() || restored.traffic.completed<=city.traffic.completed) throw new Exception("Saved traffic failed to resume");
+            var free=CityModel.Create(); new CityTraffic(free); free.EnableRoads((x,z)=>1); free.EnableBuildings(); free.EnableHouseholds(); free.EnableResidentTransport();
+            if(!free.CommitRoad(free.roads.Plan(free,free.roads.Node(CityRoads.Entrance),new RoadNode{x=30,z=1.5f,y=1},(x,z)=>1)))
+                throw new Exception("Continuous placement road fixture failed");
+            var preview=free.RoadsidePreview(-20.137f,6,LandUse.Residential,HousingKind.Apartment,out _);
+            int freeId=free.PlaceBuilding(preview,LandUse.Residential,(x,z)=>1,out string placementError);
+            if(freeId<0) throw new Exception(placementError);
+            var freeCopy=JsonUtility.FromJson<CityModel>(JsonUtility.ToJson(free));
+            if(!freeCopy.Valid() || !freeCopy.BuildingAccess(freeId) || freeCopy.buildings[freeId].x!=preview.x
+                || freeCopy.buildings[freeId].entranceX!=preview.entranceX || freeCopy.buildings[freeId].entranceZ!=preview.entranceZ)
+                throw new Exception("Continuous placement pose/frontage Unity JSON round-trip failed");
             var game=UnityEngine.Object.FindAnyObjectByType<HarborCityGame>();
             if(game!=null)
             {

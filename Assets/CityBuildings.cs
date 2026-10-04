@@ -160,6 +160,35 @@ namespace HarborCity
             }
             buildingRevision++; Recalculate(); return true;
         }
+        public const float BuildingRoadSnapDistance=10f, BuildingSetback=.25f;
+        // Pure temporary pose: no slot allocation, zoning grid, or road mutation.
+        // Local -Z is the frontage, matching the existing meshes and entrances.
+        public CityBuilding RoadsidePreview(float mouseX,float mouseZ,LandUse use,HousingKind housing,out string error)
+        {
+            error="";
+            if(roads==null || roads.edges.Count==0) {error="附近没有道路，请先修路"; return null;}
+            var mouse=new RoadNode {x=mouseX,z=mouseZ}; RoadEdge closest=null;
+            float distance=BuildingRoadSnapDistance;
+            foreach(var e in roads.edges)
+            {
+                float d=CityRoads.Distance(mouse,roads.Node(e.a),roads.Node(e.b));
+                if(d<=distance && (closest==null || d<distance || e.id<closest.id)) {closest=e; distance=d;}
+            }
+            if(closest==null) {error="离道路太远，请移到道路中心线 "+BuildingRoadSnapDistance+" 米以内"; return null;}
+            var a=roads.Node(closest.a); var b=roads.Node(closest.b);
+            var p=CityRoads.Lerp(a,b,CityRoads.Projection(mouse,a,b));
+            float length=CityRoads.Length(a,b),ux=(b.x-a.x)/length,uz=(b.z-a.z)/length;
+            float side=(mouseX-p.x)*(-uz)+(mouseZ-p.z)*ux<0?-1:1;
+            float nx=-uz*side,nz=ux*side;
+            var lot=new CityBuilding {id=-1,housing=housing,yaw=(float)(Math.Atan2(nx,nz)*180/Math.PI)};
+            if(use==LandUse.Residential && society!=null)
+            {lot.width=housing==HousingKind.Villa?5.9f:2.9f; lot.depth=5.9f;}
+            float offset=CityRoads.Width/2+lot.depth/2+BuildingSetback;
+            lot.x=p.x+nx*offset; lot.z=p.z+nz*offset;
+            var front=lot.Point(0,-lot.depth/2); lot.entranceX=front.x; lot.entranceZ=front.z;
+            return lot;
+        }
+        // Legacy candidates retained for old fixtures/tools, not player placement.
         // A world-space phase along each straight line survives traffic-edge splitting.
         public List<CityBuilding> RoadsideLots()
         {

@@ -28,6 +28,7 @@ namespace HarborCity
         public string error;
         public float length, grade;
         public int cost, stroke, revision;
+        public readonly List<RoadNode> points = new List<RoadNode>();
         public readonly List<RoadSplit> splits = new List<RoadSplit>();
         public bool Valid => error == null && network != null;
     }
@@ -185,10 +186,13 @@ namespace HarborCity
         }
 
         public RoadPlan Plan(CityModel city,RoadNode from,RoadNode to,Func<float,float,float> height)
+            => PlanSegment(city,from,to,height,1.5f);
+        RoadPlan PlanSegment(CityModel city,RoadNode from,RoadNode to,Func<float,float,float> height,float minimum)
         {
             var plan=new RoadPlan { start=from.Copy(),end=to.Copy(),revision=revision,stroke=nextStroke };
+            plan.points.Add(from.Copy()); plan.points.Add(to.Copy());
             plan.length=Length(from,to); plan.cost=(int)Math.Ceiling(plan.length*100/3);
-            if(plan.length<1.5f) { plan.error="道路太短（至少 1.5 米）"; return plan; }
+            if(plan.length<minimum) { plan.error="道路太短（至少 "+minimum+" 米）"; return plan; }
             if(Math.Abs(from.x)>CityModel.RoadHalfSize || Math.Abs(from.z)>CityModel.RoadHalfSize || Math.Abs(to.x)>CityModel.RoadHalfSize || Math.Abs(to.z)>CityModel.RoadHalfSize)
             { plan.error="道路超出当前建设边界"; return plan; }
             for(int i=0;i<city.tiles.Length;i++) if(city.tiles[i]>1 && (city.version >= 3 ? city.buildings[i].HitsRoad(from,to) : HitsLot(from,to,Lot(i),1.4f+Width/2)))
@@ -267,6 +271,78 @@ namespace HarborCity
             return plan;
         }
 
+        // Quadratic Bezier is sampled by arc length into the same graph used by
+        // straight roads. The whole stroke is previewed on copies and committed once.
+        public RoadPlan PlanCurve(CityModel city,RoadNode from,RoadNode control,RoadNode to,Func<float,float,float> height)
+        {
+            var result=new RoadPlan {start=from.Copy(),end=to.Copy(),revision=revision,stroke=nextStroke};
+            var dense=new List<RoadNode>(); var distances=new List<float>(); float total=0;
+            int samples=Math.Max(16,(int)Math.Ceiling((Length(from,control)+Length(control,to))/.35f));
+            if(samples>2000) {result.error="弯道超出施工范围"; return result;}
+            for(int i=0;i<=samples;i++)
+            {
+                float t=(float)i/samples,u=1-t;
+                var p=new RoadNode {x=u*u*from.x+2*u*t*control.x+t*t*to.x,z=u*u*from.z+2*u*t*control.z+t*t*to.z};
+                p.y=height(p.x,p.z); if(i>0) total+=Length(dense[i-1],p);
+                dense.Add(p); distances.Add(total);
+            }
+            result.length=total; result.cost=(int)Math.Ceiling(total*100/3);
+            result.points.Add(from.Copy());
+            int spans=Math.Max(1,(int)Math.Floor(total/2)),index=1;
+            for(int i=1;i<spans;i++)
+            {
+                float d=total*i/spans;
+                while(index<distances.Count-1 && distances[index]<d) index++;
+                float gap=distances[index]-distances[index-1];
+                var p=Lerp(dense[index-1],dense[index],gap>0?(d-distances[index-1])/gap:0);
+                p.y=height(p.x,p.z); result.points.Add(p);
+            }
+            result.points.Add(to.Copy());
+            if(total<1.5f || Length(from,to)<1.5f) {result.error="弯道端点太近（至少 1.5 米）"; return result;}
+            // An internal sampling vertex is not a player-selected junction. Move
+            // it onto a nearby crossing so sampling cannot create a tiny road stub.
+            for(int i=1;i<result.points.Count;i++) foreach(var edge in edges)
+            {
+                var a=result.points[i-1]; var b=result.points[i]; var p=Node(edge.a); var q=Node(edge.b);
+                float dx=b.x-a.x,dz=b.z-a.z,ex=q.x-p.x,ez=q.z-p.z,cross=Cross(dx,dz,ex,ez);
+                if(Math.Abs(cross)<.0001f) continue;
+                float t=Cross(p.x-a.x,p.z-a.z,ex,ez)/cross,u=Cross(p.x-a.x,p.z-a.z,dx,dz)/cross;
+                if(t<0 || t>1 || u<0 || u>1) continue;
+                var crossing=Lerp(p,q,u);
+                if(i>1 && Length(a,crossing)<.4f) result.points[i-1]=crossing;
+                else if(i<result.points.Count-1 && Length(b,crossing)<.4f) result.points[i]=crossing;
+            }
+            // Charge the geometry that will actually be built, including adjusted
+            // junction vertices, rather than its straight chord or control polygon.
+            result.length=0;
+            for(int i=1;i<result.points.Count;i++) result.length+=Length(result.points[i-1],result.points[i]);
+            result.cost=(int)Math.Ceiling(result.length*100/3);
+            // Prevent hairpins with overlapping carriageways and nearly stationary
+            // tangents; sharp curves need a larger footprint, not a cosmetic mesh.
+            for(int i=0;i<=samples;i++)
+            {
+                float t=(float)i/samples;
+                float dx=2*((1-t)*(control.x-from.x)+t*(to.x-control.x));
+                float dz=2*((1-t)*(control.z-from.z)+t*(to.z-control.z));
+                float speed=(float)Math.Sqrt(dx*dx+dz*dz),cross=Math.Abs(Cross(dx,dz,2*(to.x-2*control.x+from.x),2*(to.z-2*control.z+from.z)));
+                if(speed<.1f || cross>0 && speed*speed*speed/cross<Width*2)
+                {result.error="弯道转弯太急，请扩大弧度或拉远终点"; return result;}
+            }
+            var copy=Copy();
+            for(int i=1;i<result.points.Count;i++)
+            {
+                // One stroke ID across all spans keeps undo and demolition coherent.
+                copy.nextStroke=result.stroke;
+                var part=copy.PlanSegment(city,result.points[i-1],result.points[i],height,.4f);
+                result.grade=Math.Max(result.grade,part.grade);
+                if(part.error!=null) {result.error=part.error; return result;}
+                result.splits.AddRange(part.splits); copy=part.network;
+            }
+            copy.nextStroke=result.stroke+1; result.network=copy;
+            if(city.money<result.cost) result.error="资金不足";
+            return result;
+        }
+
         public void ApplySplits(TrafficState traffic,List<RoadSplit> splits)
         {
             if(traffic==null) return;
@@ -302,9 +378,9 @@ namespace HarborCity
                     int next=Neighbors(current).Find(n=>n!=previous);
                     var a=Node(previous); var b=Node(current); var c=Node(next);
                     float dot=((b.x-a.x)*(c.x-b.x)+(b.z-a.z)*(c.z-b.z))/(Length(a,b)*Length(b,c));
-                    if(dot<.995f) break;
                     var following=edges.Find(e=>e.a==current && e.b==next || e.b==current && e.a==next);
                     if(following==null || result.Contains(following.id)) break;
+                    if(dot<.995f && (edge.stroke==0 || following.stroke!=edge.stroke)) break;
                     result.Add(following.id); previous=current; current=next;
                 }
             }

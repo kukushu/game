@@ -103,6 +103,74 @@ public static class RoadChecks
             if(leader.status==TripStatus.Driving && !leader.returning) gap &= CityRoads.Length(a,b)>1.39f;
         }
         Check(gap,"Headway remains physical across multiple short links");
+        CurveChecks();
         Console.WriteLine("PASS: "+checks+" road checks");
+    }
+    static void CurveChecks()
+    {
+        var c=Empty(); int funds=c.money;
+        var plan=c.roads.PlanCurve(c,P(-52.5f,1.5f),P(-32.5f,21.5f),P(-12.5f,1.5f),Flat);
+        Check(plan.Valid,"Smooth curve plans: "+plan.error);
+        Check(plan.length>40 && plan.points.Exists(p=>p.z>10),"Curve has real arc length and non-chord geometry");
+        Check(c.roads.edges.Count==0 && c.money==funds,"Curve preview is atomic and read-only");
+        Check(c.CommitRoad(plan) && c.money==funds-plan.cost && c.Valid(),"Curve charges total arc length once and remains valid");
+        float builtLength=0; foreach(var e in c.roads.edges) builtLength+=c.roads.EdgeLength(e.a,e.b);
+        Check(Math.Abs(builtLength-plan.length)<.001f && plan.cost==(int)Math.Ceiling(plan.length*100/3),"Curved construction cost matches actual built graph length");
+        Check(c.roads.edges.TrueForAll(e=>e.stroke==plan.stroke),"All curve spans form one undo stroke");
+        var end=c.roads.nodes.Find(n=>CityRoads.Length(n,P(-12.5f,1.5f))<.01f);
+        var path=c.roads.FindPath(new List<int>{648},new List<int>{end.id});
+        Check(path.Count>10 && path.Exists(id=>c.roads.Node(id).z>10),"Routing follows the curve rather than its chord");
+        var saved=new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(c.roads);
+        var restored=new System.Web.Script.Serialization.JavaScriptSerializer().Deserialize<CityRoads>(saved);
+        Check(restored.Valid() && restored.FindPath(new List<int>{648},new List<int>{end.id}).Count==path.Count,"Curved network survives save/load without a schema migration");
+        int curveHome=CityModel.Index(0,19),curveWork=CityModel.Index(13,19);
+        c.tiles[curveHome]=2;c.levels[curveHome]=1;c.tiles[curveWork]=4;c.levels[curveWork]=1;c.Recalculate();
+        var curveTraffic=new CityTraffic(c); c.traffic.dispatchTimer=-10000;c.traffic.productionTimer=-10000;
+        var curvedTrip=curveTraffic.Dispatch(curveHome,curveWork,TripPurpose.Commute);
+        Check(curvedTrip!=null && curvedTrip.route.Exists(id=>c.roads.Node(id).z>10),"Actual commuter dispatch uses curved road nodes");
+        curveTraffic.Advance(60);
+        Check(c.traffic.completed==1 && c.traffic.failed==0,"Actual vehicle traverses and returns along a curved road");
+        c.traffic.dispatchTimer=0;c.traffic.productionTimer=0;
+        var run=c.roads.Run(c.roads.edges[c.roads.edges.Count/2].id);
+        Check(run.Count==c.roads.edges.Count,"Demolition selects whole curve up to its junctions");
+        c.roads.Remove(run); c.money+=plan.cost;
+        Check(c.roads.edges.Count==0 && c.money==funds && c.Valid(),"Curve undo refunds the entire stroke");
+
+        c=Empty(); c.tiles[CityModel.Index(18,18)]=2;
+        Check(!c.roads.Plan(c,P(-20,1.5f),P(23,1.5f),Flat).Valid,"Straight chord is obstructed by housing");
+        plan=c.roads.PlanCurve(c,P(-20,1.5f),P(1.5f,35),P(23,1.5f),Flat);
+        Check(plan.Valid && c.CommitRoad(plan),"Curved alignment can avoid an obstructed chord: "+plan.error);
+        Check(!c.roads.OverlapsLot(CityModel.Index(18,18)),"Actual curved footprint avoids housing");
+        c=Empty();
+        Check(c.roads.PlanCurve(c,P(0,0),P(1.5f,.2f),P(3,0),Flat).Valid,"Short gentle curves do not create invalid tiny sampling spans");
+        Check(!c.roads.PlanCurve(c,P(-20,0),P(0,20),P(20,0),(x,z)=>z>8?0:1).Valid,"Water along the arc, off the chord, rejects the entire curve");
+        Check(!c.roads.PlanCurve(c,P(-20,0),P(0,20),P(20,0),(x,z)=>1+z).Valid,"Terrain slope is checked along the curve");
+        Check(!c.roads.PlanCurve(c,P(0,0),P(1,10),P(2,0),Flat).Valid,"Hairpin with overlapping road width is rejected");
+        Check(!c.roads.PlanCurve(c,P(-20,0),P(0,200),P(20,0),Flat).Valid,"Curve leaving the construction boundary is rejected");
+        Check(c.roads.edges.Count==0,"Rejected curved previews leave no partial graph");
+        c.money=1;
+        Check(!c.roads.PlanCurve(c,P(-20,0),P(0,20),P(20,0),Flat).Valid,"Insufficient arc-length funds reject construction");
+
+        c=Empty(); Build(c,P(-52.5f,1.5f),P(-10,1.5f));
+        int home=CityModel.Index(5,19),work=CityModel.Index(13,19);
+        c.tiles[home]=2;c.levels[home]=1;c.tiles[work]=4;c.levels[work]=1;c.Recalculate();
+        var traffic=new CityTraffic(c); c.traffic.dispatchTimer=-10000;c.traffic.productionTimer=-10000;
+        var trip=traffic.Dispatch(home,work,TripPurpose.Commute); traffic.Advance(.35f);
+        var before=CityRoads.Lerp(c.roads.Node(trip.Current),c.roads.Node(trip.Next),trip.progress);
+        plan=c.roads.PlanCurve(c,P(-35,-20),P(-15,5),P(-35,25),Flat);
+        Check(plan.Valid && c.CommitRoad(plan),"Curve crossing a live road commits: "+plan.error);
+        var after=CityRoads.Lerp(c.roads.Node(trip.Current),c.roads.Node(trip.Next),trip.progress);
+        Check(CityRoads.Length(before,after)<.001f,"Curve intersections preserve active vehicle positions");
+        c.traffic.dispatchTimer=0; c.traffic.productionTimer=0;
+        Check(c.Valid(),"Curve intersection graph remains valid: roads="+c.roads.Valid()+", traffic="+CityTraffic.Valid(c.traffic,c.roads,c.tiles.Length));
+        Check(c.roads.nodes.Exists(n=>c.roads.Neighbors(n.id).Count==4),"Curve crossing creates a real junction");
+        c.traffic.dispatchTimer=-10000;c.traffic.productionTimer=-10000;
+        traffic.Advance(25);
+        Check(c.traffic.completed==1,"Active vehicle completes after curved road intersection splitting");
+        c=Empty();
+        c.roads.nodes.Add(new RoadNode{id=1296,x=0,z=0,y=1}); c.roads.nodes.Add(new RoadNode{id=1297,x=3,z=0,y=1}); c.roads.nodes.Add(new RoadNode{id=1298,x=3,z=3,y=1});
+        c.roads.nextNode=1299;c.roads.nextEdge=3;
+        c.roads.edges.Add(new RoadEdge{id=1,a=1296,b=1297}); c.roads.edges.Add(new RoadEdge{id=2,a=1297,b=1298}); c.roads.Changed();
+        Check(c.roads.Run(1).Count==1,"Legacy grid strokes still stop demolition at a sharp corner");
     }
 }

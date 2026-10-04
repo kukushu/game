@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -6,15 +5,13 @@ namespace HarborCity
 {
     public sealed partial class HarborCityGame
     {
-        CityRoads zoningRoads;
-        int zoningRevision=-1, zoningBuildings=-1;
-        List<CityBuilding> zoningLots=new List<CityBuilding>();
-        GameObject zoningOverlay;
         CityBuilding previewLot;
-        LandUse previewUse;
+        bool previewValid;
+        string placementReason="";
         HousingKind housingChoice=HousingKind.Apartment;
-        HousingKind zoningHousing;
-        LandUse zoningUse;
+        Mesh placementMesh;
+        readonly Vector3[] placementVertices=new Vector3[49];
+        LineRenderer placementFront;
 
         void BuildingHeight(CityBuilding lot,out float low,out float high)
         {
@@ -25,75 +22,81 @@ namespace HarborCity
                 float h=landscape.Height(p.x,p.z); low=Mathf.Min(low,h); high=Mathf.Max(high,h);
             }
         }
-        void RefreshZoning()
+        void ResetBuildingPreview()
         {
-            if(zoningRoads==city.roads && zoningRevision==city.roads.revision && zoningBuildings==city.buildingRevision && zoningHousing==housingChoice && zoningUse==selected) return;
-            zoningHousing=housingChoice; zoningUse=selected;
-            zoningRoads=city.roads; zoningRevision=city.roads.revision; zoningBuildings=city.buildingRevision;
-            zoningLots.Clear();
-            if(zoningOverlay!=null) { zoningOverlay.SetActive(false); Destroy(zoningOverlay); }
-            zoningOverlay=new GameObject("Roadside zoning"); zoningOverlay.transform.SetParent(transform,false);
-            var vertices=new List<Vector3>(); var indices=new List<int>();
-            foreach(var lot in city.RoadsideLots())
+            previewLot=null; previewValid=false; placementReason="";
+            if(cursor!=null) cursor.gameObject.SetActive(false);
+        }
+        void DrawBuildingPreview(CityBuilding lot,Color color)
+        {
+            // Reuse one terrain-conforming mesh while the mouse moves, rather than
+            // allocating a new GameObject/mesh or drawing every possible frontage.
+            if(placementMesh==null)
             {
-                if(selected==LandUse.Residential && city.society!=null)
-                {
-                    lot.housing=housingChoice; lot.width=housingChoice==HousingKind.Villa?5.9f:2.9f;
-                    lot.depth=5.9f;
-                    var centre=lot.Point(0,1.5f); lot.x=centre.x; lot.z=centre.z;
-                    // Entrance remains at the original road frontage.
-                    if(zoningLots.Exists(other=>lot.Overlaps(other))) continue;
-                }
-                if(!city.CanBuild(lot,landscape.Height,out _)) continue;
-                zoningLots.Add(lot);
-                for(int edge=0;edge<4;edge++)
-                {
-                    var a=lot.Point(edge<2 ? -lot.width/2:lot.width/2,edge==0 || edge==3 ? -lot.depth/2:lot.depth/2);
-                    var b=lot.Point(edge==0 || edge==3 ? -lot.width/2:lot.width/2,edge<2 ? lot.depth/2:-lot.depth/2);
-                    Vector3 start=new Vector3(a.x,0,a.z), end=new Vector3(b.x,0,b.z);
-                    Vector3 normal=Vector3.Cross(Vector3.up,(end-start).normalized)*.025f;
-                    int n=vertices.Count;
-                    foreach(var point in new[]{start-normal,start+normal,end-normal,end+normal})
-                        vertices.Add(new Vector3(point.x,landscape.Height(point.x,point.z)+.13f,point.z));
-                    indices.AddRange(new[]{n,n+1,n+2,n+2,n+1,n+3});
-                }
+                if(cursor!=null) {cursor.gameObject.SetActive(false); Destroy(cursor.gameObject);}
+                cursor=landscape.Surface("Placement",transform,new Vector3(lot.x,0,lot.z),lot.width,lot.depth,.18f,Mat(color),lot.yaw).transform;
+                placementMesh=cursor.GetComponent<MeshFilter>().sharedMesh; placementMesh.MarkDynamic();
+                placementFront=new GameObject("Road-facing frontage").AddComponent<LineRenderer>();
+                placementFront.transform.SetParent(cursor,false); placementFront.useWorldSpace=true;
+                placementFront.startWidth=placementFront.endWidth=.1f; placementFront.positionCount=2;
+                placementFront.sharedMaterial=Mat(new Color(.95f,.95f,.85f));
+                placementFront.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;
+                placementFront.receiveShadows=false;
             }
-            var mesh=new Mesh { name="Available roadside lots",indexFormat=UnityEngine.Rendering.IndexFormat.UInt32 };
-            mesh.SetVertices(vertices); mesh.SetTriangles(indices,0); mesh.RecalculateNormals(); mesh.RecalculateBounds();
-            zoningOverlay.AddComponent<MeshFilter>().sharedMesh=mesh;
-            zoningOverlay.AddComponent<MeshRenderer>().sharedMaterial=Mat(new Color(.72f,.83f,.65f));
-            zoningOverlay.AddComponent<CityGeneratedMesh>();
+            for(int z=0;z<=6;z++) for(int x=0;x<=6;x++)
+            {
+                var p=lot.Point((x/6f-.5f)*lot.width,(z/6f-.5f)*lot.depth);
+                placementVertices[z*7+x]=transform.InverseTransformPoint(new Vector3(p.x,landscape.Height(p.x,p.z)+.18f,p.z));
+            }
+            placementMesh.vertices=placementVertices; placementMesh.RecalculateNormals(); placementMesh.RecalculateBounds();
+            cursor.GetComponent<MeshRenderer>().sharedMaterial=Mat(color);
+            for(int i=0;i<2;i++)
+            {
+                var p=lot.Point((i==0?-.35f:.35f)*lot.width,-lot.depth/2);
+                placementFront.SetPosition(i,new Vector3(p.x,landscape.Height(p.x,p.z)+.22f,p.z));
+            }
+            cursor.gameObject.SetActive(true);
         }
         void HandleBuildingInput(Mouse mouse,Ray ray,bool blocked)
         {
             bool build=selected>=LandUse.Residential && selected<=LandUse.Park;
-            if(build) RefreshZoning();
-            if(zoningOverlay!=null) zoningOverlay.SetActive(build);
-            cursor.gameObject.SetActive(false);
+            ResetBuildingPreview();
             if(blocked || (!build && selected!=LandUse.Bulldoze) || !landscape.Raycast(ray,out var hit)) return;
-            int existing=city.PickBuilding(hit.x,hit.z);
-            CityBuilding lot=null;
-            if(selected==LandUse.Bulldoze && existing>=0) lot=city.buildings[existing];
-            else if(build && existing<0) lot=zoningLots.Find(b=>b.Contains(hit.x,hit.z));
-            if(lot==null) return;
-            if(previewLot!=lot || previewUse!=selected)
-            {
-                Destroy(cursor.gameObject);
-                cursor=landscape.Surface("Placement",transform,new Vector3(lot.x,0,lot.z),lot.width,lot.depth,.18f,Mat(palette[(int)selected]),lot.yaw).transform;
-                previewLot=lot; previewUse=selected;
-            }
-            cursor.gameObject.SetActive(true);
-            if(!mouse.leftButton.isPressed) return;
+            int existing=-1;
             if(selected==LandUse.Bulldoze)
             {
-                if(city.DemolishBuilding(existing)) { DrawLot(existing); notice="已拆除建筑，原有车辆会重新处理目的地。"; }
+                existing=city.PickBuilding(hit.x,hit.z);
+                if(existing<0) return;
+                previewLot=city.buildings[existing]; previewValid=true;
+            }
+            else
+            {
+                // Do not filter by existing buildings: overlaps must stay visible
+                // as a red preview with the authoritative CanBuild rejection.
+                previewLot=city.RoadsidePreview(hit.x,hit.z,selected,housingChoice,out placementReason);
+                if(previewLot==null) return;
+                previewValid=city.CanBuild(previewLot,landscape.Height,out placementReason);
+            }
+            DrawBuildingPreview(previewLot,selected==LandUse.Bulldoze?palette[8]:previewValid?new Color(.2f,.85f,.35f):new Color(.95f,.25f,.2f));
+            // One click commits this exact temporary pose; holding the button does
+            // not repeatedly build/reject buildings as the continuous preview moves.
+            if(!mouse.leftButton.wasPressedThisFrame) return;
+            if(selected==LandUse.Bulldoze)
+            {
+                if(city.DemolishBuilding(existing)) {DrawLot(existing); notice="已拆除建筑，原有车辆会重新处理目的地。"; ResetBuildingPreview();}
                 else notice="资金不足，无法拆除。";
             }
             else
             {
-                int id=city.PlaceBuilding(lot,selected,landscape.Height,out string error);
-                if(id>=0) { DrawLot(id); notice="已划分沿路"+names[(int)selected]+"地块 #"+id+"。"; }
-                else {notice=error; city.Trace("building.rejected",error,new CityLogDetail {x=lot.x,z=lot.z,reason=selected.ToString()},level:"warning");}
+                int id=city.PlaceBuilding(previewLot,selected,landscape.Height,out string error);
+                if(id>=0)
+                {
+                    DrawLot(id); notice="已建设沿路"+names[(int)selected]+" #"+id+"。";
+                    // The next click would overlap this building; update immediately.
+                    previewValid=city.CanBuild(previewLot,landscape.Height,out placementReason);
+                    DrawBuildingPreview(previewLot,new Color(.95f,.25f,.2f));
+                }
+                else {notice=error; city.Trace("building.rejected",error,new CityLogDetail {x=previewLot.x,z=previewLot.z,reason=selected.ToString()},level:"warning");}
             }
         }
     }

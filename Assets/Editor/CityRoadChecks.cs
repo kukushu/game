@@ -22,6 +22,12 @@ namespace HarborCity
                 throw new Exception("Version 2 road save failed.");
             restored.Recalculate(); new CityTraffic(restored).Advance(90);
             if(!restored.Valid() || restored.traffic.completed<=city.traffic.completed) throw new Exception("Saved road traffic did not resume.");
+            var curved=CityModel.Create(); curved.roads.Node(CityRoads.Entrance).y=1;
+            var arc=curved.roads.PlanCurve(curved,new RoadNode{x=-52.5f,z=1.5f,y=1},new RoadNode{x=-32.5f,z=21.5f,y=1},new RoadNode{x=-12.5f,z=1.5f,y=1},(x,z)=>1);
+            if(!curved.CommitRoad(arc)) throw new Exception("Curved road build failed: "+arc.error);
+            var curvedCopy=JsonUtility.FromJson<CityModel>(JsonUtility.ToJson(curved));
+            if(!curvedCopy.Valid() || curvedCopy.roads.edges.Count!=curved.roads.edges.Count || !curvedCopy.roads.nodes.Exists(n=>n.z>10))
+                throw new Exception("Curved road Unity JSON round-trip failed.");
             var game=UnityEngine.Object.FindAnyObjectByType<HarborCityGame>();
             int triangles=0;
             if(game!=null)
