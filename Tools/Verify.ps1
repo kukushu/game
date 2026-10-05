@@ -6,7 +6,9 @@ $compilerPath = Join-Path $UnityData 'MonoBleedingEdge/lib/mono/4.5/csc.exe'
 $tempPath = Join-Path $projectPath 'Temp'
 New-Item -ItemType Directory -Path $tempPath -Force | Out-Null
 $outputPath = Join-Path $tempPath 'CityModelChecks.exe'
-& $monoPath $compilerPath /nologo /r:System.Web.Extensions.dll "/out:$outputPath" (Join-Path $projectPath 'Assets/CityModel.cs') (Join-Path $projectPath 'Assets/CityTraffic.cs') (Join-Path $projectPath 'Assets/CityRoads.cs') (Join-Path $projectPath 'Assets/CityBuildings.cs') (Join-Path $projectPath 'Assets/CityHouseholds.cs') (Join-Path $projectPath 'Assets/CityResidents.cs') (Join-Path $projectPath 'Assets/CityJobs.cs') (Join-Path $projectPath 'Assets/CityIndustry.cs') (Join-Path $projectPath 'Assets/CitySimulationLog.cs') (Join-Path $projectPath 'Assets/CityDailyAnalysis.cs') (Join-Path $projectPath 'Assets/CityResidentTransport.cs') (Join-Path $PSScriptRoot 'CityModelChecks.cs') (Join-Path $PSScriptRoot 'TrafficChecks.cs') (Join-Path $PSScriptRoot 'RoadChecks.cs') (Join-Path $PSScriptRoot 'BuildingChecks.cs') (Join-Path $PSScriptRoot 'HouseholdChecks.cs') (Join-Path $PSScriptRoot 'ResidentTransportChecks.cs') (Join-Path $PSScriptRoot 'JobChecks.cs') (Join-Path $PSScriptRoot 'IndustryChecks.cs') (Join-Path $PSScriptRoot 'FactoryFinanceChecks.cs') (Join-Path $PSScriptRoot 'LogChecks.cs') (Join-Path $PSScriptRoot 'AnalysisChecks.cs')
+$modelSources = Get-ChildItem -LiteralPath (Join-Path $projectPath 'Assets') -Filter 'City*.cs' | Where-Object { $_.Name -notin @('CityLandscape.cs','CityRoadView.cs') } | ForEach-Object FullName
+$checkSources = Get-ChildItem -LiteralPath $PSScriptRoot -Filter '*.cs' | ForEach-Object FullName
+& $monoPath $compilerPath /nologo /langversion:latest /r:System.Web.Extensions.dll "/out:$outputPath" $modelSources $checkSources
 if ($LASTEXITCODE -ne 0) { throw 'Simulation checks failed to compile.' }
 & $monoPath $outputPath
 if ($LASTEXITCODE -ne 0) { throw 'Simulation checks failed.' }

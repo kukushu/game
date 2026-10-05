@@ -9,7 +9,6 @@ namespace HarborCity
 {
     public sealed partial class HarborCityGame : MonoBehaviour
     {
-        const float Cell = 3f;
         const float MinZoom = 10f;
         const float MaxZoom = 155f;
         const float ZoomPerStep = .85f;
@@ -27,13 +26,11 @@ namespace HarborCity
             new Color(.26f,.62f,.39f), new Color(.93f,.4f,.38f) };
         Camera cam;
         CityLandscape landscape;
-        int cursorCell = -1;
         Transform world, cursor;
         Vector3 focus = new Vector3(0, 0, 0);
-        float yaw = -32, pitch = 52, zoom = 48, timer, speed = 1;
+        float yaw = -32, pitch = 52, zoom = 48, speed = 1;
         const float MinPitch = 20f;
         const float MaxPitch = 80f;
-        int hoverX = -1, hoverZ = -1, lastPaint = -1;
         LandUse selected = LandUse.Road;
         string notice = "空白城市：从地图西侧的浅色连接点修路，再建设住房和工作场所。";
         GUIStyle label, title, small, button, number;
@@ -289,11 +286,7 @@ namespace HarborCity
             routeLine.receiveShadows = false; routeLine.positionCount = 0;
         }
 
-        Vector3 Position(int x, int z)
-        {
-            float px = (x - 17.5f) * Cell, pz = (z - 17.5f) * Cell;
-            return new Vector3(px,landscape.Height(px,pz),pz);
-        }
+        
 
         Material Mat(Color color)
         {
@@ -326,22 +319,15 @@ namespace HarborCity
         void DrawLot(int i)
         {
             if (visuals.TryGetValue(i, out var old)) { old.SetActive(false); Destroy(old); visuals.Remove(i); }
-            var use = (LandUse)city.tiles[i];
+            var use = city.UseOf(i);
             if (use == LandUse.Empty) return;
             var root = new GameObject(names[(int)use]); root.transform.SetParent(world, false);
-            var pose = city.buildings[i];
+            var pose = city.GetBuilding(i);
             root.transform.position = new Vector3(pose.x,landscape.Height(pose.x,pose.z),pose.z);
             root.transform.rotation = Quaternion.Euler(0,pose.yaw,0);
             visuals[i] = root;
             Transform t = root.transform;
             landscape.Surface("Lot",t,t.position,pose.width,pose.depth,.06f,Mat(palette[(int)use]),pose.yaw);
-            if (use == LandUse.Road)
-            {
-                bool horizontal = city.Get(i % 36 - 1, i / 36) == use || city.Get(i % 36 + 1, i / 36) == use;
-                landscape.Surface("Lane marking",t,t.position,horizontal ? .85f : .07f,horizontal ? .07f : .85f,.09f,Mat(new Color(.82f,.8f,.63f)));
-                return;
-            }
-            if (use >= LandUse.Residential && use <= LandUse.Industrial && city.levels[i] == 0) return;
             BuildingHeight(pose,out float low,out float high);
             // A level foundation keeps buildings upright while the ground remains sloped.
             Vector3 basePosition = t.position; basePosition.y = high + .1f;
@@ -367,9 +353,9 @@ namespace HarborCity
             }
             if(use==LandUse.Residential && city.society!=null)
             {
-                DrawHousing(pose,t); return;
+                DrawHousing((ResidentialBuilding)pose,t); return;
             }
-            int level = city.levels[i];
+            int level = city.GetBuilding(i).level;
             if (level == 0) return;
             float height = use == LandUse.Industrial ? 1.3f + level * .5f : 1.2f + level * 1.35f + (i % 3) * .3f;
             var selection=t.gameObject.AddComponent<BoxCollider>();
@@ -388,13 +374,10 @@ namespace HarborCity
         void Rebuild()
         {
             InitializeRoads();
-            city.EnableBuildings();
-            city.EnableHouseholds();
-            city.EnableResidentTransport();
             foreach (Transform child in world) { child.gameObject.SetActive(false); Destroy(child.gameObject); }
             visuals.Clear();
             ResetBuildingPreview();
-            for (int i = 0; i < city.tiles.Length; i++) DrawLot(i);
+            foreach(var building in city.buildings) DrawLot(building.id);
             RefreshRoadView();
         }
 
@@ -447,18 +430,11 @@ namespace HarborCity
                 {
                     PanView(previousDragPointer, mp);
                     previousDragPointer = mp;
-                    lastPaint = -1;
+                    
                 }
                 RotateWithMouse(mouse, mp, overUI);
                 if (!overUI) ZoomAtPointer(mp, mouse.scroll.ReadValue().y);
                 var ray = cam.ScreenPointToRay(mp);
-                hoverX = hoverZ = -1;
-                if (!overUI && !draggingView && !mouse.rightButton.isPressed
-                    && landscape.Raycast(ray, out Vector3 hit))
-                {
-                    hoverX = Mathf.FloorToInt((hit.x + 54) / Cell); hoverZ = Mathf.FloorToInt((hit.z + 54) / Cell);
-                }
-                bool inside = CityModel.Inside(hoverX,hoverZ);
                 bool roadHandled = HandleRoadInput(mouse,ray,overUI || draggingView || mouse.rightButton.isPressed);
                 if (selected == LandUse.Empty && mouse.leftButton.wasPressedThisFrame && !overUI
                     && !draggingView && !mouse.rightButton.isPressed && !InspectBuilding(ray)) InspectTraffic(mp);
@@ -476,7 +452,7 @@ namespace HarborCity
 
         void OnApplicationFocus(bool hasFocus)
         {
-            if (!hasFocus) { draggingView = rightGesture = rotatingView = false; lastPaint = -1; }
+            if (!hasFocus) { draggingView = rightGesture = rotatingView = false;  }
         }
 
         void RotateWithMouse(Mouse mouse, Vector2 pointer, bool overUI)
@@ -489,7 +465,7 @@ namespace HarborCity
                 rightPressPointer = previousRotatePointer = pointer;
             }
             if (!rightGesture) return;
-            lastPaint = -1;
+            
             if (draggingView || !Application.isFocused)
             {
                 rightGesture = rotatingView = false;
@@ -552,26 +528,7 @@ namespace HarborCity
             }
         }
 
-        void Paint(int x, int z)
-        {
-            if (selected != LandUse.Bulldoze && city.Get(x,z) == selected) return;
-            if (selected != LandUse.Bulldoze)
-            {
-                landscape.LotRange(Position(x,z),out float low,out float high);
-                if (low <= CityLandscape.SeaLevel + .15f) { notice = "水面不能直接建设，请选择陆地。"; return; }
-                float maxRise = selected == LandUse.Road ? 2.1f : 1.5f;
-                if (high - low > maxRise) { notice = "坡度太陡，请沿缓坡绕行或换一处地块。"; return; }
-            }
-            if (city.Place(x,z,selected,out string error))
-            {
-                DrawLot(CityModel.Index(x,z));
-                for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++)
-                    if (Math.Abs(dx) + Math.Abs(dz) == 1 && CityModel.Inside(x + dx,z + dz)
-                        && city.Get(x + dx,z + dz) == LandUse.Road) DrawLot(CityModel.Index(x + dx,z + dz));
-                notice = selected == LandUse.Bulldoze ? "已拆除。" : names[(int)selected] + "已规划；建筑需要连接西侧入口的道路和水电。";
-            }
-            else if (error.Length > 0) notice = error;
-        }
+        
 
         void AnimateTraffic()
         {
@@ -597,9 +554,7 @@ namespace HarborCity
                     }
                     trafficViews[trip.id] = car;
                 }
-                bool visible = trip.status != TripStatus.Visiting && (city.roads != null
-                    ? city.roads.Active(trip.Current) && (trip.progress == 0 || city.roads.Linked(trip.Current,trip.Next))
-                    : city.tiles[trip.Current] == (int)LandUse.Road);
+                bool visible=trip.status!=TripStatus.Visiting && city.roads.Active(trip.Current) && (trip.progress==0 || city.roads.Linked(trip.Current,trip.Next));
                 car.gameObject.SetActive(visible);
                 if (!visible) continue;
                 bool freight = trip.purpose >= TripPurpose.Delivery;
@@ -669,11 +624,11 @@ namespace HarborCity
 
         string Purpose(TrafficTrip trip)
         {
-            string[] purposes = { "通勤", "购物", "配送商品", "进口商品", "出口商品" };
+            string[] purposes = { "通勤", "配送商品", "进口商品", "出口商品" };
             if(trip.cargoKind==CargoKind.RawMaterial) return trip.returning?"进口原料 · 返程":"进口原料";
             return trip.returning ? purposes[(int)trip.purpose] + " · 返程" : purposes[(int)trip.purpose];
         }
-        string EndpointName(int i) => i == CityTraffic.Outside ? "西侧城外入口" : names[city.tiles[i]] + " #" + i;
+        string EndpointName(int i) => i == CityTraffic.Outside ? "西侧城外入口" : names[(int)city.UseOf(i)] + " #" + i;
 
         void LocateTrafficEndpoint(int id,bool origin)
         {
@@ -686,16 +641,16 @@ namespace HarborCity
             }
             else
             {
-                if(id<0 || city.buildings==null || id>=city.buildings.Count)
+                if(city.GetBuilding(id)==null)
                 {notice="该地点目前不可定位。"; return;}
-                var building=city.buildings[id];
+                var building=city.GetBuilding(id);
                 destination=new Vector3(building.x,0,building.z);
             }
             followResident=false; showSimulation=false;
             locatedTrafficEndpoint=id; locatedTrafficTrip=inspectedTrip; locatedTrafficOrigin=origin;
             focus=destination; zoom=24; UpdateCamera();
             UpdateTrafficEndpointMarker();
-            notice="已定位："+EndpointName(id)+(id>=0 && city.tiles[id]==0?"（建筑已拆除，显示原址）":"");
+            notice="已定位："+EndpointName(id);
         }
 
         bool OverUI(Vector2 position)
@@ -761,7 +716,7 @@ namespace HarborCity
             GUI.Label(new Rect(rx + 20,293,225,26),"上日实收租金  +" + city.income + " / 天",label);
             GUI.Label(new Rect(rx + 20,322,225,26),"维护  −" + city.upkeep + " / 天",label);
             GUI.Label(new Rect(rx + 20,365,212,60),"交通任务 " + traffic.State.trips.Count + "  /  完成 " + traffic.State.completed
-                + "\n送货 " + traffic.State.delivered + "  /  购物 " + traffic.State.purchases + "  /  失败 " + traffic.State.failed,small);
+                + "\n送货 " + traffic.State.delivered + "  /  失败 " + traffic.State.failed,small);
 
             if (!help && selected == LandUse.Road) RoadToolPanel(navy);
             if (!help && selected != LandUse.Road && !(selected==LandUse.Empty && inspectedHome>=0))
@@ -782,7 +737,7 @@ namespace HarborCity
                         + (trip.blocked>.1f?"\n连续等待："+trip.blocked.ToString("F1")+" 秒":"")
                         + (trip.residentId>0?"\n乘员：居民 #"+trip.residentId+" / 家庭 #"+trip.householdId:"")
                         + (trip.cargo > 0 ? "   载货：" + trip.cargo : "")
-                        + (trip.destination >= 0 && city.tiles[trip.destination] == 3 ? "\n目的地库存：" + traffic.State.stock[trip.destination] : ""),small);
+                        + (trip.destination >= 0 && city.UseOf(trip.destination)==LandUse.Commercial ? "\n目的地库存：" + city.Inventory(trip.destination).Stock : ""),small);
                     if(GUI.Button(new Rect(40,342,135,30),"定位出发地",button)) LocateTrafficEndpoint(trip.origin,true);
                     if(GUI.Button(new Rect(183,342,135,30),"定位目的地",button)) LocateTrafficEndpoint(trip.destination,false);
                 }
@@ -826,7 +781,7 @@ namespace HarborCity
             try
             {
                 string temp = SavePath + ".tmp";
-                File.WriteAllText(temp,JsonUtility.ToJson(city,true));
+                File.WriteAllText(temp,JsonUtility.ToJson(city.ToSaveData(),true));
                 if (File.Exists(SavePath)) File.Copy(SavePath,SavePath + ".bak",true);
                 File.Copy(temp,SavePath,true); File.Delete(temp);
                 city.Trace("save.success","城市存档保存成功");
@@ -840,15 +795,12 @@ namespace HarborCity
             try
             {
                 if (!File.Exists(SavePath)) { notice = "还没有存档，请先保存城市。"; return; }
-                var loaded = JsonUtility.FromJson<CityModel>(File.ReadAllText(SavePath));
+                var loaded = JsonUtility.FromJson<CitySaveData>(File.ReadAllText(SavePath)).ToCity();
                 if (loaded == null || !loaded.Valid()) { notice = "存档格式无效，当前城市已保留。"; return; }
-                loaded.EnableRoads(landscape.Height);
-                loaded.EnableBuildings();
-                loaded.EnableHouseholds();
                 StopSimulationLog();
                 city = loaded; city.Recalculate(); traffic = new CityTraffic(city); inspectedTrip = -1; inspectedHome=-1; commuteFamily=-1; roadUndo.Clear();
                 foreach (var car in cars) car.gameObject.SetActive(false);
-                trafficViews.Clear(); timer = 0; Rebuild(); AnimateTraffic(); notice = "已读取第 " + city.day + " 天的城市。"; StartSimulationLog("读取存档");
+                trafficViews.Clear();  Rebuild(); AnimateTraffic(); notice = "已读取第 " + city.day + " 天的城市。"; StartSimulationLog("读取存档");
             }
             catch (Exception e) { notice = "读取失败：" + e.Message; }
         }

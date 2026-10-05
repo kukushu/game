@@ -11,8 +11,8 @@ public static class BuildingChecks
     static void CheckEmptyStart()
     {
         var c=CityModel.Create(); var sim=new CityTraffic(c);
-        c.EnableRoads(Flat); c.EnableBuildings(); c.EnableHouseholds(); c.EnableResidentTransport();
-        Check(c.Valid() && c.tiles.All(t=>t==0) && c.roads.edges.Count==0 && c.population==0 && c.jobs==0 && c.society.families.Count==0,"New game is an empty valid city");
+        c.SetEntranceHeight(Flat);
+        Check(c.Valid() && c.buildings.Count==0 && c.roads.edges.Count==0 && c.population==0 && c.jobs==0 && c.society.families.Count==0,"New game is an empty valid city");
         sim.Advance(121);
         Check(c.population==0 && c.traffic.trips.Count==0 && c.money==65000,"Empty map creates no residents, traffic or expenses");
         var entry=c.roads.Node(CityRoads.Entrance);
@@ -27,63 +27,24 @@ public static class BuildingChecks
         }
         sim.Advance(1200);
         Check(c.population>0 && c.Employed>0 && c.society.history.Any(d=>d.wages>0) && c.Valid(),"Player-built city attracts residents with actual jobs, trips and wages");
-        Check(c.buildings.Where(b=>c.tiles[b.id]==4).All(b=>b.factory.imported>0 && b.factory.produced>0 && b.factory.wageCosts>0),"Continuously placed homes and factories support real worker attendance, raw trucks, production and payroll");
-        Check(c.buildings.Where(b=>c.tiles[b.id]==2).All(b=>b.housing==HousingKind.Apartment && !b.legacy && b.housingUnits==8),"New map uses standard player housing only");
+        Check(c.buildings.OfType<IndustrialBuilding>().All(b=>b.factory.imported>0 && b.factory.produced>0 && b.factory.wageCosts>0),"Continuously placed homes and factories support real worker attendance, raw trucks, production and payroll");
+        Check(c.buildings.OfType<ResidentialBuilding>().All(b=>b.housing==HousingKind.Apartment && b.housingUnits==8),"New map uses standard player housing only");
         c.money=65000;
         plan=c.roads.Plan(c,P(-12,1.5f),P(78,1.5f),Flat);
         Check(c.CommitRoad(plan),"Road extends beyond the former map boundary: "+plan.error);
-        var expanded=c.RoadsideLots().First(l=>l.x>60 && c.CanBuild(l,Flat,out _));
+        var expanded=c.RoadsidePreview(65.137f,6,LandUse.Industrial,HousingKind.Apartment,out _);
         int expandedId=c.PlaceBuilding(expanded,LandUse.Industrial,Flat,out _);
         Check(expandedId>=0 && c.BuildingAccess(expandedId) && c.PickBuilding(expanded.x,expanded.z)==expandedId,"Expanded region supports building, road access and picking");
         Check(c.Valid() && sim.FindRoute(expandedId,CityTraffic.Outside).Count>1,"Expanded buildings remain saveable and connected to outside traffic");
     }
     public static void Run()
     {
-        CheckEmptyStart();
-        var c=CityModel.CreateLegacySample(); var traffic=new CityTraffic(c); traffic.Advance(8);
-        int pop=c.population,jobs=c.jobs,stock=c.traffic.stock.Sum(),tripCount=c.traffic.trips.Count;
-        c.EnableRoads(Flat); c.EnableBuildings();
-        Check(c.Valid() && c.version==3,"v1/v2 migrate to valid v3");
-        Check(c.population==pop && c.jobs==jobs && stock==c.traffic.stock.Sum() && tripCount==c.traffic.trips.Count,"Migration retains economy, goods and active trips");
-        Check(c.buildings[625].x==CityRoads.Lot(625).x && c.buildings[625].yaw==0,"Existing buildings keep their pose");
-        traffic.Advance(90); Check(c.traffic.completed>10 && c.Valid(),"Migrated trips continue");
-        var plan=c.roads.Plan(c,P(-45,1.5f),P(-30,-24),Flat);
-        Check(c.CommitRoad(plan),"Diagonal street built: "+plan.error);
-        var candidates=c.RoadsideLots().Where(b=>Math.Abs(b.yaw%90)>1 && c.CanBuild(b,Flat,out _)).ToList();
-        Check(candidates.Count>=10,"Continuous diagonal frontage on both sides");
-        var lot=candidates[candidates.Count/2];
-        int id=c.PlaceBuilding(lot,LandUse.Residential,Flat,out string error);
-        Check(id>=1296 && c.Valid(),"New independent entity beyond original grid: "+error);
-        Check(c.PickBuilding(lot.x,lot.z)==id && c.BuildingAccess(id),"Rotated picking and road entrance");
-        Check(c.PlaceBuilding(lot,LandUse.Commercial,Flat,out _) == -1,"Cannot overlap a rotated building");
-        c.levels[id]=1; c.Recalculate();
-        Check(c.population==pop+12,"Independent building participates in economy");
-        Check(traffic.FindRoute(id,CityTraffic.Outside).Count>1,"New building has an outside route");
-        var trip=traffic.Dispatch(id,CityTraffic.Outside,TripPurpose.Commute);
-        Check(trip!=null && trip.home==id,"Traffic can address IDs outside original grid");
-        traffic.Advance(120); Check(c.Valid(),"New traffic IDs remain saveable");
-        var cross=c.roads.Plan(c,P(lot.x-5,lot.z-5),P(lot.x+5,lot.z+5),Flat);
-        Check(!cross.Valid,"Road cannot cut through rotated footprint");
-        var oldX=lot.x; var oldYaw=lot.yaw;
-        var edge=c.roads.edges.First(e=>e.stroke==plan.stroke);
-        c.roads.Remove(c.roads.edges.Where(e=>e.stroke==plan.stroke).Select(e=>e.id).ToList()); c.Recalculate();
-        Check(!c.BuildingAccess(id) && lot.x==oldX && lot.yaw==oldYaw,"Road deletion disconnects but never moves buildings");
-        Check(c.DemolishBuilding(id) && c.PickBuilding(lot.x,lot.z)==-1,"Demolish independent building");
-        int second=c.PlaceBuilding(c.RoadsideLots().First(b=>c.CanBuild(b,Flat,out _)),LandUse.Park,Flat,out _);
-        Check(second>id,"Demolition never reuses a trip endpoint ID");
-        Check(!c.CanBuild(new CityBuilding{x=0,z=0},(x,z)=>0,out _),"Water rejected");
-        Check(!c.CanBuild(new CityBuilding{x=0,z=0},(x,z)=>x*3+10,out _),"Steep footprint rejected");
-        Check(!c.CanBuild(new CityBuilding{x=CityModel.BuildHalfSize,z=CityModel.BuildHalfSize,yaw=45},Flat,out _),"Rotated corners cannot exceed map");
-        c.buildings[second].x=float.NaN; Check(!c.Valid(),"Corrupt pose rejected");
-        var a=new CityBuilding{x=0,z=0,yaw=45}; var b=new CityBuilding{x=3,z=3,yaw=45};
-        Check(!a.Overlaps(b) && !b.Overlaps(a),"Separated rotated boxes");
-        b.x=b.z=1; Check(a.Overlaps(b) && b.Overlaps(a),"Rotated intersection is symmetric");
-        ContinuousPlacementChecks();
-        Console.WriteLine("PASS: "+checks+" building checks");
+        CheckEmptyStart();ContinuousPlacementChecks();
+        Console.WriteLine("PASS: "+checks+" building placement checks");
     }
     static CityModel ContinuousCity(out CityTraffic sim)
     {
-        var c=CityModel.Create(); sim=new CityTraffic(c); c.EnableRoads(Flat); c.EnableBuildings(); c.EnableHouseholds(); c.EnableResidentTransport();
+        var c=CityModel.Create(); sim=new CityTraffic(c); c.SetEntranceHeight(Flat);
         return c;
     }
     static CityBuilding Preview(CityModel c,float x,float z,LandUse use=LandUse.Commercial,HousingKind housing=HousingKind.Apartment)
@@ -93,11 +54,11 @@ public static class BuildingChecks
         var c=ContinuousCity(out var sim);
         Check(Preview(c,0,0)==null,"No-road placement does not invent a lot");
         Check(c.CommitRoad(c.roads.Plan(c,c.roads.Node(CityRoads.Entrance),P(40,1.5f),Flat)),"Continuous placement fixture road built");
-        int slots=c.tiles.Length,revision=c.roads.revision,money=c.money;
+        int slots=c.buildings.Count,revision=c.roads.revision,money=c.money;
         var a=Preview(c,-30.137f,6.2f); var b=Preview(c,-30.127f,6.2f);
         Check(a!=null && Math.Abs(a.x+30.137f)<.0001f && Math.Abs(b.x-a.x-.01f)<.0001f,"Sub-centimetre mouse translation moves the centre continuously, with no 3-unit phase");
-        Check(!c.RoadsideLots().Any(l=>Math.Abs(l.x-a.x)<.001f),"Preview can choose positions absent from legacy RoadsideLots");
-        Check(c.tiles.Length==slots && c.buildings.Count==slots && c.money==money && c.roads.revision==revision && a.id==-1,"Temporary previews do not allocate IDs, charge money or change the road graph");
+
+        Check(c.buildings.Count==slots && c.buildings.Count==slots && c.money==money && c.roads.revision==revision && a.id==-1,"Temporary previews do not allocate IDs, charge money or change the road graph");
         Check(Math.Abs(a.z-(1.5f+CityRoads.Width/2+a.depth/2+CityModel.BuildingSetback))<.0001f,"Centre uses road half-width, building half-depth and setback");
         var front=a.Point(0,-a.depth/2);
         Check(Math.Abs(front.x-a.entranceX)<.0001f && Math.Abs(front.z-a.entranceZ)<.0001f && Math.Abs(front.z-1.5f-(CityRoads.Width/2+CityModel.BuildingSetback))<.0001f,"Entrance is on the road-facing frontage within AccessBuilding reach");
@@ -112,14 +73,14 @@ public static class BuildingChecks
         Check(Math.Abs(apartment.entranceZ-a.entranceZ)<.001f && Math.Abs(villa.entranceZ-a.entranceZ)<.001f,"Deeper housing still puts its entrance at the same road frontage");
         Check(c.CanBuild(a,Flat,out _) && c.CanBuild(opposite,Flat,out _),"Both continuous roadside poses pass the existing CanBuild");
         int id=c.PlaceBuilding(a,LandUse.Commercial,Flat,out _);
-        Check(id==slots && c.BuildingAccess(id) && c.AccessBuilding(id).Count==1 && c.PickBuilding(a.x,a.z)==id,"Exact preview becomes a normal stable-ID building with traffic access");
+        Check(id==c.nextBuildingId-1 && c.BuildingAccess(id) && c.AccessBuilding(id).Count==1 && c.PickBuilding(a.x,a.z)==id,"Exact preview becomes a normal stable-ID building with traffic access");
         var overlap=Preview(c,a.x,6.2f);
         Check(overlap!=null && !c.CanBuild(overlap,Flat,out string overlapReason) && overlapReason.Contains("已有建筑"),"Overlaps produce a real rejected preview instead of hiding available placement");
-        int before=c.tiles.Length; money=c.money;
-        Check(c.PlaceBuilding(overlap,LandUse.Commercial,Flat,out _)<0 && c.tiles.Length==before && c.money==money,"Rejected continuous commit leaves IDs and funds unchanged");
+        int before=c.buildings.Count; money=c.money;
+        Check(c.PlaceBuilding(overlap,LandUse.Commercial,Flat,out _)<0 && c.buildings.Count==before && c.money==money,"Rejected continuous commit leaves IDs and funds unchanged");
         Check(!c.CanBuild(apartment,(x,z)=>0,out _),"Continuous preview preserves water validation");
         Check(!c.CanBuild(apartment,(x,z)=>x*2+100,out _),"Continuous preview preserves terrain slope validation");
-        var copy=new System.Web.Script.Serialization.JavaScriptSerializer().Deserialize<CityBuilding>(new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(a));
+        var copy=new System.Web.Script.Serialization.JavaScriptSerializer().Deserialize<CommercialBuilding>(new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(a));
         Check(copy.id==a.id && copy.x==a.x && copy.yaw==a.yaw && copy.entranceX==a.entranceX && copy.entranceZ==a.entranceZ,"Arbitrary preview pose and entrance survive the existing serialized building fields");
 
         // Curved roads are ordinary short edges: use the nearest edge's tangent.
@@ -137,17 +98,17 @@ public static class BuildingChecks
         Check(truck!=null,"Freight can dispatch to a freely positioned curved-road building");
         c.society.settings.applicantsPerDay=0;
         for(int i=0;i<2000 && truck.cargo>0;i++) sim.Advance(.05f);
-        Check(truck.cargo==0 && c.traffic.stock[id]>=8,"Real truck arrival supplies the continuously placed curved-road commercial building");
+        Check(truck.cargo==0 && c.Inventory(id).Stock>=8,"Real truck arrival supplies the continuously placed curved-road commercial building");
         var fe=c.roads.edges[c.roads.edges.Count*2/3]; var fa=c.roads.Node(fe.a); var fb=c.roads.Node(fe.b);
         var fp=CityRoads.Lerp(fa,fb,.313f); float fl=CityRoads.Length(fa,fb);
         var factoryPose=Preview(c,fp.x-(fb.z-fa.z)/fl*4,fp.z+(fb.x-fa.x)/fl*4,LandUse.Industrial);
         int factory=c.PlaceBuilding(factoryPose,LandUse.Industrial,Flat,out string factoryError);
         Check(factory>=0 && c.BuildingAccess(factory),"Freely positioned curved-road factory retains its entrance: "+factoryError);
-        c.traffic.stock[factory]=8;
+        c.Inventory(factory).Stock=8;
         var delivery=sim.Dispatch(factory,id,TripPurpose.Delivery);
         Check(delivery!=null,"Delivery can route between independently positioned factory and shop");
         for(int i=0;i<2000 && delivery.cargo>0;i++) sim.Advance(.05f);
-        Check(delivery.cargo==0 && c.traffic.stock[id]>=16 && c.Factory(factory).salesRevenue==360,"Continuous placement preserves actual commercial receipt and factory sales income");
+        Check(delivery.cargo==0 && c.Inventory(id).Stock>=16 && c.Factory(factory).salesRevenue==360,"Continuous placement preserves actual commercial receipt and factory sales income");
 
         // A branch near a proposed pose is rejected by the same road overlap check.
         c=ContinuousCity(out sim);

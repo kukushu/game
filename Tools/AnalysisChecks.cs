@@ -11,16 +11,17 @@ public static class AnalysisChecks
     static void Check(bool value,string reason) {if(!value) throw new Exception("Analysis: "+reason); checks++;}
     static string Serialize(object value)
     {
-        if(value is CityModel || value is CityLogEvent)
+        if(value is CityModel) return json.Serialize(((CityModel)value).ToSaveData());
+        if(value is CityLogEvent)
             return json.Serialize(value.GetType().GetFields().Where(f=>!f.IsNotSerialized).ToDictionary(f=>f.Name,f=>f.GetValue(value)));
         return json.Serialize(value);
     }
     static CityModel Create(out CityTraffic traffic,out CityResident person,out int factory)
     {
-        var c=CityModel.CreateLegacySample(); traffic=new CityTraffic(c); c.EnableRoads((x,z)=>1); c.EnableBuildings(); c.EnableHouseholds(); c.EnableResidentTransport();
+        var c=TestCity.Create(); traffic=new CityTraffic(c);   
         foreach(var h in c.society.families) {h.nextReview=10000; foreach(var p in h.people) c.ReleaseJob(p);}
         person=c.Citizens.First(p=>p.canWork); person.skill=2;
-        var job=c.society.jobEntities.First(j=>c.tiles[j.buildingId]==4); factory=job.buildingId; c.AssignJob(person,job.id);
+        var job=c.society.jobEntities.First(j=>(int)c.UseOf(j.buildingId)==4); factory=job.buildingId; c.AssignJob(person,job.id);
         c.society.settings.applicantsPerDay=0; c.traffic.dispatchTimer=-10000;
         return c;
     }
@@ -63,7 +64,7 @@ public static class AnalysisChecks
         Check(factory.cash==0 && factory.productive==60 && !factory.causes.Any(a=>a.code=="cash" || a.code=="road"),"End-only cash exhaustion and disconnected roads do not invent earlier productive losses");
         Check(factory.relatedObservations.Any(s=>s.Contains("不代表全天断路")),"Current road state stays separate from observed daily causes");
 
-        c=Create(out sim,out p,out id); f=c.Factory(id); f.raw=2; c.traffic.stock[id]=24; analysis=Observe(c);
+        c=Create(out sim,out p,out id); f=c.Factory(id); f.raw=2; c.Inventory(id).Stock=24; analysis=Observe(c);
         Work(c,p,id,480,120); Close(c); factory=Factory(analysis.Latest,id);
         Check(factory.stockBlocked==120 && factory.rawBlocked==0 && factory.mainBottleneck=="成品仓满","Full goods capacity is distinguished from raw shortages");
         Check(factory.produced==0 && factory.wageCost>0 && factory.profit<0,"Idle paid labour and real cash loss are visible without inventing output");
@@ -90,13 +91,13 @@ public static class AnalysisChecks
         Check(state==Serialize(c) && snapshot==Serialize(analysis.Current()),"Repeated partial snapshots are deterministic and never change simulation state");
 
         c=Create(out sim,out p,out id); analysis=Observe(c); f=c.Factory(id); f.raw=1;
-        int shop=c.buildings.First(b=>c.tiles[b.id]==3).id;
-        Work(c,p,id,480,60); c.traffic.stock[shop]=0; analysis.ObserveSale(id,shop); Close(c);
+        int shop=c.buildings.First(b=>(int)c.UseOf(b.id)==3).id;
+        Work(c,p,id,480,60); c.Inventory(shop).Stock=0; analysis.ObserveSale(id,shop); Close(c);
         factory=Factory(analysis.Latest,id);
         Check(factory.relatedObservations.Count==1 && factory.relatedObservations[0].Contains("不能据此确认"),"A related commercial shortage is explicitly not attributed to one supplier");
 
         c=Create(out sim,out p,out id); analysis=Observe(c);
-        var lot=c.RoadsideLots().First(b=>c.CanBuild(b,(x,z)=>1,out _));
+        var lot=c.RoadsidePreview(40,6,LandUse.Industrial,HousingKind.Apartment,out _);
         int built=c.PlaceBuilding(lot,LandUse.Industrial,(x,z)=>1,out _); Close(c);
         factory=Factory(analysis.Latest,built);
         Check(factory.capitalInflow==FactoryState.StartingCash && factory.revenue==0 && factory.cashBefore==0,"New factory capital is separated from sales in the daily balance");
@@ -104,7 +105,7 @@ public static class AnalysisChecks
         c=Create(out sim,out p,out id); var h=c.society.families.First(family=>family.people.Contains(p));
         foreach(var family in c.society.families) if(family!=h) family.resident=false;
         int destination=c.buildings.First(b=>b.id!=h.home && c.HousingCapacity(b.id)>0 && c.EntityRoadAccess(b.id)).id;
-        c.buildings[destination].housing=HousingKind.Villa; c.buildings[destination].housingUnits=1; c.buildings[destination].askingRent=12;
+        c.Residence(destination).housing=HousingKind.Villa; c.Residence(destination).housingUnits=1; c.Residence(destination).askingRent=12;
         h.privacyPreference=1; h.timePreference=h.spacePreference=h.savingPreference=0; h.nextReview=2; c.society.settings.improvement=0;
         analysis=Observe(c); Close(c);
         var decision=analysis.Latest.households.Single(d=>d.id==h.id);
@@ -117,7 +118,7 @@ public static class AnalysisChecks
         Check(!decision.evaluated && !decision.committed && decision.action=="评估延期","Busy residents get an actual deferral, not fabricated candidate scores");
 
         c=Create(out sim,out p,out id); analysis=Observe(c); h=c.society.families.First(family=>family.people.Contains(p));
-        int initialRent=c.buildings[h.home].askingRent; c.buildings[h.home].askingRent+=3; Close(c);
+        int initialRent=c.Residence(h.home).askingRent; c.Residence(h.home).askingRent+=3; Close(c);
         Check(analysis.Latest.housingChanges.Any(s=>s.Contains("挂牌租金 "+initialRent+" → "+(initialRent+3))),"Advertised rent changes are measured from a copied baseline");
 
         var a=Create(out var first,out var pa,out int fa); var b=Create(out var second,out var pb,out int fb);
@@ -158,6 +159,12 @@ public static class AnalysisChecks
             string faultExport=log.Export(Path.Combine(root,"FaultExports"),c);
             Check(Directory.GetFiles(faultExport,"events-*.jsonl").SelectMany(File.ReadAllLines).Any(line=>line.Contains("raw survives analysis failure")),"Raw auditing continues after a derived writer failure");
         }
+        c=Create(out sim,out p,out id);f=c.Factory(id);f.raw=1;analysis=Observe(c);
+        Work(c,p,id,480,60);double wages=f.wageCosts;
+        c.money=100000;Check(c.DemolishBuilding(id),"Factory demolition fixture");Close(c);
+        factory=Factory(analysis.Latest,id);
+        Check(!factory.active && factory.state=="已拆除" && factory.produced==1 && factory.wageCost==wages && factory.goods==0,"Demolished factory retains real daily output and payroll without an entity shell");
+        Check(analysis.Failure==null && c.GetBuilding(id)==null,"Daily observer handles physically removed factories");
         Console.WriteLine("PASS: "+checks+" deterministic city analysis checks");
     }
 }

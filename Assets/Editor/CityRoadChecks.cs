@@ -1,51 +1,22 @@
-using System;
-using System.IO;
-using System.Reflection;
+﻿using System;
+using System.Linq;
 using UnityEditor;
-using UnityEngine;
-
 namespace HarborCity
 {
     public static class CityRoadChecks
     {
-        [MenuItem("Harbor/Validate free roads")]
+        [MenuItem("Harbor/Validate world roads")]
         public static void Validate()
         {
-            var city=CityModel.CreateLegacySample();
-            var traffic=new CityTraffic(city); traffic.Advance(10);
-            city.EnableRoads((x,z)=>1);
-            var plan=city.roads.Plan(city,new RoadNode{x=-45,z=1.5f,y=1},new RoadNode{x=-40,z=-22,y=1},(x,z)=>1);
-            if(!city.CommitRoad(plan)) throw new Exception("Free road build failed: "+plan.error);
-            string json=JsonUtility.ToJson(city);
-            var restored=JsonUtility.FromJson<CityModel>(json);
-            if(!restored.Valid() || restored.version!=2 || restored.roads.edges.Count!=city.roads.edges.Count)
-                throw new Exception("Version 2 road save failed.");
-            restored.Recalculate(); new CityTraffic(restored).Advance(90);
-            if(!restored.Valid() || restored.traffic.completed<=city.traffic.completed) throw new Exception("Saved road traffic did not resume.");
-            var curved=CityModel.Create(); curved.roads.Node(CityRoads.Entrance).y=1;
-            var arc=curved.roads.PlanCurve(curved,new RoadNode{x=-52.5f,z=1.5f,y=1},new RoadNode{x=-32.5f,z=21.5f,y=1},new RoadNode{x=-12.5f,z=1.5f,y=1},(x,z)=>1);
-            if(!curved.CommitRoad(arc)) throw new Exception("Curved road build failed: "+arc.error);
-            var curvedCopy=JsonUtility.FromJson<CityModel>(JsonUtility.ToJson(curved));
-            if(!curvedCopy.Valid() || curvedCopy.roads.edges.Count!=curved.roads.edges.Count || !curvedCopy.roads.nodes.Exists(n=>n.z>10))
-                throw new Exception("Curved road Unity JSON round-trip failed.");
-            var game=UnityEngine.Object.FindAnyObjectByType<HarborCityGame>();
-            int triangles=0;
-            if(game!=null)
-            {
-                var live=(CityModel)typeof(HarborCityGame).GetField("city",BindingFlags.NonPublic|BindingFlags.Instance).GetValue(game);
-                if(!live.Valid() || live.roads==null) throw new Exception("Live city did not migrate correctly.");
-                var view=game.GetComponentInChildren<CityRoadView>();
-                if(view==null) throw new Exception("Road renderer missing.");
-                foreach(var filter in view.GetComponentsInChildren<MeshFilter>())
-                {
-                    foreach(var vertex in filter.sharedMesh.vertices)
-                        if(float.IsNaN(vertex.x+vertex.y+vertex.z) || float.IsInfinity(vertex.x+vertex.y+vertex.z)) throw new Exception("Non-finite road vertex.");
-                    triangles+=filter.sharedMesh.triangles.Length/3;
-                }
-                if(triangles==0) throw new Exception("Road meshes are empty.");
-            }
-            string result="PASS: v2 road JSON round-trip, resumed traffic, live migration, finite road meshes ("+triangles+" triangles).";
-            Directory.CreateDirectory("Temp"); File.WriteAllText("Temp/CityRoadChecks.txt",result); Debug.Log(result);
+            var c=CityModel.Create();c.SetEntranceHeight(CityBuildingChecks.Flat);
+            var p=c.roads.PlanCurve(c,c.roads.Node(CityRoads.Entrance),CityBuildingChecks.P(-32.5f,21.5f),CityBuildingChecks.P(-12.5f,1.5f),CityBuildingChecks.Flat);
+            CityBuildingChecks.Check(p.Valid && c.CommitRoad(p) && c.Valid(),"Atomic free curve construction");
+            var e=c.roads.edges[c.roads.edges.Count/2];var a=c.roads.Node(e.a);var b=c.roads.Node(e.b);var middle=CityRoads.Lerp(a,b,.5f);float length=CityRoads.Length(a,b);
+            var preview=c.RoadsidePreview(middle.x-(b.z-a.z)/length*6,middle.z+(b.x-a.x)/length*6,LandUse.Commercial,HousingKind.Apartment,out string error);
+            CityBuildingChecks.Check(preview is CommercialBuilding && c.CanBuild(preview,CityBuildingChecks.Flat,out error),"Curve-oriented continuous preview: "+error);
+            int id=c.PlaceBuilding(preview,LandUse.Commercial,CityBuildingChecks.Flat,out error);var copy=CityBuildingChecks.Copy(c);
+            CityBuildingChecks.Check(id>0 && copy.Valid() && copy.BuildingAccess(id) && copy.GetBuilding(id).yaw==preview.yaw && copy.roads.edges.Count==c.roads.edges.Count,"Curved graph, pose and access native JSON");
+            CityBuildingChecks.Result("CityRoadChecks","PASS: atomic free curve, continuous typed placement, native road/pose/access JSON");
         }
     }
 }

@@ -1,20 +1,17 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace HarborCity
 {
     [Serializable]
-    public sealed class CityBuilding
+    public abstract class CityBuilding
     {
         public int id;
         public float x, z, yaw, entranceX, entranceZ;
         public float width = 2.9f, depth = 2.9f;
-        public bool legacy;
-        public HousingKind housing;
-        public FactoryState factory;
-        public float heavyTraffic;
-        public int housingUnits, askingRent, vacantDays, applications;
-        public List<int> interestedFamilies=new List<int>();
+        public int level=1;
+        public abstract LandUse Use { get; }
         public RoadNode Point(float right, float forward)
         {
             double angle = yaw * Math.PI / 180;
@@ -29,14 +26,15 @@ namespace HarborCity
                 && Math.Abs(dx*Math.Sin(a)+dz*Math.Cos(a)) <= depth/2;
         }
         // Separating axes of both oriented rectangles; touching boundaries are allowed.
-        public bool Overlaps(CityBuilding other)
+        public bool Overlaps(CityBuilding other) => Overlaps(other.x,other.z,other.yaw,other.width,other.depth);
+        bool Overlaps(float ox,float oz,float oyaw,float ow,float od)
         {
-            foreach (float angle in new[] { yaw, yaw+90, other.yaw, other.yaw+90 })
+            foreach (float angle in new[] { yaw, yaw+90, oyaw, oyaw+90 })
             {
-                double a = angle*Math.PI/180, b = (yaw-angle)*Math.PI/180, c = (other.yaw-angle)*Math.PI/180;
-                double distance = Math.Abs((other.x-x)*Math.Cos(a)-(other.z-z)*Math.Sin(a));
+                double a = angle*Math.PI/180, b = (yaw-angle)*Math.PI/180, c = (oyaw-angle)*Math.PI/180;
+                double distance = Math.Abs((ox-x)*Math.Cos(a)-(oz-z)*Math.Sin(a));
                 double radius = (width*Math.Abs(Math.Cos(b))+depth*Math.Abs(Math.Sin(b))
-                    +other.width*Math.Abs(Math.Cos(c))+other.depth*Math.Abs(Math.Sin(c)))/2;
+                    +ow*Math.Abs(Math.Cos(c))+od*Math.Abs(Math.Sin(c)))/2;
                 if (distance >= radius-.015) return false;
             }
             return true;
@@ -44,43 +42,82 @@ namespace HarborCity
         public bool HitsRoad(RoadNode a, RoadNode b)
         {
             float length = CityRoads.Length(a,b);
-            return Overlaps(new CityBuilding { x=(a.x+b.x)/2, z=(a.z+b.z)/2,
-                yaw=-(float)(Math.Atan2(b.z-a.z,b.x-a.x)*180/Math.PI), width=length+.08f, depth=CityRoads.Width+.12f });
+            return Overlaps((a.x+b.x)/2,(a.z+b.z)/2,-(float)(Math.Atan2(b.z-a.z,b.x-a.x)*180/Math.PI),length+.08f,CityRoads.Width+.12f);
         }
     }
 
+    [Serializable] public sealed class ResidentialBuilding : CityBuilding
+    {
+        public override LandUse Use => LandUse.Residential;
+        public HousingKind housing;
+        public int housingUnits, askingRent, vacantDays, applications;
+        public float heavyTraffic;
+        public List<int> interestedFamilies=new List<int>();
+    }
+    public interface IGoodsBuilding { int Stock {get; set;} }
+    [Serializable] public sealed class CommercialBuilding : CityBuilding, IGoodsBuilding
+    {
+        public override LandUse Use => LandUse.Commercial;
+        public int stock;
+        public int Stock {get=>stock; set=>stock=value;}
+    }
+    [Serializable] public sealed class IndustrialBuilding : CityBuilding, IGoodsBuilding
+    {
+        public override LandUse Use => LandUse.Industrial;
+        public FactoryState factory=new FactoryState();
+        public int goodsStock;
+        public int Stock {get=>goodsStock; set=>goodsStock=value;}
+    }
+    [Serializable] public sealed class PowerBuilding : CityBuilding {public override LandUse Use=>LandUse.Power;}
+    [Serializable] public sealed class WaterBuilding : CityBuilding {public override LandUse Use=>LandUse.Water;}
+    [Serializable] public sealed class ParkBuilding : CityBuilding {public override LandUse Use=>LandUse.Park;}
+
     public sealed partial class CityModel
     {
-        // In v3 these arrays are stable entity slots, NOT spatial grid cells.
-        // Existing slot IDs survive migration, demolition never reuses an ID.
-        public List<CityBuilding> buildings;
+        public List<CityBuilding> buildings=new List<CityBuilding>();
+        public int nextBuildingId=1;
         [NonSerialized] public int buildingRevision;
-        [NonSerialized] int accessRevision = -1;
+        [NonSerialized] Dictionary<int,CityBuilding> buildingLookup;
+        [NonSerialized] int accessRevision=-1;
         [NonSerialized] CityRoads accessRoads;
-        [NonSerialized] Dictionary<int,List<int>> buildingEntrances = new Dictionary<int,List<int>>();
-
-        public void EnableBuildings()
+        [NonSerialized] Dictionary<int,List<int>> buildingEntrances=new Dictionary<int,List<int>>();
+        public CityBuilding GetBuilding(int id)
         {
-            if (version >= 3) return;
-            if (roads == null) throw new InvalidOperationException("Migrate roads first");
-            buildings = new List<CityBuilding>();
-            for (int i=0;i<tiles.Length;i++)
+            if(id<0) return null;
+            if(buildingLookup==null || buildingLookup.Count!=buildings.Count) buildingLookup=buildings.ToDictionary(b=>b.id);
+            return buildingLookup.TryGetValue(id,out var b)?b:null;
+        }
+        public ResidentialBuilding Residence(int id)=>GetBuilding(id) as ResidentialBuilding;
+        public IGoodsBuilding Inventory(int id)=>GetBuilding(id) as IGoodsBuilding;
+        public int Goods(int id)=>Inventory(id)?.Stock??0;
+        public LandUse UseOf(int id)=>GetBuilding(id)?.Use??LandUse.Empty;
+        void BuildingsChanged()
+        {
+            buildingRevision++; buildingLookup=null; buildingEntrances?.Clear(); commuteCache?.Clear();
+        }
+        public static CityBuilding NewBuilding(LandUse use)
+        {
+            switch(use)
             {
-                var p=CityRoads.Lot(i);
-                buildings.Add(new CityBuilding { id=i,x=p.x,z=p.z,entranceX=p.x,entranceZ=p.z,legacy=true });
+                case LandUse.Residential:return new ResidentialBuilding();
+                case LandUse.Commercial:return new CommercialBuilding();
+                case LandUse.Industrial:return new IndustrialBuilding();
+                case LandUse.Power:return new PowerBuilding();
+                case LandUse.Water:return new WaterBuilding();
+                case LandUse.Park:return new ParkBuilding();
+                default:throw new ArgumentException("Unsupported building type: "+use);
             }
-            version=3; buildingRevision++; Recalculate();
         }
         public List<int> AccessBuilding(int id)
         {
-            if (id == -1) return roads.Access(-1);
-            if (id<0 || id>=tiles.Length || tiles[id]<2) return new List<int>();
+            if(id==-1) return roads.Active(CityRoads.Entrance)?new List<int>{CityRoads.Entrance}:new List<int>();
+            if (GetBuilding(id)==null) return new List<int>();
             if (buildingEntrances==null) buildingEntrances=new Dictionary<int,List<int>>();
             if (accessRoads!=roads || accessRevision!=roads.revision)
             { buildingEntrances.Clear(); accessRoads=roads; accessRevision=roads.revision; }
             if (buildingEntrances.TryGetValue(id,out var result)) return result;
-            var b=buildings[id]; var p=new RoadNode { x=b.entranceX,z=b.entranceZ };
-            RoadEdge best=null; float distance=b.legacy ? 3.85f : CityRoads.Width/2+.45f;
+            var b=GetBuilding(id); var p=new RoadNode { x=b.entranceX,z=b.entranceZ };
+            RoadEdge best=null; float distance=CityRoads.Width/2+.45f;
             foreach (var e in roads.edges)
             {
                 float d=CityRoads.Distance(p,roads.Node(e.a),roads.Node(e.b));
@@ -97,7 +134,7 @@ namespace HarborCity
         }
         public int PickBuilding(float x,float z)
         {
-            for(int i=tiles.Length-1;i>=0;i--) if(tiles[i]>1 && buildings[i].Contains(x,z)) return i;
+            foreach(var b in buildings.OrderByDescending(b=>b.id)) if(b.Contains(x,z)) return b.id;
             return -1;
         }
         public bool CanBuild(CityBuilding lot, Func<float,float,float> height, out string error)
@@ -112,53 +149,54 @@ namespace HarborCity
             if(low<=.15f || high-low>1.5f) { error="水面或坡度过陡，不能建设"; return false; }
             foreach(var e in roads.edges) if(lot.HitsRoad(roads.Node(e.a),roads.Node(e.b)))
             { error="地块与道路重叠"; return false; }
-            for(int i=0;i<tiles.Length;i++) if(tiles[i]>1 && lot.Overlaps(buildings[i]))
+            foreach(var existing in buildings) if(lot.Overlaps(existing))
             { error="地块与已有建筑或分区重叠"; return false; }
             return true;
         }
         public int PlaceBuilding(CityBuilding lot,LandUse use,Func<float,float,float> height,out string error)
         {
             error="";
-            if(version<3 || use<LandUse.Residential || use>LandUse.Park || tiles.Length>=100000) return -1;
+            if(lot==null || lot.Use!=use || buildings.Count>=100000 || nextBuildingId==int.MaxValue) {error="建筑类型无效或数量已达上限";return -1;}
             if(!CanBuild(lot,height,out error)) return -1;
-            int cost=society!=null && use==LandUse.Residential ? (lot.housing==HousingKind.Villa?society.settings.villaCost:society.settings.apartmentCost) : Cost(use);
-            if(society!=null && use==LandUse.Industrial) cost+=FactoryState.StartingCash;
-            if(money<cost) { error="资金不足"; return -1; }
-            int id=tiles.Length; Array.Resize(ref tiles,id+1); Array.Resize(ref levels,id+1);
-            lot.id=id; buildings.Add(lot); tiles[id]=(int)use;
-            if(society!=null)
-            {
-                levels[id]=1;
-                if(use==LandUse.Industrial) lot.factory=new FactoryState {initialized=true,financeInitialized=true,capitalFromTreasury=true,cash=FactoryState.StartingCash,capital=FactoryState.StartingCash};
-                if(use==LandUse.Residential) {lot.housingUnits=lot.housing==HousingKind.Villa?1:8; lot.askingRent=lot.housing==HousingKind.Villa?society.settings.villaRent:society.settings.apartmentRent;}
-            }
-            if(traffic!=null)
-            {
-                Array.Resize(ref traffic.stock,id+1); Array.Resize(ref traffic.nextCommute,id+1); Array.Resize(ref traffic.nextShopping,id+1);
-            }
-            money-=cost; buildingRevision++; Recalculate();
-            Trace("building.created","建设 "+use,new CityLogDetail {amount=cost,x=lot.x,z=lot.z,count=lot.housingUnits},building:id);
-            if(lot.factory!=null) Trace("factory.capital","建设预算转入工厂期初经营资金；不自动补款",lot.factory,building:id);
-            return id;
+            int cost=lot is ResidentialBuilding r?(r.housing==HousingKind.Villa?society.settings.villaCost:society.settings.apartmentCost):Cost(use);
+            if(lot is IndustrialBuilding) cost+=FactoryState.StartingCash;
+            if(money<cost) {error="资金不足";return -1;}
+            lot.id=nextBuildingId++; lot.level=1;
+            if(lot is ResidentialBuilding home) {home.housingUnits=home.housing==HousingKind.Villa?1:8;home.askingRent=home.housing==HousingKind.Villa?society.settings.villaRent:society.settings.apartmentRent;}
+            if(lot is IndustrialBuilding industry) industry.factory=new FactoryState {cash=FactoryState.StartingCash,capital=FactoryState.StartingCash};
+            buildings.Add(lot); money-=cost; BuildingsChanged(); Recalculate();
+            Trace("building.created","建设 "+use,new CityLogDetail {amount=cost,x=lot.x,z=lot.z,count=(lot as ResidentialBuilding)?.housingUnits??0},building:lot.id);
+            if(lot is IndustrialBuilding factory) Trace("factory.capital","建设预算转入工厂期初经营资金；不自动补款",factory.factory,building:lot.id);
+            return lot.id;
         }
         public bool DemolishBuilding(int id)
         {
-            if(id<0 || id>=tiles.Length || tiles[id]<2 || money<Cost(LandUse.Bulldoze)) return false;
-            Trace("building.demolished","拆除 "+(LandUse)tiles[id],buildings[id],building:id);
-            money-=Cost(LandUse.Bulldoze); tiles[id]=levels[id]=0;
-            if(traffic!=null)
+            var b=GetBuilding(id); if(b==null || money<Cost(LandUse.Bulldoze)) return false;
+            Trace("building.demolished","拆除 "+b.Use,b,building:id);
+            new CityTraffic(this).RemoveBuilding(id);
+            traffic.lostGoods+=Goods(id);
+            if(b is IndustrialBuilding industry)
             {
-                traffic.lostGoods+=traffic.stock[id]; traffic.stock[id]=0;
-                var f=buildings[id].factory;
-                if(f!=null && f.initialized)
+                var f=industry.factory; traffic.lostRaw+=f.raw+(f.processing?1:0);
+                retiredFactoryWages+=f.wageCosts;
+                residualIndustry.Add(new IndustrialExposure {x=b.x,z=b.z,noise=f.noise,pollution=f.pollution});
+                Trace("factory.demolished","库存计入损失，保留环境衰减与历史工资核对",f,building:id);
+            }
+            foreach(var h in society.families)
+            {
+                if(h.home==id)
                 {
-                    traffic.lostRaw+=f.raw+(f.processing?1:0);
-                    if(f.processing) f.discardedBatches++;
-                    f.raw=0; f.processing=false; f.progress=0;
-                    Trace("factory.demolished","拆除库存和在制品计入损失；残留环境影响逐步消退",f,building:id);
+                    h.resident=false;h.home=h.unit=-1;h.nextReview=day;h.reason="住所拆除，等待重新迁入";
+                    foreach(var p in h.people) {ReleaseJob(p);p.location=-1;p.atWork=false;p.tripId=0;}
+                    Trace("household.left",h.reason,h,household:h.id);
+                }
+                foreach(var p in h.people)
+                {
+                    if(p.location==id) p.location=-1;
+                    if(p.observedHome==id || p.observedWork==id) {p.observedHome=p.observedWork=-1;p.lastCommute=-1;}
                 }
             }
-            buildingRevision++; Recalculate(); return true;
+            buildings.Remove(b);money-=Cost(LandUse.Bulldoze);BuildingsChanged();Recalculate();return true;
         }
         public const float BuildingRoadSnapDistance=10f, BuildingSetback=.25f;
         // Pure temporary pose: no slot allocation, zoning grid, or road mutation.
@@ -180,51 +218,28 @@ namespace HarborCity
             float length=CityRoads.Length(a,b),ux=(b.x-a.x)/length,uz=(b.z-a.z)/length;
             float side=(mouseX-p.x)*(-uz)+(mouseZ-p.z)*ux<0?-1:1;
             float nx=-uz*side,nz=ux*side;
-            var lot=new CityBuilding {id=-1,housing=housing,yaw=(float)(Math.Atan2(nx,nz)*180/Math.PI)};
-            if(use==LandUse.Residential && society!=null)
-            {lot.width=housing==HousingKind.Villa?5.9f:2.9f; lot.depth=5.9f;}
+            var lot=NewBuilding(use); lot.id=-1; lot.yaw=(float)(Math.Atan2(nx,nz)*180/Math.PI);
+            if(lot is ResidentialBuilding home)
+            {home.housing=housing;lot.width=housing==HousingKind.Villa?5.9f:2.9f; lot.depth=5.9f;}
             float offset=CityRoads.Width/2+lot.depth/2+BuildingSetback;
             lot.x=p.x+nx*offset; lot.z=p.z+nz*offset;
             var front=lot.Point(0,-lot.depth/2); lot.entranceX=front.x; lot.entranceZ=front.z;
             return lot;
         }
-        // Legacy candidates retained for old fixtures/tools, not player placement.
-        // A world-space phase along each straight line survives traffic-edge splitting.
-        public List<CityBuilding> RoadsideLots()
-        {
-            var result=new List<CityBuilding>(); var seen=new HashSet<string>();
-            foreach(var e in roads.edges)
-            {
-                var a=roads.Node(e.a); var b=roads.Node(e.b);
-                float length=CityRoads.Length(a,b), ux=(b.x-a.x)/length, uz=(b.z-a.z)/length;
-                if(ux<-.0001f || Math.Abs(ux)<.0001f && uz<0) { ux=-ux; uz=-uz; }
-                float start=a.x*ux+a.z*uz, end=b.x*ux+b.z*uz;
-                for(int k=(int)Math.Ceiling((Math.Min(start,end)-1.5f)/3-.0001f);k<=(int)Math.Floor((Math.Max(start,end)-1.5f)/3+.0001f);k++)
-                for(int side=-1;side<=1;side+=2)
-                {
-                    float along=k*3+1.5f-start;
-                    float x=a.x+ux*along-uz*3.05f*side, z=a.z+uz*along+ux*3.05f*side;
-                    string key=Math.Round(x*100)+":"+Math.Round(z*100);
-                    if(!seen.Add(key)) continue;
-                    var lot=new CityBuilding { x=x,z=z,yaw=-(float)(Math.Atan2(uz,ux)*180/Math.PI)+(side<0?180:0) };
-                    var entrance=lot.Point(0,-lot.depth/2); lot.entranceX=entrance.x; lot.entranceZ=entrance.z;
-                    result.Add(lot);
-                }
-            }
-            return result;
-        }
         bool ValidBuildings()
         {
-            if(buildings==null || buildings.Count!=tiles.Length || tiles.Length<Size*Size || tiles.Length>100000) return false;
-            for(int i=0;i<buildings.Count;i++)
+            if(buildings==null || buildings.Count>100000 || nextBuildingId<1) return false;
+            var ids=new HashSet<int>();
+            foreach(var b in buildings)
             {
-                var b=buildings[i];
-                if(b==null || b.id!=i || !FinitePosition(b.x) || !FinitePosition(b.z) || !FinitePosition(b.entranceX)
-                    || !FinitePosition(b.entranceZ) || float.IsNaN(b.yaw) || float.IsInfinity(b.yaw)
-                    || float.IsNaN(b.width) || float.IsNaN(b.depth) || b.width<2.9f || b.width>8.9f || b.depth<2.9f || b.depth>8.9f || tiles[i]==1
-                    || version>=4 && tiles[i]==2 && (b.housingUnits<1 || b.housingUnits>100 || b.askingRent<0 || (int)b.housing<0 || (int)b.housing>2)) return false;
+                if(b==null || b.id<1 || b.id>=nextBuildingId || !ids.Add(b.id) || !FinitePosition(b.x) || !FinitePosition(b.z)
+                    || !FinitePosition(b.entranceX) || !FinitePosition(b.entranceZ) || float.IsNaN(b.yaw) || float.IsInfinity(b.yaw)
+                    || float.IsNaN(b.width) || float.IsNaN(b.depth) || b.width<2.9f || b.width>8.9f || b.depth<2.9f || b.depth>8.9f || b.level<1 || b.level>3) return false;
+                if(b is ResidentialBuilding r && (r.housingUnits<1 || r.housingUnits>100 || r.askingRent<0 || r.interestedFamilies==null || (int)r.housing<0 || (int)r.housing>1)) return false;
+                if(b is IGoodsBuilding inventory && (inventory.Stock<0 || inventory.Stock>(b is IndustrialBuilding?24:32))) return false;
+                if(b is IndustrialBuilding i && i.factory==null) return false;
             }
-            return true;
+            buildingLookup=null;return true;
         }
         static bool FinitePosition(float value) => !float.IsNaN(value) && !float.IsInfinity(value) && Math.Abs(value)<=BuildHalfSize;
     }

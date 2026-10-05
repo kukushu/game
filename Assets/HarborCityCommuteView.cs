@@ -41,7 +41,7 @@ namespace HarborCity
             Vector3 p=cam.WorldToScreenPoint(TrafficEndpointAnchor()+Vector3.up*.5f);
             if(p.z<=0 || p.x<0 || p.x>Screen.width || p.y<0 || p.y>Screen.height) return;
             Rect r=new Rect(p.x/scale-125,(Screen.height-p.y)/scale-42,250,36);
-            string name=locatedTrafficEndpoint>=0 && city.tiles[locatedTrafficEndpoint]==0?"已拆建筑原址 #"+locatedTrafficEndpoint:EndpointName(locatedTrafficEndpoint);
+            string name=locatedTrafficEndpoint>=0 && city.UseOf(locatedTrafficEndpoint)==LandUse.Empty?"已拆建筑原址 #"+locatedTrafficEndpoint:EndpointName(locatedTrafficEndpoint);
             Panel(r,navy);
             Panel(new Rect(r.x,r.y,4,r.height),locatedTrafficOrigin?new Color(.25f,1,.5f):new Color(1,.65f,.1f));
             GUI.Label(new Rect(r.x+10,r.y+5,r.width-15,r.height-8),(locatedTrafficOrigin?"出发地：":"目的地：")+name,small);
@@ -50,7 +50,7 @@ namespace HarborCity
         CityResident FamilyCommuter(Household f) => f?.people.Find(p=>p.id==inspectedResident && city.Workplace(p)>=0) ?? f?.people.Find(p=>city.Workplace(p)>=0);
         int FamilyWorkplace(Household f) => city.Workplace(FamilyCommuter(f));
         bool HasWorkplace(Household f) => FamilyWorkplace(f)>=0;
-        string WorkplaceName(CityResident p) => city.Workplace(p)<0?"暂无工作地点":names[city.tiles[city.Workplace(p)]]+" #"+city.Workplace(p);
+        string WorkplaceName(CityResident p) => city.Workplace(p)<0?"暂无工作地点":names[(int)city.UseOf(city.Workplace(p))]+" #"+city.Workplace(p);
         string WorkplaceName(Household f) => WorkplaceName(FamilyCommuter(f));
         void ShowWorkplace(Household family,bool locate)
         {
@@ -58,7 +58,7 @@ namespace HarborCity
             if(!HasWorkplace(family)) {notice="这户目前没有有效的工作地点。"; return;}
             if(locate)
             {
-                var b=city.buildings[FamilyWorkplace(family)]; focus=new Vector3(b.x,0,b.z); zoom=24; UpdateCamera();
+                var b=city.GetBuilding(FamilyWorkplace(family)); focus=new Vector3(b.x,0,b.z); zoom=24; UpdateCamera();
             }
             notice="家庭 #"+family.id+"：住宅 #"+family.home+" → "+WorkplaceName(family)+"。绿色为住宅，橙色为工作地点；显示预计通勤路线。";
             UpdateCommuteView();
@@ -73,14 +73,14 @@ namespace HarborCity
         }
         Vector3 BuildingMarker(int id)
         {
-            var b=city.buildings[id]; float y=landscape.Height(b.x,b.z)+1;
+            var b=city.GetBuilding(id); float y=landscape.Height(b.x,b.z)+1;
             if(visuals.TryGetValue(id,out var visual) && visual!=null)
                 foreach(var renderer in visual.GetComponentsInChildren<Renderer>()) y=Mathf.Max(y,renderer.bounds.max.y+.4f);
             return new Vector3(b.x,y,b.z);
         }
         void MarkBuilding(LineRenderer line,int id)
         {
-            var b=city.buildings[id]; Vector3 center=BuildingMarker(id);
+            var b=city.GetBuilding(id); Vector3 center=BuildingMarker(id);
             var points=new Vector3[5];
             for(int k=0;k<5;k++)
             {
@@ -109,7 +109,7 @@ namespace HarborCity
             var points=new List<Vector3>();
             if(path.Count>0)
             {
-                var home=city.buildings[family.home]; var work=city.buildings[FamilyWorkplace(family)];
+                var home=city.GetBuilding(family.home); var work=city.GetBuilding(FamilyWorkplace(family));
                 var anchors=new List<Vector3>{new Vector3(home.entranceX,0,home.entranceZ)};
                 foreach(int node in path) anchors.Add(RoadPosition(node));
                 anchors.Add(new Vector3(work.entranceX,0,work.entranceZ));

@@ -20,10 +20,10 @@ namespace HarborCity
         }
         void OpenPopulationPanel()
         {
-            city.EnsureResidents(); showSimulation=true; simulationTab=5;
+            showSimulation=true; simulationTab=5;
             simulationScroll=Vector2.zero; simulationTyping=false;
         }
-        string PopulationPlace(int id) => id<0 || id>=city.tiles.Length?"无":city.tiles[id]==0?"已拆建筑 #"+id:EndpointName(id);
+        string PopulationPlace(int id) => city.GetBuilding(id)==null?"无":city.UseOf(id)==LandUse.Empty?"已拆建筑 #"+id:EndpointName(id);
         void SelectPopulationResident(PopulationRow row,bool follow)
         {
             selected=LandUse.Empty; inspectedHome=row.family.home; inspectedResident=row.person.id;
@@ -34,7 +34,6 @@ namespace HarborCity
         }
         void DrawPopulationPanel()
         {
-            city.EnsureResidents();
             var rows=new List<PopulationRow>(); var counts=new int[5];
             foreach(var family in city.society.families)
             {
@@ -95,8 +94,8 @@ namespace HarborCity
                 if(inspectedResident!=person.id) continue;
                 var a=city.ObserveResident(h,person); int minute=(int)city.ResidentMinute;
                 GUILayout.Label("居民 #"+person.id+" · "+minute/60+":"+(minute%60).ToString("00")+"\n状态："+a.state+
-                    "\n当前位置："+(a.building>=0?names[city.tiles[a.building]]+" #"+a.building:a.located?"道路上":"城外 / 无住所")+
-                    "\n目的地："+(a.destination>=0?names[city.tiles[a.destination]]+" #"+a.destination:"暂无出行")+
+                    "\n当前位置："+(a.building>=0?names[(int)city.UseOf(a.building)]+" #"+a.building:a.located?"道路上":"城外 / 无住所")+
+                    "\n目的地："+(a.destination>=0?names[(int)city.UseOf(a.destination)]+" #"+a.destination:"暂无出行")+
                     "\n工作："+(person.canWork?WorkplaceName(person):"未安排")+
                     "\n日薪：¥"+(person.canWork?city.ResidentWage(person):0)+"（进入家庭共同预算）\n"+a.reason,small);
                 if(a.travelling) GUILayout.Label("行程进度："+(a.progress*100).ToString("F0")+"%",small);

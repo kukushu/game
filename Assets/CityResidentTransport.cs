@@ -5,20 +5,11 @@ namespace HarborCity
 {
     public sealed partial class CityModel
     {
-        public void EnableResidentTransport()
-        {
-            EnsureResidents();
-            if(society.transportEnabled) return;
-            // Old representative commuters have no one-to-one resident identity.
-            traffic.trips.RemoveAll(t=>t.purpose==TripPurpose.Commute && t.residentId==0);
-            foreach(var h in society.families) foreach(var p in h.people)
-            {p.location=h.home; p.requestedAt=-1; p.departureDay=-1; p.tripId=0; p.atWork=false;}
-            society.transportEnabled=true;
-        }
+        
         public float ExpectedCommute(CityResident p,int home,int work)
         {
             float estimate=CommuteMinutes(home,work);
-            if(estimate<0 || !society.transportEnabled || p==null) return estimate;
+            if(estimate<0 || p==null) return estimate;
             // Only reuse observations for this exact home/job and road revision.
             // New alternatives retain a free-flow estimate until actually tried.
             return p!=null && p.lastCommute>=0 && p.observedHome==home && p.observedWork==work && p.observedRevision==roads.revision
@@ -41,9 +32,9 @@ namespace HarborCity
                 return a;
             }
             int location=p.atWork?p.location:h.home;
-            a.located=h.resident && location>=0 && location<tiles.Length && tiles[location]!=0;
+            a.located=h.resident && GetBuilding(location)!=null;
             a.building=a.located?location:-1;
-            if(a.located) {a.x=buildings[location].x; a.z=buildings[location].z;}
+            if(a.located) {a.x=GetBuilding(location).x; a.z=GetBuilding(location).z;}
             float shift=480+p.id%3*30;
             a.state=!h.resident?"城外":p.atWork?(ResidentMinute<shift+480 && p.arrivedDay==day?"工作中":"等待返程"):
                 p.canWork && work>=0 && ResidentMinute>=Math.Max(0,shift-Math.Max(0,ExpectedCommute(p,h.home,work))) && p.departureDay!=day?"等待出发":"在家";
@@ -132,7 +123,7 @@ namespace HarborCity
                     {
                         var route=Search(new System.Collections.Generic.List<int>{p.accessNode},Access(h.home));
                         if(route.Count>0 && CanEnter(route,null) && State.trips.Count<TaskCapacity)
-                        {trip=new TrafficTrip{id=State.nextId++,origin=p.location,destination=h.home,purpose=TripPurpose.Commute,residentId=p.id,route=route}; State.trips.Add(trip);}
+                        {trip=new TrafficTrip{id=State.nextId++,origin=-1,destination=h.home,purpose=TripPurpose.Commute,residentId=p.id,route=route}; State.trips.Add(trip);}
                     }
                     if(trip==null)
                     {

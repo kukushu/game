@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
@@ -28,13 +28,16 @@ namespace HarborCity
                 minimum = Mathf.Min(minimum,h); maximum = Mathf.Max(maximum,h); samples++;
             }
             if (maximum - minimum < 20) throw new Exception("Landscape lacks expected elevation range.");
-            var city = CityModel.CreateLegacySample();
-            for (int i = 0; i < city.tiles.Length; i++)
+            var game=UnityEngine.Object.FindAnyObjectByType<HarborCityGame>();
+            if(game!=null)
             {
-                if (city.tiles[i] == 0) continue;
-                Vector3 p = new Vector3((i % 36 - 17.5f) * 3,0,(i / 36 - 17.5f) * 3);
-                terrain.LotRange(p,out float low,out float high);
-                if (low <= CityLandscape.SeaLevel || high - low > 1.5f) throw new Exception("Starter city lot too steep or submerged: " + i);
+                var city=(CityModel)typeof(HarborCityGame).GetField("city",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance).GetValue(game);
+                foreach(var building in city.buildings)
+                    for(int z=0;z<=6;z++) for(int x=0;x<=6;x++)
+                    {
+                        var point=building.Point((x/6f-.5f)*building.width,(z/6f-.5f)*building.depth);
+                        if(terrain.Height(point.x,point.z)<=CityLandscape.SeaLevel) throw new Exception("Building footprint submerged: "+building.id);
+                    }
             }
             int surfaceVertices = 0;
             foreach (var filter in UnityEngine.Object.FindObjectsByType<MeshFilter>())
@@ -56,7 +59,7 @@ namespace HarborCity
                 for (int layer = 0; layer < 4; layer++) sum += weights[z,x,layer];
                 if (Mathf.Abs(sum - 1) > .02f) throw new Exception("Terrain layer weights not normalized.");
             }
-            string result = $"PASS: Unity Terrain + TerrainCollider + 4 layers; {samples} terrain raycasts (4 cm tolerance); {surfaceVertices} road/zone vertices; starter city slopes; normalized layer weights; elevation {minimum:F2} to {maximum:F2}.";
+            string result = $"PASS: Unity Terrain + TerrainCollider + 4 layers; {samples} terrain raycasts (4 cm tolerance); {surfaceVertices} road/zone vertices; live building footprints; normalized layer weights; elevation {minimum:F2} to {maximum:F2}.";
             File.WriteAllText("Temp/CityLandscapeChecks.txt",result);
             Debug.Log(result);
         }

@@ -12,13 +12,14 @@ public static class LogChecks
     static void Check(bool value,string reason) {if(!value) throw new Exception("Logs: "+reason); checks++;}
     static string Serialize(object o)
     {
-        if(o is CityLogEvent || o is CityModel)
+        if(o is CityModel) return json.Serialize(((CityModel)o).ToSaveData());
+        if(o is CityLogEvent)
             return json.Serialize(o.GetType().GetFields().Where(f=>!f.IsNotSerialized).ToDictionary(f=>f.Name,f=>f.GetValue(o)));
         return json.Serialize(o);
     }
     static CityModel City()
     {
-        var c=CityModel.CreateLegacySample(); new CityTraffic(c); c.EnableRoads((x,z)=>1); c.EnableBuildings(); c.EnableHouseholds(); c.EnableResidentTransport(); return c;
+        var c=TestCity.Create(); new CityTraffic(c);    return c;
     }
     public static void Run()
     {

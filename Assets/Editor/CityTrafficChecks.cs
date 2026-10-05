@@ -1,44 +1,23 @@
-using System;
-using System.IO;
+﻿using System;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
-
 namespace HarborCity
 {
     public static class CityTrafficChecks
     {
-        [Serializable]
-        sealed class LegacyCity
-        {
-            public int version = 1, money = 65000, day = 1;
-            public int[] tiles, levels;
-        }
-        [MenuItem("Harbor/Validate traffic saves")]
+        [MenuItem("Harbor/Validate traffic save")]
         public static void Validate()
         {
-            var city = CityModel.CreateLegacySample();
-            var simulation = new CityTraffic(city);
-            simulation.Advance(30);
-            string json = JsonUtility.ToJson(city);
-            var restored = JsonUtility.FromJson<CityModel>(json);
-            if (!restored.Valid() || restored.traffic.trips.Count != city.traffic.trips.Count)
-                throw new Exception("Traffic save failed validation.");
-            restored.Recalculate();
-            var resumed = new CityTraffic(restored);
-            // Locks are transient; rebuilding them must preserve legal continued trips.
-            resumed.Advance(60);
-            if (!restored.Valid() || restored.traffic.completed <= city.traffic.completed)
-                throw new Exception("Restored traffic did not continue.");
-            var legacy = CityModel.CreateLegacySample();
-            legacy = JsonUtility.FromJson<CityModel>(JsonUtility.ToJson(new LegacyCity { tiles = legacy.tiles, levels = legacy.levels }));
-            if (!legacy.Valid()) throw new Exception("Legacy city rejected before migration.");
-            legacy.Recalculate();
-            new CityTraffic(legacy).Advance(5);
-            if (!legacy.Valid() || legacy.traffic.trips.Count == 0) throw new Exception("Legacy save migration failed.");
-            string result = "PASS: Unity JsonUtility round-trip, continued traffic, legacy save migration.";
-            Directory.CreateDirectory("Temp");
-            File.WriteAllText("Temp/CityTrafficChecks.txt",result);
-            Debug.Log(result);
+            var c=CityBuildingChecks.Fixture();var f=c.buildings.OfType<IndustrialBuilding>().Single();var shop=c.buildings.OfType<CommercialBuilding>().Single();
+            c.society.settings.applicantsPerDay=0;f.goodsStock=8;
+            var sim=new CityTraffic(c);var trip=sim.Dispatch(f.id,shop.id,TripPurpose.Delivery);CityBuildingChecks.Check(trip!=null,"Real freight dispatch");
+            sim.Advance(.1f);var copy=CityBuildingChecks.Copy(c);var resumed=new CityTraffic(copy);
+            sim.Advance(30);resumed.Advance(30);
+            CityBuildingChecks.Check(c.Valid() && copy.Valid() && CityBuildingChecks.Equivalent(c.ToSaveData(),copy.ToSaveData()),"Freight native JSON continuation");
+            CityBuildingChecks.Check(c.Factory(f.id).salesRevenue==8*FactoryState.SalePrice && c.Goods(shop.id)>=8,"Actual delivery credits seller and buyer inventory");
+            CityBuildingChecks.Check(c.DemolishBuilding(f.id) && c.GetBuilding(f.id)==null && c.Valid() && CityBuildingChecks.Copy(c).Valid(),"Factory demolition and payroll closure");
+            CityBuildingChecks.Result("CityTrafficChecks","PASS: native freight JSON, deterministic continuation, goods delivery/sale and factory demolition");
         }
     }
 }

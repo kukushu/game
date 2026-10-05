@@ -111,7 +111,7 @@ namespace HarborCity
             try
             {
                 string path=Path.Combine(DirectoryPath,name+".json"), temporary=path+".tmp";
-                File.WriteAllText(temporary,json(city),new UTF8Encoding(false));
+                File.WriteAllText(temporary,json(city is CityModel modelData?modelData.ToSaveData():city),new UTF8Encoding(false));
                 if(File.Exists(path)) File.Replace(temporary,path,null); else File.Move(temporary,path);
                 if(name=="baseline" && city is CityModel model && model.society!=null && derived==null)
                 {observedCity=model; derived=new CityDailyAnalysis(model,WriteAnalysis); model.analysis=derived;}

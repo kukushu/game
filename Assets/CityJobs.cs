@@ -29,7 +29,7 @@ namespace HarborCity
         public float AverageCommute => Citizens.Where(p=>ResidentJob(p)!=null && p.lastCommute>=0 && p.observedWork==Workplace(p)
             && society.families.Any(h=>h.id==p.householdId && h.home==p.observedHome))
             .Select(p=>p.lastCommute).DefaultIfEmpty(0).Average();
-        int BuildingJobSlots(int id) => id>=0 && id<tiles.Length && (tiles[id]==3 || tiles[id]==4)?Math.Max(1,levels[id])*4:0;
+        int BuildingJobSlots(int id) => GetBuilding(id) is CommercialBuilding || GetBuilding(id) is IndustrialBuilding?GetBuilding(id).level*4:0;
         public void ReleaseJob(CityResident p)
         {
             var job=ResidentJob(p); if(job!=null) job.occupiedCitizenId=-1;
@@ -63,39 +63,18 @@ namespace HarborCity
                 }
             }
             var counts=society.jobEntities.GroupBy(j=>j.buildingId).ToDictionary(g=>g.Key,g=>g.Count());
-            for(int i=0;i<tiles.Length;i++)
+            foreach(var building in buildings)
             {
+                int i=building.id;
                 counts.TryGetValue(i,out int existing);
                 for(int n=existing;n<BuildingJobSlots(i);n++)
                 {
-                    var job=new CityJob {id=society.nextJobId++,buildingId=i,wage=95+(i%5)*12+(tiles[i]==4?20:0),requiredSkill=tiles[i]==4?1:0};
+                    var job=new CityJob {id=society.nextJobId++,buildingId=i,wage=95+(i%5)*12+(UseOf(i)==LandUse.Industrial?20:0),requiredSkill=UseOf(i)==LandUse.Industrial?1:0};
                     society.jobEntities.Add(job); Trace("job.created","建筑提供岗位",job,job:job.id,building:i);
                 }
             }
         }
-        public void EnableJobs(bool newCity=false)
-        {
-            if(version>=5) return;
-            EnsureResidents(); society.jobEntities=new List<CityJob>(); society.nextJobId=1;
-            foreach(var h in society.families)
-                for(int i=0;i<h.people.Count;i++)
-                {
-                    var p=h.people[i]; p.householdId=h.id; p.canWork=p.age>=18;
-                    p.skill=i==0?h.skill:(h.id+i)%3; p.jobId=-1;
-                }
-            SyncJobs();
-            foreach(var h in society.families.Where(h=>h.resident))
-            {
-                // v4 has one employer. Restore it to its original worker without resetting journeys or earnings.
-                var p=h.people.Find(person=>person.worker) ?? h.people.FirstOrDefault();
-                if(p==null || !p.canWork) continue;
-                var job=society.jobEntities.Find(j=>j.buildingId==h.work && j.occupiedCitizenId<0 && j.requiredSkill<=p.skill);
-                if(job!=null) {p.jobId=job.id; job.occupiedCitizenId=p.id;}
-            }
-            version=5;
-            if(newCity)
-                foreach(var h in society.families.Where(h=>h.resident)) ApplyJobPlan(h,Evaluate(h,h.home));
-        }
+        
         bool ApplyJobPlan(Household h,HouseholdOption option)
         {
             var reserved=new HashSet<int>();
@@ -143,7 +122,7 @@ namespace HarborCity
             foreach(var p in citizens.Values)
                 if(p.jobId>=0 && (!jobMap.TryGetValue(p.jobId,out var j) || j.occupiedCitizenId!=p.id)) return false;
             var counts=society.jobEntities.GroupBy(j=>j.buildingId).ToDictionary(g=>g.Key,g=>g.Count());
-            for(int i=0;i<tiles.Length;i++) {counts.TryGetValue(i,out int count); if(count!=BuildingJobSlots(i)) return false;}
+            foreach(var building in buildings) {int i=building.id;counts.TryGetValue(i,out int count); if(count!=BuildingJobSlots(i)) return false;}
             return true;
         }
     }

@@ -8,14 +8,14 @@ public static class ResidentTransportChecks
     static void Check(bool condition,string message) {if(!condition) throw new Exception("Resident transport: "+message); checks++;}
     static CityModel Create(out CityTraffic sim,out Household h,out CityResident p)
     {
-        var c=CityModel.CreateLegacySample(); sim=new CityTraffic(c); c.EnableRoads((x,z)=>1); c.EnableBuildings(); c.EnableHouseholds(); c.EnableResidentTransport();
+        var c=TestCity.Create(); sim=new CityTraffic(c);   
         h=c.society.families.First(f=>f.people.Any(person=>c.Workplace(person)>=0)); p=h.people.First(person=>c.Workplace(person)>=0);
         foreach(var family in c.society.families) foreach(var person in family.people) if(person!=p) c.ReleaseJob(person);
         foreach(var other in c.society.families) if(other!=h) other.resident=false;
         c.society.settings.applicantsPerDay=0;
         foreach(var other in c.society.families) other.nextReview=10000;
-        c.traffic.dispatchTimer=-10000; c.traffic.productionTimer=-10000;
-        c.society.dayElapsed=(480+p.id%3*30-c.CommuteMinutes(h.home,c.Workplace(p)))/1440*c.society.settings.secondsPerDay;
+        c.traffic.dispatchTimer=-10000;
+        c.society.dayElapsed=(480+p.id%3*30-c.CommuteMinutes(h.home,c.Workplace(p)))/1440*c.society.settings.secondsPerDay+.01f;
         return c;
     }
     public static void Run()
@@ -56,7 +56,7 @@ public static class ResidentTransportChecks
         Check(h.wagePaid>0 && h.wagePaid<=c.Wage(c.Workplace(p)),"Daily wages derive from attendance, never exceed daily salary");
         var report=c.society.history.Last();
         Check(report.closingSavings==report.openingSavings+report.wages-report.rent-report.living-report.travel-report.movingCosts,"Integrated daily cash conservation");
-        c.traffic.dispatchTimer=c.traffic.productionTimer=0;
+        c.traffic.dispatchTimer=0;
         Check(c.Valid(),"Integrated transport remains saveable");
         c=Create(out sim,out h,out p); sim.Advance(.1f); trip=c.traffic.trips.Single();
         c.roads.Remove(c.roads.edges.Select(e=>e.id).ToList()); sim.Advance(3);
@@ -68,7 +68,7 @@ public static class ResidentTransportChecks
         c.society.dayElapsed=(540+p.id%3*30)/1440f*c.society.settings.secondsPerDay;
         sim.Advance(c.society.settings.secondsPerDay-c.society.dayElapsed+.1f);
         Check(p.lastDelay>=60 && h.wagePaid>0 && h.wagePaid<c.Wage(c.Workplace(p)),"Late actual arrival reduces daily pay");
-        c=CityModel.CreateLegacySample(); sim=new CityTraffic(c); c.EnableRoads((x,z)=>1); c.EnableBuildings(); c.EnableHouseholds(); c.EnableResidentTransport();
+        c=TestCity.Create(); sim=new CityTraffic(c);   
         sim.Advance(360.1f);
         Check(c.day==4 && c.Valid(),"Three-day integrated city stays valid across day boundaries");
         Check(c.society.history.All(r=>r.closingSavings==r.openingSavings+r.wages-r.rent-r.living-r.travel-r.movingCosts),"Three-day actual payroll conserves household money");
@@ -76,3 +76,4 @@ public static class ResidentTransportChecks
         Console.WriteLine("PASS: "+checks+" resident transport checks");
     }
 }
+

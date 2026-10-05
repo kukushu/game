@@ -17,7 +17,6 @@ namespace HarborCity
         int analysisView, analysisFactory=-1;
         bool InspectBuilding(Ray ray)
         {
-            city.EnsureResidents();
             inspectedHome=-1;
             inspectedResident=-1; followResident=false;
             commuteFamily=-1;
@@ -39,13 +38,13 @@ namespace HarborCity
             if(inspectedHome<0) return false;
             inspectedTrip=-1; showSimulation=false; simulationTyping=false; householdListScroll=Vector2.zero;
             if(routeLine!=null) routeLine.positionCount=0;
-            notice="已选中"+names[city.tiles[inspectedHome]]+" #"+inspectedHome+(city.tiles[inspectedHome]==2?"，点击住户查看家庭详情。":"，查看经营、库存和员工情况。");
+            notice="已选中"+names[(int)city.UseOf(inspectedHome)]+" #"+inspectedHome+(city.UseOf(inspectedHome)==LandUse.Residential?"，点击住户查看家庭详情。":"，查看经营、库存和员工情况。");
             var first=city.society.families.Find(f=>f.resident && f.home==inspectedHome && HasWorkplace(f));
             if(first!=null) ShowWorkplace(first,false);
             return true;
         }
-        bool InspectableBuilding(int id) => id>=0 && id<city.tiles.Length && city.tiles[id]>=2 && city.tiles[id]<=4;
-        bool InspectingBusiness => selected==LandUse.Empty && InspectableBuilding(inspectedHome) && city.tiles[inspectedHome]>=3;
+        bool InspectableBuilding(int id) => city.GetBuilding(id)!=null && (int)city.UseOf(id)>=2 && (int)city.UseOf(id)<=4;
+        bool InspectingBusiness => selected==LandUse.Empty && InspectableBuilding(inspectedHome) && (int)city.UseOf(inspectedHome)>=3;
         LineRenderer businessMarker;
         void UpdateBusinessMarker()
         {
@@ -56,11 +55,11 @@ namespace HarborCity
         }
         void DrawBusinessInspector(float h,Color navy)
         {
-            int id=inspectedHome; bool industrial=city.tiles[id]==4;
+            int id=inspectedHome; bool industrial=city.UseOf(id)==LandUse.Industrial;
             var f=city.Factory(id);
             var workers=city.Citizens.Where(p=>city.Workplace(p)==id).OrderBy(p=>p.id).ToList();
             var freight=traffic.State.trips.Where(t=>t.residentId==0 && t.purpose>=TripPurpose.Delivery && (t.home==id || t.origin==id || t.destination==id)).ToList();
-            int goods=traffic.State.stock[id], inboundGoods=traffic.IncomingAmount(id,CargoKind.Goods);
+            int goods=city.Inventory(id).Stock, inboundGoods=traffic.IncomingAmount(id,CargoKind.Goods);
             Panel(new Rect(24,120,310,h-320),navy);
             GUILayout.BeginArea(new Rect(38,132,282,h-345));
             GUILayout.BeginHorizontal();
@@ -75,7 +74,7 @@ namespace HarborCity
                 GUILayout.Label("经营状态："+f.status,label);
                 GUILayout.Label("现金 ¥"+f.cash.ToString("F2")+"\n累计经营盈余 ¥"+f.Profit.ToString("F2"),label);
                 GUILayout.Label("累计销售收入 ¥"+f.salesRevenue.ToString("F2")+"\n原料支出 ¥"+f.rawCosts.ToString("F2")+"\n实付工资 ¥"+f.wageCosts.ToString("F2")+"\n加工成本 ¥"+f.productionCosts.ToString("F2"),small);
-                GUILayout.Label("期初投入 ¥"+f.capital.ToString("F2")+(f.capitalFromTreasury?"（建设预算）":"（旧厂迁移）")+"\n未付出勤 ¥"+f.unpaidWages.ToString("F2")+"\n资金核对差额 "+f.CashError.ToString("F6"),small);
+                GUILayout.Label("期初投入 ¥"+f.capital.ToString("F2")+"（建设预算）\n未付出勤 ¥"+f.unpaidWages.ToString("F2")+"\n资金核对差额 "+f.CashError.ToString("F6"),small);
                 GUILayout.Space(8);
                 GUILayout.Label("生产与库存",label);
                 GUILayout.Label("原料 "+f.raw+" / "+FactoryState.RawCapacity+" · 在途原料 "+traffic.IncomingAmount(id,CargoKind.RawMaterial)+"\n成品 "+goods+" / "+FactoryState.GoodsCapacity+"\n加工进度 "+f.progress.ToString("F1")+" / "+FactoryState.LabourPerItem+" 工人分钟\n累计产量 "+f.produced+" · 实售 "+f.sold+" 件",small);
@@ -131,7 +130,7 @@ namespace HarborCity
             if(selected!=LandUse.Empty || inspectedHome<0) return;
             if(InspectingBusiness) {DrawBusinessInspector(h,navy); return;}
             if(city.HousingCapacity(inspectedHome)==0) {inspectedHome=-1; return;}
-            var b=city.buildings[inspectedHome];
+            var b=city.Residence(inspectedHome);
             var occupants=city.society.families.Where(f=>f.resident && f.home==inspectedHome).OrderBy(f=>f.unit).ToList();
             Panel(new Rect(24,120,310,h-320),navy);
             GUILayout.BeginArea(new Rect(38,132,282,h-345));
@@ -166,20 +165,8 @@ namespace HarborCity
             }
             GUILayout.EndScrollView(); GUILayout.EndArea();
         }
-        void AdvanceSociety(float seconds)
-        {
-            if(city.society==null || seconds<=0) return;
-            if(!city.society.transportEnabled) city.EnableResidentTransport();
-            if(city.society.transportEnabled) {traffic.Advance(seconds); return;}
-            city.society.dayElapsed+=seconds;
-            while(city.society.dayElapsed>=city.society.settings.secondsPerDay)
-            {
-                city.society.dayElapsed-=city.society.settings.secondsPerDay;
-                city.Tick();
-            }
-            traffic.Advance(seconds);
-        }
-        void DrawHousing(CityBuilding b,Transform parent)
+        void AdvanceSociety(float seconds) {traffic.Advance(seconds);}
+        void DrawHousing(ResidentialBuilding b,Transform parent)
         {
             bool villa=b.housing==HousingKind.Villa;
             float height=villa?1.7f:4.8f;
@@ -221,10 +208,10 @@ namespace HarborCity
             var s=city.society; var residents=s.families.Where(f=>f.resident).ToList();
             if(simulationTab==0)
             {
-                int units=Enumerable.Range(0,city.tiles.Length).Sum(city.HousingCapacity);
+                int units=city.buildings.OfType<ResidentialBuilding>().Sum(b=>b.housingUnits);
                 GUILayout.Label("第 "+city.day+" 天 · 日内进度 "+(100*s.dayElapsed/s.settings.secondsPerDay).ToString("F0")+"% · 1× 每天 "+s.settings.secondsPerDay+" 秒",small);
                 GUILayout.Label("家庭 "+residents.Count+" / 居民 "+city.population+" / 城外等待 "+s.families.Count(f=>!f.resident),label);
-                if(s.transportEnabled)
+                
                 {
                     var commuters=traffic.State.trips.Where(t=>t.residentId>0).ToList();
                     GUILayout.Label("实际通勤任务 "+commuters.Count+" / 排队或断路 "+commuters.Count(t=>t.blocked>.1f || t.status==TripStatus.Waiting)+
@@ -265,7 +252,7 @@ namespace HarborCity
                     familyIndex=(familyIndex%s.families.Count+s.families.Count)%s.families.Count;
                     var f=s.families[familyIndex];
                     if(f.home>=0 && GUILayout.Button("定位这户的住宅",button))
-                    {var home=city.buildings[f.home]; focus=new Vector3(home.x,0,home.z); zoom=24; showSimulation=false; UpdateCamera();}
+                    {var home=city.GetBuilding(f.home); focus=new Vector3(home.x,0,home.z); zoom=24; showSimulation=false; UpdateCamera();}
                     GUILayout.Label("家庭 #"+f.id+" · "+f.people.Count+" 人 · "+(f.resident?"本城住户":"城外申请者")+" · 技能 "+string.Join(" / ",f.people.Select(p=>p.skill)),label);
                     GUILayout.Label("住宅 #"+f.home+" / 单元 "+f.unit+" / 就业成员 "+f.people.Count(p=>city.ResidentJob(p)!=null)+" / 储蓄 ¥"+f.savings+" / 欠租 ¥"+f.arrears,small);
                     float minutes=city.HouseholdCommute(f);
@@ -280,18 +267,19 @@ namespace HarborCity
             }
             else if(simulationTab==2)
             {
-                for(int i=0;i<city.tiles.Length;i++)
+                foreach(var building in city.buildings)
                 {
+                    int i=building.id;
                     if(city.HousingCapacity(i)>0)
                     {
-                        var b=city.buildings[i]; int actual=residents.Where(f=>f.home==i).Sum(f=>f.rentPaid);
-                        GUILayout.Label("住宅 #"+i+" "+(b.housing==HousingKind.Villa?"别墅":b.housing==HousingKind.Legacy?"旧城公寓":"公寓")+" · "+city.Occupancy(i)+" / "+b.housingUnits+" 户 · 挂牌 "+b.askingRent+" · 上日实收 "+actual+" · 本周意向 "+b.applications+" · "+(city.EntityRoadAccess(i)?"临路":"断路"),small);
+                        var b=city.Residence(i); int actual=residents.Where(f=>f.home==i).Sum(f=>f.rentPaid);
+                        GUILayout.Label("住宅 #"+i+" "+(b.housing==HousingKind.Villa?"别墅":"公寓")+" · "+city.Occupancy(i)+" / "+b.housingUnits+" 户 · 挂牌 "+b.askingRent+" · 上日实收 "+actual+" · 本周意向 "+b.applications+" · "+(city.EntityRoadAccess(i)?"临路":"断路"),small);
                     }
                     else if(city.JobCapacity(i)>0) GUILayout.Label("工作场所 #"+i+" · 已雇 "+city.EmployedAt(i)+" / "+city.JobCapacity(i)+" · 有资金的岗位 "+s.jobEntities.Count(j=>j.buildingId==i && city.JobFunded(j))+" · 合同日薪 "+city.Wage(i)+" · 技能要求 "+city.SkillRequired(i),small);
                     var factory=city.Factory(i);
                     if(factory!=null)
                     {
-                        GUILayout.Label("工厂 #"+i+" · "+factory.status+" · 原料 "+factory.raw+" / 24 · 成品 "+city.traffic.stock[i]+" / 24 · 加工进度 "+factory.progress.ToString("F1")+" / 60 工人分钟",small);
+                        GUILayout.Label("工厂 #"+i+" · "+factory.status+" · 原料 "+factory.raw+" / 24 · 成品 "+city.Inventory(i).Stock+" / 24 · 加工进度 "+factory.progress.ToString("F1")+" / 60 工人分钟",small);
                         GUILayout.Label("累计：在岗 "+factory.attendanceMinutes.ToString("F0")+" 分钟 / 有效加工 "+factory.productiveMinutes.ToString("F0")+" 分钟 / 产量 "+factory.produced+" 件 · 噪声 "+factory.noise.ToString("F2")+" / 污染 "+factory.pollution.ToString("F2"),small);
                         GUILayout.Label("现金 ¥"+factory.cash.ToString("F2")+" · 已售 "+factory.sold+" 件 / 收入 ¥"+factory.salesRevenue.ToString("F2")+" · 期初投入 ¥"+factory.capital.ToString("F2"),small);
                         GUILayout.Label("累计支出：原料 ¥"+factory.rawCosts.ToString("F2")+" / 实付工资 ¥"+factory.wageCosts.ToString("F2")+" / 加工 ¥"+factory.productionCosts.ToString("F2")+" · 盈余 ¥"+factory.Profit.ToString("F2")+" · 未付出勤 ¥"+factory.unpaidWages.ToString("F2")+" · 资金核对 "+factory.CashError.ToString("F6"),small);
@@ -330,7 +318,7 @@ namespace HarborCity
             {
                 string directory=Path.Combine(Application.persistentDataPath,"SimulationReports"); Directory.CreateDirectory(directory);
                 string path=Path.Combine(directory,"city-day-"+city.day+"-"+DateTime.Now.ToString("yyyyMMdd-HHmmss")+".json");
-                File.WriteAllText(path,JsonUtility.ToJson(city,true)); notice="模拟快照已导出："+path;
+                File.WriteAllText(path,JsonUtility.ToJson(city.ToSaveData(),true)); notice="模拟快照已导出："+path;
                 var csv=new System.Text.StringBuilder("day,households,population,units,employed,commute,rent,maintenance,wages,moved,arrived,left,treasuryError,householdError\n");
                 foreach(var r in city.society.history)
                     csv.AppendLine(string.Join(",",new[]{r.day.ToString(),r.households.ToString(),r.population.ToString(),r.units.ToString(),r.employed.ToString(),

@@ -23,7 +23,7 @@ namespace HarborCity
                 simulationLog=new CitySimulationLog(Path.Combine(Application.persistentDataPath,"SimulationLogs"),value=>JsonUtility.ToJson(value));
                 city.logSink=simulationLog.Write;
                 simulationLog.Snapshot("baseline",city);
-                city.Trace("session.start",reason,new CityLogDetail {reason="Unity "+Application.unityVersion+" / schema "+city.version+" / previousSession="+lastSimulationLogSession});
+                city.Trace("session.start",reason,new CityLogDetail {reason="Unity "+Application.unityVersion+" / schema "+CityModel.SaveFormat+" / previousSession="+lastSimulationLogSession});
                 lastSimulationLogSession=simulationLog.SessionId;
                 Application.logMessageReceived+=CaptureUnityLog;
                 nextLogFlush=0; nextLogTraffic=0; loggedRoadRevision=loggedBuildingRevision=-1; reportedLogFailure=null;
@@ -61,7 +61,7 @@ namespace HarborCity
             {
                 loggedRoadRevision=city.roads.revision; loggedBuildingRevision=city.buildingRevision;
                 city.Trace("network.audit","道路或建筑变化后的连通性检查",city.roads);
-                foreach(var b in city.buildings.Where(b=>city.tiles[b.id]>1))
+                foreach(var b in city.buildings.Where(b=>(int)city.UseOf(b.id)>1))
                 {
                     bool connected=city.EntityRoadAccess(b.id);
                     city.Trace("building.access",connected?"建筑已连通城外入口":"建筑未连通城外入口",

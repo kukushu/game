@@ -75,6 +75,7 @@ namespace HarborCity
         Dictionary<int,FactoryEvidence> evidence=new Dictionary<int,FactoryEvidence>();
         Dictionary<int,int> savings=new Dictionary<int,int>(), rents=new Dictionary<int,int>(), homes=new Dictionary<int,int>();
         Dictionary<int,HouseholdDecisionSummary> decisions=new Dictionary<int,HouseholdDecisionSummary>();
+        readonly Dictionary<int,FactoryDailySummary> demolished=new Dictionary<int,FactoryDailySummary>();
         HashSet<int> lateResidents=new HashSet<int>(), longFreight=new HashSet<int>(), arrivals=new HashSet<int>();
         int startDay, populationBefore, employedBefore, commuteSamplesBefore;
         float startMinute, commuteBefore;
@@ -92,8 +93,8 @@ namespace HarborCity
         }
         FactoryBaseline Capture(int id)
         {
-            var f=city.buildings[id].factory;
-            return new FactoryBaseline {active=city.tiles[id]==4,raw=f.raw,goods=city.traffic.stock[id],produced=f.produced,sold=f.sold,shipped=f.shipped,imported=f.imported,
+            var f=city.Factory(id);
+            return new FactoryBaseline {active=city.UseOf(id)==LandUse.Industrial,raw=f.raw,goods=city.Inventory(id).Stock,produced=f.produced,sold=f.sold,shipped=f.shipped,imported=f.imported,
                 attendance=f.attendanceMinutes,productive=f.productiveMinutes,cash=f.cash,capital=f.capital,revenue=f.salesRevenue,rawCost=f.rawCosts,wages=f.wageCosts,
                 productionCost=f.productionCosts,unpaid=f.unpaidWages,noise=f.noise,pollution=f.pollution};
         }
@@ -102,12 +103,12 @@ namespace HarborCity
             startDay=city.day; startMinute=city.ResidentMinute;
             populationBefore=city.Citizens.Count(); employedBefore=city.Employed; commuteBefore=city.AverageCommute;
             commuteSamplesBefore=CommuteObservations();
-            baseline.Clear(); evidence.Clear(); decisions.Clear(); rents.Clear(); savings.Clear(); homes.Clear(); settling=false;
+            demolished.Clear(); baseline.Clear(); evidence.Clear(); decisions.Clear(); rents.Clear(); savings.Clear(); homes.Clear(); settling=false;
             lateResidents.Clear(); longFreight.Clear(); arrivals.Clear(); arrivalCommute=0;
             foreach(var b in city.buildings)
             {
-                if(b.factory!=null) baseline[b.id]=Capture(b.id);
-                if(city.HousingCapacity(b.id)>0) rents[b.id]=b.askingRent;
+                if(b is IndustrialBuilding) baseline[b.id]=Capture(b.id);
+                if(city.HousingCapacity(b.id)>0) rents[b.id]=city.Residence(b.id).askingRent;
             }
             foreach(var h in city.society.families) {savings[h.id]=h.savings; homes[h.id]=h.home;}
             foreach(var job in city.society.jobEntities)
@@ -128,7 +129,7 @@ namespace HarborCity
             if(fundsLost>0 && e.firstFunds<0) e.firstFunds=minute;
         }
         public void ObserveSale(int factory,int buyer)
-        {if(Failure==null && buyer>=0 && city.tiles[buyer]==3) Evidence(factory).deliveredShops.Add(buyer);}
+        {if(Failure==null && buyer>=0 && city.UseOf(buyer)==LandUse.Commercial) Evidence(factory).deliveredShops.Add(buyer);}
         public void PrepareSettlement() {settling=true;}
         public void ObserveTraffic()
         {
@@ -147,6 +148,11 @@ namespace HarborCity
         public void ObserveEvent(CityLogEvent evt)
         {
             if(Failure!=null) return;
+            if(evt.type=="factory.demolished")
+            {
+                var f=Build(true,null).factories.Find(f=>f.id==evt.buildingId);
+                if(f!=null) {f.active=false;f.state="已拆除";f.mainBottleneck="已拆除";f.raw=f.goods=0;demolished[f.id]=f;}
+            }
             if(evt.type=="building.created" && city.Factory(evt.buildingId)!=null)
                 baseline[evt.buildingId]=new FactoryBaseline {active=false}; // New capital is not sales revenue.
             if(evt.type=="household.created" && evt.data is Household born) {savings[born.id]=born.savings; homes[born.id]=born.home;}
@@ -234,20 +240,20 @@ namespace HarborCity
                     int vacant=city.HousingCapacity(b.id)-city.Occupancy(b.id);
                     report.vacantHomes+=vacant;
                     if(vacant>0) report.housingChanges.Add("住宅 #"+b.id+" 空置 "+vacant+" / "+city.HousingCapacity(b.id)+" 户");
-                    if(rents.TryGetValue(b.id,out int rent) && rent!=b.askingRent)
+                    if(rents.TryGetValue(b.id,out int rent) && rent!=city.Residence(b.id).askingRent)
                     {
-                        string change="住宅 #"+b.id+" 挂牌租金 "+rent+" → "+b.askingRent+"（空置 / 实际意向规则；已有租约另计）";
+                        string change="住宅 #"+b.id+" 挂牌租金 "+rent+" → "+city.Residence(b.id).askingRent+"（空置 / 实际意向规则；已有租约另计）";
                         report.housingChanges.Add(change);
-                        report.attention.Add(new AnalysisFinding {code="rent_changed",title="挂牌租金变化",evidence=change,severity=Math.Abs(b.askingRent-rent)*5});
+                        report.attention.Add(new AnalysisFinding {code="rent_changed",title="挂牌租金变化",evidence=change,severity=Math.Abs(city.Residence(b.id).askingRent-rent)*5});
                     }
                 }
-                if(city.tiles[b.id]==3 && city.traffic.stock[b.id]==0)
+                if(city.UseOf(b.id)==LandUse.Commercial && city.Inventory(b.id).Stock==0)
                     report.commercialShortages.Add("商业 #"+b.id+" 当前缺货；在途商品 "+Incoming(b.id,CargoKind.Goods));
-                if(b.factory==null) continue;
+                if(!(b is IndustrialBuilding)) continue;
                 var end=Capture(b.id); if(!baseline.TryGetValue(b.id,out var begin)) begin=new FactoryBaseline();
                 var observed=Evidence(b.id);
                 if(!end.active && !begin.active && end.produced==begin.produced && end.wages==begin.wages) continue;
-                var f=new FactoryDailySummary {id=b.id,active=end.active,roadConnected=end.active && city.EntityRoadAccess(b.id),state=end.active?b.factory.status:"已拆除",
+                var f=new FactoryDailySummary {id=b.id,active=end.active,roadConnected=end.active && city.EntityRoadAccess(b.id),state=end.active?city.Factory(b.id).status:"已拆除",
                     produced=end.produced-begin.produced,sold=end.sold-begin.sold,shipped=end.shipped-begin.shipped,imported=end.imported-begin.imported,
                     rawBefore=begin.raw,raw=end.raw,goodsBefore=begin.goods,goods=end.goods,incomingRaw=Incoming(b.id,CargoKind.RawMaterial),
                     outgoingGoods=city.traffic.trips.Where(t=>!t.returning && t.origin==b.id && t.cargoKind==CargoKind.Goods).Sum(t=>t.cargo),
@@ -259,9 +265,10 @@ namespace HarborCity
                 f.profit=f.revenue-f.rawCost-f.wageCost-f.productionCost;
                 ExplainFactory(f);
                 foreach(int shop in observed.deliveredShops.OrderBy(id=>id))
-                    if(city.tiles[shop]==3 && city.traffic.stock[shop]==0) f.relatedObservations.Add("本日曾向商业 #"+shop+" 实际供货，该店当前仍缺货；不能据此确认本厂是唯一原因。");
+                    if(city.UseOf(shop)==LandUse.Commercial && city.Inventory(shop).Stock==0) f.relatedObservations.Add("本日曾向商业 #"+shop+" 实际供货，该店当前仍缺货；不能据此确认本厂是唯一原因。");
                 report.factories.Add(f);
             }
+            report.factories.AddRange(demolished.Values.Where(f=>city.GetBuilding(f.id)==null));
             report.households=decisions.Values.OrderBy(d=>d.id).ToList();
             foreach(var d in report.households)
             {
@@ -322,7 +329,7 @@ namespace HarborCity
             if(changed.Count>5) s.AppendLine("- 另 "+(changed.Count-5)+" 户调整见家庭决策摘要。");
             s.AppendLine("\n商业末库存缺货 "+r.commercialShortages.Count+" 处；这是相关状态，不自动归因某家工厂。\n");
             foreach(var shortage in r.commercialShortages.Take(5)) s.AppendLine("- "+shortage);
-            if(!r.inProgress) s.AppendLine("\n本次日结工资 ¥"+r.wages+"（工厂实付 ¥"+r.factoryWages+"，商业 / 旧版来源 ¥"+r.externalWages+"）；当期未付租金 ¥"+r.unpaidRent+"。\n");
+            if(!r.inProgress) s.AppendLine("\n本次日结工资 ¥"+r.wages+"（工厂实付 ¥"+r.factoryWages+"，商业来源 ¥"+r.externalWages+"）；当期未付租金 ¥"+r.unpaidRent+"。\n");
             s.AppendLine("## 值得关注\n");
             if(r.attention.Count==0) s.AppendLine("未观测到明显异常或变化。");
             foreach(var a in r.attention) s.AppendLine("- **"+a.title+"**："+a.evidence);

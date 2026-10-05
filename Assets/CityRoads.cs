@@ -43,11 +43,9 @@ namespace HarborCity
         public List<RoadEdge> edges = new List<RoadEdge>();
         [NonSerialized] Dictionary<int, RoadNode> lookup;
         [NonSerialized] Dictionary<int, List<int>> adjacency;
-        [NonSerialized] Dictionary<int, List<int>> entrances;
         [NonSerialized] HashSet<int> connected;
 
         public static float Length(RoadNode a, RoadNode b) => (float)Math.Sqrt((a.x-b.x)*(a.x-b.x)+(a.z-b.z)*(a.z-b.z));
-        public static RoadNode Lot(int i) => new RoadNode { x = (i % 36 - 17.5f) * 3, z = (i / 36 - 17.5f) * 3 };
         static float Cross(float ax, float az, float bx, float bz) => ax*bz-az*bx;
         public static RoadNode Lerp(RoadNode a, RoadNode b, float t) => new RoadNode { x=a.x+(b.x-a.x)*t, y=a.y+(b.y-a.y)*t, z=a.z+(b.z-a.z)*t };
         public static float Projection(RoadNode p, RoadNode a, RoadNode b)
@@ -60,7 +58,7 @@ namespace HarborCity
         void Cache()
         {
             if (lookup != null) return;
-            lookup = new Dictionary<int,RoadNode>(); adjacency = new Dictionary<int,List<int>>(); entrances = new Dictionary<int,List<int>>();
+            lookup = new Dictionary<int,RoadNode>(); adjacency = new Dictionary<int,List<int>>();
             foreach (var n in nodes) { lookup[n.id]=n; adjacency[n.id]=new List<int>(); }
             foreach (var e in edges) { adjacency[e.a].Add(e.b); adjacency[e.b].Add(e.a); }
             connected = new HashSet<int>(); var queue = new Queue<int>();
@@ -71,7 +69,7 @@ namespace HarborCity
                 foreach (int next in adjacency[n]) if (connected.Add(next)) queue.Enqueue(next);
             }
         }
-        public void Changed() { revision++; lookup=null; adjacency=null; entrances=null; connected=null; }
+        public void Changed() { revision++; lookup=null; adjacency=null; connected=null; }
         public RoadNode Node(int id) { Cache(); return lookup.TryGetValue(id,out var n) ? n : null; }
         public List<int> Neighbors(int id) { Cache(); return adjacency.TryGetValue(id,out var n) ? n : new List<int>(); }
         public bool Active(int id) => Node(id) != null && Neighbors(id).Count > 0;
@@ -79,27 +77,8 @@ namespace HarborCity
         public float EdgeLength(int a,int b) => Math.Max(.1f,Length(Node(a),Node(b)));
         public bool Connected(int id) { Cache(); return connected.Contains(id) && Active(id); }
 
-        public List<int> Access(int lot)
-        {
-            Cache();
-            if (lot == -1) return Active(Entrance) ? new List<int>{Entrance} : new List<int>();
-            if (entrances.TryGetValue(lot,out var access)) return access;
-            // A building gets one specific roadside access node on its nearest segment.
-            var p=Lot(lot); RoadEdge best=null; float distance=3.85f;
-            foreach (var e in edges)
-            {
-                float d=Distance(p,Node(e.a),Node(e.b));
-                if (d < distance) { distance=d; best=e; }
-            }
-            access=new List<int>();
-            if (best != null) access.Add(Length(p,Node(best.a)) <= Length(p,Node(best.b)) ? best.a : best.b);
-            entrances[lot]=access; return access;
-        }
-        public bool LotAccess(int lot)
-        {
-            foreach (int id in Access(lot)) if (Connected(id)) return true;
-            return false;
-        }
+        
+        
         public CityRoads Copy()
         {
             var copy=new CityRoads { nextNode=nextNode,nextEdge=nextEdge,nextStroke=nextStroke,revision=revision };
@@ -107,24 +86,7 @@ namespace HarborCity
             foreach(var e in edges) copy.edges.Add(e.Copy());
             return copy;
         }
-        public static CityRoads FromGrid(CityModel city, Func<float,float,float> height)
-        {
-            var roads=new CityRoads();
-            for(int i=0;i<city.tiles.Length;i++) if(city.tiles[i]==1)
-            {
-                var n=Lot(i); n.id=i; n.y=height(n.x,n.z); roads.nodes.Add(n);
-            }
-            foreach(var n in roads.nodes)
-            {
-                if(n.id%36<35 && city.tiles[n.id+1]==1) roads.AddEdge(n.id,n.id+1,0);
-                if(n.id/36<35 && city.tiles[n.id+36]==1) roads.AddEdge(n.id,n.id+36,0);
-            }
-            if(city.traffic!=null)
-                foreach(var trip in city.traffic.trips) foreach(int id in trip.route)
-                    if(!roads.nodes.Exists(n=>n.id==id))
-                    { var n=Lot(id); n.id=id; n.y=height(n.x,n.z); roads.nodes.Add(n); }
-            roads.Changed(); return roads;
-        }
+        
         void AddEdge(int a,int b,int stroke)
         {
             if(a!=b) edges.Add(new RoadEdge { id=nextEdge++,a=a,b=b,stroke=stroke });
@@ -164,27 +126,6 @@ namespace HarborCity
             return best;
         }
 
-        // Conservative expanded lot rectangles protect the entire zoned footprint.
-        static bool HitsLot(RoadNode a,RoadNode b,RoadNode lot,float padding)
-        {
-            float low=0,high=1;
-            return Clip(a.x,b.x-a.x,lot.x-padding,lot.x+padding,ref low,ref high)
-                && Clip(a.z,b.z-a.z,lot.z-padding,lot.z+padding,ref low,ref high);
-        }
-        static bool Clip(float origin,float delta,float min,float max,ref float low,ref float high)
-        {
-            if(Math.Abs(delta)<.00001f) return origin>=min && origin<=max;
-            float a=(min-origin)/delta,b=(max-origin)/delta;
-            if(a>b) { float temp=a; a=b; b=temp; }
-            low=Math.Max(low,a); high=Math.Min(high,b); return low<=high;
-        }
-        public bool OverlapsLot(int lot)
-        {
-            var p=Lot(lot);
-            foreach(var e in edges) if(HitsLot(Node(e.a),Node(e.b),p,1.4f+Width/2)) return true;
-            return false;
-        }
-
         public RoadPlan Plan(CityModel city,RoadNode from,RoadNode to,Func<float,float,float> height)
             => PlanSegment(city,from,to,height,1.5f);
         RoadPlan PlanSegment(CityModel city,RoadNode from,RoadNode to,Func<float,float,float> height,float minimum)
@@ -195,7 +136,7 @@ namespace HarborCity
             if(plan.length<minimum) { plan.error="道路太短（至少 "+minimum+" 米）"; return plan; }
             if(Math.Abs(from.x)>CityModel.RoadHalfSize || Math.Abs(from.z)>CityModel.RoadHalfSize || Math.Abs(to.x)>CityModel.RoadHalfSize || Math.Abs(to.z)>CityModel.RoadHalfSize)
             { plan.error="道路超出当前建设边界"; return plan; }
-            for(int i=0;i<city.tiles.Length;i++) if(city.tiles[i]>1 && (city.version >= 3 ? city.buildings[i].HitsRoad(from,to) : HitsLot(from,to,Lot(i),1.4f+Width/2)))
+            foreach(var building in city.buildings) if(building.HitsRoad(from,to))
             { plan.error="道路侵占建筑或分区，请先拆除或绕行"; return plan; }
             float previous=height(from.x,from.z); int samples=(int)Math.Ceiling(plan.length/.5f);
             float rx=-(to.z-from.z)/plan.length,rz=(to.x-from.x)/plan.length;

@@ -17,7 +17,7 @@ namespace HarborCity
 
         void InitializeRoads()
         {
-            city.EnableRoads(landscape.Height);
+            city.SetEntranceHeight(landscape.Height);
             roadView=GetComponentInChildren<CityRoadView>();
             if(roadView==null)
             {
@@ -151,7 +151,7 @@ namespace HarborCity
         }
         Vector3 RoadPosition(int id)
         {
-            if(city.roads==null) return Position(id%36,id/36);
+            
             return CityRoadView.Point(city.roads.Node(id));
         }
     }

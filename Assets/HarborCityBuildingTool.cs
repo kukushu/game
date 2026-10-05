@@ -67,7 +67,7 @@ namespace HarborCity
             {
                 existing=city.PickBuilding(hit.x,hit.z);
                 if(existing<0) return;
-                previewLot=city.buildings[existing]; previewValid=true;
+                previewLot=city.GetBuilding(existing); previewValid=true;
             }
             else
             {
