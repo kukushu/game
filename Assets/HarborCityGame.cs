@@ -256,7 +256,7 @@ namespace HarborCity
             // 16. 根据当前 yaw、pitch、zoom、focus
             // 更新相机的位置和角度
             UpdateCamera();
-            StartSimulationLog("新开局");
+            StartObservation("新开局");
         }
 
         void OnEnable()
@@ -267,7 +267,7 @@ namespace HarborCity
             Rebuild();
             traffic = new CityTraffic(city);
             EnsureTrafficViews();
-            StartSimulationLog("脚本重载或组件重新启用");
+            StartObservation("脚本重载或组件重新启用");
         }
 
         void EnsureTrafficViews()
@@ -396,9 +396,9 @@ namespace HarborCity
         {
             var keyboard = Keyboard.current;
             var mouse = Mouse.current;
+            if(keyboard!=null && keyboard.f3Key.wasPressedThisFrame) ToggleSimulationPanel();
             if (keyboard != null && !simulationTyping)
             {
-                if(keyboard.f3Key.wasPressedThisFrame) showSimulation=!showSimulation;
                 Vector3 move = Vector3.zero;
                 if (keyboard.wKey.isPressed || keyboard.upArrowKey.isPressed) move.z++;
                 if (keyboard.sKey.isPressed || keyboard.downArrowKey.isPressed) move.z--;
@@ -442,7 +442,7 @@ namespace HarborCity
 
             }
             AdvanceSociety(Time.deltaTime * speed);
-            UpdateSimulationLog();
+            UpdateObservation();
             AnimateTraffic();
             UpdateCommuteView();
             UpdateResidentView();
@@ -797,10 +797,10 @@ namespace HarborCity
                 if (!File.Exists(SavePath)) { notice = "还没有存档，请先保存城市。"; return; }
                 var loaded = JsonUtility.FromJson<CitySaveData>(File.ReadAllText(SavePath)).ToCity();
                 if (loaded == null || !loaded.Valid()) { notice = "存档格式无效，当前城市已保留。"; return; }
-                StopSimulationLog();
+                StopObservation();
                 city = loaded; city.Recalculate(); traffic = new CityTraffic(city); inspectedTrip = -1; inspectedHome=-1; commuteFamily=-1; roadUndo.Clear();
                 foreach (var car in cars) car.gameObject.SetActive(false);
-                trafficViews.Clear();  Rebuild(); AnimateTraffic(); notice = "已读取第 " + city.day + " 天的城市。"; StartSimulationLog("读取存档");
+                trafficViews.Clear();  Rebuild(); AnimateTraffic(); notice = "已读取第 " + city.day + " 天的城市。"; StartObservation("读取存档");
             }
             catch (Exception e) { notice = "读取失败：" + e.Message; }
         }

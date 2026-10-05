@@ -5,6 +5,6 @@ public static class CityModelChecks
     {
         EntityChecks.Run();RoadChecks.Run();BuildingChecks.Run();HouseholdChecks.Run();
         TrafficChecks.Run();ResidentTransportChecks.Run();JobChecks.Run();IndustryChecks.Run();
-        FactoryFinanceChecks.Run();AnalysisChecks.Run();LogChecks.Run();
+        FactoryFinanceChecks.Run();AnalysisChecks.Run();ObservabilityChecks.Run();LogChecks.Run();
     }
 }

@@ -1,74 +1,86 @@
-﻿# 模拟过程日志
+# 城市运行观察与 Debug Trace
 
-运行时自动开启记录。理解玩法时，先看 F3 模拟观察台 → **城市分析**，切换城市日报、工厂日报、家庭决策摘要；点击工厂也可进入对应日报。界面显示最近一个已结束日的报告，首次需要推进到日结。
+正常运行不持续写原始日志或 Analysis Markdown。按 **F3** 打开游戏内 Dashboard；每次从地图打开时首先显示城市首页。搜索框获得焦点时 F3 仍可关闭面板。
 
-F3 → **导出日志** 会保存一个独立诊断目录并打开文件夹。`Analysis/` 是面向人的报告，原始事件文件仍用于追查具体事件。原“导出快照”仍保留。
+## F3 的信息结构
 
-自动记录：`Application.persistentDataPath/SimulationLogs/<会话>`；手动导出：同一持久化目录下的 `SimulationReports/<会话>-export-<唯一编号>`。具体位置以游戏导出提示为准。
+- **Dashboard**：先看需要关注 / Findings。证据来自真实劳动、库存、运输、付款和已经提交的家庭决策；点击进入相关实体详情。Live 显示当前人口、就业、空房、在途居民、货运和缺货情况。Today 显示本日截至当前的实际变化量。最近日结和 History 展示过去若干天的趋势。
+- **经营**：工厂 / 商业列表及住宅。工厂详情包括现金、原料、成品、加工进度、岗位、实际出勤、今日产销、三类支出、经营盈余、原因、证据和已观测到的影响。可进入员工或货运详情，或定位建筑。
+- **家庭**：成员、工作、最近日结工资、合同收入、住房、租金、储蓄、通勤、最近实际决策、已评估候选和拒绝原因。成员可继续进入居民详情并定位 / 跟随。
+- **居民**：按姓名、编号、家庭、位置或状态搜索，分页展示；详情提供实际活动、车辆、到岗、最近通勤和工资余额。
+- **History**：最多 180 个已结束日的人口、就业、实际通勤、财政、迁入迁出和工业产销记录。
+- **时间线**：最近 750 条关键变化；展示工厂状态变化、家庭迁入 / 搬家 / 迁出、岗位失效、严重迟到、货运长时间阻塞和商业库存耗尽 / 恢复。重复轮询不重复记，连续同一时刻同一场所的岗位失效合并为一条。页面最多展示最近 150 条搜索匹配项。
+- **Debug**：主动开关完整 Trace、查看写入路径、导出当前 Trace、导出模拟存档快照、核对日结账目。
 
-## 文件
+点击地图上的住宅、工厂和商业也读取同一份分析状态，并可进入 F3 详情。
+
+## 数据流与职责
+
+```text
+Simulation 的真实状态 / Trace / Labour / Sale / Traffic / Settlement hooks
+    ↓
+CityDailyAnalysis：每日基线、真实过程证据、确定性原因、有限历史
+    ↓
+CityAnalysisState：Live / Today / reports / history / findings / entities / timeline
+    ↓
+F3 Dashboard / 手动 JSON 导出
+```
+
+`CityDailyAnalysis` 不依赖 UI、Unity、磁盘或 `CitySimulationLog`。它由游戏生命周期创建，通过现有观测钩子接收数据。控制器约每 0.25 秒生成可查询的展示快照；UI 格式化快照字段，不重新计算全城指标。地图定位仅通过实体 ID 找到目标。观察层不日结、不评估住房候选、不发车、不付款、不消耗随机数。
+
+`CitySimulationLog` 只负责可选原始磁盘 Trace。切换 Trace 不更换分析对象，不重置今日基线或历史。已删除 Markdown 渲染、日报写盘和日志 writer 创建 / 销毁分析对象的旧职责。
+
+## 统计口径
+
+生产、实际到货、装车、实售、出勤、加工和工厂收支均为当前累计计数减本日观测起点。库存、现金和岗位是当前状态。装车运出不是销售收入，实际交付才确认工厂收入。资本投入另计，经营盈余包含当日预付采购，不等同于按销售成本匹配的会计利润。
+
+缺料、仓满和资金不足使用实际受阻**工人分钟**；多人同时受阻会相加，不能解释为墙钟持续时间。库存为零本身不能证明过去全天缺料。道路断开、相关商业缺货等若没有足够的时序证据，只列相关观察，不宣称唯一因果关系。
+
+工厂工资是雇主已经支付的钱；外部岗位工资在 Today 中显示本日已挣金额，尚未日结入家庭。家庭详情展示最近日结实收工资和合同预期收入。财政与家庭守恒使用已结束日账目。
+
+严重迟到为实际到岗比计划迟至少 15 **游戏分钟**，每天按居民去重。货运长等待为连续受阻至少 30 **游戏分钟**，每日任务数去重，时间线按独立阻塞阶段去重。普通工资结算、发车和加工步骤不进入关键时间线。
+
+家庭解释使用实际候选评分与提交结果；未评估或延期不补造分数。实际通勤均值展示样本人数，人口样本变化不能直接当作同一群体的因果对照。Today 截至当前与昨日全天分别标注，不把不同覆盖范围的产量直接解释为下降。Dashboard 可展示带日期的昨日阻断证据。
+
+日报 `day` 表示刚结束的劳动日，`settlementDay` 保留原系统次日结算编号。日结的迁入搬家计入该次结束的日报，次日 Today 从零开始。读档 / 脚本重载后建立新观测基线；如果已到日中，报告标为部分日。存档已有日账目可以恢复人口等历史，过去没有记录的工业数据标为“未观测”。运行时观察历史不加入 simulation save，格式仍为 8。
+
+## 手动导出分析
+
+F3 顶部 **导出分析 JSON**：
+
+`Application.persistentDataPath/SimulationReports/analysis-day-<天>-<时间>.json`
+
+导出整个结构化 `CityAnalysisState`，包括当前日、最近日、历史、实体、证据和关键时间线。不启用 Trace，不推进模拟，不生成 Markdown。分析 schema 当前为 1；`hasDecision` / `hasTodayReport` / `hasYesterdayReport` 明确标记可选记录是否真实存在，避免 JsonUtility 的默认嵌套对象被误认为实际观察。
+
+## 可选 Debug Trace
+
+默认关闭，每次新开局、读档或重新启用组件都保持关闭。只有 F3 → Debug → **主动开启完整 Debug Trace** 才创建：
+
+`Application.persistentDataPath/SimulationLogs/<会话>`
 
 | 文件 | 用途 |
 |---|---|
-| `events-0001.jsonl` 等 | 每行一个完整 JSON 事件，数据可直接写脚本分析 |
+| `events-0001.jsonl` 等 | 完整结构化原始事件，每行一个 JSON |
 | `readable-0001.log` 等 | 同一事件流的中文摘要与关联编号 |
-| `baseline.json` | 开始记录时的完整城市，用来解释已经存在的实体 |
-| `latest.json` | 最近导出或结束记录时的完整城市 |
-| `daily.csv` | 每日人口、就业、通勤、收支、迁入迁出和两类资金核对差额 |
-| `summary.json` | 会话编号、事件数量、按类型计数及日志写入错误 |
-| `README.md` | 随导出包附带的说明 |
-| `Analysis/latest-city.md` | 最近一个已结束日的城市日报 |
-| `Analysis/day-000001-city.md` | 当日变化与最多五项关注点 |
-| `Analysis/day-000001-factories.md` | 逐厂当日产销、出勤、库存、收支、瓶颈证据及影响 |
-| `Analysis/day-000001-households.md` | 真实决策结果、评分组成、拒绝理由及居民对应岗位 |
-| `Analysis/day-000001.json` | 同一日报的结构化分析快照 |
-| `Analysis/in-progress-*.md`、`in-progress.json` | 导出 / 结束记录时尚未结束日的观测 |
+| `baseline.json` / `latest.json` | 开启时 / 最近导出或关闭时的完整格式 8 城市 DTO |
+| `daily.csv` | 开启后日结账目 |
+| `summary.json` | 会话计数及写盘错误 |
+| `README.md` | Trace 包使用说明 |
 
-城市 baseline/latest 和导出快照统一使用格式 8 的显式建筑 DTO，可通过类型标签定位具体子类。拆除实体后，当日工厂报告保留已发生的产销、工资与关闭结果，历史事件 ID 不作为活动对象引用。
+关闭 Trace 后保留已经写出的文件，内存观察继续。开启前的原始事件不补写。手动导出当前 Trace 生成独立包，位置由界面提示；关闭时导出不会暗中开启记录。不会生成 `Analysis/*.md`。旧磁盘日志不自动删除。
 
-## 如何读分析报告
+保留既有事件机制：家庭候选 / 提交、岗位、居民实际到岗 / 工资、车辆完整生命周期、工厂资本 / 原料付款 / 交付销售、库存、道路、建筑、日结和引擎异常等。共同字段包括 session、seq、UTC、游戏 day/minute、simulationSeconds、type、level、message、实体 ID、roadRevision 和结构化 data。工厂与居民的历史 ID 不表示实体仍然存在。
 
-分析由模拟状态、真实事件和观测到的劳动 / 运输过程确定性生成，不调用 LLM，也不改变模拟或随机数。生产、到货、装车、实售、出勤、加工与收支使用本区间结束值减开始基线；库存和现金同时保留首末状态。装车不是销售，只有真实交付才记销售收入。资本投入单列，经营收支差额包含预付采购，不等同于按销售成本匹配的会计利润。
+Trace 仍按约 8 MB 分段，每 2 秒刷新；关闭时刷新。写盘错误提示但不阻断模拟。仅 Trace 开启时进行原来的额外连通性审计与每模拟秒车辆状态记录。长期 Trace 的磁盘空间需要手动管理。
 
-工厂原因与状态分开。缺料、仓满、加工资金不足以实际受阻工人分钟为证据；日末原料为零不能独自证明当天缺料。报告注明首次受阻时间、到岗和迟到人数。明显迟到指超过班次开始 15 游戏分钟；货运长等待指连续受阻至少 30 游戏分钟，按任务去重，包括后来恢复或失败的任务。道路日末断开、相关商业缺货等没有足够时间重合证据的现象单独标注，不宣称某厂是唯一原因。
-
-家庭摘要使用本次真实候选评分和实际提交结果，区别拟选方案与实际住所 / 岗位。延期或未评估时不补造分数；工资为实收，方案日薪为预期值。城市关注项按观测到的阻断分钟、受影响人数和资金变化排序，最多五项。实际通勤均值注明样本人数，样本群体变化不能视为同一群体的因果对照。
-
-日报 Day 是刚结束的劳动日；原始 `city.day` 和家庭结算事件沿用原系统的下一日编号，报告同时保存 `settlementDay`。住房与岗位调整发生在该次日结。读档 / 重载中途开启记录时，首日报告明确标为部分日并注明观测区间，不把记录前的累计值当成今日发生量。导出未结束日不会触发日结。分析写入错误单独提示，原始日志继续保留。
-
-## 关联与事件
-
-共同字段：`schema`（日志格式版本）、`session`、递增 `seq`、真实 UTC `utc`、游戏 `day/minute`、模拟累计秒 `simulationSeconds`、`type/level/message`、关联实体编号、`roadRevision`、结构化 `data`。实体编号为 -1 表示不适用；车辆数据中的出发地/目的地 -1 表示城外。以会话+编号识别实体，不把不同新城市相同的居民编号混在一起。
-
-- `household.created/decision/unchanged/deferred/arrived/moved/jobs_changed/left`：申请、全部住房候选评分、拒绝、延期、迁入、搬家、换工作、迁出。候选携带并列的 citizenIds/jobIds，说明具体哪个成员准备占用哪个岗位。
-- `job.created/assigned/released/removed`：岗位及其占用关系。
-- `trip.started/departure_wait/state/redirected/arrived/returning/finished/cancelled/failed/resume`：出发、发车等待、在途状态、改目的地、到达和结束；含路线、路段进度、载货和返程标志。
-- `citizen.attendance/pay`：实际到岗的通勤记录，以及每日工作分钟、挣得工资、四舍五入入账值。`household.settlement` 保存家庭结算后储蓄与各类实际支出。
-- `housing.rent_changed`：挂牌租金调整前后数值及入住户数。
-- `building.created/demolished/rejected/access`、`road.created/demolished/undone/rejected`、`network.audit`：建设结果、拒绝原因、连通性与路网快照。
-- `city.day/invariant.cash`：每日统计和资金守恒异常。日结原有代码在跨天时执行，结算事件沿用现有每日报表的 day 字段。
-- `session.start/end/export`、`save.success`、`unity.warning/error/exception/assert`：记录边界、保存和引擎异常；异常数据含堆栈。
-
-例如人口为 0：先看 baseline/latest 的住房与岗位，再搜 `household.decision` 的 rejection；搜索相同 buildingId 的 `building.access`，结合最近一次 `network.audit` 判断道路是否真的连通。白车迟到：按 citizenId 找 trip.started、trip.state 和 citizen.attendance，再看 citizen.pay。
-
-## 可选分析工具
-
-项目自带 `Tools/AnalyzeSimulationLog.py`，只使用 Python 标准库：
+可继续使用 `Tools/AnalyzeSimulationLog.py` 筛选 Trace 包中的居民、家庭、车辆或事件类型。例如：
 
 ```text
-python Tools/AnalyzeSimulationLog.py "导出目录"
-python Tools/AnalyzeSimulationLog.py "导出目录" --citizen 10
-python Tools/AnalyzeSimulationLog.py "导出目录" --household 1 --type household.decision --json
-python Tools/AnalyzeSimulationLog.py "导出目录" --trip 42
-python Tools/AnalyzeSimulationLog.py "导出目录" --day 5 --json
+python Tools/AnalyzeSimulationLog.py "Trace 导出目录" --citizen 10
+python Tools/AnalyzeSimulationLog.py "Trace 导出目录" --household 1 --type household.decision --json
+python Tools/AnalyzeSimulationLog.py "Trace 导出目录" --trip 42
 ```
 
-无筛选时给出事件统计与住房候选拒绝原因；筛选时列出时间线，加 `--json` 输出完整数据。遇到崩溃导致的未完成行会提示并跳过，同时检查序号是否有缺口。
+## 验证
 
-## 边界与性能
-
-日志从本次启用开始，不补造历史；开始记录前的实体由 baseline 保存。读取存档或脚本重载会结束旧会话并开启新会话，session.start 中包含上一会话编号。暂停不推进游戏时间，导出不推进模拟。
-
-不逐帧写位置：车辆状态每个模拟秒观察一次，变化或持续等待 30 模拟秒时写入；真正出发/到达等事件在发生时直接记录，因此短行程也能追踪。每约 8 MB 切换文件，不自动删旧日志。运行时每 2 秒刷新，正常关闭时刷新；进程崩溃仍可能丢失最后尚未刷新的记录。磁盘不可写时在游戏提示并停止记录，不阻断模拟。需要自行清理不用的会话目录。长期高人口城市仍需要磁盘与性能预算；这不是逐帧确定性回放系统。
-
-日志导出含完整城市状态和 Unity 异常堆栈（可能包含本机路径），分享前可自行检查。
+`Tools/Verify.ps1` 包含每日差量、瓶颈证据、750 条时间线与 180 天历史边界、快照稳定性、Trace 开关隔离及完整模拟状态一致性。Unity 菜单 **Harbor → Validate runtime observability and native analysis JSON** 使用原生 JsonUtility 验证结构化导出及存档隔离。界面 Play 下的视觉与点击验收仍需在游戏中进行。

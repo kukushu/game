@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Text;
 
 namespace HarborCity
 {
@@ -10,6 +9,8 @@ namespace HarborCity
     {
         public string code, title, evidence;
         public double severity;
+        public AnalysisEntityKind entityKind;
+        public int entityId=-1;
     }
     [Serializable] public sealed class FactoryDailySummary
     {
@@ -52,7 +53,7 @@ namespace HarborCity
 
     // A session-scoped observer: no RNG, economic changes, or fabricated historical data.
     // It copies baselines and captures actual work/transport evidence while simulation runs.
-    public sealed class CityDailyAnalysis
+    public sealed partial class CityDailyAnalysis
     {
         sealed class FactoryBaseline
         {
@@ -70,7 +71,6 @@ namespace HarborCity
             public HashSet<int> deliveredShops=new HashSet<int>();
         }
         readonly CityModel city;
-        readonly Action<CityAnalysisReport,bool> publish;
         Dictionary<int,FactoryBaseline> baseline=new Dictionary<int,FactoryBaseline>();
         Dictionary<int,FactoryEvidence> evidence=new Dictionary<int,FactoryEvidence>();
         Dictionary<int,int> savings=new Dictionary<int,int>(), rents=new Dictionary<int,int>(), homes=new Dictionary<int,int>();
@@ -83,8 +83,8 @@ namespace HarborCity
         bool settling;
         public CityAnalysisReport Latest {get; private set;}
         public string Failure {get; private set;}
-        public CityDailyAnalysis(CityModel model,Action<CityAnalysisReport,bool> write=null)
-        {city=model; publish=write; BeginDay();}
+        public CityDailyAnalysis(CityModel model)
+        {city=model; BeginDay(); InitializeRuntimeHistory();}
         public void Fail(Exception error) {if(Failure==null) Failure=error.Message;}
         FactoryEvidence Evidence(int id)
         {
@@ -101,6 +101,7 @@ namespace HarborCity
         void BeginDay()
         {
             startDay=city.day; startMinute=city.ResidentMinute;
+            ResetRuntimeDay();
             populationBefore=city.Citizens.Count(); employedBefore=city.Employed; commuteBefore=city.AverageCommute;
             commuteSamplesBefore=CommuteObservations();
             demolished.Clear(); baseline.Clear(); evidence.Clear(); decisions.Clear(); rents.Clear(); savings.Clear(); homes.Clear(); settling=false;
@@ -135,8 +136,10 @@ namespace HarborCity
         {
             if(Failure!=null) return;
             // Threshold is in game minutes, independent of simulation day length/speed.
+            ObserveRuntimeCommercial();
             foreach(var t in city.traffic.trips)
             {
+                ObserveRuntimeTraffic(t);
                 if(t.residentId>0 || t.purpose<TripPurpose.Delivery || t.status==TripStatus.Visiting
                     || t.blocked*1440/city.society.settings.secondsPerDay<30) continue;
                 longFreight.Add(t.id);
@@ -148,6 +151,7 @@ namespace HarborCity
         public void ObserveEvent(CityLogEvent evt)
         {
             if(Failure!=null) return;
+            ObserveRuntimeEvent(evt);
             if(evt.type=="factory.demolished")
             {
                 var f=Build(true,null).factories.Find(f=>f.id==evt.buildingId);
@@ -202,7 +206,7 @@ namespace HarborCity
             if(evt.type=="city.day" && evt.data is HouseholdDay ledger)
             {
                 var report=Build(false,ledger); Latest=report;
-                try {publish?.Invoke(report,false);} catch(Exception ex) {Fail(ex);}
+                CompleteRuntimeDay(report,ledger);
                 BeginDay();
             }
         }
@@ -214,11 +218,6 @@ namespace HarborCity
         }
         static void AddFactor(HouseholdDecisionSummary r,string name,float delta)
         {if(Math.Abs(delta)>.01f) r.factors.Add(name+" "+(delta>0?"+":"")+F(delta)+" 分");}
-        public void PublishPartial()
-        {
-            if(Failure!=null) return;
-            try {publish?.Invoke(Build(true,null),true);} catch(Exception ex) {Fail(ex);}
-        }
         public CityAnalysisReport Current() => Build(true,null);
         int Incoming(int id,CargoKind kind) => city.traffic.trips.Where(t=>!t.returning && t.destination==id && t.cargoKind==kind).Sum(t=>t.cargo);
         int CommuteObservations() => city.Citizens.Count(p=>city.ResidentJob(p)!=null && p.lastCommute>=0 && p.observedWork==city.Workplace(p)
@@ -231,7 +230,7 @@ namespace HarborCity
                 fundedJobs=city.society.jobEntities.Count(city.JobFunded),commuteBefore=commuteBefore,commuteAfter=city.AverageCommute,
                 commuteSamplesBefore=commuteSamplesBefore,commuteSamplesAfter=CommuteObservations(),
                 lateResidents=lateResidents.Count,commuteSamples=arrivals.Count,todayArrivalCommute=arrivals.Count==0?0:(float)(arrivalCommute/arrivals.Count),longWaitingFreight=longFreight.Count,
-                pendingCommuters=city.traffic.trips.Count(t=>t.residentId>0 && !t.returning),arrived=ledger?.arrived??0,moved=ledger?.moved??0,left=ledger?.left??0,
+                pendingCommuters=city.traffic.trips.Count(t=>t.residentId>0 && !t.returning),arrived=runtimeArrived,moved=runtimeMoved,left=runtimeLeft,
                 wages=ledger?.wages??0,factoryWages=ledger?.factoryWages??0,externalWages=ledger?.externalWages??0,unpaidRent=ledger?.unpaidRent??0};
             foreach(var b in city.buildings.OrderBy(b=>b.id))
             {
@@ -244,7 +243,7 @@ namespace HarborCity
                     {
                         string change="住宅 #"+b.id+" 挂牌租金 "+rent+" → "+city.Residence(b.id).askingRent+"（空置 / 实际意向规则；已有租约另计）";
                         report.housingChanges.Add(change);
-                        report.attention.Add(new AnalysisFinding {code="rent_changed",title="挂牌租金变化",evidence=change,severity=Math.Abs(city.Residence(b.id).askingRent-rent)*5});
+                        report.attention.Add(new AnalysisFinding {entityKind=AnalysisEntityKind.Residence,entityId=b.id,code="rent_changed",title="住宅 #"+b.id+" 挂牌租金变化",evidence=change,severity=Math.Abs(city.Residence(b.id).askingRent-rent)*5});
                     }
                 }
                 if(city.UseOf(b.id)==LandUse.Commercial && city.Inventory(b.id).Stock==0)
@@ -269,14 +268,14 @@ namespace HarborCity
                 report.factories.Add(f);
             }
             report.factories.AddRange(demolished.Values.Where(f=>city.GetBuilding(f.id)==null));
-            report.households=decisions.Values.OrderBy(d=>d.id).ToList();
+            report.households=decisions.Values.OrderBy(d=>d.id).Select(CopyDecision).ToList();
             foreach(var d in report.households)
             {
                 var h=city.society.families.Find(f=>f.id==d.id);
                 if(h!=null) {d.savingsAfter=h.savings; d.paidWages=h.wagePaid; d.unpaidRent=h.arrears;}
             }
             foreach(var f in report.factories)
-                foreach(var cause in f.causes) report.attention.Add(new AnalysisFinding {code=cause.code,title="工厂 #"+f.id+"："+cause.title,evidence=cause.evidence,severity=cause.severity});
+                foreach(var cause in f.causes) report.attention.Add(new AnalysisFinding {entityKind=AnalysisEntityKind.Factory,entityId=f.id,code=cause.code,title="工厂 #"+f.id+"："+cause.title,evidence=cause.evidence,severity=cause.severity});
             if(report.unemployed>0) report.attention.Add(new AnalysisFinding {code="unemployment",title="就业不足",evidence="劳动成员 "+report.workforce+" 人，失业 "+report.unemployed+" 人；岗位是否可达、技能匹配和资金可用须结合家庭候选摘要核对。",severity=report.unemployed*30});
             if(report.lateResidents>0) report.attention.Add(new AnalysisFinding {code="late",title="实际通勤迟到",evidence="实到样本中 "+report.lateResidents+" 人迟到至少 15 游戏分钟；未到岗者另计。",severity=report.lateResidents*20});
             if(report.longWaitingFreight>0) report.attention.Add(new AnalysisFinding {code="freight",title="货运长时间等待",evidence=report.longWaitingFreight+" 个不同任务曾连续等待至少 30 游戏分钟，包含后来恢复或失败的任务。",severity=report.longWaitingFreight*20});
@@ -308,85 +307,7 @@ namespace HarborCity
         }
         static string F(double value) => value.ToString("0.##",CultureInfo.InvariantCulture);
         static string Time(float minute) => minute<0?"未记录":((int)minute/60).ToString("00")+":"+((int)minute%60).ToString("00");
-        static string Coverage(CityAnalysisReport r) => (r.inProgress?"未结束日，尚未日结":r.partial?"部分日，不能当作完整一天":"完整日")+"；观测区间 "+Time(r.fromMinute)+"–"+Time(r.toMinute);
-        public static string RenderCity(CityAnalysisReport r)
-        {
-            var s=new StringBuilder("# 城市日报 · Day "+r.day+"\n\n"+Coverage(r)+"。\n\n");
-            if(!r.inProgress) s.AppendLine("本日结束于原始 city.day 的 D"+r.settlementDay+" 结算；住房和岗位调整发生在这次结算中。\n");
-            s.AppendLine("## 人口与就业\n\n人口："+r.populationBefore+" → "+r.population+"；迁入 "+r.arrived+" 户，迁出 "+r.left+" 户。\n");
-            s.AppendLine("就业人数："+r.employedBefore+" → "+r.employed+"；当前 "+r.employed+" / "+r.workforce+" 名劳动成员就业，失业 "+r.unemployed+" 人；资金可用岗位 "+r.fundedJobs+"。\n");
-            s.AppendLine("## 工业\n");
-            foreach(var f in r.factories) s.AppendLine("- 工厂 #"+f.id+"：生产 "+f.produced+"、实售 "+f.sold+"、运出 "+f.shipped+"；主要瓶颈："+f.mainBottleneck+"。");
-            if(r.factories.Count==0) s.AppendLine("没有工厂。");
-            s.AppendLine("\n## 交通\n\n已观测居民的实际通勤均值："+(r.commuteSamplesBefore>0?F(r.commuteBefore)+" 分钟（"+r.commuteSamplesBefore+" 人）":"暂无观测")+" → "+(r.commuteSamplesAfter>0?F(r.commuteAfter)+" 分钟（"+r.commuteSamplesAfter+" 人）":"暂无观测")+"；样本可能变化，不是同一群体的实验对照。\n");
-            s.AppendLine("本日实际到达 "+r.commuteSamples+" 人"+(r.commuteSamples>0?"，本日到达样本通勤均值 "+F(r.todayArrivalCommute)+" 分钟":"，没有今日通勤样本")+"；明显迟到 "+r.lateResidents+" 人；末仍在去程 "+r.pendingCommuters+" 人。\n");
-            s.AppendLine("连续等待至少 30 游戏分钟的货运任务："+r.longWaitingFreight+" 个（去重，包含已恢复 / 失败任务）。\n");
-            s.AppendLine("## 住房与家庭\n\n空置单元 "+r.vacantHomes+"；本次结算搬家 "+r.moved+" 户。\n");
-            foreach(var change in r.housingChanges.OrderByDescending(text=>text.Contains("挂牌租金")).Take(8)) s.AppendLine("- "+change);
-            if(r.housingChanges.Count>8) s.AppendLine("- 另 "+(r.housingChanges.Count-8)+" 项住房状态保存在结构化日报。");
-            var changed=r.households.Where(d=>d.committed).OrderBy(d=>d.action=="换工作"?1:0).ThenBy(d=>d.id).ToList();
-            foreach(var d in changed.Take(5)) s.AppendLine("- 家庭 #"+d.id+" "+d.action+"："+d.fromHome+" → "+d.toHome+"；"+DecisionReason(d));
-            if(changed.Count>5) s.AppendLine("- 另 "+(changed.Count-5)+" 户调整见家庭决策摘要。");
-            s.AppendLine("\n商业末库存缺货 "+r.commercialShortages.Count+" 处；这是相关状态，不自动归因某家工厂。\n");
-            foreach(var shortage in r.commercialShortages.Take(5)) s.AppendLine("- "+shortage);
-            if(!r.inProgress) s.AppendLine("\n本次日结工资 ¥"+r.wages+"（工厂实付 ¥"+r.factoryWages+"，商业来源 ¥"+r.externalWages+"）；当期未付租金 ¥"+r.unpaidRent+"。\n");
-            s.AppendLine("## 值得关注\n");
-            if(r.attention.Count==0) s.AppendLine("未观测到明显异常或变化。");
-            foreach(var a in r.attention) s.AppendLine("- **"+a.title+"**："+a.evidence);
-            s.AppendLine("\n关注项按记录到的阻断工人分钟、受影响人数和资金变化排序，最多五项；它们不是影响未来的模拟参数。");
-            return s.ToString();
-        }
-        static string DecisionReason(HouseholdDecisionSummary d)
-        {
-            if(!d.evaluated || !d.committed || d.action=="迁出") return d.reason;
-            if(!string.IsNullOrEmpty(d.currentRejection)) return "原方案不可行："+d.currentRejection+"；已提交可行替代。";
-            var gains=d.factors.Where(f=>f.Contains(" +")).Take(2).ToList();
-            return gains.Count>0?"已提交改善方案："+string.Join("；",gains):"已提交可行的住房 / 岗位方案。";
-        }
-        public static string RenderFactories(CityAnalysisReport r,int factoryId=-1)
-        {
-            var s=new StringBuilder("# 工厂日报 · Day "+r.day+"\n\n"+Coverage(r)+"。所有生产和收支值均为区间变化量。\n");
-            foreach(var f in r.factories.Where(f=>factoryId<0 || f.id==factoryId))
-            {
-                s.AppendLine("\n## 工厂 #"+f.id+"\n\n状态："+f.state+"；主要瓶颈："+f.mainBottleneck+"。\n");
-                s.AppendLine("- 生产 "+f.produced+" / 实售 "+f.sold+" / 装车运出 "+f.shipped+" / 原料到货 "+f.imported);
-                s.AppendLine("- 到岗 "+f.attended+" / 本日曾分配员工 "+f.assigned+"；物理岗位 "+f.slots+"；明显迟到 "+f.late+" 人");
-                s.AppendLine("- 实际在岗 "+F(f.attendance)+" / 有效加工 "+F(f.productive)+" 工人分钟");
-                s.AppendLine("- 原料 "+f.rawBefore+" → "+f.raw+" / 24；在途原料 "+f.incomingRaw+"；成品 "+f.goodsBefore+" → "+f.goods+" / 24；待交付商品 "+f.outgoingGoods);
-                s.AppendLine("- 收入 ¥"+F(f.revenue)+"；工资 ¥"+F(f.wageCost)+" / 原料 ¥"+F(f.rawCost)+" / 加工 ¥"+F(f.productionCost));
-                s.AppendLine("- 本日经营收支差额 ¥"+F(f.profit)+"；现金 ¥"+F(f.cashBefore)+" → ¥"+F(f.cash));
-                if(f.capitalInflow!=0) s.AppendLine("- 本日资本投入 ¥"+F(f.capitalInflow)+"（不是经营收入）");
-                s.AppendLine("\n原因与证据：\n");
-                if(f.causes.Count==0) s.AppendLine("- 暂无已证实的主要阻断原因。");
-                foreach(var a in f.causes) s.AppendLine("- "+a.title+"："+a.evidence);
-                s.AppendLine("\n后续影响 / 已知作用：\n");
-                if(f.effects.Count==0) s.AppendLine("- 未发现需要单独解释的后续影响。");
-                foreach(var effect in f.effects) s.AppendLine("- "+effect);
-                foreach(var other in f.relatedObservations) s.AppendLine("- 相关现象（未确认单一因果）："+other);
-            }
-            return s.ToString();
-        }
-        public static string RenderHouseholds(CityAnalysisReport r)
-        {
-            var s=new StringBuilder("# 家庭决策摘要 · Day "+r.day+" 日结\n\n"+Coverage(r)+"。仅列出本区间真实发生的评估、延期或迁出，不给未评估家庭编造理由。\n");
-            if(r.households.Count==0) s.AppendLine("\n本区间没有家庭决策记录。");
-            foreach(var d in r.households)
-            {
-                s.AppendLine("\n## 家庭 #"+d.id+" · "+d.action+"\n\n实际评估 / 动作日 D"+d.decisionDay+"；住所 "+d.fromHome+" → "+d.toHome+"。\n");
-                s.AppendLine("实际结果："+DecisionReason(d)+"\n");
-                s.AppendLine("本次实际收到工资 ¥"+d.paidWages+"；区间储蓄 ¥"+d.savingsBefore+" → ¥"+d.savingsAfter+"；累计欠租 ¥"+d.unpaidRent+"。\n");
-                if(!d.evaluated) {s.AppendLine("本次没有可用候选评分；不推测更好的住房方案。\n"); continue;}
-                s.AppendLine("当前 / 拟选方案："+(string.IsNullOrEmpty(d.currentRejection)?"评分 "+F(d.currentScore):"当前不可行："+d.currentRejection)+" → "+(string.IsNullOrEmpty(d.proposedRejection)?"评分 "+F(d.proposedScore):"无可行拟选方案")+"；正常替代的改善门槛 "+F(d.improvementRequired)+"。\n");
-                s.AppendLine("预期可支付日薪 ¥"+d.currentWage+" → ¥"+d.proposedWage+"；租金 ¥"+d.currentRent+" → ¥"+d.proposedRent+"；成员通勤合计 "+F(d.currentCommute)+" → "+F(d.proposedCommute)+" 分钟（候选估计，不是事后实际收入）。\n");
-                s.AppendLine("岗位按居民编号对应：\n");
-                for(int i=0;i<d.citizenIds.Count;i++) s.AppendLine("- 居民 #"+d.citizenIds[i]+"：原 "+(i<d.beforeJobs.Count?d.beforeJobs[i]:-1)+" / 拟选 "+(i<d.proposedJobs.Count?d.proposedJobs[i]:-1)+" / 实际 "+(i<d.actualJobs.Count?d.actualJobs[i]:-1));
-                s.AppendLine("评分变化的组成：\n");
-                foreach(var factor in d.factors) s.AppendLine("- "+factor);
-                if(d.factors.Count==0) s.AppendLine("- 评分组成没有明显变化。");
-                if(d.rejections.Count>0) {s.AppendLine("\n不可行候选的主要原因：\n"); foreach(var reject in d.rejections.Take(3)) s.AppendLine("- "+reject);}
-            }
-            return s.ToString();
-        }
+
     }
     public sealed partial class CityModel
     {
@@ -399,3 +320,4 @@ namespace HarborCity
         {if(analysis==null) return; try {analysis.ObserveSale(id,buyer);} catch(Exception ex) {analysis.Fail(ex);}}
     }
 }
+

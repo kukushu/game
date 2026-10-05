@@ -13,7 +13,7 @@ namespace HarborCity
         LineRenderer trafficEndpointMarker;
         bool TrafficEndpointVisible() => locatedTrafficEndpoint>=-1 && locatedTrafficTrip>=0
             && locatedTrafficTrip==inspectedTrip && selected==LandUse.Empty && inspectedHome<0
-            && (locatedTrafficEndpoint==-1?city.roads?.Node(CityRoads.Entrance)!=null:locatedTrafficEndpoint<city.buildings.Count);
+            && (locatedTrafficEndpoint==-1?city.roads?.Node(CityRoads.Entrance)!=null:city.GetBuilding(locatedTrafficEndpoint)!=null);
         Vector3 TrafficEndpointAnchor()
         {
             if(locatedTrafficEndpoint>=0) return BuildingMarker(locatedTrafficEndpoint);

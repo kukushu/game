@@ -128,37 +128,6 @@ public static class AnalysisChecks
         var compare=Create(out second,out pb,out fb); compare.traffic.dispatchTimer=0; var repeat=Observe(compare); second.Advance(240.1f);
         Check(Serialize(analysis.Latest)==Serialize(repeat.Latest),"The same simulation produces byte-equivalent structured analysis with no LLM or wall clock");
 
-        string root="Temp/AnalysisChecks-"+Guid.NewGuid().ToString("N");
-        c=Create(out sim,out p,out id); f=c.Factory(id); f.raw=1;
-        using(var log=new CitySimulationLog(root,Serialize))
-        {
-            c.logSink=log.Write; log.Snapshot("baseline",c);
-            Work(c,p,id,480,60); Work(c,p,id,600,120); Close(c);
-            string export=log.Export(Path.Combine(root,"Exports"),c);
-            string folder=Path.Combine(export,"Analysis");
-            Check(log.Failure==null && log.AnalysisFailure==null && File.Exists(Path.Combine(folder,"latest-city.md")),"Derived reports export beside the unchanged raw journal");
-            Check(new[]{"city","factories","households"}.All(kind=>File.Exists(Path.Combine(folder,"day-000001-"+kind+".md"))),"All three human reports are generated on actual daily settlement");
-            var restored=json.Deserialize<CityAnalysisReport>(File.ReadAllText(Path.Combine(folder,"day-000001.json")));
-            Check(Factory(restored,id).rawBlocked==120 && restored.day==1,"Structured report round-trip retains daily evidence");
-            Check(File.Exists(Path.Combine(folder,"in-progress.json")) && json.Deserialize<CityAnalysisReport>(File.ReadAllText(Path.Combine(folder,"in-progress.json"))).inProgress,"Export includes an explicitly unfinished current-day snapshot");
-            int lines=File.ReadAllLines(Directory.GetFiles(export,"events-*.jsonl").First()).Length;
-            c.Trace("test.audit","raw audit continues"); log.Flush();
-            Check(File.ReadAllLines(Directory.GetFiles(export,"events-*.jsonl").First()).Length==lines,"Exported audit and analysis remain immutable while simulation continues");
-            string sample=Path.Combine("Temp","CityAnalysisSample"); Directory.CreateDirectory(sample);
-            foreach(string file in Directory.GetFiles(folder)) File.Copy(file,Path.Combine(sample,Path.GetFileName(file)),true);
-        }
-        Check(c.analysis==null,"Closing a journal detaches its session observer");
-
-        c=Create(out sim,out p,out id);
-        using(var log=new CitySimulationLog(root,Serialize))
-        {
-            c.logSink=log.Write; log.Snapshot("baseline",c);
-            File.WriteAllText(Path.Combine(log.DirectoryPath,"Analysis"),"block derived directory to simulate write failure");
-            Close(c); c.Trace("test.audit","raw survives analysis failure"); log.Flush();
-            Check(log.AnalysisFailure!=null && log.Failure==null,"Derived output failure is isolated from the raw journal");
-            string faultExport=log.Export(Path.Combine(root,"FaultExports"),c);
-            Check(Directory.GetFiles(faultExport,"events-*.jsonl").SelectMany(File.ReadAllLines).Any(line=>line.Contains("raw survives analysis failure")),"Raw auditing continues after a derived writer failure");
-        }
         c=Create(out sim,out p,out id);f=c.Factory(id);f.raw=1;analysis=Observe(c);
         Work(c,p,id,480,60);double wages=f.wageCosts;
         c.money=100000;Check(c.DemolishBuilding(id),"Factory demolition fixture");Close(c);

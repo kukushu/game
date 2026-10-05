@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -49,12 +49,9 @@ namespace HarborCity
         long bytes, sequence;
         int segment;
         bool closed;
-        CityModel observedCity;
-        CityDailyAnalysis derived;
         public string DirectoryPath {get; private set;}
         public string SessionId {get; private set;}
         public string Failure {get; private set;}
-        public string AnalysisFailure => derived?.Failure;
         public CitySimulationLog(string root,Func<object,string> serialize,long rotateBytes=8*1024*1024)
         {
             json=serialize; segmentBytes=rotateBytes;
@@ -65,12 +62,7 @@ namespace HarborCity
                 Rotate(); daily=Writer("daily.csv");
                 daily.WriteLine("day,population,households,employed,unemployed,averageCommute,wages,rent,maintenance,arrived,moved,left,treasuryError,savingsError,factoryWages,externalWages");
                 File.WriteAllText(Path.Combine(DirectoryPath,"README.md"),
-                    "# 城市模拟诊断日志\n\n用 VS Code 打开本文件夹。events-*.jsonl 每行一个事件，按文件名和 seq 排序；readable-*.log 是中文摘要，daily.csv 是每日结算。\n\n"+
-                    "理解玩法请先打开 Analysis/latest-city.md，再看 Analysis/day-*-factories.md 与 day-*-households.md。对应 day-*.json 是确定性分析快照；in-progress-* 是尚未结束的区间。原始事件用于追查证据，继续完整保留。\n\n"+
-                    "每个事件含 session、seq、UTC 时间、day、minute、simulationSeconds、type、level，以及 householdId/citizenId/jobId/buildingId/tripId 和 roadRevision；-1 表示不适用（出行 data.origin/destination 的 -1 表示城外）。data 是结构化事件数据。\n\n"+
-                    "baseline.json 是开始记录时的完整城市；latest.json 是最近导出/结束时的完整城市；summary.json 包含事件计数和写入错误。加载城市或脚本重载会开启新会话，不把不同城市的 ID 混在一起。\n\n"+
-                    "搜索 household.decision 查看全部候选、拒绝原因和评分；citizen.pay 查看出勤和实际收入；trip. 查看出行；city.day 查看日账；unity. 查看警告和异常。关联同一 householdId/citizenId/tripId 可追踪因果链。\n\n"+
-                    "日志从启用时开始，不补造历史。不会逐帧保存位置；出行状态按变化记录，持续阻塞每 30 模拟秒记录一次。文件每约 8 MB 分段，不自动删除历史。正常运行每 2 秒刷新，异常退出可能丢失最后未刷新的少量记录；磁盘写满等错误会停止写入并在游戏提示。日志不是逐帧回放格式。\n",new UTF8Encoding(false));
+                    "# Debug Trace\n\n仅在开发者主动启用时记录。events-*.jsonl 是原始事件，readable-*.log 是对应摘要；默认观察城市请使用 F3 Dashboard。\n\nbaseline/latest.json 为当前格式的城市快照。按 householdId/citizenId/buildingId/tripId 关联具体事件。Trace 从启用时开始，不补造历史；关闭不影响运行时分析。\n",new UTF8Encoding(false));
             }
             catch {Dispose(); throw;}
         }
@@ -113,26 +105,14 @@ namespace HarborCity
                 string path=Path.Combine(DirectoryPath,name+".json"), temporary=path+".tmp";
                 File.WriteAllText(temporary,json(city is CityModel modelData?modelData.ToSaveData():city),new UTF8Encoding(false));
                 if(File.Exists(path)) File.Replace(temporary,path,null); else File.Move(temporary,path);
-                if(name=="baseline" && city is CityModel model && model.society!=null && derived==null)
-                {observedCity=model; derived=new CityDailyAnalysis(model,WriteAnalysis); model.analysis=derived;}
-                if(name=="latest") derived?.PublishPartial();
+
             }
             catch(Exception ex) {Failure=ex.Message;}
         }
-        void WriteAnalysis(CityAnalysisReport report,bool partial)
-        {
-            string root=Path.Combine(DirectoryPath,"Analysis"); Directory.CreateDirectory(root);
-            string stem=partial?"in-progress":"day-"+report.day.ToString("D6",CultureInfo.InvariantCulture);
-            File.WriteAllText(Path.Combine(root,stem+".json"),json(report),new UTF8Encoding(false));
-            File.WriteAllText(Path.Combine(root,stem+"-city.md"),CityDailyAnalysis.RenderCity(report),new UTF8Encoding(false));
-            File.WriteAllText(Path.Combine(root,stem+"-factories.md"),CityDailyAnalysis.RenderFactories(report),new UTF8Encoding(false));
-            File.WriteAllText(Path.Combine(root,stem+"-households.md"),CityDailyAnalysis.RenderHouseholds(report),new UTF8Encoding(false));
-            if(!partial) File.WriteAllText(Path.Combine(root,"latest-city.md"),CityDailyAnalysis.RenderCity(report),new UTF8Encoding(false));
-        }
-        [Serializable] sealed class Summary { public string session, failure, analysisFailure; public long records; public List<string> types=new List<string>(); public List<int> counts=new List<int>(); }
+        [Serializable] sealed class Summary { public string session, failure; public long records; public List<string> types=new List<string>(); public List<int> counts=new List<int>(); }
         public void SummaryFile()
         {
-            var s=new Summary {session=SessionId,failure=Failure??"",analysisFailure=AnalysisFailure??"",records=sequence};
+            var s=new Summary {session=SessionId,failure=Failure??"",records=sequence};
             foreach(var p in counts) {s.types.Add(p.Key); s.counts.Add(p.Value);} Snapshot("summary",s);
         }
         public string Export(string root,object city)
@@ -152,7 +132,6 @@ namespace HarborCity
         {
             if(closed) return;
             Flush(); SummaryFile(); closed=true;
-            if(observedCity!=null && observedCity.analysis==derived) observedCity.analysis=null;
             foreach(var writer in new[]{events,readable,daily}) try {writer?.Dispose();} catch(Exception ex) {Failure=ex.Message;}
         }
     }

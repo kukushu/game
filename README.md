@@ -1,4 +1,4 @@
-﻿# 湾岸 / Harbor City
+# 湾岸 / Harbor City
 
 Unity 6000.6.3f1 + URP 城市建造原型。当前建筑采用继承实体模型和存档格式 8，详细数据结构、ID 关系、库存和存档边界见 [建筑架构说明](Docs/BuildingArchitecture.md)。旧存档不再兼容，请新建城市。
 
@@ -33,11 +33,9 @@ Unity 6000.6.3f1 + URP 城市建造原型。当前建筑采用继承实体模型
 
 ## 观察与日志
 
-按 0 / Esc 后点击住宅、工厂或商业，打开详情；可选居民或车辆定位和查看路线。工厂显示库存、经营收支、出勤、雇员及货运；商业显示库存、补货、岗位与运输。F3 打开模拟观察台，可暂停逐日推进，查看账目、家庭决策、住房岗位、每日趋势、人口位置和城市分析。
+按 0 / Esc 后点击住宅、工厂或商业查看详情；F3 打开城市 Dashboard，首先展示需要关注的 Findings，再区分 Live、Today 和 History。可点击工厂、家庭、居民和异常进入详情，查看真实瓶颈证据、住房候选和运输，再定位地图目标。
 
-城市日报、工厂日报和家庭决策摘要由真实状态差量与受阻过程确定性生成，不调用 LLM。原始 `events-*.jsonl` 和 readable log 保留为审计；F3 导出日志同时保存可读分析、完整 DTO 快照和每日账目。自动记录位于 `Application.persistentDataPath/SimulationLogs`，导出位于 `SimulationReports`，具体绝对路径由界面提示。详见 [日志说明](Docs/SimulationLogging.md)。
-
-保存位于 `Application.persistentDataPath/harbor-city.json`，保留 `.bak`。退出 Play 不会自动保存。新档通过显式类型标签和子类 payload 恢复；格式错误或旧档被拒绝时保留当前城市。
+运行时默认只保留结构化内存分析、最近 750 条关键事件和 180 天历史，不持续生成 events/readable 日志或 Analysis Markdown。F3 可手动导出分析 JSON；只有 Debug 页主动开启完整 Debug Trace 才写原始日志到 `Application.persistentDataPath/SimulationLogs`。分析和 Trace 都不改变模拟规则或正常存档格式。详见 [观察与 Trace 说明](Docs/SimulationLogging.md)。
 
 ## 自由道路第一版
 

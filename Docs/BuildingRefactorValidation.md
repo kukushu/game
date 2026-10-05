@@ -1,6 +1,6 @@
 # 建筑模型重构验证
 
-验证环境：Unity 6000.6.3f1，当前格式 8 实体模型。
+验证环境：Unity 6000.6.3f1，格式 8 实体模型。以下是建筑重构完成时的验证记录；后续观察系统重构的当前检查数和结果见 [ObservabilityValidation.md](ObservabilityValidation.md)。
 
 `Tools/Verify.ps1` 全部通过，共 306 项检查，另包含连续 365 天逐日状态、住房容量和现金守恒验证：
 
