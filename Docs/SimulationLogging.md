@@ -1,6 +1,6 @@
 # 城市运行观察与 Debug Trace
 
-正常运行不持续写原始日志或 Analysis Markdown。按 **F3** 打开游戏内 Dashboard；每次从地图打开时首先显示城市首页。搜索框获得焦点时 F3 仍可关闭面板。
+正常运行不持续写原始日志或 Analysis Markdown。首页使用 KPI 卡片、进度条、Findings 卡片和真实历史趋势；视觉组件与统计口径详见 [DashboardVisuals.md](DashboardVisuals.md)。按 **F3** 打开游戏内 Dashboard；每次从地图打开时首先显示城市首页。搜索框获得焦点时 F3 仍可关闭面板。
 
 ## F3 的信息结构
 

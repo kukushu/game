@@ -28,7 +28,7 @@ namespace HarborCity
             Application.logMessageReceived-=CaptureUnityLog;
             if(city!=null)city.analysis=null;
         }
-        void OnDisable() {StopObservation();}
+        void OnDisable() {StopObservation();ReleaseDashboardGraphics();}
         void RefreshAnalysis()
         {
             if(city?.analysis==null)return;
