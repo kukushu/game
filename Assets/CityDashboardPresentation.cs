@@ -70,4 +70,26 @@ namespace HarborCity
             return DashboardTone.Neutral;
         }
     }
+    // Aggregates only the supplied observation snapshot; never touches gameplay objects.
+    public sealed class ResidencePresentation
+    {
+        public readonly List<HouseholdAnalysisState> families=new List<HouseholdAnalysisState>();
+        public int employed,workforce,unemployed,contractRent;
+        public float commute;
+        public ResidencePresentation(CityAnalysisState state,int home)
+        {
+            foreach(var h in state.households)
+            {
+                if(!h.resident || h.home!=home)continue;
+                families.Add(h);employed+=h.employed;contractRent+=h.rent;commute+=h.commute;
+                foreach(var p in h.members)if(p.canWork) {workforce++;if(p.jobId<=0)unemployed++;}
+            }
+            families.Sort((a,b)=>a.unit!=b.unit?a.unit.CompareTo(b.unit):a.id.CompareTo(b.id));
+        }
+        public HouseholdAnalysisState Selected(int id)=>families.Find(h=>h.id==id);
+        public static int Unemployed(HouseholdAnalysisState h)
+        {int count=0;foreach(var p in h.members)if(p.canWork && p.jobId<=0)count++;return count;}
+        // A visual cue, explicitly labelled as a total, not a simulation rule.
+        public static bool LongCommute(HouseholdAnalysisState h)=>h.commute>=120;
+    }
 }

@@ -659,7 +659,7 @@ namespace HarborCity
             float x = position.x / scale, y = (Screen.height - position.y) / scale;
             float width = Screen.width / scale, height = Screen.height / scale;
             return showSimulation && new Rect(340,110,width-640,height-305).Contains(new Vector2(x,y)) || y < 108 || y > height - 185 || (x > width - 290 && y < 490)
-                || (help && x < 485 && y < 470) || (!help && x < 345 && y > 115 && y < (selected==LandUse.Empty && inspectedHome>=0?height-200:selected==LandUse.Residential?505:385));
+                || (help && x < 485 && y < 470) || (!help && x < (selected==LandUse.Empty && inspectedHome>=0 && !InspectingBusiness && !showSimulation?24+ResidenceInspectorWidth:345) && y > 115 && y < (selected==LandUse.Empty && inspectedHome>=0?height-200:selected==LandUse.Residential?505:385));
         }
 
         void Styles()

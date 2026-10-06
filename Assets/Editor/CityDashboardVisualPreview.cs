@@ -38,13 +38,24 @@ namespace HarborCity
         {
             Prepare();Call("Styles");
             EditorGUILayout.HelpBox("独立测试城市 · 实际 Dashboard 绘制代码 · 不驱动或保存主游戏",MessageType.Info);
-            int chosen=GUILayout.Toolbar(page,new[]{"Dashboard","工厂","商业","History","家庭","居民","时间线"});
+            int chosen=GUILayout.Toolbar(page,new[]{"Dashboard","工厂","商业","History","家庭","居民","时间线","住宅"});
             if(chosen!=page) {page=chosen;scroll=Vector2.zero;Set("analysisEntityId",-1);}
             GUI.color=new Color(.055f,.105f,.14f);GUI.DrawTexture(new Rect(0,65,position.width,position.height-65),Texture2D.whiteTexture);GUI.color=Color.white;
             scroll=GUILayout.BeginScrollView(scroll);
             GUILayout.BeginVertical();
             int selected=(int)typeof(HarborCityGame).GetField("analysisEntityId",Fields).GetValue(renderer);
-            if(selected>=0)Call("DrawAnalysisDetail",state);
+            if(page==7)
+            {
+                var home=state.housing.OrderByDescending(h=>h.occupied).FirstOrDefault();
+                if(home==null)GUILayout.Label("暂无住宅。");
+                else
+                {
+                    GUILayout.BeginHorizontal();GUILayout.BeginVertical(GUILayout.Width(386));
+                    Call("DrawResidenceContents",state,home);
+                    GUILayout.EndVertical();GUILayout.FlexibleSpace();GUILayout.EndHorizontal();
+                }
+            }
+            else if(selected>=0)Call("DrawAnalysisDetail",state);
             else if(page==0)Call("DrawDashboard",state);
             else if(page==3)Call("DrawAnalysisHistory",state);
             else if(page==6)Call("DrawAnalysisTimeline",state);

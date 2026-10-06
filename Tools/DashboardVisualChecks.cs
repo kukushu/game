@@ -42,6 +42,20 @@ public static class DashboardVisualChecks
         DashboardRange.For(Series(new DashboardPoint(s.live.day,s.live.treasury)));
         DashboardPresentation.Ratio(s.live.employed,s.live.workforce);
         Check(TestCity.Snapshot(c)==saved,"Display math never writes simulation or saved state");
+        var residence=new ResidencePresentation(s,s.housing.Count>0?s.housing[0].id:-1);
+        Check(TestCity.Snapshot(c)==saved,"Residence aggregation only observes the snapshot");
+        var rs=new CityAnalysisState();
+        var child=new ResidentAnalysisState {canWork=false,jobId=-1};
+        var worker=new ResidentAnalysisState {canWork=true,jobId=8};
+        var jobless=new ResidentAnalysisState {canWork=true,jobId=-1};
+        var a=new HouseholdAnalysisState {id=7,home=3,unit=1,resident=true,rent=24,employed=1,commute=126};a.members.AddRange(new[]{child,worker,jobless});
+        var b=new HouseholdAnalysisState {id=6,home=3,unit=0,resident=true,rent=38};
+        rs.households.AddRange(new[]{a,b,new HouseholdAnalysisState {id=8,home=3,resident=false,rent=999},new HouseholdAnalysisState {id=9,home=4,resident=true,rent=999}});
+        residence=new ResidencePresentation(rs,3);
+        Check(residence.families.Count==2 && residence.contractRent==62 && residence.employed==1 && residence.commute==126,"Summary includes only resident households in this home and uses their contracted rents");
+        Check(residence.workforce==2 && residence.unemployed==1 && ResidencePresentation.Unemployed(a)==1,"Children are not labelled unemployed");
+        Check(residence.families[0].id==6 && rs.households[0].id==7 && residence.Selected(8)==null,"Display sorting leaves source order intact and departed selection is discarded");
+        Check(new ResidencePresentation(rs,99).families.Count==0 && ResidencePresentation.LongCommute(a),"Empty homes remain empty; a high total commute has an explicit presentation cue");
         Console.WriteLine("PASS: "+checks+" dashboard chart/visual semantics checks");
     }
 }
