@@ -70,26 +70,46 @@ namespace HarborCity
             return DashboardTone.Neutral;
         }
     }
+    public sealed class CommutePresentation
+    {
+        public int samples;
+        public float total,longest;
+        public float Average=>samples==0?0:total/samples;
+        public bool Long=>samples>0 && longest>=120;
+        public void Add(ResidentAnalysisState p)
+        {
+            if(!p.canWork || p.jobId<=0 || !p.hasCommuteObservation || p.commute<0 || float.IsNaN(p.commute) || float.IsInfinity(p.commute))return;
+            samples++;total+=p.commute;longest=Math.Max(longest,p.commute);
+        }
+        public static CommutePresentation For(HouseholdAnalysisState h)
+        {var result=new CommutePresentation();foreach(var p in h.members)result.Add(p);return result;}
+        public string Summary=>samples==0?"暂无实际通勤样本":"实到均 "+Average.ToString("0.#")+" / 最长 "+longest.ToString("0.#")+" 分 · "+samples+" 人样本";
+    }
     // Aggregates only the supplied observation snapshot; never touches gameplay objects.
     public sealed class ResidencePresentation
     {
         public readonly List<HouseholdAnalysisState> families=new List<HouseholdAnalysisState>();
         public int employed,workforce,unemployed,contractRent;
         public float commute;
+        public readonly CommutePresentation actualCommute=new CommutePresentation();
+        public DashboardTone OccupancyTone=>DashboardTone.Neutral;
         public ResidencePresentation(CityAnalysisState state,int home)
         {
             foreach(var h in state.households)
             {
                 if(!h.resident || h.home!=home)continue;
                 families.Add(h);employed+=h.employed;contractRent+=h.rent;commute+=h.commute;
-                foreach(var p in h.members)if(p.canWork) {workforce++;if(p.jobId<=0)unemployed++;}
+                foreach(var p in h.members)
+                {
+                    actualCommute.Add(p);
+                    if(p.canWork) {workforce++;if(p.jobId<=0)unemployed++;}
+                }
             }
             families.Sort((a,b)=>a.unit!=b.unit?a.unit.CompareTo(b.unit):a.id.CompareTo(b.id));
         }
         public HouseholdAnalysisState Selected(int id)=>families.Find(h=>h.id==id);
         public static int Unemployed(HouseholdAnalysisState h)
         {int count=0;foreach(var p in h.members)if(p.canWork && p.jobId<=0)count++;return count;}
-        // A visual cue, explicitly labelled as a total, not a simulation rule.
-        public static bool LongCommute(HouseholdAnalysisState h)=>h.commute>=120;
+        public static bool LongCommute(HouseholdAnalysisState h)=>CommutePresentation.For(h).Long;
     }
 }

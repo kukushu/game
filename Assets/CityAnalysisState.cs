@@ -57,7 +57,7 @@ namespace HarborCity
     [Serializable] public sealed class ResidentAnalysisState
     {
         public int id,householdId,age,jobId,work,home,tripId,wage;
-        public bool canWork,atWork,resident,located,travelling;
+        public bool canWork,atWork,resident,located,travelling,hasCommuteObservation;
         public string name,activity,reason,location,destination;
         public float x,z,workedMinutes,commute,late,progress;
         public double pendingWages;
@@ -266,7 +266,8 @@ namespace HarborCity
                     var ps=new ResidentAnalysisState {id=p.id,householdId=h.id,name=p.name,age=p.age,canWork=p.canWork,resident=h.resident,home=h.home,work=work,
                         jobId=p.jobId,tripId=p.tripId,wage=city.ResidentWage(p),atWork=p.atWork,activity=a.state,reason=a.reason,located=a.located,travelling=a.travelling,
                         x=a.x,z=a.z,progress=a.progress,location=a.travelling?"道路上 / 车辆 #"+p.tripId:Place(a.building),destination=Place(a.destination),
-                        workedMinutes=p.workedMinutes,pendingWages=p.earnedWages+p.factoryWageCredit,commute=p.lastCommute,late=p.lastDelay};
+                        workedMinutes=p.workedMinutes,pendingWages=p.earnedWages+p.factoryWageCredit,commute=p.lastCommute,late=p.lastDelay,
+                        hasCommuteObservation=h.resident && p.canWork && city.ResidentJob(p)!=null && p.lastCommute>=0 && p.observedHome==h.home && p.observedWork==work};
                     hs.members.Add(ps);s.residents.Add(ps);
                     if(h.resident) {live.pendingWages+=ps.pendingWages;if(p.atWork && p.tripId==0)live.atWork++;}
                 }

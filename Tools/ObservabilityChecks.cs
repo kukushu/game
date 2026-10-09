@@ -89,6 +89,14 @@ public static class ObservabilityChecks
         Check(ReferenceEquals(c.analysis,a),"Disposing a trace writer never detaches runtime analysis");
         var oldReport=a.Latest;var oldJson=Serialize(oldReport);new CityTraffic(c).Advance(12);a.Refresh(true);
         Check(Serialize(oldReport)==oldJson && a.Failure==null,"Completed reports remain stable after subsequent current-day refreshes");
+        c=City();a=Attach(c);var homeFamily=c.society.families.First(h=>h.resident && h.people.Any(p=>c.ResidentJob(p)!=null));
+        var commuter=homeFamily.people.First(p=>c.ResidentJob(p)!=null);
+        commuter.lastCommute=42;commuter.observedHome=homeFamily.home;commuter.observedWork=c.Workplace(commuter);
+        Check(a.Refresh(true).Resident(commuter.id).hasCommuteObservation,"Actual commute snapshot recognises matching current home and job");
+        commuter.observedWork=-1;
+        Check(!a.Refresh(true).Resident(commuter.id).hasCommuteObservation,"Old-job commute is not a current actual sample");
+        commuter.observedWork=c.Workplace(commuter);commuter.observedHome=-1;
+        Check(!a.Refresh(true).Resident(commuter.id).hasCommuteObservation,"Old-home commute is not a current actual sample");
         Console.WriteLine("PASS: "+checks+" runtime observability/dashboard checks");
     }
 }

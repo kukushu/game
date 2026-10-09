@@ -47,7 +47,7 @@ namespace HarborCity
             GUI.Label(new Rect(r.x+10,r.y+5,r.width-15,r.height-8),(locatedTrafficOrigin?"出发地：":"目的地：")+name,small);
         }
         Household VisibleCommuter() => city.society?.families.Find(f=>f.id==commuteFamily && f.resident && f.home==inspectedHome);
-        CityResident FamilyCommuter(Household f) => f?.people.Find(p=>p.id==inspectedResident && city.Workplace(p)>=0) ?? f?.people.Find(p=>city.Workplace(p)>=0);
+        CityResident FamilyCommuter(Household f) => f?.people.Find(p=>p.id==inspectedResident && city.Workplace(p)>=0);
         int FamilyWorkplace(Household f) => city.Workplace(FamilyCommuter(f));
         bool HasWorkplace(Household f) => FamilyWorkplace(f)>=0;
         string WorkplaceName(CityResident p) => city.Workplace(p)<0?"暂无工作地点":names[(int)city.UseOf(city.Workplace(p))]+" #"+city.Workplace(p);
@@ -60,8 +60,15 @@ namespace HarborCity
             {
                 var b=city.GetBuilding(FamilyWorkplace(family)); focus=new Vector3(b.x,0,b.z); zoom=24; UpdateCamera();
             }
-            notice="家庭 #"+family.id+"：住宅 #"+family.home+" → "+WorkplaceName(family)+"。绿色为住宅，橙色为工作地点；显示预计通勤路线。";
+            notice="居民 #"+FamilyCommuter(family).id+"：住宅 #"+family.home+" → "+WorkplaceName(family)+"。绿色为住宅，橙色为工作地点；显示预计通勤路线。";
             UpdateCommuteView();
+        }
+        void ShowResidentWorkplace(int citizenId,bool locate)
+        {
+            var family=city.society.families.Find(h=>h.resident && h.people.Exists(p=>p.id==citizenId && city.Workplace(p)>=0));
+            if(family==null) {notice="该居民目前没有有效工作地点。";return;}
+            selected=LandUse.Empty;inspectedHome=family.home;inspectedResident=citizenId;followResident=false;
+            ShowWorkplace(family,locate);
         }
         LineRenderer CommuteRenderer(string name,Color color,float width)
         {

@@ -55,7 +55,26 @@ public static class DashboardVisualChecks
         Check(residence.families.Count==2 && residence.contractRent==62 && residence.employed==1 && residence.commute==126,"Summary includes only resident households in this home and uses their contracted rents");
         Check(residence.workforce==2 && residence.unemployed==1 && ResidencePresentation.Unemployed(a)==1,"Children are not labelled unemployed");
         Check(residence.families[0].id==6 && rs.households[0].id==7 && residence.Selected(8)==null,"Display sorting leaves source order intact and departed selection is discarded");
-        Check(new ResidencePresentation(rs,99).families.Count==0 && ResidencePresentation.LongCommute(a),"Empty homes remain empty; a high total commute has an explicit presentation cue");
+        Check(new ResidencePresentation(rs,99).families.Count==0 && !ResidencePresentation.LongCommute(a),"Empty homes remain empty; family cost total never creates a long-commute alert");
+        Check(residence.OccupancyTone==DashboardTone.Neutral,"Ordinary vacancy is neutral without analysed evidence of a problem");
+        Check(DashboardPresentation.Ratio(residence.employed,residence.workforce)==.5,"Employment rate uses workers, not all residents");
+        worker.hasCommuteObservation=true;worker.commute=65;
+        var another=new ResidentAnalysisState {canWork=true,jobId=9,commute=70,hasCommuteObservation=true};
+        a.members.Add(another);a.employed=2;a.commute=135;
+        var actual=CommutePresentation.For(a);
+        Check(actual.samples==2 && actual.Average==67.5f && actual.longest==70 && !ResidencePresentation.LongCommute(a),"Multiple normal commuters do not create a long-commute warning from their sum");
+        child.commute=999;child.hasCommuteObservation=true;jobless.commute=999;jobless.hasCommuteObservation=true;
+        a.members.Add(new ResidentAnalysisState {canWork=true,jobId=10,commute=-1});
+        a.members.Add(new ResidentAnalysisState {canWork=true,jobId=11,commute=180,hasCommuteObservation=false});
+        actual=CommutePresentation.For(a);
+        Check(actual.samples==2 && actual.longest==70,"Children, unemployment, missing samples and obsolete home/job observations are excluded");
+        another.commute=125;actual=CommutePresentation.For(a);
+        Check(actual.samples==2 && actual.Average==95 && actual.longest==125 && actual.Long,"Long commute reflects a measured individual journey, with sample count");
+        worker.commute=0;another.hasCommuteObservation=false;
+        actual=CommutePresentation.For(a);
+        Check(actual.samples==1 && actual.Average==0 && actual.Summary.Contains("1 人样本"),"A genuine zero-minute observation is distinct from no sample");
+        worker.hasCommuteObservation=false;
+        Check(CommutePresentation.For(a).samples==0 && CommutePresentation.For(a).Summary.Contains("暂无"),"No observations are labelled explicitly");
         Console.WriteLine("PASS: "+checks+" dashboard chart/visual semantics checks");
     }
 }

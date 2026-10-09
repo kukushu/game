@@ -138,7 +138,8 @@ namespace HarborCity
                 FieldRow("当前住房 / 单元","#"+h.home+" / "+(h.unit+1));
                 FieldRow("储蓄",Money(h.savings));FieldRow("租金 / 欠租",Money(h.rent)+" / "+Money(h.arrears));
                 FieldRow("合同收入",Money(h.expectedIncome));FieldRow("最近日结工资",Money(h.income));
-                FieldRow("成员通勤合计",Minutes(h.commute));FieldRow("下次评估","D"+h.reviewDay);
+                FieldRow("实际通勤",CommutePresentation.For(h).Summary);
+                FieldRow("家庭通勤成本合计",Minutes(h.commute)+"（方案）");FieldRow("下次评估","D"+h.reviewDay);
                 SectionCard("成员 · 点击查看居民");
                 foreach(var p in h.members)EntityButton(p.name+" #"+p.id+"  |  工作场所 #"+p.work+"  |  "+p.activity,AnalysisEntityKind.Resident,p.id);
                 Heading("最近实际决策");var d=h.decision;
@@ -170,11 +171,19 @@ namespace HarborCity
                 SectionCard("工作与实际出勤");
                 FieldRow("工作场所 / 岗位","#"+p.work+" / #"+p.jobId);FieldRow("合同工资",Money(p.wage));
                 FieldRow("今日在岗",Minutes(p.workedMinutes));FieldRow("待入家庭工资",Money(p.pendingWages));
-                FieldRow("最近实际通勤",Minutes(p.commute));FieldRow("最近迟到",Minutes(p.late),p.late>=15?DashboardTone.Attention:DashboardTone.Neutral);
+                FieldRow("最近实际通勤",p.hasCommuteObservation?Minutes(p.commute):"暂无当前住房 / 工作的实际样本");FieldRow("最近迟到",Minutes(p.late),p.late>=15?DashboardTone.Attention:DashboardTone.Neutral);
                 Text(p.reason);
                 EntityButton("家庭 #"+p.householdId,AnalysisEntityKind.Household,p.householdId);
                 if(p.work>=0)EntityButton("工作场所 #"+p.work,s.Business(p.work)?.industrial==true?AnalysisEntityKind.Factory:AnalysisEntityKind.Commercial,p.work);
                 if(p.tripId>0)EntityButton("当前车辆 #"+p.tripId,AnalysisEntityKind.Trip,p.tripId);
+                if(p.jobId>0 && p.work>=0)
+                {
+                    bool enabled=GUI.enabled;GUI.enabled=enabled && !dashboardPreviewOnly;
+                    GUILayout.BeginHorizontal();
+                    if(GUILayout.Button("显示路线",button))ShowResidentWorkplace(p.id,false);
+                    if(GUILayout.Button("定位工作",button))ShowResidentWorkplace(p.id,true);
+                    GUILayout.EndHorizontal();GUI.enabled=enabled;
+                }
                 GUI.enabled=p.located;
                 if(GUILayout.Button("定位居民",button))LocateAnalysisResident(p.id,false);
                 if(GUILayout.Button("跟随居民",button))LocateAnalysisResident(p.id,true);
