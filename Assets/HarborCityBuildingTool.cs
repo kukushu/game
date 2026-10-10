@@ -59,7 +59,7 @@ namespace HarborCity
         }
         void HandleBuildingInput(Mouse mouse,Ray ray,bool blocked)
         {
-            bool build=selected>=LandUse.Residential && selected<=LandUse.Park;
+            bool build=selected>=LandUse.Power && selected<=LandUse.Park;
             ResetBuildingPreview();
             if(blocked || (!build && selected!=LandUse.Bulldoze) || !landscape.Raycast(ray,out var hit)) return;
             int existing=-1;
@@ -73,7 +73,7 @@ namespace HarborCity
             {
                 // Do not filter by existing buildings: overlaps must stay visible
                 // as a red preview with the authoritative CanBuild rejection.
-                previewLot=city.RoadsidePreview(hit.x,hit.z,selected,housingChoice,out placementReason);
+                previewLot=city.RoadsidePreview(hit.x,hit.z,SelectedFacility,housingChoice,out placementReason);
                 if(previewLot==null) return;
                 previewValid=city.CanBuild(previewLot,landscape.Height,out placementReason);
             }
@@ -84,14 +84,14 @@ namespace HarborCity
             if(selected==LandUse.Bulldoze)
             {
                 if(city.DemolishBuilding(existing)) {DrawLot(existing); notice="已拆除建筑，原有车辆会重新处理目的地。"; ResetBuildingPreview();}
-                else notice="资金不足，无法拆除。";
+                else notice=city.GetBuilding(existing) is ClinicBuilding?"当前诊所仍有关联患者或救护车，暂不能拆除。":city.GetBuilding(existing) is LandfillBuilding?"填埋场需要清空库存并等待关联车辆返回后才能拆除。":"资金不足，无法拆除。";
             }
             else
             {
-                int id=city.PlaceBuilding(previewLot,selected,landscape.Height,out string error);
+                int id=city.PlaceBuilding(previewLot,SelectedFacility,landscape.Height,out string error);
                 if(id>=0)
                 {
-                    DrawLot(id); notice="已建设沿路"+names[(int)selected]+" #"+id+"。";
+                    DrawLot(id); notice="已建设沿路"+names[(int)SelectedFacility]+" #"+id+"。";
                     // The next click would overlap this building; update immediately.
                     previewValid=city.CanBuild(previewLot,landscape.Height,out placementReason);
                     DrawBuildingPreview(previewLot,new Color(.95f,.25f,.2f));

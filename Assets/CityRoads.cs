@@ -138,6 +138,8 @@ namespace HarborCity
             { plan.error="道路超出当前建设边界"; return plan; }
             foreach(var building in city.buildings) if(building.HitsRoad(from,to))
             { plan.error="道路侵占建筑或分区，请先拆除或绕行"; return plan; }
+            foreach(var project in city.development.projects) if(project.building.ToBuilding().HitsRoad(from,to))
+            {plan.error="道路侵占正在施工的建筑，请绕行";return plan;}
             float previous=height(from.x,from.z); int samples=(int)Math.Ceiling(plan.length/.5f);
             float rx=-(to.z-from.z)/plan.length,rz=(to.x-from.x)/plan.length;
             for(int i=0;i<=samples;i++)
@@ -284,6 +286,17 @@ namespace HarborCity
             return result;
         }
 
+        // Preserve the previous curve's terminal tangent. Handle length remains a
+        // provisional drawing rule; it is not claimed to match the original tool.
+        public static RoadNode ContinuationControl(RoadNode from,RoadNode previousControl,RoadNode to)
+        {
+            float dx=from.x-previousControl.x,dz=from.z-previousControl.z;
+            float magnitude=(float)Math.Sqrt(dx*dx+dz*dz);
+            if(magnitude<.001f)return from.Copy();
+            float handle=Length(from,to)/2;
+            return new RoadNode{x=from.x+dx/magnitude*handle,z=from.z+dz/magnitude*handle,y=from.y};
+        }
+
         public void ApplySplits(TrafficState traffic,List<RoadSplit> splits)
         {
             if(traffic==null) return;
@@ -321,7 +334,7 @@ namespace HarborCity
                     float dot=((b.x-a.x)*(c.x-b.x)+(b.z-a.z)*(c.z-b.z))/(Length(a,b)*Length(b,c));
                     var following=edges.Find(e=>e.a==current && e.b==next || e.b==current && e.a==next);
                     if(following==null || result.Contains(following.id)) break;
-                    if(dot<.995f && (edge.stroke==0 || following.stroke!=edge.stroke)) break;
+                    if(edge.stroke!=0 && following.stroke!=edge.stroke || dot<.995f && edge.stroke==0) break;
                     result.Add(following.id); previous=current; current=next;
                 }
             }

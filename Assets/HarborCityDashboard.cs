@@ -79,11 +79,20 @@ namespace HarborCity
         void DrawBusinessSummary(BusinessAnalysisState b)
         {
             DashboardStyles();Rect badge=Block(28);StatusBadge(badge,b.status+(b.connected?" · 道路已接通":" · 道路未接通"),DashboardPresentation.StateTone(b.status));
+            if(city.development.enabled)StatusBadge(Block(24),city.BuildingConditionLabel(b.id),city.GetBuilding(b.id).abandoned?DashboardTone.Critical:city.HasBasicServices(b.id)?DashboardTone.Positive:DashboardTone.Attention);
             if(b.industrial)
             {
                 Rect cards=Block(110);
-                MetricCard(CardCell(cards,0,2),"当前现金",Money(b.cash),"当前状态",b.cash<=0?DashboardTone.Critical:DashboardTone.Neutral);
-                MetricCard(CardCell(cards,1,2),"今日经营盈余",b.today==null?"—":Money(b.today.profit),"包含预付采购",b.today?.profit<0?DashboardTone.Attention:DashboardTone.Neutral);
+                if(city.development.enabled)
+                {
+                    MetricCard(CardCell(cards,0,2),"今日实际产量",b.today==null?"—":b.today.produced.ToString(),"实际加工完成",DashboardTone.Neutral);
+                    MetricCard(CardCell(cards,1,2),"今日实际销售",b.today==null?"—":b.today.sold.ToString(),"实际商品交付",DashboardTone.Neutral);
+                }
+                else
+                {
+                    MetricCard(CardCell(cards,0,2),"当前现金",Money(b.cash),"当前状态",b.cash<=0?DashboardTone.Critical:DashboardTone.Neutral);
+                    MetricCard(CardCell(cards,1,2),"今日经营盈余",b.today==null?"—":Money(b.today.profit),"包含预付采购",b.today?.profit<0?DashboardTone.Attention:DashboardTone.Neutral);
+                }
                 ProgressMetric("原料",b.raw,FactoryState.RawCapacity,b.raw==0?DashboardTone.Attention:DashboardTone.Neutral,"在途 "+b.incomingRaw);
                 ProgressMetric("成品",b.goods,FactoryState.GoodsCapacity,b.goods>=FactoryState.GoodsCapacity?DashboardTone.Attention:DashboardTone.Neutral,"待交付 "+b.outgoingGoods);
                 ProgressMetric("加工",b.progress,FactoryState.LabourPerItem,suffix:"工人分钟");
@@ -92,7 +101,12 @@ namespace HarborCity
             ProgressMetric("岗位 / 已雇",b.employees.Count,b.slots);
             ProgressMetric("当前实际在岗",b.attending,b.employees.Count);
             FieldRow("资金可用岗位",b.fundedJobs.ToString());
-            if(!b.industrial) {Text("商业沿用简化外部资金；当前没有独立现金或利润账。");return;}
+            if(!b.industrial)
+            {
+                var shop=city.GetBuilding(b.id) as CommercialBuilding;
+                if(shop!=null){FieldRow("实际到店 / 售出",shop.customers+" / "+shop.retailSold);FieldRow("今日售出",(shop.retailDay==city.day?shop.retailSoldToday:0)+" 件");}
+                Text("商品由居民实际到店购买并带回家；私人付款暂简化。");return;
+            }
             var d=b.today;if(d==null)return;
             SectionCard("今日产销与出勤");
             double max=Math.Max(1,Math.Max(d.produced,Math.Max(d.sold,d.shipped)));

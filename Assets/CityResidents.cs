@@ -6,11 +6,21 @@ namespace HarborCity
     [Serializable] public sealed class CityResident
     {
         public int id, age;
+        public double ageProgress;
+        public int lastAgeDay;
         public string name;
-        public bool canWork;
+        public bool canWork,dead;
         public int householdId, skill, jobId=-1, wagePaid;
         public int tripId, departureDay=-1, arrivedDay=-1, location=-1, observedHome=-1, observedWork=-1, observedRevision=-1;
         public bool atWork;
+        public float health=100;
+        public bool sick;
+        public MedicalStage medicalStage;
+        public int medicalClinicId=-1;
+        public float treatmentMinutes;
+        public int education,schoolId=-1,schoolDepartureDay=-1,schoolArrivedDay=-1;
+        public bool atSchool,schoolReturning;
+        public float studyMinutes,schoolMinutesToday,highSchoolStudyMinutes,universityStudyMinutes;
         public double factoryWageCredit;
         public int totalFactoryWagesPaid;
         public float earnedWages, workedMinutes, lastCommute=-1, lastDelay, retryAt, requestedAt=-1;
@@ -26,12 +36,17 @@ namespace HarborCity
     }
     public sealed partial class CityModel
     {
+        public int AllocateResidentId()
+        {
+            if(society.nextCitizenId<1 || society.nextCitizenId>=int.MaxValue-1)throw new InvalidOperationException("居民编号已耗尽或编号状态无效");
+            return society.nextCitizenId++;
+        }
         void InitializeResidents(Household h,int count)
         {
             if(h.people==null) h.people=new List<CityResident>();
             while(h.people.Count<count)
             {
-                int slot=h.people.Count, id=h.id*10+slot;
+                int slot=h.people.Count, id=AllocateResidentId();
                 int age=slot==0?25+h.id%30:slot==1?24+h.id%30:6+(h.id+slot)%12;
                 h.people.Add(new CityResident {id=id,householdId=h.id, name="赵钱孙李周吴郑王陈林"[h.id%10].ToString()+
                     new[]{"安","宁","晨","悦","远","禾","清","乐"}[id%8]+new[]{"然","明","雅","辰","舟"}[(id/8)%5],

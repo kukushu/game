@@ -38,12 +38,12 @@ namespace HarborCity
             h.trafficSensitivity=.2f+(h.id*71%101)/125f;
         }
         public FactoryState Factory(int id) => (GetBuilding(id) as IndustrialBuilding)?.factory;
-        public bool JobFunded(CityJob job) => job!=null && (Factory(job.buildingId)==null || Factory(job.buildingId).cash>0);
+        public bool JobFunded(CityJob job) => job!=null && (development.enabled || Factory(job.buildingId)==null || Factory(job.buildingId).cash>0);
         public int ExpectedJobWage(CityJob job)
         {
             if(job==null) return 0;
             var f=Factory(job.buildingId);
-            return f==null?job.wage:(int)Math.Min(job.wage,Math.Floor(f.cash/Math.Max(1,EmployedAt(job.buildingId))));
+            return f==null || development.enabled?job.wage:(int)Math.Min(job.wage,Math.Floor(f.cash/Math.Max(1,EmployedAt(job.buildingId))));
         }
         // Employer cash becomes a saved citizen credit immediately. Day-end transfers
         // whole units to savings and carries fractions, never rounding into new money.
@@ -51,7 +51,7 @@ namespace HarborCity
         {
             double due=(double)minutes/480*ResidentWage(person);
             var f=Factory(Workplace(person));
-            if(f==null) {person.earnedWages+=(float)due; return;}
+            if(f==null || development.enabled) {person.earnedWages+=(float)due; return;}
             double paid=Math.Min(f.cash,due);
             f.cash-=paid; f.wageCosts+=paid; f.unpaidWages+=due-paid;
             person.factoryWageCredit+=paid;
@@ -72,19 +72,24 @@ namespace HarborCity
             if(f==null || attendance<=0 || !person.canWork || !person.atWork || person.tripId!=0 || person.location!=id || person.arrivedDay!=day) return;
             f.attendanceMinutes+=attendance; f.stepAttendance+=attendance;
             double productiveBefore=f.productiveMinutes; float rawLost=0, stockLost=0, fundsLost=Math.Max(0,attendance-minutes);
+            if(development.enabled && (GetBuilding(id).burning || GetBuilding(id).burned || !Supply(id).Complete)) {f.status=BuildingConditionLabel(id);return;}
             while(minutes>.000001f)
             {
                 if(Inventory(id).Stock>=FactoryState.GoodsCapacity) {stockLost=minutes; break;}
                 if(!f.processing)
                 {
                     if(f.raw==0) {rawLost=minutes; break;}
-                    if(f.cash<FactoryState.ProcessingCost) {fundsLost+=minutes; break;}
-                    f.cash-=FactoryState.ProcessingCost; f.productionCosts+=FactoryState.ProcessingCost;
+                    if(!development.enabled)
+                    {
+                        if(f.cash<FactoryState.ProcessingCost) {fundsLost+=minutes; break;}
+                        f.cash-=FactoryState.ProcessingCost; f.productionCosts+=FactoryState.ProcessingCost;
+                    }
                     f.raw--; f.consumed++; f.processing=true; f.progress=0;
                     Trace("factory.input","领用一份原料开始加工",f,building:id,citizen:person.id,job:person.jobId,household:person.householdId);
                 }
-                float work=Math.Min(minutes,FactoryState.LabourPerItem-f.progress);
-                f.progress+=work; f.productiveMinutes+=work; f.stepProductive+=work; minutes-=work;
+                float rate=FactoryProcessingRate(id);
+                float work=Math.Min(minutes,(FactoryState.LabourPerItem-f.progress)/rate);
+                f.progress+=work*rate; f.productiveMinutes+=work; f.stepProductive+=work; minutes-=work;
                 if(f.progress>=FactoryState.LabourPerItem-.00001f)
                 {
                     Inventory(id).Stock++; f.produced++; f.progress=0; f.processing=false;
@@ -97,19 +102,22 @@ namespace HarborCity
         static float Falloff(float distance,float radius) => Math.Max(0,1-distance/radius);
         public LocalEnvironment EnvironmentAt(int home)
         {
+            var target=Residence(home);if(target==null)return new LocalEnvironment();
+            var result=EnvironmentAt(target.x,target.z);result.heavyTraffic=target.heavyTraffic;return result;
+        }
+        public LocalEnvironment EnvironmentAt(float x,float z)
+        {
             var result=new LocalEnvironment();
-            if(Residence(home)==null) return result;
-            var target=Residence(home); result.heavyTraffic=target.heavyTraffic;
             foreach(var b in buildings)
             {
                 var f=(b as IndustrialBuilding)?.factory; if(f==null) continue;
-                float distance=(float)Math.Sqrt((b.x-target.x)*(b.x-target.x)+(b.z-target.z)*(b.z-target.z));
+                float distance=(float)Math.Sqrt((b.x-x)*(b.x-x)+(b.z-z)*(b.z-z));
                 result.noise+=f.noise*Falloff(distance,24);
                 result.pollution+=f.pollution*Falloff(distance,45);
             }
             foreach(var old in residualIndustry)
             {
-                float distance=(float)Math.Sqrt((old.x-target.x)*(old.x-target.x)+(old.z-target.z)*(old.z-target.z));
+                float distance=(float)Math.Sqrt((old.x-x)*(old.x-x)+(old.z-z)*(old.z-z));
                 result.noise+=old.noise*Falloff(distance,24);result.pollution+=old.pollution*Falloff(distance,45);
             }
             return result;
@@ -130,8 +138,8 @@ namespace HarborCity
                     // Normalised worker-equivalents from actual processing, not job occupancy.
                     float activity=f.stepProductive/minutes/4;
                     f.noise=f.noise*noiseKeep+activity*(1-noiseKeep);
-                    f.pollution=f.pollution*pollutionKeep+activity*(1-pollutionKeep);
-                    string state=f.cash<=0?"资金耗尽":!f.processing && f.raw>0 && f.cash<FactoryState.ProcessingCost?"加工资金不足":f.stepAttendance==0?"缺工":Inventory(b.id).Stock>=FactoryState.GoodsCapacity?"成品仓满":!f.processing && f.raw==0?"缺料":"生产中";
+                    f.pollution=f.pollution*pollutionKeep+activity*(1-pollutionKeep)/(development.enabled?1+.3f*(b.level-1):1);
+                    string state=b.abandoned?"已废弃":development.enabled && !Supply(b.id).Complete?Supply(b.id).Problem:!development.enabled && f.cash<=0?"资金耗尽":!development.enabled && !f.processing && f.raw>0 && f.cash<FactoryState.ProcessingCost?"加工资金不足":f.stepAttendance==0?"缺工":Inventory(b.id).Stock>=FactoryState.GoodsCapacity?"成品仓满":!f.processing && f.raw==0?"缺料":"生产中";
                     if(state!=f.status) {f.status=state; Trace("factory.status",state,f,building:b.id);}
                     f.stepAttendance=f.stepProductive=0;
                 }

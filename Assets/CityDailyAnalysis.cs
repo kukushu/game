@@ -140,7 +140,7 @@ namespace HarborCity
             foreach(var t in city.traffic.trips)
             {
                 ObserveRuntimeTraffic(t);
-                if(t.residentId>0 || t.purpose<TripPurpose.Delivery || t.status==TripStatus.Visiting
+                if(t.residentId>0 || t.cargoKind==CargoKind.Waste || t.purpose<TripPurpose.Delivery || t.status==TripStatus.Visiting
                     || t.blocked*1440/city.society.settings.secondsPerDay<30) continue;
                 longFreight.Add(t.id);
                 if(!t.returning && t.cargoKind==CargoKind.RawMaterial && city.Factory(t.destination)!=null) Evidence(t.destination).inputWaiting.Add(t.id);
@@ -230,7 +230,7 @@ namespace HarborCity
                 fundedJobs=city.society.jobEntities.Count(city.JobFunded),commuteBefore=commuteBefore,commuteAfter=city.AverageCommute,
                 commuteSamplesBefore=commuteSamplesBefore,commuteSamplesAfter=CommuteObservations(),
                 lateResidents=lateResidents.Count,commuteSamples=arrivals.Count,todayArrivalCommute=arrivals.Count==0?0:(float)(arrivalCommute/arrivals.Count),longWaitingFreight=longFreight.Count,
-                pendingCommuters=city.traffic.trips.Count(t=>t.residentId>0 && !t.returning),arrived=runtimeArrived,moved=runtimeMoved,left=runtimeLeft,
+                pendingCommuters=city.traffic.trips.Count(t=>t.residentId>0 && t.purpose==TripPurpose.Commute && !t.returning),arrived=runtimeArrived,moved=runtimeMoved,left=runtimeLeft,
                 wages=ledger?.wages??0,factoryWages=ledger?.factoryWages??0,externalWages=ledger?.externalWages??0,unpaidRent=ledger?.unpaidRent??0};
             foreach(var b in city.buildings.OrderBy(b=>b.id))
             {
@@ -284,12 +284,12 @@ namespace HarborCity
             report.attention=report.attention.OrderByDescending(a=>a.severity).ThenBy(a=>a.title,StringComparer.Ordinal).Take(5).ToList();
             return report;
         }
-        static void ExplainFactory(FactoryDailySummary f)
+        void ExplainFactory(FactoryDailySummary f)
         {
             if(!f.active) {f.mainBottleneck="已拆除"; return;}
             if(f.rawBlocked>.01) f.causes.Add(new AnalysisFinding {code="raw",title="原料不足",severity=f.rawBlocked,evidence="真实在岗期间有 "+F(f.rawBlocked)+" 工人分钟因没有可用原料而无法加工；首次观测约 "+Time(f.firstRawBlock)+"。原料末库存 "+f.raw+"，在途 "+f.incomingRaw+"。"});
             if(f.stockBlocked>.01) f.causes.Add(new AnalysisFinding {code="stock",title="成品仓满",severity=f.stockBlocked,evidence="真实在岗期间有 "+F(f.stockBlocked)+" 工人分钟被成品容量阻断；首次观测约 "+Time(f.firstStockBlock)+"。本日实售 "+f.sold+"，装车运出 "+f.shipped+"（运出不是收入）。"});
-            if(f.fundsBlocked>.01 || f.unpaidWages>.01 || f.cash<=0 && f.cashBefore<=0 && f.revenue==0 && f.capitalInflow==0)
+            if(!city.development.enabled && (f.fundsBlocked>.01 || f.unpaidWages>.01 || f.cash<=0 && f.cashBefore<=0 && f.revenue==0 && f.capitalInflow==0))
                 f.causes.Add(new AnalysisFinding {code="cash",title="经营资金不足",severity=f.cash<=0 && f.attendance<=0?Math.Max(1,f.assigned*480+1):Math.Max(1,f.fundsBlocked),evidence="资金不足阻断 "+F(f.fundsBlocked)+" 工人分钟；现金 "+F(f.cashBefore)+" → "+F(f.cash)+"；未付实际出勤 ¥"+F(f.unpaidWages)+"。"});
             if(f.attended==0) f.causes.Add(new AnalysisFinding {code="workers",title="没有观测到工人到岗",severity=Math.Max(1,f.assigned*480),evidence="记录区间内观测到岗 0 / 曾分配员工 "+f.assigned+" 人；没有实际劳动不能生产。不能仅据此区分空缺、未出发和途中未到达。"});
             if(f.late>0) f.causes.Add(new AnalysisFinding {code="late",title="工人实际迟到",severity=f.late*15,evidence=f.late+" 名工人实际到达时较原计划班次迟到至少 15 游戏分钟；跨日到达不等于今日损失相同劳动时间，不能据人数估算减产。"});
@@ -300,7 +300,7 @@ namespace HarborCity
             f.mainBottleneck=f.causes.Count>0?f.causes[0].title:f.produced>0?"未观测到明显生产阻断":"证据不足，不能判断低产原因";
             if(f.rawBlocked+f.stockBlocked+f.fundsBlocked>.01) f.effects.Add("观测到 "+F(f.rawBlocked+f.stockBlocked+f.fundsBlocked)+" 工人分钟未转化为加工劳动；其中付薪闲置会消耗经营现金。");
             if(f.unpaidWages>.01) f.effects.Add("本厂有 ¥"+F(f.unpaidWages)+" 实际出勤工资未支付，不能进入居民工资余额。");
-            if(f.cash<=0) f.effects.Add("资金已耗尽，岗位不能继续招聘，现有劳动者按真实道路返家；已有货物实际售出才可恢复现金。");
+            if(!city.development.enabled && f.cash<=0) f.effects.Add("资金已耗尽，岗位不能继续招聘，现有劳动者按真实道路返家；已有货物实际售出才可恢复现金。");
             if(f.profit<-.01) f.effects.Add("本日经营收支差额 ¥"+F(f.profit)+"；包含当日预付采购，不是按销售成本匹配的会计利润。");
             if(Math.Abs(f.noise-f.noiseBefore)>.01 || Math.Abs(f.pollution-f.pollutionBefore)>.01)
                 f.effects.Add("活动暴露变化：噪声 "+F(f.noiseBefore)+" → "+F(f.noise)+"，污染 "+F(f.pollutionBefore)+" → "+F(f.pollution)+"；由实际加工活动和既有衰减规则更新。");

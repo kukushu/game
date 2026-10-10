@@ -19,7 +19,7 @@ namespace HarborCity
         }
         public int Workplace(CityResident p) => ResidentJob(p)?.buildingId ?? -1;
         public int ResidentWage(CityResident p) => ResidentJob(p)?.wage ?? 0;
-        public IEnumerable<CityResident> Citizens => society.families.Where(h=>h.resident).SelectMany(h=>h.people);
+        public IEnumerable<CityResident> Citizens => society.families.Where(h=>h.resident).SelectMany(h=>h.people).Where(p=>!p.dead);
         public int Employed => Citizens.Count(p=>p.canWork && ResidentJob(p)!=null);
         public int Unemployed => Citizens.Count(p=>p.canWork && ResidentJob(p)==null);
         public int HouseholdSalary(Household h) => h.people.Sum(p=>ExpectedJobWage(ResidentJob(p)));
@@ -29,7 +29,7 @@ namespace HarborCity
         public float AverageCommute => Citizens.Where(p=>ResidentJob(p)!=null && p.lastCommute>=0 && p.observedWork==Workplace(p)
             && society.families.Any(h=>h.id==p.householdId && h.home==p.observedHome))
             .Select(p=>p.lastCommute).DefaultIfEmpty(0).Average();
-        int BuildingJobSlots(int id) => GetBuilding(id) is CommercialBuilding || GetBuilding(id) is IndustrialBuilding?GetBuilding(id).level*4:0;
+        int BuildingJobSlots(int id) => GetBuilding(id)!=null && !GetBuilding(id).abandoned && (GetBuilding(id) is CommercialBuilding || GetBuilding(id) is IndustrialBuilding)?GetBuilding(id).level*4:0;
         public void ReleaseJob(CityResident p)
         {
             var job=ResidentJob(p); if(job!=null) job.occupiedCitizenId=-1;
@@ -43,6 +43,7 @@ namespace HarborCity
             if(!JobFunded(job) || !p.canWork || p.age<18 || p.skill<job.requiredSkill ||
                 (job.occupiedCitizenId!=-1 && job.occupiedCitizenId!=p.id)) return false;
             if(p.jobId==jobId) return true;
+            if(GetBuilding(job.buildingId)?.burning==true) return false;
             // Normal choices cannot change employment halfway through a trip/shift.
             if(p.tripId>0 || p.atWork) return false;
             ReleaseJob(p); p.jobId=job.id; job.occupiedCitizenId=p.id;
@@ -99,14 +100,14 @@ namespace HarborCity
         }
         public bool ValidJobs()
         {
-            if(society.jobEntities==null || society.nextJobId<1) return false;
+            if(society.jobEntities==null || society.nextJobId<1 || society.nextCitizenId<1 || society.nextCitizenId==int.MaxValue) return false;
             var citizens=new Dictionary<int,CityResident>(); var residentIds=new HashSet<int>();
             foreach(var h in society.families)
             {
                 if(h.people==null || h.people.Count==0) return false;
                 foreach(var p in h.people)
                 {
-                    if(p==null || p.id<=0 || citizens.ContainsKey(p.id) || p.householdId!=h.id || p.skill<0 || p.canWork && p.age<18 || p.jobId < -1) return false;
+                    if(p==null || p.id<=0 || p.id>=society.nextCitizenId || citizens.ContainsKey(p.id) || p.householdId!=h.id || p.skill<0 || p.canWork && p.age<18 || p.jobId < -1) return false;
                     citizens.Add(p.id,p); if(h.resident) residentIds.Add(p.id);
                 }
             }

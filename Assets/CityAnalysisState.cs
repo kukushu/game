@@ -48,7 +48,7 @@ namespace HarborCity
     }
     [Serializable] public sealed class CityHistorySample
     {
-        public int day,population,households,employed,unemployed,treasury,wages,rent,maintenance,arrived,moved,left;
+        public int day,population,households,employed,unemployed,treasury,wages,rent,tax,maintenance,arrived,moved,left;
         public int produced,sold;
         public float averageCommute;
         public bool industryKnown,partial;
@@ -146,10 +146,10 @@ namespace HarborCity
         static CityHistorySample HistorySample(HouseholdDay d,CityAnalysisReport report)
         {
             return new CityHistorySample {day=d.day-1,population=d.population,households=d.households,employed=d.employed,unemployed=d.unemployed,
-                treasury=d.closingTreasury,wages=d.wages,rent=d.rent,maintenance=d.maintenance,arrived=d.arrived,moved=d.moved,left=d.left,
+                treasury=d.closingTreasury,wages=d.wages,rent=d.rent,tax=d.tax,maintenance=d.maintenance,arrived=d.arrived,moved=d.moved,left=d.left,
                 averageCommute=d.averageCommute,industryKnown=report!=null,partial=report?.partial??false,
                 produced=report?.factories.Sum(f=>f.produced)??0,sold=report?.factories.Sum(f=>f.sold)??0,
-                treasuryError=d.closingTreasury-d.openingTreasury-d.rent+d.maintenance,
+                treasuryError=d.closingTreasury-d.openingTreasury-d.tax-d.rent+d.maintenance,
                 savingsError=d.closingSavings-d.openingSavings-d.wages+d.rent+d.living+d.travel+d.movingCosts};
         }
         void CompleteRuntimeDay(CityAnalysisReport report,HouseholdDay ledger)
@@ -200,7 +200,7 @@ namespace HarborCity
                 && t.blocked*1440/city.society.settings.secondsPerDay>=30;
             if(!blocked) {waitingEpisodes.Remove(t.id);return;}
             if(waitingEpisodes.Add(t.id))
-                Key("freight.blocked","货运 #"+t.id+" 连续受阻至少 30 游戏分钟（"+t.origin+" → "+t.destination+"）",AnalysisEntityKind.Trip,t.id);
+                Key(t.cargoKind==CargoKind.Waste?"garbage.blocked":"freight.blocked",(t.cargoKind==CargoKind.Waste?"垃圾车 #":"货运 #")+t.id+" 连续受阻至少 30 游戏分钟（"+t.origin+" → "+t.destination+"）",AnalysisEntityKind.Trip,t.id);
         }
         void ObserveRuntimeCommercial()
         {
@@ -246,7 +246,7 @@ namespace HarborCity
             live.blockedFreight=activeTrips.Count(t=>t.residentId==0 && (t.blocked>.1f || t.status==TripStatus.Waiting));
             foreach(var t in activeTrips)s.trips.Add(new TripAnalysisState {id=t.id,origin=t.origin,destination=t.destination,residentId=t.residentId,householdId=t.householdId,
                 cargo=t.cargo,returning=t.returning,from=Place(t.origin),to=Place(t.destination),
-                purpose=t.residentId>0?"通勤":t.cargoKind==CargoKind.RawMaterial?"进口原料":t.purpose==TripPurpose.Export?"出口商品":t.purpose==TripPurpose.Import?"进口商品":"配送商品",
+                purpose=t.cargoKind==CargoKind.Waste?(t.purpose==TripPurpose.GarbageTransfer?"转运垃圾":"收集垃圾"):t.purpose==TripPurpose.Shopping?"购物":t.residentId>0?"通勤":t.cargoKind==CargoKind.RawMaterial?"进口原料":t.purpose==TripPurpose.Export?"出口商品":t.purpose==TripPurpose.Import?"进口商品":"配送商品",
                 status=t.status==TripStatus.Visiting?"装卸停留":t.status==TripStatus.Waiting?"等待道路恢复":t.blocked>.1f?"排队":"行驶中",
                 blockedMinutes=t.blocked*1440/city.society.settings.secondsPerDay});
             waitingEpisodes.RemoveWhere(id=>!activeTrips.Any(t=>t.id==id));
@@ -260,7 +260,7 @@ namespace HarborCity
                 if(decision==null)latestDecisions.TryGetValue(h.id,out decision);
                 hs.decision=decision==null?null:CopyDecision(decision);
                 hs.hasDecision=hs.decision!=null;
-                foreach(var p in h.people)
+                foreach(var p in h.people.Where(p=>!p.dead))
                 {
                     var a=city.ObserveResident(h,p);int work=city.Workplace(p);
                     var ps=new ResidentAnalysisState {id=p.id,householdId=h.id,name=p.name,age=p.age,canWork=p.canWork,resident=h.resident,home=h.home,work=work,
@@ -295,7 +295,7 @@ namespace HarborCity
                     business.totalWages=f.wageCosts;business.totalProductionCosts=f.productionCosts;business.profit=f.Profit;business.cashError=f.CashError;
                     business.today=report.factories.Find(item=>item.id==b.id);business.yesterday=Latest?.factories.Find(item=>item.id==b.id);
                     business.hasTodayReport=business.today!=null;business.hasYesterdayReport=business.yesterday!=null;
-                    if(f.raw==0)live.rawEmptyFactories++;if(business.goods>=FactoryState.GoodsCapacity)live.stockFullFactories++;if(f.cash<=0)live.unfundedFactories++;
+                    if(f.raw==0)live.rawEmptyFactories++;if(business.goods>=FactoryState.GoodsCapacity)live.stockFullFactories++;if(!city.development.enabled && f.cash<=0)live.unfundedFactories++;
                 }
                 else {business.status=!business.connected?"道路中断":business.goods==0?"缺货，等待补货":"有库存";if(business.goods==0)live.emptyCommercial++;}
                 s.businesses.Add(business);

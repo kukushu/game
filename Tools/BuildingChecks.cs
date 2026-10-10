@@ -10,7 +10,7 @@ public static class BuildingChecks
     static void Check(bool ok,string message) { if(!ok) throw new Exception("Buildings: "+message); checks++; }
     static void CheckEmptyStart()
     {
-        var c=CityModel.Create(); var sim=new CityTraffic(c);
+        var c=TestCity.Empty(); var sim=new CityTraffic(c);
         c.SetEntranceHeight(Flat);
         Check(c.Valid() && c.buildings.Count==0 && c.roads.edges.Count==0 && c.population==0 && c.jobs==0 && c.society.families.Count==0,"New game is an empty valid city");
         sim.Advance(121);

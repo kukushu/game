@@ -11,6 +11,11 @@ namespace HarborCity
         public float x, z, yaw, entranceX, entranceZ;
         public float width = 2.9f, depth = 2.9f;
         public int level=1;
+        public int upgradeDays,lastUpgradeDay;
+        public int outageDays,abandonedDay,garbage;
+        public bool abandoned;
+        public bool burning,burned;
+        public float fireDamage,fireIntensity,crime;
         public abstract LandUse Use { get; }
         public RoadNode Point(float right, float forward)
         {
@@ -58,7 +63,8 @@ namespace HarborCity
     [Serializable] public sealed class CommercialBuilding : CityBuilding, IGoodsBuilding
     {
         public override LandUse Use => LandUse.Commercial;
-        public int stock;
+        public int stock,customers,retailSold,retailSoldToday;
+        public int retailDay=-1;
         public int Stock {get=>stock; set=>stock=value;}
     }
     [Serializable] public sealed class IndustrialBuilding : CityBuilding, IGoodsBuilding
@@ -70,6 +76,7 @@ namespace HarborCity
     }
     [Serializable] public sealed class PowerBuilding : CityBuilding {public override LandUse Use=>LandUse.Power;}
     [Serializable] public sealed class WaterBuilding : CityBuilding {public override LandUse Use=>LandUse.Water;}
+    [Serializable] public sealed class SewageBuilding : CityBuilding {public override LandUse Use=>LandUse.Sewage;}
     [Serializable] public sealed class ParkBuilding : CityBuilding {public override LandUse Use=>LandUse.Park;}
 
     public sealed partial class CityModel
@@ -105,6 +112,15 @@ namespace HarborCity
                 case LandUse.Power:return new PowerBuilding();
                 case LandUse.Water:return new WaterBuilding();
                 case LandUse.Park:return new ParkBuilding();
+                case LandUse.Sewage:return new SewageBuilding();
+                case LandUse.Landfill:return new LandfillBuilding{width=5.9f,depth=5.9f};
+                case LandUse.Clinic:return new ClinicBuilding{width=5.9f,depth=5.9f};
+                case LandUse.ElementarySchool:return new ElementarySchoolBuilding{width=5.9f,depth=5.9f};
+                case LandUse.HighSchool:return new HighSchoolBuilding{width=5.9f,depth=5.9f};
+                case LandUse.University:return new UniversityBuilding{width=5.9f,depth=5.9f};
+                case LandUse.Cemetery:return new CemeteryBuilding{width=5.9f,depth=5.9f};
+                case LandUse.FireHouse:return new FireHouseBuilding{width=5.9f,depth=5.9f};
+                case LandUse.PoliceStation:return new PoliceStationBuilding{width=5.9f,depth=5.9f};
                 default:throw new ArgumentException("Unsupported building type: "+use);
             }
         }
@@ -137,7 +153,7 @@ namespace HarborCity
             foreach(var b in buildings.OrderByDescending(b=>b.id)) if(b.Contains(x,z)) return b.id;
             return -1;
         }
-        public bool CanBuild(CityBuilding lot, Func<float,float,float> height, out string error)
+        public bool CanBuild(CityBuilding lot, Func<float,float,float> height, out string error,int ignoreProject=-1)
         {
             error=""; float low=float.MaxValue,high=float.MinValue;
             for(int z=0;z<=6;z++) for(int x=0;x<=6;x++)
@@ -147,10 +163,19 @@ namespace HarborCity
                 float y=height(p.x,p.z); low=Math.Min(low,y); high=Math.Max(high,y);
             }
             if(low<=.15f || high-low>1.5f) { error="水面或坡度过陡，不能建设"; return false; }
+            if(lot.Use==LandUse.Sewage && development.enabled)
+            {
+                bool shore=false;
+                for(int i=0;i<32;i++) {double angle=i*Math.PI/16;float px=lot.x+(float)Math.Cos(angle)*18,pz=lot.z+(float)Math.Sin(angle)*18;
+                    if(height(px,pz)<=.15f) {shore=true;break;}}
+                if(!shore) {error="排水设施须建在水岸附近";return false;}
+            }
             foreach(var e in roads.edges) if(lot.HitsRoad(roads.Node(e.a),roads.Node(e.b)))
             { error="地块与道路重叠"; return false; }
             foreach(var existing in buildings) if(lot.Overlaps(existing))
             { error="地块与已有建筑或分区重叠"; return false; }
+            foreach(var project in development.projects) if(project.id!=ignoreProject && lot.Overlaps(project.building.ToBuilding()))
+            {error="地块已有建筑正在施工";return false;}
             return true;
         }
         public int PlaceBuilding(CityBuilding lot,LandUse use,Func<float,float,float> height,out string error)
@@ -171,8 +196,16 @@ namespace HarborCity
         }
         public bool DemolishBuilding(int id)
         {
-            var b=GetBuilding(id); if(b==null || money<Cost(LandUse.Bulldoze)) return false;
+            var b=GetBuilding(id); if(b==null || money<Cost(LandUse.Bulldoze) || b is LandfillBuilding landfill && (landfill.stored>0 || LandfillIncoming(id)>0 || traffic.trips.Any(t=>t.cargoKind==CargoKind.Waste && (t.home==id || t.destination==id || t.origin==id)))) return false;
+            // Until displacement from a demolished treatment facility is implemented,
+            // refuse removal of a clinic with an active patient or ambulance.
+            if(b is ClinicBuilding && (Citizens.Any(p=>p.medicalClinicId==id) || traffic.trips.Any(t=>t.clinicId==id)))return false;
+            if(b is FireHouseBuilding && FireEnginesAt(id)>0)return false;
+            if(b is PoliceStationBuilding && PoliceCarsAt(id)>0)return false;
+            if(BodiesAt(id)>0 || b is CemeteryBuilding && (CemeteryReserved(id)>0 || HearsesAt(id)>0))return false;
             Trace("building.demolished","拆除 "+b.Use,b,building:id);
+            if(b is SchoolBuilding)foreach(var person in Citizens.Where(p=>p.schoolId==id))
+            {new CityTraffic(this).EndSchoolEnrollment(person);}
             new CityTraffic(this).RemoveBuilding(id);
             traffic.lostGoods+=Goods(id);
             if(b is IndustrialBuilding industry)
@@ -187,7 +220,7 @@ namespace HarborCity
                 if(h.home==id)
                 {
                     h.resident=false;h.home=h.unit=-1;h.nextReview=day;h.reason="住所拆除，等待重新迁入";
-                    foreach(var p in h.people) {ReleaseJob(p);p.location=-1;p.atWork=false;p.tripId=0;}
+                    foreach(var p in h.people.Where(p=>!p.dead)) {ReleaseJob(p);p.location=-1;p.atWork=false;p.tripId=0;p.medicalStage=MedicalStage.None;p.medicalClinicId=-1;p.treatmentMinutes=0;ReleaseSchoolPlace(p);p.atSchool=p.schoolReturning=false;}
                     Trace("household.left",h.reason,h,household:h.id);
                 }
                 foreach(var p in h.people)
@@ -196,7 +229,7 @@ namespace HarborCity
                     if(p.observedHome==id || p.observedWork==id) {p.observedHome=p.observedWork=-1;p.lastCommute=-1;}
                 }
             }
-            buildings.Remove(b);money-=Cost(LandUse.Bulldoze);BuildingsChanged();Recalculate();return true;
+            waste.lost+=b.garbage;buildings.Remove(b);money-=Cost(LandUse.Bulldoze);BuildingsChanged();Recalculate();return true;
         }
         public const float BuildingRoadSnapDistance=10f, BuildingSetback=.25f;
         // Pure temporary pose: no slot allocation, zoning grid, or road mutation.
@@ -234,10 +267,14 @@ namespace HarborCity
             {
                 if(b==null || b.id<1 || b.id>=nextBuildingId || !ids.Add(b.id) || !FinitePosition(b.x) || !FinitePosition(b.z)
                     || !FinitePosition(b.entranceX) || !FinitePosition(b.entranceZ) || float.IsNaN(b.yaw) || float.IsInfinity(b.yaw)
-                    || float.IsNaN(b.width) || float.IsNaN(b.depth) || b.width<2.9f || b.width>8.9f || b.depth<2.9f || b.depth>8.9f || b.level<1 || b.level>3) return false;
+                    || float.IsNaN(b.width) || float.IsNaN(b.depth) || b.width<1.4f || b.width>8.9f || b.depth<1.4f || b.depth>8.9f || b.level<1 || b.level>MaximumBuildingLevel(b)
+                    || b.garbage<0 || b.garbage>100000 || b.outageDays<0 || b.outageDays>100000 || b.abandonedDay<0 || b.abandonedDay>day
+                    || b.abandoned!=(b.abandonedDay>0) || b.abandoned && !CityZoningState.ZoneUse(b.Use)) return false;
                 if(b is ResidentialBuilding r && (r.housingUnits<1 || r.housingUnits>100 || r.askingRent<0 || r.interestedFamilies==null || (int)r.housing<0 || (int)r.housing>1)) return false;
                 if(b is IGoodsBuilding inventory && (inventory.Stock<0 || inventory.Stock>(b is IndustrialBuilding?24:32))) return false;
+                if(b is CommercialBuilding shop && (shop.customers<0 || shop.retailSold<0 || shop.retailSold>shop.customers || shop.retailDay<-1 || shop.retailDay>day || shop.retailSoldToday<0 || shop.retailSoldToday>shop.retailSold))return false;
                 if(b is IndustrialBuilding i && i.factory==null) return false;
+                if(b is LandfillBuilding dump && (dump.stored<0 || dump.stored>LandfillBuilding.Capacity))return false;
             }
             buildingLookup=null;return true;
         }

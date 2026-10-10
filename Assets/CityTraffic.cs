@@ -4,9 +4,9 @@ using System.Linq;
 
 namespace HarborCity
 {
-    public enum TripPurpose { Commute, Delivery, Import, Export }
+    public enum TripPurpose { Commute, Delivery, Import, Export, GarbagePickup, GarbageTransfer, Shopping, Healthcare, School, FireResponse, PoliceResponse, Deathcare }
     public enum TripStatus { Driving, Waiting, Visiting }
-    public enum CargoKind { Goods, RawMaterial }
+    public enum CargoKind { Goods, RawMaterial, Waste }
 
     [Serializable]
     public sealed class TrafficTrip
@@ -19,6 +19,9 @@ namespace HarborCity
         public CargoKind cargoKind;
         public TripStatus status;
         public bool returning;
+        public bool walking,medicalPickup;
+        public int clinicId=-1;
+        public int corpseId;
         public List<int> route = new List<int>();
         public float progress, delay, blocked;
         public int Current => route.Count == 0 ? -1 : route[Math.Min(segment, route.Count - 1)];
@@ -29,7 +32,7 @@ namespace HarborCity
     public sealed class TrafficState
     {
         public int nextId = 1, scheduler, completed, failed, delivered;
-        public int lostGoods, lostRaw;
+        public int lostGoods, lostRaw,consumedGoods;
         public float clock, dispatchTimer, remainder;
         public List<TrafficTrip> trips = new List<TrafficTrip>();
     }
@@ -41,6 +44,7 @@ namespace HarborCity
         public const int TaskCapacity = 100048;
         public const int Outside = -1;
         const float Step = .05f, Gap = .48f;
+        const double FixedStepSeconds=.05;
         readonly CityModel city;
         readonly Dictionary<int, int> junctions = new Dictionary<int, int>();
         public TrafficState State => city.traffic;
@@ -52,9 +56,9 @@ namespace HarborCity
             if(city.traffic==null) city.traffic=new TrafficState();
             // Restore junction ownership from the saved physical positions, departures first.
             foreach (var t in State.trips)
-                if (t.status == TripStatus.Driving && Behind(t) < .4f) Reserve(t.Current,t.id);
+                if (!t.walking && t.status == TripStatus.Driving && Behind(t) < .4f) Reserve(t.Current,t.id);
             foreach (var t in State.trips)
-                if (t.status == TripStatus.Driving && Ahead(t) <= .35f) Reserve(t.Next,t.id);
+                if (!t.walking && t.status == TripStatus.Driving && Ahead(t) <= .35f) Reserve(t.Next,t.id);
         }
 
         static bool Finite(float n) => !float.IsNaN(n) && !float.IsInfinity(n) && n >= 0;
@@ -62,15 +66,26 @@ namespace HarborCity
         {
             var s=city.traffic; var roads=city.roads;
             if(s==null || s.trips==null || s.trips.Count>TaskCapacity || !Finite(s.clock) || !Finite(s.dispatchTimer) || !Finite(s.remainder)
-                || s.remainder>Step+.001f || s.nextId<1 || s.nextId==int.MaxValue || s.scheduler<0 || s.completed<0 || s.failed<0 || s.delivered<0 || s.lostGoods<0 || s.lostRaw<0) return false;
+                || s.remainder>Step+.001f || s.nextId<1 || s.nextId==int.MaxValue || s.scheduler<0 || s.completed<0 || s.failed<0 || s.delivered<0 || s.lostGoods<0 || s.lostRaw<0 || s.consumedGoods<0) return false;
             var ids=new HashSet<int>();
             foreach(var t in s.trips)
             {
                 if(t==null || t.id<=0 || t.id>=s.nextId || !ids.Add(t.id) || !ValidEndpoint(t.origin) || !ValidEndpoint(t.destination) || !ValidEndpoint(t.home)
                     || t.route==null || t.route.Count==0 || t.route.Count>20000 || t.segment<0 || t.segment>=t.route.Count || !Finite(t.progress) || t.progress>=1
                     || t.residentId<0 || !Finite(t.departedAt) || !Finite(t.delay) || !Finite(t.blocked) || t.cargo<0 || t.cargo>8
-                    || (int)t.purpose<0 || (int)t.purpose>3 || (int)t.status<0 || (int)t.status>2 || (int)t.cargoKind<0 || (int)t.cargoKind>1
+                    || (int)t.purpose<0 || (int)t.purpose>11 || (int)t.status<0 || (int)t.status>2 || (int)t.cargoKind<0 || (int)t.cargoKind>2
                     || t.cargoKind==CargoKind.RawMaterial && (t.purpose!=TripPurpose.Import || !t.returning && t.origin!=Outside)) return false;
+                if((t.purpose==TripPurpose.GarbagePickup || t.purpose==TripPurpose.GarbageTransfer)!=(t.cargoKind==CargoKind.Waste) || t.cargoKind==CargoKind.Waste && t.residentId!=0)return false;
+                if(t.purpose==TripPurpose.Shopping && (t.residentId<=0 || t.cargoKind!=CargoKind.Goods || t.cargo>1))return false;
+                if(t.purpose==TripPurpose.FireResponse && (t.residentId!=0 || t.cargo!=0 || !(city.GetBuilding(t.home) is FireHouseBuilding)))return false;
+                if(t.purpose!=TripPurpose.Deathcare && t.corpseId!=0)return false;
+                if(t.purpose==TripPurpose.Deathcare && (t.corpseId<=0 || t.residentId!=0 || t.cargo!=0 || !(city.GetBuilding(t.home) is CemeteryBuilding)))return false;
+                if(t.purpose==TripPurpose.PoliceResponse && (t.residentId!=0 || t.cargo!=0 || !(city.GetBuilding(t.home) is PoliceStationBuilding)))return false;
+                if(t.purpose==TripPurpose.Healthcare)
+                {if(t.residentId<=0 || t.cargo!=0 || t.cargoKind!=CargoKind.Goods || !(city.GetBuilding(t.clinicId) is ClinicBuilding) || t.medicalPickup && (t.walking || t.returning))return false;}
+                else if(t.purpose==TripPurpose.School)
+                {if(!t.walking || t.medicalPickup || t.clinicId!=-1 || t.residentId<=0 || t.cargo!=0 || t.cargoKind!=CargoKind.Goods || !t.returning && !(city.GetBuilding(t.destination) is SchoolBuilding))return false;}
+                else if(t.walking || t.medicalPickup || t.clinicId!=-1)return false;
                 if(t.route.Any(n=>roads.Node(n)==null)) return false;
             }
             return true;
@@ -81,7 +96,7 @@ namespace HarborCity
         float Units(int a,int b)=>a==b?1:city.roads.EdgeLength(a,b)/3;
         float Ahead(TrafficTrip t)=>(1-t.progress)*Units(t.Current,t.Next);
         float Behind(TrafficTrip t)=>t.progress*Units(t.Current,t.Next);
-        bool Building(int id)=>city.GetBuilding(id) is ResidentialBuilding || city.GetBuilding(id) is CommercialBuilding || city.GetBuilding(id) is IndustrialBuilding;
+        bool Building(int id)=>city.GetBuilding(id)!=null;
         bool Endpoint(int i)=>i==Outside?Road(Entrance):Building(i);
         IEnumerable<int> Neighbors(int i)=>city.roads.Neighbors(i);
         List<int> Access(int endpoint)=>endpoint==Outside || Building(endpoint)?city.AccessBuilding(endpoint):new List<int>();
@@ -90,7 +105,16 @@ namespace HarborCity
 
         public TrafficTrip Dispatch(int origin, int destination, TripPurpose purpose, int residentId=0,CargoKind cargoKind=CargoKind.Goods)
         {
+            if(purpose==TripPurpose.Shopping)return DispatchShopping(origin,destination,residentId);
+            if(purpose>=TripPurpose.GarbagePickup || cargoKind==CargoKind.Waste)return null;
             if(purpose==TripPurpose.Commute && residentId<=0) return null;
+            if(purpose==TripPurpose.Commute)
+            {
+                if(city.GetBuilding(destination)?.burning==true)return null;
+                var person=city.Citizens.FirstOrDefault(p=>p.id==residentId);
+                if(person!=null && destination==city.Workplace(person) && (person.sick || city.GetBuilding(destination)?.burning==true))return null;
+            }
+            if(city.GetBuilding(destination)?.abandoned==true || residentId==0 && city.GetBuilding(origin)?.abandoned==true)return null;
             if(purpose>=TripPurpose.Delivery && (origin!=Outside && city.Inventory(origin)==null || destination!=Outside && cargoKind==CargoKind.Goods && !(city.GetBuilding(destination) is CommercialBuilding))) return null;
             int background=0; foreach(var existing in State.trips) if(existing.residentId==0) background++;
             if (State.trips.Count >= TaskCapacity || (residentId==0 && background>=Capacity) || origin == destination || !Endpoint(origin) || !Endpoint(destination)) return null;
@@ -105,7 +129,7 @@ namespace HarborCity
             var route = FindRoute(origin, destination);
             if (route.Count == 0 || !CanEnter(route, null)) return null;
             var buyer=cargoKind==CargoKind.RawMaterial?city.Factory(destination):null;
-            if(buyer!=null)
+            if(buyer!=null && !city.development.enabled)
             {
                 cargo=Math.Min(cargo,(int)Math.Min(8,Math.Floor(buyer.cash/FactoryState.RawPrice)));
                 if(cargo<=0) return null;
@@ -129,7 +153,7 @@ namespace HarborCity
         }
         bool IncomingCargo(int destination)
         {
-            foreach (var t in State.trips) if (t.destination == destination && t.cargo > 0) return true;
+            foreach (var t in State.trips) if (t.destination == destination && !t.returning && t.residentId==0 && t.cargoKind==CargoKind.Goods && t.cargo > 0) return true;
             return false;
         }
         bool BusyHome(int home, TripPurpose purpose)
@@ -141,7 +165,7 @@ namespace HarborCity
         {
             foreach (var other in State.trips)
             {
-                if (other == self || other.status == TripStatus.Visiting) continue;
+                if (other == self || other.walking || other.status == TripStatus.Visiting) continue;
                 if (other.Current == route[0] && (route.Count == 1 || other.Next == route[1]) && Behind(other) < Gap) return false;
                 if (other.Next == route[0] && Ahead(other) < Gap) return false;
             }
@@ -151,12 +175,15 @@ namespace HarborCity
         public void Advance(float seconds)
         {
             if (seconds <= 0 || float.IsNaN(seconds) || float.IsInfinity(seconds)) return;
-            State.remainder += seconds;
-            while (State.remainder + .000001f >= Step)
+            // Large fast-forward calls must not repeatedly subtract tiny float
+            // steps from a large float: that loses simulation time over days.
+            double remaining=(double)State.remainder+seconds;State.remainder=0;
+            while (remaining + .000001 >= FixedStepSeconds)
             {
-                State.remainder = Math.Max(0, State.remainder - Step);
+                remaining-=FixedStepSeconds;
                 Simulate();
             }
+            State.remainder=(float)Math.Max(0,remaining);
         }
 
         void Simulate()
@@ -172,6 +199,10 @@ namespace HarborCity
             }
             foreach (int node in release) junctions.Remove(node);
             foreach (var t in State.trips.ToArray()) Move(t);
+            AdvanceHealthcare(Step*1440/city.society.settings.secondsPerDay);
+            AdvanceSchools(Step*1440/city.society.settings.secondsPerDay);
+            city.AdvanceFires(Step*1440/city.society.settings.secondsPerDay);
+            city.AdvancePolice(Step*1440/city.society.settings.secondsPerDay);
             city.ObserveAnalysisTraffic();
             AdvanceResidents();
             State.dispatchTimer += Step;
@@ -185,13 +216,15 @@ namespace HarborCity
         void Schedule()
         {
             if (State.trips.Count >= TaskCapacity) return;
+            ScheduleFire();SchedulePolice();ScheduleDeathcare();
+            if(ScheduleWaste())return;
             // Rotate sources so adding a remote district does not starve its trips.
             var sources=city.buildings.OrderBy(b=>b.id).ToList();
             for(int k=0;k<sources.Count;k++)
             {
                 State.scheduler%=sources.Count;
                 var building=sources[State.scheduler]; State.scheduler=(State.scheduler+1)%sources.Count;
-                int i=building.id;if(!Building(i) || !city.EntityRoadAccess(i)) continue;
+                int i=building.id;if(building.abandoned || !Building(i) || !city.EntityRoadAccess(i)) continue;
                 var use=building.Use;
                 if (use == LandUse.Commercial && city.Inventory(i).Stock < 8 && !IncomingCargo(i))
                 {
@@ -230,7 +263,7 @@ namespace HarborCity
         void Wait(TrafficTrip t)
         {
             t.status = TripStatus.Waiting; t.blocked += Step;
-            if (t.blocked >= 120 && t.residentId==0) Fail(t);
+            if (t.blocked >= 120 && t.residentId==0 && t.cargoKind!=CargoKind.Waste && t.purpose!=TripPurpose.FireResponse && t.purpose!=TripPurpose.PoliceResponse && t.purpose!=TripPurpose.Deathcare) Fail(t);
         }
         public void RemoveBuilding(int id)
         {
@@ -238,13 +271,40 @@ namespace HarborCity
             {
                 var h=t.residentId>0?TripFamily(t):null;
                 if(t.origin!=id && t.destination!=id && t.home!=id && h?.home!=id) continue;
-                if(t.residentId==0) {Fail(t);continue;}
+                if(t.residentId==0)
+                {
+                    if((t.purpose==TripPurpose.FireResponse || t.purpose==TripPurpose.PoliceResponse) && t.home!=id){if(t.origin==id)t.origin=Outside;RedirectFromCurrent(t,t.home);continue;}
+                    if(t.cargoKind==CargoKind.Waste && t.home!=id && t.cargo>0)
+                    {
+                        if(t.origin==id)t.origin=Outside;
+                        if(t.destination==id)RedirectFromCurrent(t,t.home);
+                        continue;
+                    }
+                    Fail(t);continue;
+                }
                 var p=h?.people.Find(c=>c.id==t.residentId);
                 if(h==null || h.home==id)
-                {if(p!=null) {p.tripId=0;p.atWork=false;p.location=-1;} State.trips.Remove(t);continue;}
+                {if(p!=null) {p.tripId=0;p.atWork=false;p.location=-1;} State.lostGoods+=t.cargo;t.cargo=0;State.trips.Remove(t);continue;}
                 if(t.origin==id) t.origin=Outside;
-                t.destination=h.home;t.home=h.home;t.returning=true;
+                t.home=h.home;RedirectFromCurrent(t,h.home);
+                if(t.purpose==TripPurpose.School && p!=null)p.schoolReturning=true;
             }
+        }
+        void RedirectFromCurrent(TrafficTrip t,int destination)
+        {
+            // A stopped passenger or loaded truck leaves the actual access node.
+            // Moving vehicles retain their intact current edge until replanning.
+            if(t.status==TripStatus.Visiting)
+            {int current=t.Current;t.route=new List<int>{current};t.segment=0;t.progress=0;t.delay=0;t.status=TripStatus.Driving;}
+            t.destination=destination;t.returning=true;
+        }
+        bool HoldAtServiceTarget(TrafficTrip t)
+        {
+            if(Road(t.Current) && Access(t.destination).Contains(t.Current))return true;
+            // Road construction can split the former entrance edge and choose a
+            // different access node. Resume from the actual stopped position.
+            int current=t.Current;t.route=new List<int>{current};t.segment=0;t.progress=0;t.delay=0;t.status=TripStatus.Driving;
+            return false;
         }
         void Fail(TrafficTrip t)
         {
@@ -252,18 +312,23 @@ namespace HarborCity
             // Undelivered goods are returned to the supplier, never credited to the buyer.
             if(t.cargo>0)
             {
-                int restored=t.cargoKind==CargoKind.Goods && Building(t.origin)?Math.Min(t.cargo,Math.Max(0,24-city.Inventory(t.origin).Stock)):0;
+                int restored=t.residentId==0 && t.cargoKind==CargoKind.Goods && city.GetBuilding(t.origin) is IGoodsBuilding?Math.Min(t.cargo,Math.Max(0,24-city.Inventory(t.origin).Stock)):0;
                 if(restored>0) city.Inventory(t.origin).Stock+=restored;
                 int lost=t.cargo-restored;
-                if(t.cargoKind==CargoKind.RawMaterial) State.lostRaw+=lost; else State.lostGoods+=lost;
+                if(t.cargoKind==CargoKind.Waste)city.waste.lost+=lost;else if(t.cargoKind==CargoKind.RawMaterial) State.lostRaw+=lost; else State.lostGoods+=lost;
                 city.Trace("cargo.failed","运输失败；退回或明确记为损失",new CityLogDetail {origin=t.origin,destination=t.destination,amount=restored,count=lost,reason=t.cargoKind.ToString()},trip:t.id,level:"warning");
             }
+            if(t.residentId>0){var person=TripFamily(t)?.people.Find(p=>p.id==t.residentId);if(person!=null)person.tripId=0;}
             State.failed++; State.trips.Remove(t);
         }
 
         void Move(TrafficTrip t)
         {
+            if(HoldFireEngine(t) || HoldPoliceCar(t) || HoldHearse(t))return;
             if(t.residentId>0 && !ValidateResidentTrip(t)) return;
+            if(t.cargoKind==CargoKind.Waste && t.status==TripStatus.Driving && t.delay>0)
+            {t.delay=Math.Max(0,t.delay-Step);return;}
+            if(t.cargoKind==CargoKind.Waste)CollectAlongRoute(t);
             // Losing road access is temporary; only a demolished building invalidates an existing task.
             if (t.destination!=Outside && !Building(t.destination) || t.home!=Outside && !Building(t.home)) { Fail(t); return; }
             if (t.status == TripStatus.Visiting)
@@ -276,7 +341,7 @@ namespace HarborCity
                     t.origin = t.destination; t.destination = t.home;
                 }
                 var back = FindRoute(t.origin, t.destination);
-                if (back.Count == 0 || !CanEnter(back, t)) { t.blocked += Step; if (t.blocked >= 120) Fail(t); return; }
+                if (back.Count == 0 || !CanEnter(back, t)) { t.blocked += Step; if (t.blocked >= 120 && t.cargoKind!=CargoKind.Waste && t.residentId==0 && t.purpose!=TripPurpose.FireResponse && t.purpose!=TripPurpose.PoliceResponse && t.purpose!=TripPurpose.Deathcare) Fail(t); return; }
                 t.route = back; t.segment = 0; t.progress = t.blocked = 0; t.status = TripStatus.Driving;
                 city.Trace("trip.returning","目的地停留结束，开始返程",t,trip:t.id);
             }
@@ -298,12 +363,12 @@ namespace HarborCity
             float units = Units(t.Current,t.Next);
             // Every vehicle in a household city uses the same simulation clock and road speed.
             // One world unit per game minute = 480 road units per game day (3 world units per road unit).
-            float velocity=480f/city.society.settings.secondsPerDay;
+            float velocity=(t.walking?120f:480f)/city.society.settings.secondsPerDay;
             float advance = Step * velocity / units;
             float proposed = Math.Min(1, t.progress + advance);
             foreach (var other in State.trips)
             {
-                if (other == t || other.status == TripStatus.Visiting) continue;
+                if (t.walking || other.walking || other == t || other.status == TripStatus.Visiting) continue;
                 // Splitting a road can create edges shorter than one car's headway.
                 float offset = -Behind(t);
                 for (int s = t.segment; s < t.route.Count-1 && offset < Gap + units; s++)
@@ -316,19 +381,23 @@ namespace HarborCity
                     offset += Units(t.route[s],t.route[s+1]);
                 }
             }
-            if (Behind(t) < .4f && !Reserve(t.Current, t.id)) proposed = t.progress;
-            if ((1-proposed)*units <= .35f && !Reserve(t.Next, t.id)) proposed = Math.Min(proposed, Math.Max(0,1-.36f/units));
+            if (!t.walking && Behind(t) < .4f && !Reserve(t.Current, t.id)) proposed = t.progress;
+            if (!t.walking && (1-proposed)*units <= .35f && !Reserve(t.Next, t.id)) proposed = Math.Min(proposed, Math.Max(0,1-.36f/units));
             // A split edge can leave progress one float below 1. Do not classify
             // the final representable increment as blocked: it must reach the next
             // segment and release its junction reservation.
-            if (proposed <= t.progress) { t.blocked += Step; if (t.blocked >= 120 && t.residentId==0) Fail(t); return; }
+            if (proposed <= t.progress) { t.blocked += Step; if (t.blocked >= 120 && t.residentId==0 && t.cargoKind!=CargoKind.Waste && t.purpose!=TripPurpose.FireResponse && t.purpose!=TripPurpose.PoliceResponse && t.purpose!=TripPurpose.Deathcare) Fail(t); return; }
             t.progress = proposed; t.blocked = 0;
             if (t.progress >= 1) { t.segment++; t.progress = 0; }
         }
 
         void Arrive(TrafficTrip t)
         {
+            if(t.purpose==TripPurpose.FireResponse){ArriveFire(t);return;}
+            if(t.purpose==TripPurpose.PoliceResponse){ArrivePolice(t);return;}
+            if(t.purpose==TripPurpose.Deathcare){ArriveHearse(t);return;}
             if(t.residentId>0) { ArriveResident(t); return; }
+            if(t.cargoKind==CargoKind.Waste){ArriveWaste(t);return;}
             if (t.returning) {city.Trace("trip.finished","返程完成",t,trip:t.id); State.trips.Remove(t); return; }
             city.Trace("trip.arrived","抵达目的地，交付货物或开始停留",t,trip:t.id);
             if (t.cargo > 0)

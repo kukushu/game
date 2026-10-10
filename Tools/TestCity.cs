@@ -8,7 +8,7 @@ public static class TestCity
     public static float Flat(float x,float z)=>1;
     public static RoadNode P(float x,float z)=>new RoadNode{x=x,z=z,y=1};
     public static CityModel Empty()
-    {var c=CityModel.Create();c.SetEntranceHeight(Flat);return c;}
+    {var c=CityModel.Create();c.development.enabled=false;c.SetEntranceHeight(Flat);return c;}
     public static int Build(CityModel c,float x,float z,LandUse use,HousingKind housing=HousingKind.Apartment)
     {
         var preview=c.RoadsidePreview(x,z,use,housing,out string error);
@@ -33,6 +33,7 @@ public static class TestCity
             for(int n=0;n<3;n++) h.people.Add(new CityResident {id=id*10+n,householdId=id,name="测试居民"+(id*10+n),age=n==2?10:30,canWork=n<2,skill=n<2?2:0,location=home.id});
             c.society.families.Add(h);
         }
+        c.society.nextCitizenId=c.Citizens.Max(p=>p.id)+1;
         foreach(var p in c.Citizens.Where(p=>p.canWork))
         {var job=c.society.jobEntities.FirstOrDefault(j=>j.occupiedCitizenId<0 && j.requiredSkill<=p.skill);if(job!=null)c.AssignJob(p,job.id);}
         c.Recalculate();if(!c.Valid())throw new Exception("Fixture invalid");return c;

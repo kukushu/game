@@ -2,10 +2,10 @@ using System;
 using System.Collections.Generic;
 namespace HarborCity
 {
-    public enum LandUse { Empty, Road, Residential, Commercial, Industrial, Power, Water, Park, Bulldoze }
+    public enum LandUse { Empty, Road, Residential, Commercial, Industrial, Power, Water, Park, Bulldoze, Sewage, Landfill, Clinic, ElementarySchool, FireHouse, PoliceStation, HighSchool, University, Cemetery }
     [Serializable] public sealed partial class CityModel
     {
-        public const int SaveFormat=8;
+        public const int SaveFormat=23;
         public const float BuildHalfSize=84f, RoadHalfSize=BuildHalfSize-1.5f;
         public int money=65000, day=1;
         public TrafficState traffic=new TrafficState();
@@ -20,6 +20,15 @@ namespace HarborCity
                 case LandUse.Power: return 3500;
                 case LandUse.Water: return 2500;
                 case LandUse.Park: return 500;
+                case LandUse.Sewage: return 2500;
+                case LandUse.Landfill:return 4000;
+                case LandUse.Clinic:return 10000;
+                case LandUse.ElementarySchool:return 10000;
+                case LandUse.HighSchool:return 16000;
+                case LandUse.University:return 24000;
+                case LandUse.Cemetery:return 4000;
+                case LandUse.FireHouse:return 12000;
+                case LandUse.PoliceStation:return 12000;
                 case LandUse.Bulldoze: return 40;
                 default: return 0;
             }
@@ -39,10 +48,10 @@ namespace HarborCity
             Trace("road.created","道路施工成功",new CityLogDetail {amount=plan.cost,count=plan.stroke,origin=plan.start.id,destination=plan.end.id,x=plan.end.x,z=plan.end.z}); return true;
         }
 
-        public bool Valid()=>day>0 && ValidBuildings() && roads!=null && roads.Valid() && CityTraffic.Valid(this) && ValidHouseholds();
+        public bool Valid()=>day>0 && ValidDevelopment() && utilities!=null && utilities.Valid() && waste!=null && waste.Valid() && ValidBuildings() && roads!=null && roads.Valid() && zoning!=null && zoning.Valid() && CityTraffic.Valid(this) && ValidHouseholds() && ValidFire() && ValidPolice() && ValidBuildingGrowth() && ValidResidentAging() && ValidDeathcare();
         public static CityModel Create()
         {
-            var city=new CityModel();city.roads.nodes.Add(new RoadNode{id=CityRoads.Entrance,x=-52.5f,z=1.5f});
+            var city=new CityModel();city.development.enabled=true;city.roads.nodes.Add(new RoadNode{id=CityRoads.Entrance,x=-52.5f,z=1.5f});
             city.Recalculate();return city;
         }
     }

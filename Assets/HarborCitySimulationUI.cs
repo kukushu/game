@@ -44,15 +44,15 @@ namespace HarborCity
             if(inspectedHome<0) return false;
             inspectedTrip=-1; showSimulation=false; simulationTyping=false; householdListScroll=Vector2.zero;
             if(routeLine!=null) routeLine.positionCount=0;
-            notice="已选中"+names[(int)city.UseOf(inspectedHome)]+" #"+inspectedHome+(city.UseOf(inspectedHome)==LandUse.Residential?"，点击住户查看家庭详情。":"，查看经营、库存和员工情况。");
+            notice="已选中"+names[(int)city.UseOf(inspectedHome)]+" #"+inspectedHome+(city.UseOf(inspectedHome)==LandUse.Cemetery?"，查看实际遗体、预留位置和灵车。":city.UseOf(inspectedHome)==LandUse.PoliceStation?"，查看实际治安和警车出勤。":city.UseOf(inspectedHome)==LandUse.FireHouse?"，查看实际火灾和消防车出勤。":city.GetBuilding(inspectedHome) is SchoolBuilding?"，查看真实学生、学位和学习情况。":city.UseOf(inspectedHome)==LandUse.Clinic?"，查看真实患者、预约和救护车。":city.UseOf(inspectedHome)==LandUse.Residential?"，点击住户查看家庭详情。":"，查看经营、库存和员工情况。");
             return true;
         }
-        bool InspectableBuilding(int id) => city.GetBuilding(id)!=null && (int)city.UseOf(id)>=2 && (int)city.UseOf(id)<=4;
-        bool InspectingBusiness => selected==LandUse.Empty && InspectableBuilding(inspectedHome) && (int)city.UseOf(inspectedHome)>=3;
+        bool InspectableBuilding(int id) => city.GetBuilding(id)!=null && ((int)city.UseOf(id)>=2 && (int)city.UseOf(id)<=4 || city.UseOf(id)==LandUse.Landfill || city.UseOf(id)==LandUse.Clinic || city.GetBuilding(id) is SchoolBuilding || city.UseOf(id)==LandUse.FireHouse || city.UseOf(id)==LandUse.PoliceStation || city.UseOf(id)==LandUse.Cemetery);
+        bool InspectingBusiness => selected==LandUse.Empty && (city.UseOf(inspectedHome)==LandUse.Commercial || city.UseOf(inspectedHome)==LandUse.Industrial);
         LineRenderer businessMarker;
         void UpdateBusinessMarker()
         {
-            if(!InspectingBusiness)
+            if(!InspectingBusiness && !InspectingLandfill && city.UseOf(inspectedHome)!=LandUse.Clinic && !(city.GetBuilding(inspectedHome) is SchoolBuilding) && city.UseOf(inspectedHome)!=LandUse.FireHouse && city.UseOf(inspectedHome)!=LandUse.PoliceStation && city.UseOf(inspectedHome)!=LandUse.Cemetery)
             {if(businessMarker!=null) businessMarker.positionCount=0; return;}
             if(businessMarker==null) businessMarker=CommuteRenderer("Selected business",new Color(1,.72f,.15f),.2f);
             MarkBuilding(businessMarker,inspectedHome);
@@ -68,12 +68,19 @@ namespace HarborCity
             GUILayout.EndHorizontal();
             householdListScroll=GUILayout.BeginScrollView(householdListScroll);
             DrawBusinessSummary(business);
+            if(city.development.enabled)GUILayout.Label("等级 "+city.GetBuilding(business.id).level+" · 土地价值 "+city.LandValue(business.id).ToString("F0")+"\n"+city.BuildingUpgradeReason(business.id),small);
             if(GUILayout.Button("查看经营原因 / 员工 / 货运",button))OpenAnalysisEntity(business.industrial?AnalysisEntityKind.Factory:AnalysisEntityKind.Commercial,business.id);
             GUILayout.EndScrollView();GUILayout.EndArea();
         }
         void DrawHouseholdInspector(float h,Color navy)
         {
             if(selected!=LandUse.Empty || inspectedHome<0)return;
+            if(city.UseOf(inspectedHome)==LandUse.Clinic){DrawClinicInspector(h,navy);return;}
+            if(city.UseOf(inspectedHome)==LandUse.Cemetery){DrawCemeteryInspector(h,navy);return;}
+            if(city.GetBuilding(inspectedHome) is SchoolBuilding){DrawSchoolInspector(h,navy);return;}
+            if(city.UseOf(inspectedHome)==LandUse.PoliceStation){DrawPoliceInspector(h,navy);return;}
+            if(city.UseOf(inspectedHome)==LandUse.FireHouse){DrawFireInspector(h,navy);return;}
+            if(InspectingLandfill){DrawLandfillInspector(h,navy);return;}
             if(InspectingBusiness) {DrawBusinessInspector(h,navy);return;}
             if(showSimulation)return;
             var state=city.analysis?.State;var housing=state?.housing.Find(r=>r.id==inspectedHome);
@@ -90,11 +97,12 @@ namespace HarborCity
             if(!ReferenceEquals(residenceSnapshot,state) || residenceSnapshotHome!=housing.id)
             {residenceSnapshot=state;residenceSnapshotHome=housing.id;residenceView=new ResidencePresentation(state,housing.id);}
             if(residenceView.Selected(residenceFamily)==null)residenceFamily=-1;
-            GUILayout.BeginHorizontal();GUILayout.Label("住宅 #"+housing.id+" / "+(housing.kind==HousingKind.Villa?"别墅":"公寓"),dashHeading);
+            GUILayout.BeginHorizontal();GUILayout.Label("住宅 #"+housing.id+" / "+(city.development.enabled?"低密度住宅 L"+city.GetBuilding(housing.id).level:housing.kind==HousingKind.Villa?"别墅":"公寓"),dashHeading);
             if(GUILayout.Button("关闭",button,GUILayout.Width(60)))inspectedHome=-1;
             GUILayout.EndHorizontal();
             Rect road=Block(24);StatusBadge(new Rect(road.x,road.y,110,21),housing.connected?"道路已接通":"道路未接通",housing.connected?DashboardTone.Positive:DashboardTone.Critical);
             Ink(new Rect(road.x+120,road.y,road.width-120,23),"空置 "+Math.Max(0,housing.units-housing.occupied)+" 户 · 失业劳动者 "+residenceView.unemployed+" 人",dashNote,residenceView.unemployed>0?dashAmber:dashBlue);
+            if(city.development.enabled) {Rect utility=Block(24);StatusBadge(utility,city.BuildingConditionLabel(housing.id),city.GetBuilding(housing.id).abandoned?DashboardTone.Critical:city.HasBasicServices(housing.id)?DashboardTone.Positive:DashboardTone.Attention);}
             Rect row=Block(85);
             ResidenceMetric(CardCell(row,0,3),"已入住 / 单元",housing.occupied+" / "+housing.units,"空置 "+Math.Max(0,housing.units-housing.occupied)+" 户",residenceView.OccupancyTone,housing.occupied,housing.units);
             ResidenceMetric(CardCell(row,1,3),"居民总数",housing.population.ToString(),"当前住户",DashboardTone.Neutral);
@@ -182,12 +190,13 @@ namespace HarborCity
         void DrawHousing(ResidentialBuilding b,Transform parent)
         {
             bool villa=b.housing==HousingKind.Villa;
-            float height=villa?1.7f:4.8f;
-            float width=villa?3.7f:2.4f, depth=b.depth>3?4.2f:2.3f;
+            float growth=city.development.enabled?b.level-1:0;
+            float height=(villa?1.7f:4.8f)+growth*.3f;
+            float width=Mathf.Min(b.width-.5f,villa?3.7f+growth*.15f:2.4f), depth=Mathf.Min(b.depth-.5f,b.depth>3?4.2f:2.3f);
             var selection=parent.gameObject.AddComponent<BoxCollider>();
             selection.center=new Vector3(0,height/2+.15f,0);
             selection.size=new Vector3(width+.2f,height+.6f,depth+.2f);
-            Box(villa?"Villa":"Apartments",new Vector3(0,height/2+.1f,0),new Vector3(width,height,depth),new Color(.83f,.82f,.73f),parent);
+            Box(villa?"Villa":"Apartments",new Vector3(0,height/2+.1f,0),new Vector3(width,height,depth),Color.Lerp(new Color(.83f,.82f,.73f),new Color(.92f,.9f,.84f),growth/4),parent);
             Box("Roof",new Vector3(0,height+.22f,0),new Vector3(width+.2f,.25f,depth+.2f),villa?new Color(.52f,.3f,.24f):palette[2],parent);
             for(float y=.7f;y<height;y+=1.1f) Box("Windows",new Vector3(0,y,-depth/2-.02f),new Vector3(width*.75f,.4f,.03f),new Color(.24f,.38f,.43f),parent);
         }
@@ -202,14 +211,6 @@ namespace HarborCity
             if(city.society==null)return;
             if(!help)DrawHouseholdInspector(h,navy);
             if(GUI.Button(new Rect(w-274,448,250,34),showSimulation?"F3  关闭城市 Dashboard":"F3  打开城市 Dashboard",button))ToggleSimulationPanel();
-            if(selected==LandUse.Residential)
-            {
-                Panel(new Rect(24,380,310,119),navy);
-                if(GUI.Button(new Rect(40,388,135,32),"公寓 · 8 户",button))housingChoice=HousingKind.Apartment;
-                if(GUI.Button(new Rect(181,388,135,32),"别墅 · 1 户",button))housingChoice=HousingKind.Villa;
-                var config=city.society.settings;
-                GUI.Label(new Rect(40,426,275,65),(housingChoice==HousingKind.Villa?"别墅：¥"+config.villaCost+" / 维护 "+config.villaMaintenance:"公寓：¥"+config.apartmentCost+" / 维护 "+config.apartmentMaintenance)+" 每日\n空置也维护；租金按实际入住结算。",small);
-            }
             if(!showSimulation) {simulationTyping=false;return;}
             Rect rect=new Rect(340,110,w-640,h-305);Panel(rect,navy);
             GUILayout.BeginArea(new Rect(rect.x+14,rect.y+8,rect.width-28,rect.height-16));
@@ -244,11 +245,11 @@ namespace HarborCity
                 string directory=Path.Combine(Application.persistentDataPath,"SimulationReports"); Directory.CreateDirectory(directory);
                 string path=Path.Combine(directory,"city-day-"+city.day+"-"+DateTime.Now.ToString("yyyyMMdd-HHmmss")+".json");
                 File.WriteAllText(path,JsonUtility.ToJson(city.ToSaveData(),true)); notice="模拟快照已导出："+path;
-                var csv=new System.Text.StringBuilder("day,households,population,units,employed,commute,rent,maintenance,wages,moved,arrived,left,treasuryError,householdError\n");
+                var csv=new System.Text.StringBuilder("day,households,population,units,employed,commute,rent,tax,maintenance,wages,moved,arrived,left,treasuryError,householdError\n");
                 foreach(var r in city.society.history)
                     csv.AppendLine(string.Join(",",new[]{r.day.ToString(),r.households.ToString(),r.population.ToString(),r.units.ToString(),r.employed.ToString(),
-                        r.averageCommute.ToString("F2",System.Globalization.CultureInfo.InvariantCulture),r.rent.ToString(),r.maintenance.ToString(),r.wages.ToString(),r.moved.ToString(),r.arrived.ToString(),r.left.ToString(),
-                        (r.closingTreasury-r.openingTreasury-r.rent+r.maintenance).ToString(),(r.closingSavings-r.openingSavings-r.wages+r.living+r.travel+r.rent+r.movingCosts).ToString()}));
+                        r.averageCommute.ToString("F2",System.Globalization.CultureInfo.InvariantCulture),r.rent.ToString(),r.tax.ToString(),r.maintenance.ToString(),r.wages.ToString(),r.moved.ToString(),r.arrived.ToString(),r.left.ToString(),
+                        (r.closingTreasury-r.openingTreasury-r.rent-r.tax+r.maintenance).ToString(),(r.closingSavings-r.openingSavings-r.wages+r.living+r.travel+r.rent+r.movingCosts).ToString()}));
                 File.WriteAllText(Path.ChangeExtension(path,"csv"),csv.ToString(),new System.Text.UTF8Encoding(true));
             }
             catch(Exception e) {notice="导出失败："+e.Message;}

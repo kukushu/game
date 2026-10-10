@@ -40,6 +40,18 @@ public static class RoadChecks
         Check(!c.roads.PlanCurve(c,P(-20,0),P(0,20),P(20,0),(x,z)=>z>8?0:1).Valid,"Water along arc rejected");
         Check(c.roads.PlanCurve(c,P(0,0),P(1.5f,.2f),P(3,0),Flat).Valid,"Short gentle arc accepted");
 
+        c=TestCity.Empty();var firstControl=P(-32.5f,21.5f);var firstEnd=P(-12.5f,1.5f);
+        curve=c.roads.PlanCurve(c,c.roads.Node(CityRoads.Entrance),firstControl,firstEnd,Flat);Check(c.CommitRoad(curve),"Freeform initial curve is an actual road stroke");
+        var nextEnd=P(27.5f,-8.5f);var nextControl=CityRoads.ContinuationControl(firstEnd,firstControl,nextEnd);
+        float ax=firstEnd.x-firstControl.x,az=firstEnd.z-firstControl.z,bx=nextControl.x-firstEnd.x,bz=nextControl.z-firstEnd.z;
+        Check(Math.Abs(ax*bz-az*bx)<.001f && ax*bx+az*bz>0,"Freeform continuation preserves outgoing tangent direction");
+        int existing=c.roads.edges.Count;var continuation=c.roads.PlanCurve(c,firstEnd,nextControl,nextEnd,Flat);
+        Check(continuation.Valid && c.roads.edges.Count==existing && c.CommitRoad(continuation),"Continuous curve preview is atomic and uses ordinary road validation");
+        int terminal=c.roads.nodes.First(n=>CityRoads.Length(n,nextEnd)<.01f).id;
+        Check(c.roads.FindPath(new List<int>{CityRoads.Entrance},new List<int>{terminal}).Count>path.Count && TestCity.RoundTrip(c).Valid(),"Continuous curves create connected traffic routes and reliable saves");
+        Check(c.ZoningCells(Flat).Any(cell=>cell.available),"Continuous curves still create independent roadside planning land");
+        var continuedRun=c.roads.Run(c.roads.edges.Last().id);Check(continuedRun.All(id=>c.roads.edges.Find(e=>e.id==id).stroke==continuation.stroke) && continuedRun.Count<c.roads.edges.Count,"Each continued curve remains independently demolishable");
+
         c=TestCity.Empty();Build(c,c.roads.Node(CityRoads.Entrance),P(30,1.5f));
         int origin=TestCity.Build(c,-42,7,LandUse.Industrial),destination=TestCity.Build(c,20,7,LandUse.Commercial);
         c.Inventory(origin).Stock=8;c.society.settings.applicantsPerDay=0;c.traffic.dispatchTimer=-10000;

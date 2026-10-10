@@ -20,10 +20,10 @@ namespace HarborCity
         CityTraffic traffic;
         LineRenderer routeLine;
         int inspectedTrip = -1;
-        readonly string[] names = { "选择", "道路", "住宅", "商业", "工业", "电站", "水塔", "公园", "拆除" };
+        readonly string[] names = { "选择", "道路", "住宅", "商业", "工业", "电站", "水务", "市政", "拆除", "排水口", "填埋场", "诊所", "小学", "消防站", "警局", "高中", "大学", "墓地" };
         readonly Color[] palette = { new Color(.27f,.43f,.32f), new Color(.19f,.23f,.27f), new Color(.37f,.76f,.52f),
             new Color(.32f,.64f,.83f), new Color(.89f,.68f,.32f), new Color(.96f,.65f,.3f), new Color(.37f,.77f,.83f),
-            new Color(.26f,.62f,.39f), new Color(.93f,.4f,.38f) };
+            new Color(.26f,.62f,.39f), new Color(.93f,.4f,.38f),new Color(.37f,.65f,.62f),new Color(.62f,.53f,.38f),new Color(.65f,.82f,.82f),new Color(.65f,.68f,.88f),new Color(.8f,.46f,.4f),new Color(.3f,.45f,.75f),new Color(.55f,.62f,.8f),new Color(.65f,.55f,.78f),new Color(.4f,.55f,.48f) };
         Camera cam;
         CityLandscape landscape;
         Transform world, cursor;
@@ -32,7 +32,7 @@ namespace HarborCity
         const float MinPitch = 20f;
         const float MaxPitch = 80f;
         LandUse selected = LandUse.Road;
-        string notice = "空白城市：从地图西侧的浅色连接点修路，再建设住房和工作场所。";
+        string notice = "空白城市：从西侧连接点修路，提供水电，再划住宅、商业和工业用途。";
         GUIStyle label, title, small, button, number;
         Font font;
         bool help;
@@ -42,7 +42,8 @@ namespace HarborCity
         Vector2 rightPressPointer, previousRotatePointer;
         const float RotationDegreesPerPixel = .25f;
         const float RotationDragThreshold = 5f;
-        string SavePath => Path.Combine(Application.persistentDataPath, "harbor-city.json");
+        string validationSavePath;
+        string SavePath => validationSavePath??Path.Combine(Application.persistentDataPath, "harbor-city.json");
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Launch()
@@ -291,8 +292,8 @@ namespace HarborCity
         Material Mat(Color color)
         {
             if (materials.TryGetValue(color, out var material)) return material;
-            material = new Material(Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard"));
-            material.color = color; material.SetFloat("_Smoothness", .12f);
+            material = new Material(Resources.Load<Shader>("CitySurface") ?? Shader.Find("Universal Render Pipeline/Lit"));
+            material.SetColor("_BaseColor",color);
             materials[color] = material; return material;
         }
 
@@ -335,6 +336,30 @@ namespace HarborCity
             foundation.SetParent(t,false); foundation.position = basePosition; t = foundation;
             float depth = high - low + .2f;
             Box("Foundation",new Vector3(0,-depth / 2,0),new Vector3(pose.width-.05f,depth,pose.depth-.05f),new Color(.48f,.48f,.42f),t);
+            if(pose.burned){Box("Burned ruins",new Vector3(0,.3f,0),new Vector3(pose.width*.7f,.6f,pose.depth*.7f),new Color(.22f,.2f,.18f),t);return;}
+            if(use==LandUse.PoliceStation)
+            {Box("Police station",new Vector3(0,1,.3f),new Vector3(4.6f,2,3.8f),new Color(.4f,.52f,.68f),t);
+                Box("Police sign",new Vector3(0,1.35f,-1.63f),new Vector3(2,.55f,.12f),new Color(.16f,.28f,.6f),t);return;}
+            if(use==LandUse.FireHouse)
+            {Box("Fire station",new Vector3(0,.9f,.3f),new Vector3(4.6f,1.8f,3.8f),new Color(.75f,.35f,.3f),t);
+                for(int gate=-1;gate<=1;gate+=2)Box("Engine garage",new Vector3(gate, .7f,-1.63f),new Vector3(1.3f,1.35f,.1f),new Color(.3f,.32f,.35f),t);return;}
+            if(use==LandUse.Landfill)
+            {Box("Waste depot",new Vector3(-1.3f,.7f,-1.2f),new Vector3(2.1f,1.4f,2),new Color(.48f,.58f,.5f),t);
+                Box("Stored refuse",new Vector3(.8f,.18f,.7f),new Vector3(2.5f,.36f,2.5f),palette[10],t);return;}
+            if(use==LandUse.Clinic)
+            {Box("Clinic",new Vector3(0,.9f,.3f),new Vector3(4.6f,1.8f,3.8f),new Color(.88f,.9f,.9f),t);
+                Box("Medical roof vertical",new Vector3(0,1.84f,.3f),new Vector3(.3f,.08f,1.4f),new Color(.85f,.2f,.2f),t);
+                Box("Medical roof horizontal",new Vector3(0,1.85f,.3f),new Vector3(1.4f,.08f,.3f),new Color(.85f,.2f,.2f),t);
+                Box("Medical sign vertical",new Vector3(0,1.45f,-1.63f),new Vector3(.22f,.8f,.1f),new Color(.85f,.2f,.2f),t);
+                Box("Medical sign horizontal",new Vector3(0,1.45f,-1.65f),new Vector3(.75f,.22f,.1f),new Color(.85f,.2f,.2f),t);return;}
+            if(pose is CemeteryBuilding)
+            {Box("Cemetery chapel",new Vector3(0,.6f,1.6f),new Vector3(2.2f,1.2f,1.4f),new Color(.6f,.6f,.58f),t);
+                for(int n=0;n<12;n++)Box("Grave marker",new Vector3(-1.8f+n%4*1.2f,.3f,-1.8f+n/4*1.1f),new Vector3(.4f,.6f,.22f),new Color(.72f,.72f,.68f),t);return;}
+            if(pose is SchoolBuilding)
+            {float schoolHeight=use==LandUse.University?3.2f:use==LandUse.HighSchool?2.6f:2;
+                Box("School building",new Vector3(0,schoolHeight/2,.9f),new Vector3(4.8f,schoolHeight,2.6f),new Color(.9f,.8f,.55f),t);
+                Box("School roof",new Vector3(0,schoolHeight+.06f,.9f),new Vector3(5,.12f,2.8f),palette[(int)use],t);
+                Box("School yard",new Vector3(0,.08f,-1.6f),new Vector3(4.6f,.1f,1.6f),new Color(.38f,.6f,.46f),t);return;}
             if (use == LandUse.Park)
             {
                 Box("Path", new Vector3(0,.1f,0), new Vector3(.5f,.06f,2.8f), new Color(.77f,.74f,.61f), t);
@@ -346,6 +371,9 @@ namespace HarborCity
                 for (int s = -1; s <= 1; s += 2) Box("Stack", new Vector3(s * .65f,2,.5f), new Vector3(.45f,3,.45f), new Color(.8f,.48f,.3f), t);
                 return;
             }
+            if(use==LandUse.Sewage)
+            {Box("Drain station",new Vector3(0,.55f,0),new Vector3(2.4f,1.1f,2.2f),new Color(.52f,.6f,.62f),t);
+                Box("Outflow pipe",new Vector3(0,.3f,1.7f),new Vector3(.8f,.6f,1.8f),palette[9],t);return;}
             if (use == LandUse.Water)
             {
                 for (int s = -1; s <= 1; s += 2) Box("Tower leg", new Vector3(s * .7f,1.4f,0), new Vector3(.16f,2.8f,.16f), new Color(.75f,.79f,.76f), t);
@@ -358,16 +386,17 @@ namespace HarborCity
             int level = city.GetBuilding(i).level;
             if (level == 0) return;
             float height = use == LandUse.Industrial ? 1.3f + level * .5f : 1.2f + level * 1.35f + (i % 3) * .3f;
+            float buildingWidth=Mathf.Max(.7f,pose.width-.5f),buildingDepth=Mathf.Max(.7f,pose.depth-.5f);
             var selection=t.gameObject.AddComponent<BoxCollider>();
             selection.center=new Vector3(0,height/2+.15f,0);
-            selection.size=new Vector3(2.3f,height+.4f,2.3f);
+            selection.size=new Vector3(buildingWidth+.15f,height+.4f,buildingDepth+.15f);
             Color facade = use == LandUse.Residential ? new Color(.86f,.84f,.74f) : use == LandUse.Commercial ? new Color(.6f,.75f,.79f) : new Color(.72f,.65f,.5f);
-            Box("Building", new Vector3(0,height / 2 + .1f,0), new Vector3(2.15f,height,2.15f), facade, t);
-            Box("Roof", new Vector3(0,height + .16f,0), new Vector3(2.3f,.18f,2.3f), use == LandUse.Residential ? new Color(.36f,.45f,.46f) : palette[(int)use], t);
+            Box("Building", new Vector3(0,height / 2 + .1f,0), new Vector3(buildingWidth,height,buildingDepth), facade, t);
+            Box("Roof", new Vector3(0,height + .16f,0), new Vector3(buildingWidth+.15f,.18f,buildingDepth+.15f), use == LandUse.Residential ? new Color(.36f,.45f,.46f) : palette[(int)use], t);
             for (float y = .8f; y < height; y += .95f)
             {
-                Box("Windows", new Vector3(0,y,-1.081f), new Vector3(1.65f,.36f,.025f), new Color(.24f,.38f,.43f), t);
-                Box("Windows", new Vector3(1.081f,y,0), new Vector3(.025f,.36f,1.65f), new Color(.24f,.38f,.43f), t);
+                Box("Windows", new Vector3(0,y,-buildingDepth/2-.006f), new Vector3(buildingWidth*.75f,.36f,.025f), new Color(.24f,.38f,.43f), t);
+                Box("Windows", new Vector3(buildingWidth/2+.006f,y,0), new Vector3(.025f,.36f,buildingDepth*.75f), new Color(.24f,.38f,.43f), t);
             }
         }
 
@@ -375,7 +404,7 @@ namespace HarborCity
         {
             InitializeRoads();
             foreach (Transform child in world) { child.gameObject.SetActive(false); Destroy(child.gameObject); }
-            visuals.Clear();
+            visuals.Clear();drawnBuildingConditions.Clear();utilityObjects.Clear();utilityView=null;utilityViewCity=null;utilityStart=null;infoOverlay=null;infoMesh=null;nextInfoRefresh=0;
             ResetBuildingPreview();
             foreach(var building in city.buildings) DrawLot(building.id);
             RefreshRoadView();
@@ -397,6 +426,7 @@ namespace HarborCity
             var keyboard = Keyboard.current;
             var mouse = Mouse.current;
             if(keyboard!=null && keyboard.f3Key.wasPressedThisFrame) ToggleSimulationPanel();
+            if(keyboard!=null && keyboard.f2Key.wasPressedThisFrame)ToggleInfoViews();
             if (keyboard != null && !simulationTyping)
             {
                 Vector3 move = Vector3.zero;
@@ -436,12 +466,15 @@ namespace HarborCity
                 if (!overUI) ZoomAtPointer(mp, mouse.scroll.ReadValue().y);
                 var ray = cam.ScreenPointToRay(mp);
                 bool roadHandled = HandleRoadInput(mouse,ray,overUI || draggingView || mouse.rightButton.isPressed);
+                bool zoneHandled = HandleZoningInput(mouse,ray,overUI || draggingView || mouse.rightButton.isPressed || roadHandled);
                 if (selected == LandUse.Empty && mouse.leftButton.wasPressedThisFrame && !overUI
                     && !draggingView && !mouse.rightButton.isPressed && !InspectBuilding(ray)) InspectTraffic(mp);
-                HandleBuildingInput(mouse,ray,overUI || draggingView || mouse.rightButton.isPressed || roadHandled);
+                bool utilityHandled=HandleUtilityInput(mouse,ray,overUI || draggingView || mouse.rightButton.isPressed || roadHandled || zoneHandled);
+                HandleBuildingInput(mouse,ray,overUI || draggingView || mouse.rightButton.isPressed || roadHandled || zoneHandled || utilityHandled);
 
             }
             AdvanceSociety(Time.deltaTime * speed);
+            RefreshDevelopmentView();RefreshWasteView();RefreshInfoViews();RefreshFireView();
             UpdateObservation();
             AnimateTraffic();
             UpdateCommuteView();
@@ -533,7 +566,7 @@ namespace HarborCity
         void AnimateTraffic()
         {
             var activeIds = new HashSet<int>();
-            foreach(var trip in traffic.State.trips) if(trip.status!=TripStatus.Visiting) activeIds.Add(trip.id);
+            foreach(var trip in traffic.State.trips) if(trip.status!=TripStatus.Visiting || trip.purpose==TripPurpose.FireResponse || trip.purpose==TripPurpose.PoliceResponse || trip.purpose==TripPurpose.Deathcare) activeIds.Add(trip.id);
             var expired = new List<int>();
             foreach (var pair in trafficViews)
                 if (!activeIds.Contains(pair.Key)) { pair.Value.gameObject.SetActive(false); expired.Add(pair.Key); }
@@ -543,7 +576,7 @@ namespace HarborCity
             foreach(var model in cars) if(!assigned.Contains(model)) available.Enqueue(model);
             foreach (var trip in traffic.State.trips)
             {
-                if(trip.status==TripStatus.Visiting) continue;
+                if(trip.status==TripStatus.Visiting && trip.purpose!=TripPurpose.FireResponse && trip.purpose!=TripPurpose.PoliceResponse && trip.purpose!=TripPurpose.Deathcare) continue;
                 if (!trafficViews.TryGetValue(trip.id, out var car))
                 {
                     if(available.Count>0) car=available.Dequeue();
@@ -554,15 +587,20 @@ namespace HarborCity
                     }
                     trafficViews[trip.id] = car;
                 }
-                bool visible=trip.status!=TripStatus.Visiting && city.roads.Active(trip.Current) && (trip.progress==0 || city.roads.Linked(trip.Current,trip.Next));
+                bool visible=city.roads.Active(trip.Current) && (trip.progress==0 || city.roads.Linked(trip.Current,trip.Next));
                 car.gameObject.SetActive(visible);
                 if (!visible) continue;
-                bool freight = trip.purpose >= TripPurpose.Delivery;
-                car.localScale = freight ? new Vector3(.65f,.5f,1.15f) : new Vector3(.5f,.35f,.85f);
-                Color color = trip.id == inspectedTrip ? new Color(1,.85f,.18f) : freight ? palette[4]
+                bool freight = trip.residentId==0 && trip.purpose!=TripPurpose.Deathcare;
+                car.localScale = trip.walking?new Vector3(.17f,.55f,.17f):freight ? new Vector3(.65f,.5f,1.15f) : new Vector3(.5f,.35f,.85f);
+                Color color = trip.id == inspectedTrip ? new Color(1,.85f,.18f) : trip.cargoKind==CargoKind.Waste?new Color(.45f,.8f,.45f):freight ? palette[4]
                     : trip.purpose == TripPurpose.Commute ? Color.white : palette[3];
+                if(trip.purpose==TripPurpose.Healthcare && trip.id!=inspectedTrip)color=trip.walking?new Color(.9f,.45f,.65f):new Color(.95f,.45f,.45f);
+                if(trip.purpose==TripPurpose.School && trip.id!=inspectedTrip)color=new Color(.25f,.75f,.95f);
+                if(trip.purpose==TripPurpose.PoliceResponse && trip.id!=inspectedTrip)color=new Color(.22f,.45f,.9f);
+                if(trip.purpose==TripPurpose.Deathcare && trip.id!=inspectedTrip)color=new Color(.25f,.25f,.3f);
+                if(trip.purpose==TripPurpose.FireResponse && trip.id!=inspectedTrip)color=new Color(.92f,.25f,.18f);
                 car.GetComponent<Renderer>().sharedMaterial = Mat(color);
-                car.name = "Vehicle " + trip.id + " " + Purpose(trip);
+                car.name = (trip.walking?"Pedestrian ":"Vehicle ") + trip.id + " " + Purpose(trip);
                 car.position = TrafficPoint(trip,trip.segment,trip.progress);
                 if (trip.Current != trip.Next)
                 {
@@ -604,7 +642,8 @@ namespace HarborCity
                 Vector3 outgoing = RoadPosition(next) - end; outgoing.y = 0;
                 endRight = (right + Vector3.Cross(Vector3.up,outgoing.normalized)) * .5f;
             }
-            Vector3 point = Vector3.Lerp(start + startRight * .55f,end + endRight * .55f,fraction);
+            float offset=trip.walking?CityRoads.Width/2+.2f:.55f;
+            Vector3 point = Vector3.Lerp(start + startRight * offset,end + endRight * offset,fraction);
             point.y = (city.roads == null ? landscape.Height(point.x,point.z) : CityRoadView.SurfaceHeight(city.roads,landscape,point,a,b)) + .32f;
             return point;
         }
@@ -624,7 +663,10 @@ namespace HarborCity
 
         string Purpose(TrafficTrip trip)
         {
-            string[] purposes = { "通勤", "配送商品", "进口商品", "出口商品" };
+            if(trip.purpose==TripPurpose.Deathcare)return trip.returning?"灵车运送遗体到墓地":"灵车接取遗体";
+            string[] purposes = { "通勤", "配送商品", "进口商品", "出口商品", "收集垃圾", "转运垃圾", "购物", "就医", "上学", "消防响应", "警察响应" };
+            if(trip.purpose==TripPurpose.School)return trip.returning?"放学步行返家":"步行上学";
+            if(trip.purpose==TripPurpose.Healthcare)return trip.medicalPickup?"救护车接人":trip.returning?"就医后步行返家":trip.walking?"步行就诊":"救护车送医";
             if(trip.cargoKind==CargoKind.RawMaterial) return trip.returning?"进口原料 · 返程":"进口原料";
             return trip.returning ? purposes[(int)trip.purpose] + " · 返程" : purposes[(int)trip.purpose];
         }
@@ -658,8 +700,8 @@ namespace HarborCity
             float scale = Mathf.Min(Screen.width / 1440f, Screen.height / 900f);
             float x = position.x / scale, y = (Screen.height - position.y) / scale;
             float width = Screen.width / scale, height = Screen.height / scale;
-            return showSimulation && new Rect(340,110,width-640,height-305).Contains(new Vector2(x,y)) || y < 108 || y > height - 185 || (x > width - 290 && y < 490)
-                || (help && x < 485 && y < 470) || (!help && x < (selected==LandUse.Empty && inspectedHome>=0 && !InspectingBusiness && !showSimulation?24+ResidenceInspectorWidth:345) && y > 115 && y < (selected==LandUse.Empty && inspectedHome>=0?height-200:selected==LandUse.Residential?505:385));
+            return (showEconomy && new Rect(360,120,330,490).Contains(new Vector2(x,y)) || showInfoViews && new Rect(360,120,330,250).Contains(new Vector2(x,y))) || showSimulation && new Rect(340,110,width-640,height-305).Contains(new Vector2(x,y)) || y < 108 || y > height - 185 || (x > width - 290 && y < 490)
+                || (help && x < 485 && y < 470) || (!help && x < (selected==LandUse.Empty && city.UseOf(inspectedHome)==LandUse.Residential && !showSimulation?24+ResidenceInspectorWidth:345) && y > 115 && y < (selected==LandUse.Empty && inspectedHome>=0?height-200:selected==LandUse.Park?503:385));
         }
 
         void Styles()
@@ -701,7 +743,7 @@ namespace HarborCity
             GUI.Label(new Rect(485,22,170,23),"人口 · 点击查看",small);
             if(GUI.Button(new Rect(485,47,175,35),city.population.ToString("N0"),number)) OpenPopulationPanel();
             Stat(655,"就业岗位",city.jobs.ToString("N0"));
-            Stat(825,"上日租金减当前维护",(city.income >= city.upkeep ? "+ " : "− ") + Math.Abs(city.income - city.upkeep));
+            Stat(825,city.development.enabled?"上日税收减当前维护":"上日租金减当前维护",(city.income >= city.upkeep ? "+ " : "− ") + Math.Abs(city.income - city.upkeep));
             Stat(1020,"幸福度",city.happiness + "%");
             GUI.Label(new Rect(w - 170,23,160,28),"第 " + city.day + " 天",label);
             int minute=city.society==null?0:Mathf.Clamp(Mathf.FloorToInt(city.ResidentMinute),0,1439);
@@ -711,21 +753,28 @@ namespace HarborCity
             float rx = w - 274;
             Panel(new Rect(rx,120,250,312),navy);
             GUI.Label(new Rect(rx + 20,138,220,30),"城市概览",title);
-            Meter(rx + 20,185,"电力",city.demand,city.power,palette[5]);
-            Meter(rx + 20,238,"供水",city.demand,city.water,palette[6]);
-            GUI.Label(new Rect(rx + 20,293,225,26),"上日实收租金  +" + city.income + " / 天",label);
+            if(GUI.Button(new Rect(rx+164,138,66,28),"F2 视图",button))ToggleInfoViews();
+            Meter(rx + 20,185,"电力总量",city.demand,city.power,palette[5]);
+            Meter(rx + 20,238,"供水总量",city.demand,city.water,palette[6]);
+            if(city.development.enabled)
+            {if(GUI.Button(new Rect(rx+20,293,210,26),"税收 +"+city.income+" / 天 · 调整",button)){showEconomy=!showEconomy;if(showEconomy)showInfoViews=false;}}
+            else GUI.Label(new Rect(rx+20,293,225,26),"上日实收租金 +"+city.income+" / 天",label);
             GUI.Label(new Rect(rx + 20,322,225,26),"维护  −" + city.upkeep + " / 天",label);
-            GUI.Label(new Rect(rx + 20,365,212,60),"交通任务 " + traffic.State.trips.Count + "  /  完成 " + traffic.State.completed
+            if(city.development.enabled) {DrawDemand(rx+20,365);GUI.Label(new Rect(rx+20,405,212,23),"交通 "+traffic.State.trips.Count+" / 完成 "+traffic.State.completed,small);}
+            else GUI.Label(new Rect(rx + 20,365,212,60),"交通任务 " + traffic.State.trips.Count + "  /  完成 " + traffic.State.completed
                 + "\n送货 " + traffic.State.delivered + "  /  失败 " + traffic.State.failed,small);
+            EconomyPanel(navy);
+            DrawInfoViews(navy);
 
             if (!help && selected == LandUse.Road) RoadToolPanel(navy);
             if (!help && selected != LandUse.Road && !(selected==LandUse.Empty && inspectedHome>=0))
             {
-                Panel(new Rect(24,120,310,258),navy);
+                Panel(new Rect(24,120,310,selected==LandUse.Park?376:258),navy);
                 if (GUI.Button(new Rect(40,134,278,32),"0  查看建筑 / 车辆",button)) selected = LandUse.Empty;
                 var trip = traffic.State.trips.Find(t => t.id == inspectedTrip);
-                if(selected>=LandUse.Residential && selected<=LandUse.Park)
-                    GUI.Label(new Rect(40,180,278,180),"沿道路连续移动鼠标，点击放置。\n绿色：可以建设；红色：当前位置无效。\n浅色边线是面向道路的正面。\n\n"+(previewLot==null?(string.IsNullOrEmpty(placementReason)?"将鼠标移到道路附近。":placementReason):(previewValid?"当前地块通过建造校验。":placementReason)),small);
+                if(ZoningTool(selected)) ZoningToolPanel();
+                else if(selected==LandUse.Power || selected==LandUse.Water) UtilityToolPanel();
+                else if(selected==LandUse.Park) ServiceToolPanel();
                 else if (trip == null)
                     GUI.Label(new Rect(40,180,278,180),"按 0 或 Esc 退出建造。点击住宅查看住户，点击工厂或商业查看经营，点击车辆查看路线。\n\n白色：通勤   蓝色：购物\n橙色：配送 / 进出口\n\n黄色线显示所选车辆的剩余路线。",small);
                 else
@@ -736,6 +785,7 @@ namespace HarborCity
                         + "\n到：" + EndpointName(trip.destination) + "\n状态：" + status + "\n剩余路段：" + (trip.route.Count - 1 - trip.segment)
                         + (trip.blocked>.1f?"\n连续等待："+trip.blocked.ToString("F1")+" 秒":"")
                         + (trip.residentId>0?"\n乘员：居民 #"+trip.residentId+" / 家庭 #"+trip.householdId:"")
+                        + (trip.corpseId>0?"\n遗体：历史居民 #"+trip.corpseId:"")
                         + (trip.cargo > 0 ? "   载货：" + trip.cargo : "")
                         + (trip.destination >= 0 && city.UseOf(trip.destination)==LandUse.Commercial ? "\n目的地库存：" + city.Inventory(trip.destination).Stock : ""),small);
                     if(GUI.Button(new Rect(40,342,135,30),"定位出发地",button)) LocateTrafficEndpoint(trip.origin,true);
@@ -749,7 +799,7 @@ namespace HarborCity
                 Rect r = new Rect(40 + (n - 1) * 111,h - 120,101,74);
                 Panel(r,selected == (LandUse)n ? new Color(.23f,.39f,.43f) : new Color(.1f,.17f,.21f));
                 Panel(new Rect(r.x,r.y,101,4),palette[n]);
-                if (GUI.Button(r,n + "  " + names[n] + (n == 1 ? "\n¥ 100 / 3米" : n==2 ? "\n选择住宅类型" : "\n¥ " + (CityModel.Cost((LandUse)n)+(n==4?FactoryState.StartingCash:0))),button)) selected = (LandUse)n;
+                if (GUI.Button(r,n + "  " + names[n] + (n == 1 ? "\n¥ 100 / 3单位" : n>=2 && n<=4 ? "\n沿路划区" : n==7?"\n公共服务":n==5 || n==6?"\n设施 / 管线":"\n¥ " + CityModel.Cost((LandUse)n)),button)) selected = (LandUse)n;
             }
             if (GUI.Button(new Rect(955,h - 118,76,31),speed == 0 ? "继续" : "暂停",button)) speed = speed == 0 ? 1 : 0;
             if (GUI.Button(new Rect(1039,h - 118,76,31),speed == 3 ? "3×" : "1×",button)) speed = speed == 3 ? 1 : 3;
@@ -765,7 +815,7 @@ namespace HarborCity
             {
                 Panel(new Rect(24,120,450,337),navy);
                 GUI.Label(new Rect(44,140,410,40),"从一条道路开始",title);
-                GUI.Label(new Rect(44,190,400,250),"1   道路须连接地图西侧的入口。\n\n2   在路边拖拽划分住宅、商业和工业区。\n\n3   临路电站与水塔提供全城容量；不足时扩建。\n\n4   平衡人口与就业，建公园提升幸福度。\n\n按 1 点击起点、终点修路；2–8 切换工具。\n右键拖动旋转，中键拖动平移。\n右键 / Esc 撤回道路起点或退出；空格暂停。\n存档保存在本机，读取会替换当前进度。",small);
+                GUI.Label(new Rect(44,190,400,250),"1   道路须连接地图西侧的入口。\n\n2   在路边拖拽划分住宅、商业和工业区。\n\n3   电站供电，输电线跨越远处街区。水塔和水岸排水口接入同一管网。\n\n4   平衡人口与就业，建公园提升幸福度。\n\n按 1 点击起点、终点修路；2–8 切换工具。\n右键拖动旋转，中键拖动平移。\n右键 / Esc 撤回道路起点或退出；空格暂停。\n存档保存在本机，读取会替换当前进度。",small);
             }
         }
 
@@ -781,9 +831,15 @@ namespace HarborCity
             try
             {
                 string temp = SavePath + ".tmp";
+                if(!city.Valid()) throw new InvalidOperationException("城市状态校验失败，已有存档已保留。");
                 File.WriteAllText(temp,JsonUtility.ToJson(city.ToSaveData(),true));
-                if (File.Exists(SavePath)) File.Copy(SavePath,SavePath + ".bak",true);
-                File.Copy(temp,SavePath,true); File.Delete(temp);
+                if (File.Exists(SavePath))
+                {
+                    bool previousValid=false;
+                    try {previousValid=JsonUtility.FromJson<CitySaveData>(File.ReadAllText(SavePath)).ToCity().Valid();} catch(Exception) { }
+                    File.Replace(temp,SavePath,previousValid?SavePath+".bak":null);
+                }
+                else File.Move(temp,SavePath);
                 city.Trace("save.success","城市存档保存成功");
                 notice = "城市已保存。第 " + city.day + " 天 / " + city.population + " 人";
             }
@@ -807,6 +863,10 @@ namespace HarborCity
 
         void OnDestroy()
         {
+            if(infoMaterial!=null)Destroy(infoMaterial);
+            if(utilityCoverageMaterial!=null)Destroy(utilityCoverageMaterial);
+            if(zoningMesh!=null) Destroy(zoningMesh);
+            if(zoningOverlay!=null) Destroy(zoningOverlay.GetComponent<MeshRenderer>().sharedMaterial);
             foreach (var material in materials.Values) if (material != null) Destroy(material);
             if (font != null) Destroy(font);
         }

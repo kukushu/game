@@ -17,32 +17,52 @@ namespace HarborCity
         }
         public ResidentActivity ObserveTransport(Household h,CityResident p)
         {
+            if(p.dead)return ObserveCorpse(p);
             int work=Workplace(p);
             var a=new ResidentActivity();
             var trip=traffic.trips.Find(t=>t.id==p.tripId && t.residentId==p.id);
             if(trip!=null)
             {
+                if(trip.purpose==TripPurpose.Healthcare && trip.medicalPickup)
+                {
+                    var home=GetBuilding(h.home);a.located=home!=null;a.building=h.home;a.destination=trip.clinicId;a.state="患病，在家等待救护车";
+                    if(home!=null){a.x=home.x;a.z=home.z;}a.reason="救护车 #"+trip.id+" 正在接人途中，居民尚未上车；健康 "+p.health.ToString("F0");return a;
+                }
                 var from=roads.Node(trip.Current); var to=roads.Node(trip.Next);
                 a.located=from!=null && to!=null; a.travelling=true; a.destination=trip.destination;
                 if(a.located) {a.x=from.x+(to.x-from.x)*trip.progress; a.z=from.z+(to.z-from.z)*trip.progress;}
-                a.state=trip.status==TripStatus.Waiting?"道路中断，等待恢复":trip.blocked>.1f?"通勤排队":trip.returning?"回家途中":"上班途中";
+                a.state=trip.purpose==TripPurpose.Shopping && trip.status==TripStatus.Visiting?"到店购物":trip.status==TripStatus.Waiting?"道路中断，等待恢复":trip.blocked>.1f?"出行排队":trip.returning?"回家途中":trip.purpose==TripPurpose.Shopping?"购物途中":"上班途中";
                 a.reason="实际车辆 #"+trip.id+" · 已出行 "+((traffic.clock-trip.departedAt)*1440/society.settings.secondsPerDay).ToString("F1")+" 分钟；等待 "+(trip.blocked*1440/society.settings.secondsPerDay).ToString("F1")+" 分钟";
+                if(trip.purpose==TripPurpose.Healthcare)
+                {a.state=trip.status==TripStatus.Waiting?"就医道路中断，等待恢复":trip.returning?"就医后步行回家":trip.walking?"步行就诊":"乘救护车前往诊所";a.reason=(trip.walking?"实际步行任务 #":"实际救护车 #")+trip.id+"；健康 "+p.health.ToString("F0")+" / 100";}
+                if(trip.purpose==TripPurpose.School){a.state=trip.status==TripStatus.Waiting?"上学道路中断，等待恢复":trip.returning?"放学步行回家":"步行上学";a.reason="实际步行任务 #"+trip.id+"；今日实际学习 "+p.schoolMinutesToday.ToString("F0")+" 分钟";}
                 a.progress=(trip.segment+trip.progress)/Math.Max(1,trip.route.Count-1);
+                if(trip.purpose==TripPurpose.Shopping && trip.status==TripStatus.Visiting && GetBuilding(p.location)!=null)
+                {var shop=GetBuilding(p.location);a.travelling=false;a.building=shop.id;a.located=true;a.x=shop.x;a.z=shop.z;}
                 foreach(int n in trip.route.Skip(trip.segment)) {var node=roads.Node(n); if(node!=null) a.route.Add(node);}
                 return a;
             }
-            int location=p.atWork?p.location:h.home;
+            int location=p.atWork || p.atSchool || p.schoolReturning || p.medicalStage!=MedicalStage.None?p.location:h.home;
             a.located=h.resident && GetBuilding(location)!=null;
             a.building=a.located?location:-1;
             if(a.located) {a.x=GetBuilding(location).x; a.z=GetBuilding(location).z;}
             float shift=480+p.id%3*30;
-            a.state=!h.resident?"城外":p.atWork?(ResidentMinute<shift+480 && p.arrivedDay==day?"工作中":"等待返程"):
-                p.canWork && work>=0 && ResidentMinute>=Math.Max(0,shift-Math.Max(0,ExpectedCommute(p,h.home,work))) && p.departureDay!=day?"等待出发":"在家";
+            a.state=!h.resident?"城外":p.atWork?(CanAttendWork(p) && work>=0 && ResidentMinute<shift+480 && p.arrivedDay==day?"工作中":"等待返程"):
+                CanAttendWork(p) && work>=0 && ResidentMinute>=Math.Max(0,shift-Math.Max(0,ExpectedCommute(p,h.home,work))) && p.departureDay!=day?"等待出发":"在家";
+            if(p.sick && !p.atWork)a.state="患病，等待就医";
             a.destination=a.state=="等待返程"?h.home:a.state=="等待出发"?work:-1;
+            if(p.medicalStage==MedicalStage.Treatment){a.state="诊所治疗中";a.destination=p.medicalClinicId;}
+            if(p.medicalStage==MedicalStage.Returning){a.state="治疗后等待返家";a.destination=h.home;}
+            if(p.atSchool){a.state=p.sick?"患病，等待离校":"在校学习";a.destination=p.schoolId;}
+            if(p.schoolReturning)
+            {a.state="等待步行返家";a.destination=h.home;if(!a.located){var node=roads.Node(p.accessNode);a.located=node!=null;if(node!=null){a.x=node.x;a.z=node.z;}}}
             a.reason=!p.canWork?"家庭成员；暂未安排独立就业、上学或购物":
-                "今日实际在岗 "+p.workedMinutes.ToString("F1")+" / 480 分钟，待入账 ¥"+(p.earnedWages+p.factoryWageCredit).ToString("F1")+"（工厂部分已从雇主现金扣除）"+
+                "今日实际在岗 "+p.workedMinutes.ToString("F1")+" / 480 分钟，待入账 ¥"+(p.earnedWages+p.factoryWageCredit).ToString("F1")+(development.enabled?"":"（工厂部分已从雇主现金扣除）")+
                 (p.lastCommute>=0?"；最近上班耗时 "+p.lastCommute.ToString("F1")+" 分钟，迟到 "+p.lastDelay.ToString("F1")+" 分钟":"；尚无实际到岗记录");
             if(a.state=="等待出发" || a.state=="等待返程") a.reason+="；入口排队或道路不可达，尚未发车";
+            a.reason+="；健康 "+p.health.ToString("F0")+" / 100"+(p.sick?"，患病期间不计工作与工资":"");
+            if(SchoolEligible(p) || p.schoolId>=0)a.reason="教育等级 "+p.education+"；"+(p.schoolId>=0?"学校 #"+p.schoolId:"尚无学位")+"；今日实际学习 "+p.schoolMinutesToday.ToString("F0")+" 分钟；小学/高中/大学累计 "+p.studyMinutes.ToString("F0")+"/"+p.highSchoolStudyMinutes.ToString("F0")+"/"+p.universityStudyMinutes.ToString("F0")+" 分钟；健康 "+p.health.ToString("F0");
+            a.reason+="；年龄 "+p.age+"（进度 "+(p.ageProgress*100).ToString("F0")+"%）"+(p.age>=RetirementAge?"，已退休":"");
             return a;
         }
     }
@@ -52,13 +72,15 @@ namespace HarborCity
         Household TripFamily(TrafficTrip t) => city.society?.families.Find(h=>h.id==t.householdId);
         bool ValidateResidentTrip(TrafficTrip t)
         {
+            if(t.purpose==TripPurpose.School)return ValidateSchoolTrip(t);
+            if(t.purpose==TripPurpose.Healthcare)return ValidateHealthcareTrip(t);
             var h=TripFamily(t); var p=h?.people.Find(person=>person.id==t.residentId);
             if(h==null || p==null || !h.resident)
-            {city.Trace("trip.cancelled","居民或家庭不再居住本城",t,household:t.householdId,citizen:t.residentId,trip:t.id); if(p!=null) {p.tripId=0; p.atWork=false;} State.trips.Remove(t); return false;}
-            if(!Endpoint(t.destination) || (!t.returning && (city.Workplace(p)!=t.destination || !city.JobFunded(city.ResidentJob(p)))) || (t.returning && t.destination!=h.home))
+            {city.Trace("trip.cancelled","居民或家庭不再居住本城",t,household:t.householdId,citizen:t.residentId,trip:t.id); if(p!=null) {p.tripId=0; p.atWork=false;} State.lostGoods+=t.cargo;t.cargo=0;State.trips.Remove(t); return false;}
+            if(!Endpoint(t.destination) || (!t.returning && (p.sick || city.GetBuilding(t.destination)?.burning==true || (t.purpose==TripPurpose.Shopping?!(city.GetBuilding(t.destination) is CommercialBuilding) || city.GetBuilding(t.destination).abandoned:city.Workplace(p)!=t.destination || !city.JobFunded(city.ResidentJob(p))))) || (t.returning && t.destination!=h.home))
             {
                 // A removed workplace sends the resident home via the surviving route graph.
-                t.destination=h.home; t.home=h.home; t.returning=true;
+                t.home=h.home;RedirectFromCurrent(t,h.home);
                 city.Trace("trip.redirected","工作或住房目的地变化，尝试返家",t,household:h.id,citizen:p.id,trip:t.id,level:"warning");
                 if(!Endpoint(t.destination)) {Wait(t); return false;}
             }
@@ -69,6 +91,9 @@ namespace HarborCity
         }
         void ArriveResident(TrafficTrip t)
         {
+            if(t.purpose==TripPurpose.School){ArriveSchool(t);return;}
+            if(t.purpose==TripPurpose.Healthcare){ArriveHealthcare(t);return;}
+            if(t.purpose==TripPurpose.Shopping){ArriveShopping(t);return;}
             var h=TripFamily(t); var p=h?.people.Find(person=>person.id==t.residentId);
             if(p!=null)
             {
@@ -98,20 +123,20 @@ namespace HarborCity
                     if(!p.canWork && !p.atWork) continue;
                     int work=city.Workplace(p);
                     float shift=480+p.id%3*30, end=shift+480;
-                    if(p.atWork && p.tripId==0 && p.arrivedDay==city.day && work==p.location && city.ResidentJob(p)!=null)
+                    if(city.CanAttendWork(p) && city.GetBuilding(work)?.burning!=true && p.atWork && p.tripId==0 && p.arrivedDay==city.day && work==p.location && city.ResidentJob(p)!=null)
                     {
                         float worked=Math.Max(0,Math.Min(minute+minutes,end)-Math.Max(minute,shift));
                         double before=p.factoryWageCredit;
                         p.workedMinutes+=worked; city.PayAttendance(p,worked);
                         // No unpaid productive labour: insufficient cash shortens this step's paid work.
-                        float paidWork=city.Factory(work)==null?worked:city.ResidentWage(p)==0?0:(float)((p.factoryWageCredit-before)*480/city.ResidentWage(p));
+                        float paidWork=city.development.enabled || city.Factory(work)==null?worked:city.ResidentWage(p)==0?0:(float)((p.factoryWageCredit-before)*480/city.ResidentWage(p));
                         city.ProcessFactoryWork(p,Math.Min(worked,paidWork),worked);
                     }
                     if(p.tripId>0 || State.clock<p.retryAt) continue;
                     if(!p.atWork && !city.JobFunded(city.ResidentJob(p)) && p.jobId>=0) {city.ReleaseJob(p); h.nextReview=city.day; work=-1;}
-                    bool returning=p.atWork && (minute>=end || p.arrivedDay<city.day || work!=p.location || !city.JobFunded(city.ResidentJob(p)));
+                    bool returning=p.atWork && (p.sick || city.GetBuilding(p.location)?.burning==true || minute>=end || p.arrivedDay<city.day || work!=p.location || !city.JobFunded(city.ResidentJob(p)));
                     float estimate=city.ExpectedCommute(p,h.home,work);
-                    bool departing=p.canWork && city.JobFunded(city.ResidentJob(p)) && !p.atWork && p.departureDay!=city.day && estimate>=0 && minute>=Math.Max(0,shift-estimate) && minute<end;
+                    bool departing=city.GetBuilding(work)?.burning!=true && p.medicalStage==MedicalStage.None && city.CanAttendWork(p) && city.JobFunded(city.ResidentJob(p)) && !p.atWork && p.departureDay!=city.day && estimate>=0 && minute>=Math.Max(0,shift-estimate) && minute<end;
                     if(!returning && !departing) continue;
                     bool firstRequest=p.requestedAt<0;
                     if(firstRequest) p.requestedAt=State.clock;
@@ -138,7 +163,9 @@ namespace HarborCity
                 }
             }
             // Traffic and the household clock advance on the same fixed step, including multi-day fast forward.
+            ScheduleShopping();
             city.AdvanceIndustry(minutes);
+            if(city.developmentHeight!=null) city.AdvanceDevelopment(city.developmentHeight);
             s.dayElapsed+=Step;
             if(s.dayElapsed+.00001f>=s.settings.secondsPerDay)
             {s.dayElapsed=Math.Max(0,s.dayElapsed-s.settings.secondsPerDay); city.Tick();}
