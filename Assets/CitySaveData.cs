@@ -75,21 +75,24 @@ namespace HarborCity
         public CityPoliceState police;
         public CityLifecycleState lifecycle;
         public CityDeathcareState deathcare;
+        public CityLoanState loans;
         public TrafficState traffic;
         public HouseholdState society;
         public double retiredFactoryWages;
         public List<IndustrialExposure> residualIndustry;
         public CityModel ToCity()
         {
-            if(format!=CityModel.SaveFormat) throw new ArgumentException("存档格式不支持，请使用新城市（格式 "+CityModel.SaveFormat+"）");
+            if(format==23 && loans==null)loans=new CityLoanState {lastSettledDay=day};
+            if(format!=CityModel.SaveFormat && format!=23) throw new ArgumentException("存档格式不支持，请使用新城市（格式 "+CityModel.SaveFormat+"）");
+            if(loans==null)throw new ArgumentException("存档缺少贷款状态");
             if(buildings==null || buildings.Any(b=>b==null) || roads==null || zoning==null || development==null || utilities==null || waste==null || fire==null || police==null || lifecycle==null || deathcare==null || traffic==null || society==null || residualIndustry==null) throw new ArgumentException("存档缺少必要实体");
-            var c=new CityModel {money=money,day=day,nextBuildingId=nextBuildingId,buildings=buildings.Select(b=>b.ToBuilding()).ToList(),roads=roads,zoning=zoning,development=development,utilities=utilities,waste=waste,fire=fire,police=police,lifecycle=lifecycle,deathcare=deathcare,traffic=traffic,society=society,retiredFactoryWages=retiredFactoryWages,residualIndustry=residualIndustry};
+            var c=new CityModel {money=money,day=day,nextBuildingId=nextBuildingId,buildings=buildings.Select(b=>b.ToBuilding()).ToList(),roads=roads,zoning=zoning,development=development,utilities=utilities,waste=waste,fire=fire,police=police,lifecycle=lifecycle,deathcare=deathcare,loans=loans,traffic=traffic,society=society,retiredFactoryWages=retiredFactoryWages,residualIndustry=residualIndustry};
             if(!c.Valid()) throw new ArgumentException("存档实体或关系校验失败");
             c.Recalculate();return c;
         }
     }
     public sealed partial class CityModel
     {
-        public CitySaveData ToSaveData()=>new CitySaveData {format=SaveFormat,money=money,day=day,nextBuildingId=nextBuildingId,buildings=buildings.Select(BuildingSaveData.FromBuilding).ToList(),roads=roads,zoning=zoning,development=development,utilities=utilities,waste=waste,fire=fire,police=police,lifecycle=lifecycle,deathcare=deathcare,traffic=traffic,society=society,retiredFactoryWages=retiredFactoryWages,residualIndustry=residualIndustry};
+        public CitySaveData ToSaveData()=>new CitySaveData {format=SaveFormat,money=money,day=day,nextBuildingId=nextBuildingId,buildings=buildings.Select(BuildingSaveData.FromBuilding).ToList(),roads=roads,zoning=zoning,development=development,utilities=utilities,waste=waste,fire=fire,police=police,lifecycle=lifecycle,deathcare=deathcare,loans=loans,traffic=traffic,society=society,retiredFactoryWages=retiredFactoryWages,residualIndustry=residualIndustry};
     }
 }

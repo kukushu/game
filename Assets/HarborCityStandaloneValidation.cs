@@ -69,6 +69,7 @@ namespace HarborCity
                 CheckHealthcare(city,land.Height,output);
                 CheckEducation(land.Height,output);
                 CheckResidentIdentity(city,output);
+                CheckLoans(city,output);
                 CheckDeathcare(land.Height,output);
                 CheckAging(output);
                 CheckHigherEducation(land.Height,output);
@@ -289,9 +290,47 @@ namespace HarborCity
                 }
                 catch(Exception ex){ok=false;File.WriteAllText(Path.Combine(output,"Failure.txt"),ex.ToString());}
             }
+            if(ok)
+            {
+                var game=FindAnyObjectByType<HarborCityGame>();var type=typeof(HarborCityGame);const BindingFlags flags=BindingFlags.Instance|BindingFlags.NonPublic;
+                var deathCity=JsonUtility.FromJson<CitySaveData>(File.ReadAllText(Path.Combine(output,"DeathcareSceneCity.json"))).ToCity();
+                var cemetery=deathCity.buildings.OfType<CemeteryBuilding>().Single();var hearse=deathCity.traffic.trips.Single(t=>t.purpose==TripPurpose.Deathcare);
+                type.GetField("city",flags).SetValue(game,deathCity);type.GetField("traffic",flags).SetValue(game,new CityTraffic(deathCity));
+                type.GetField("inspectedHome",flags).SetValue(game,cemetery.id);type.GetField("focus",flags).SetValue(game,new Vector3(24,0,1.5f));type.GetField("zoom",flags).SetValue(game,40f);
+                type.GetMethod("Rebuild",flags).Invoke(game,null);type.GetMethod("UpdateCamera",flags).Invoke(game,null);
+                for(int n=0;n<12;n++)yield return null;
+                try
+                {
+                    var models=(System.Collections.Generic.Dictionary<int,GameObject>)type.GetField("visuals",flags).GetValue(game);
+                    var vehicles=(System.Collections.Generic.Dictionary<int,Transform>)type.GetField("trafficViews",flags).GetValue(game);
+                    if(!models.ContainsKey(cemetery.id) || !models[cemetery.id].GetComponentsInChildren<Transform>().Any(t=>t.name=="Cemetery chapel") || !vehicles.ContainsKey(hearse.id) || !vehicles[hearse.id].gameObject.activeSelf)throw new InvalidOperationException("Native cemetery or specific loaded hearse missing from scene");
+                    var cam=(Camera)type.GetField("cam",flags).GetValue(game);var target=new RenderTexture(1440,900,24);target.Create();
+                    UnityEngine.Rendering.RenderPipeline.SubmitRenderRequest(cam,new UnityEngine.Rendering.Universal.UniversalRenderPipeline.SingleCameraRequest{destination=target});
+                    RenderTexture.active=target;var image=new Texture2D(1440,900,TextureFormat.RGB24,false);image.ReadPixels(new Rect(0,0,1440,900),0,0);image.Apply();
+                    File.WriteAllBytes(Path.Combine(output,"DeathcareScene.png"),image.EncodeToPNG());RenderTexture.active=null;Destroy(image);target.Release();Destroy(target);
+                    File.AppendAllText(Path.Combine(output,"Result.txt"),"; cemetery and specific loaded hearse native scene PASS");
+                }
+                catch(Exception ex){ok=false;File.WriteAllText(Path.Combine(output,"Failure.txt"),ex.ToString());}
+            }
             Application.Quit(ok?0:1);
         }
 
+        static void CheckLoans(CityModel source,string output)
+        {
+            var city=JsonUtility.FromJson<CitySaveData>(JsonUtility.ToJson(source.ToSaveData())).ToCity();
+            int money=city.money;
+            foreach(var offer in CityModel.LoanOffers)if(!city.TakeLoan(offer.id,out string reason))throw new InvalidOperationException(reason);
+            if(city.money!=money+280000 || city.LoanDebt!=317000 || !city.Valid())throw new InvalidOperationException("Loan principal or debt mismatch");
+            city.Tick();var d=city.society.history.Last();
+            if(d.loanPayment<=0 || d.closingTreasury!=d.openingTreasury+d.tax-d.maintenance-d.loanPayment)throw new InvalidOperationException("Loan ledger mismatch");
+            var saved=JsonUtility.FromJson<CitySaveData>(JsonUtility.ToJson(city.ToSaveData())).ToCity();
+            city.Tick();saved.Tick();
+            if(saved.money!=city.money || saved.LoanDebt!=city.LoanDebt || !saved.Valid())throw new InvalidOperationException("Loan native save continuation mismatch");
+            if(!saved.RepayLoanEarly(saved.ActiveLoan(0).id,out _) || saved.ActiveLoan(0)!=null || !saved.Valid())throw new InvalidOperationException("Loan early repayment failed");
+            var old=source.ToSaveData();old.format=23;old.loans=null;var migrated=JsonUtility.FromJson<CitySaveData>(JsonUtility.ToJson(old)).ToCity();
+            if(migrated.money!=source.money || migrated.population!=source.population || migrated.LoanDebt!=0 || !migrated.Valid())throw new InvalidOperationException("Loan legacy migration failed");
+            File.WriteAllText(Path.Combine(output,"Loans.txt"),"PASS: three actual loans, treasury ledger, native JSON continuation, early repayment and format-23 migration; original city unchanged");
+        }
         static void CheckHealthcare(CityModel source,Func<float,float,float> height,string output)
         {
             var city=JsonUtility.FromJson<CitySaveData>(JsonUtility.ToJson(source.ToSaveData())).ToCity();city.waste.enabled=false;city.developmentHeight=null;city.society.settings.applicantsPerDay=0;
@@ -359,6 +398,14 @@ namespace HarborCity
             int population=city.population,job=p.jobId;int home=city.society.families.First(h=>h.id==p.householdId).home;
             if(!city.DieResident(citizen) || city.population!=population-1 || city.Job(job).occupiedCitizenId>=0 || city.Corpse(citizen).buildingId!=home || !city.Valid())throw new InvalidOperationException("Native death did not preserve real body and release individual employment");
             var body=city.Corpse(citizen);sim.DispatchHearse(cemetery,citizen);
+            for(int n=0;n<6000 && body.stage==CorpseStage.Waiting;n++)sim.Advance(.05f);
+            if(body.stage!=CorpseStage.Assigned)throw new InvalidOperationException("Native hearse assignment missing before blocked pickup");
+            var blocked=JsonUtility.FromJson<CitySaveData>(JsonUtility.ToJson(city.ToSaveData())).ToCity();var originalRoads=blocked.roads.Copy();
+            blocked.roads.edges.Clear();blocked.roads.Changed();for(int n=0;n<6;n++)blocked.Tick();
+            if(!blocked.GetBuilding(home).abandoned || blocked.Corpse(citizen).stage!=CorpseStage.Assigned || blocked.HearsesAt(cemetery)!=1 || !blocked.Valid())throw new InvalidOperationException("Native abandonment discarded assigned hearse or corpse");
+            blocked=JsonUtility.FromJson<CitySaveData>(JsonUtility.ToJson(blocked.ToSaveData())).ToCity();blocked.roads=originalRoads;var blockedTraffic=new CityTraffic(blocked);
+            for(int n=0;n<6000 && blocked.Corpse(citizen).stage!=CorpseStage.Buried;n++)blockedTraffic.Advance(.05f);
+            if(blocked.Corpse(citizen).stage!=CorpseStage.Buried || !blocked.Valid())throw new InvalidOperationException("Native saved abandoned-building pickup could not resume");
             for(int n=0;n<6000 && body.stage!=CorpseStage.InTransit;n++)sim.Advance(.05f);
             if(body.stage!=CorpseStage.InTransit || city.BuriedAt(cemetery)!=0 || city.BodiesAt(home)!=0)throw new InvalidOperationException("Native hearse did not actually pick up the specific corpse");
             city=JsonUtility.FromJson<CitySaveData>(JsonUtility.ToJson(city.ToSaveData())).ToCity();body=city.Corpse(citizen);sim=new CityTraffic(city);
@@ -366,7 +413,7 @@ namespace HarborCity
             File.WriteAllText(Path.Combine(output,"DeathcareSceneCity.json"),JsonUtility.ToJson(city.ToSaveData(),true));
             for(int n=0;n<6000 && body.stage!=CorpseStage.Buried;n++)sim.Advance(.05f);
             if(!city.Valid() || body.stage!=CorpseStage.Buried || city.BuriedAt(cemetery)!=1 || city.HearsesAt(cemetery)!=0 || city.Citizens.Any(r=>r.id==citizen))throw new InvalidOperationException("Native actual burial, fleet release or living-only population failed");
-            File.WriteAllText(Path.Combine(output,"Deathcare.txt"),"PASS: controlled death after actual return, living population and concrete job release, preserved history and original body, cemetery construction, actual hearse pickup, native loaded JSON, actual burial and finite fleet release; citizen="+citizen+"; buried="+city.BuriedAt(cemetery));
+            File.WriteAllText(Path.Combine(output,"Deathcare.txt"),"PASS: controlled death after actual return, living population and concrete job release, preserved history and original body, cemetery construction, actual hearse pickup, native loaded JSON, actual burial and finite fleet release, abandoned-building assigned hearse retained and native saved pickup resumed; citizen="+citizen+"; buried="+city.BuriedAt(cemetery));
         }
         static void CheckResidentIdentity(CityModel source,string output)
         {

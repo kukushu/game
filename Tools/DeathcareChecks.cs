@@ -26,6 +26,11 @@ public static class DeathcareChecks
         c=TestCity.RoundTrip(c);body=c.Corpse(citizen);p=c.AllResidents.First(r=>r.id==citizen);sim=new CityTraffic(c);
         Until(sim,()=>body.stage==CorpseStage.InTransit);
         Check(body.stage==CorpseStage.InTransit && c.BodiesAt(work)==0 && c.BuriedAt(cemetery)==0 && c.ObserveCorpse(p).travelling && c.Valid(),"Only actual hearse arrival picks up the corpse; transit is not burial");
+        var supplied=TestCity.RoundTrip(c).utilities.electricity;
+        c.utilities.electricity=new CityUtilityNetwork();c.Recalculate();sim.Advance(121);
+        Check(body.stage==CorpseStage.InTransit && c.HearsesAt(cemetery)==1 && c.BuriedAt(cemetery)==0 && c.Valid(),"An unpowered cemetery cannot bury a loaded corpse or discard the waiting hearse");
+        c=TestCity.RoundTrip(c);body=c.Corpse(citizen);c.utilities.electricity=supplied;c.Recalculate();sim=new CityTraffic(c);
+        Check(body.stage==CorpseStage.InTransit && c.HasBasicServices(cemetery) && c.Valid(),"Saved power-outage wait retains the specific corpse and restores service without remote burial");
         var roads=c.roads.Copy();c.roads.edges.Clear();c.roads.Changed();sim.Advance(121);
         Check(body.stage==CorpseStage.InTransit && c.traffic.trips.Any(t=>t.id==body.tripId) && c.Valid(),"Long road outage retains the specific loaded hearse instead of losing its corpse");
         c=TestCity.RoundTrip(c);c.roads=roads;body=c.Corpse(citizen);sim=new CityTraffic(c);Until(sim,()=>body.stage==CorpseStage.Buried);
@@ -42,6 +47,13 @@ public static class DeathcareChecks
         c.DieResident(p.id);Check(sim.DispatchHearse(cemetery,p.id)==null && c.Corpse(p.id).stage==CorpseStage.Waiting,"Full cemetery cannot reserve or pick up another body");
         c=Create(out sim,out cemetery);p=c.Citizens.First();h=c.society.families.First(f=>f.id==p.householdId);int home=h.home;c.DieResident(p.id);
         for(int n=0;n<6;n++)c.Tick();Check(c.GetBuilding(home).abandoned && c.BodiesAt(home)==1 && c.Valid(),"Actual persistent uncollected body eventually causes building abandonment without erasing the corpse");
+        Check(c.BuildingConditionLabel(home).Contains("已废弃") && c.BuildingConditionLabel(home).Contains("遗体") && h.reason.Contains("遗体"),"Abandonment feedback identifies the actual unresolved corpse cause");
+        c.GetBuilding(home).burning=true;Check(c.BuildingConditionLabel(home).StartsWith("火灾中"),"Immediate fire feedback takes precedence over a waiting corpse");
+        c=Create(out sim,out cemetery);p=c.Citizens.First();h=c.society.families.First(f=>f.id==p.householdId);home=h.home;c.DieResident(p.id);trip=sim.DispatchHearse(cemetery,p.id);
+        roads=c.roads.Copy();c.roads.edges.Clear();c.roads.Changed();for(int n=0;n<6;n++)c.Tick();
+        Check(c.GetBuilding(home).abandoned && c.Corpse(p.id).stage==CorpseStage.Assigned && c.traffic.trips.Any(t=>t.id==trip.id) && c.Valid(),"Abandonment during blocked pickup preserves the actual assigned hearse and specific corpse");
+        c=TestCity.RoundTrip(c);citizen=p.id;c.roads=roads;sim=new CityTraffic(c);body=c.Corpse(citizen);
+        Until(sim,()=>body.stage==CorpseStage.Buried);Check(body.stage==CorpseStage.Buried && c.BuriedAt(cemetery)==1 && c.Valid(),"Saved abandoned-building pickup resumes to actual burial after the road is restored");
         c=Create(out sim,out cemetery);h=c.society.families.First();foreach(var r in h.people.ToArray())c.DieResident(r.id);
         int family=h.id;c.society.settings.applicantsPerDay=1;c.Tick();Check(!h.resident && h.people.All(r=>r.dead) && c.society.families.Any(f=>f.id!=family && f.resident && f.home>=0) && c.Valid(),"An entirely dead family never resurrects when housing accepts new migrants");
         c=Create(out sim,out cemetery);p=c.Citizens.First();p.age=80;c.deathcare.oldAgeRisk=1;c.Tick();Check(p.dead && c.Corpse(p.id)!=null && c.Valid(),"Daily individual age-risk evaluation creates a real corpse and linked death");

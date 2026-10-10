@@ -12,7 +12,8 @@ namespace HarborCity
         const float MinZoom = 10f;
         const float MaxZoom = 155f;
         const float ZoomPerStep = .85f;
-        CityModel city;
+        [NonSerialized] CityModel city;
+        [SerializeField,HideInInspector] string reloadCityJson;
         readonly Dictionary<int, GameObject> visuals = new Dictionary<int, GameObject>();
         readonly Dictionary<Color, Material> materials = new Dictionary<Color, Material>();
         readonly List<Transform> cars = new List<Transform>();
@@ -43,7 +44,7 @@ namespace HarborCity
         const float RotationDegreesPerPixel = .25f;
         const float RotationDragThreshold = 5f;
         string validationSavePath;
-        string SavePath => validationSavePath??Path.Combine(Application.persistentDataPath, "harbor-city.json");
+        string SavePath => string.IsNullOrEmpty(validationSavePath)?Path.Combine(Application.persistentDataPath, "harbor-city.json"):validationSavePath;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Launch()
@@ -263,6 +264,12 @@ namespace HarborCity
         void OnEnable()
         {
             // Unity can reload scripts while a city is running. Rebind transient controllers.
+            if(Application.isPlaying && !string.IsNullOrEmpty(reloadCityJson))
+            {
+                var restored=JsonUtility.FromJson<CitySaveData>(reloadCityJson).ToCity();
+                if(!restored.Valid())throw new InvalidOperationException("脚本重载城市快照无效；保留快照以便恢复。");
+                city=restored;reloadCityJson=null;
+            }
             if (city == null || landscape == null) return;
             city.Recalculate();
             Rebuild();
@@ -743,7 +750,7 @@ namespace HarborCity
             GUI.Label(new Rect(485,22,170,23),"人口 · 点击查看",small);
             if(GUI.Button(new Rect(485,47,175,35),city.population.ToString("N0"),number)) OpenPopulationPanel();
             Stat(655,"就业岗位",city.jobs.ToString("N0"));
-            Stat(825,city.development.enabled?"上日税收减当前维护":"上日租金减当前维护",(city.income >= city.upkeep ? "+ " : "− ") + Math.Abs(city.income - city.upkeep));
+            Stat(825,city.development.enabled?"税收减维护与还贷":"上日租金减当前维护",(city.NetCityIncome >= 0 ? "+ " : "− ") + Math.Abs(city.NetCityIncome));
             Stat(1020,"幸福度",city.happiness + "%");
             GUI.Label(new Rect(w - 170,23,160,28),"第 " + city.day + " 天",label);
             int minute=city.society==null?0:Mathf.Clamp(Mathf.FloorToInt(city.ResidentMinute),0,1439);
@@ -757,9 +764,9 @@ namespace HarborCity
             Meter(rx + 20,185,"电力总量",city.demand,city.power,palette[5]);
             Meter(rx + 20,238,"供水总量",city.demand,city.water,palette[6]);
             if(city.development.enabled)
-            {if(GUI.Button(new Rect(rx+20,293,210,26),"税收 +"+city.income+" / 天 · 调整",button)){showEconomy=!showEconomy;if(showEconomy)showInfoViews=false;}}
+            {if(GUI.Button(new Rect(rx+20,293,210,26),"税收 +"+city.income+" / 天 · 调整",button)){showEconomy=!showEconomy;if(showEconomy){showInfoViews=false;inspectedHome=-1;inspectedTrip=-1;}}}
             else GUI.Label(new Rect(rx+20,293,225,26),"上日实收租金 +"+city.income+" / 天",label);
-            GUI.Label(new Rect(rx + 20,322,225,26),"维护  −" + city.upkeep + " / 天",label);
+            GUI.Label(new Rect(rx + 20,322,225,26),"维护 −" + city.upkeep + " · 还贷 −"+city.LoanPaymentNextDay+" / 天",small);
             if(city.development.enabled) {DrawDemand(rx+20,365);GUI.Label(new Rect(rx+20,405,212,23),"交通 "+traffic.State.trips.Count+" / 完成 "+traffic.State.completed,small);}
             else GUI.Label(new Rect(rx + 20,365,212,60),"交通任务 " + traffic.State.trips.Count + "  /  完成 " + traffic.State.completed
                 + "\n送货 " + traffic.State.delivered + "  /  失败 " + traffic.State.failed,small);

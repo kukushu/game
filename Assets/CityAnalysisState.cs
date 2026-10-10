@@ -37,6 +37,7 @@ namespace HarborCity
         public int day,population,households,applicants,employed,unemployed,workforce,jobs,fundedJobs;
         public int units,vacantUnits,residentsInTransit,freightInTransit,blockedResidents,blockedFreight,atWork;
         public int rawEmptyFactories,stockFullFactories,unfundedFactories,emptyCommercial,treasury;
+        public int loanDebt,loanPaymentNextDay;
         public float minute,clock,averageCommute;
         public double pendingWages;
     }
@@ -49,6 +50,7 @@ namespace HarborCity
     [Serializable] public sealed class CityHistorySample
     {
         public int day,population,households,employed,unemployed,treasury,wages,rent,tax,maintenance,arrived,moved,left;
+        public int loanPayment;
         public int produced,sold;
         public float averageCommute;
         public bool industryKnown,partial;
@@ -146,10 +148,10 @@ namespace HarborCity
         static CityHistorySample HistorySample(HouseholdDay d,CityAnalysisReport report)
         {
             return new CityHistorySample {day=d.day-1,population=d.population,households=d.households,employed=d.employed,unemployed=d.unemployed,
-                treasury=d.closingTreasury,wages=d.wages,rent=d.rent,tax=d.tax,maintenance=d.maintenance,arrived=d.arrived,moved=d.moved,left=d.left,
+                treasury=d.closingTreasury,wages=d.wages,rent=d.rent,tax=d.tax,maintenance=d.maintenance,loanPayment=d.loanPayment,arrived=d.arrived,moved=d.moved,left=d.left,
                 averageCommute=d.averageCommute,industryKnown=report!=null,partial=report?.partial??false,
                 produced=report?.factories.Sum(f=>f.produced)??0,sold=report?.factories.Sum(f=>f.sold)??0,
-                treasuryError=d.closingTreasury-d.openingTreasury-d.tax-d.rent+d.maintenance,
+                treasuryError=d.closingTreasury-d.openingTreasury-d.tax-d.rent+d.maintenance+d.loanPayment,
                 savingsError=d.closingSavings-d.openingSavings-d.wages+d.rent+d.living+d.travel+d.movingCosts};
         }
         void CompleteRuntimeDay(CityAnalysisReport report,HouseholdDay ledger)
@@ -236,7 +238,7 @@ namespace HarborCity
             if(!force && State!=null && State.version==runtimeVersion && State.live.clock==city.traffic.clock)return State;
             var report=Current();var s=new CityAnalysisState {version=runtimeVersion,failure=Failure,currentDay=report,lastDay=Latest,
                 history=history.ToList(),reports=completedReports.ToList(),timeline=keyEvents.Select(e=>e.Copy()).ToList()};
-            var live=new CityLiveState {day=city.day,minute=city.ResidentMinute,clock=city.traffic.clock,treasury=city.money,
+            var live=new CityLiveState {day=city.day,minute=city.ResidentMinute,clock=city.traffic.clock,treasury=city.money,loanDebt=city.LoanDebt,loanPaymentNextDay=city.LoanPaymentNextDay,
                 population=city.Citizens.Count(),households=city.society.families.Count(h=>h.resident),applicants=city.society.families.Count(h=>!h.resident),
                 employed=city.Employed,unemployed=city.Unemployed,workforce=city.Citizens.Count(p=>p.canWork),jobs=city.society.jobEntities.Count,
                 fundedJobs=city.society.jobEntities.Count(city.JobFunded),averageCommute=city.AverageCommute};s.live=live;

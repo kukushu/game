@@ -56,7 +56,7 @@ namespace HarborCity
             if(city.traffic==null) city.traffic=new TrafficState();
             // Restore junction ownership from the saved physical positions, departures first.
             foreach (var t in State.trips)
-                if (!t.walking && t.status == TripStatus.Driving && Behind(t) < .4f) Reserve(t.Current,t.id);
+                if (!t.walking && t.status == TripStatus.Driving && Behind(t) < .4f && !DepartedQueue(t)) Reserve(t.Current,t.id);
             foreach (var t in State.trips)
                 if (!t.walking && t.status == TripStatus.Driving && Ahead(t) <= .35f) Reserve(t.Next,t.id);
         }
@@ -96,6 +96,10 @@ namespace HarborCity
         float Units(int a,int b)=>a==b?1:city.roads.EdgeLength(a,b)/3;
         float Ahead(TrafficTrip t)=>(1-t.progress)*Units(t.Current,t.Next);
         float Behind(TrafficTrip t)=>t.progress*Units(t.Current,t.Next);
+        // Existing node locks approximate the whole intersection. A vehicle
+        // already on its exit edge must not retain that global lock forever
+        // while waiting for downstream traffic; the one-second grace is provisional.
+        static bool DepartedQueue(TrafficTrip t)=>t.progress>0 && t.blocked>=1;
         bool Building(int id)=>city.GetBuilding(id)!=null;
         bool Endpoint(int i)=>i==Outside?Road(Entrance):Building(i);
         IEnumerable<int> Neighbors(int i)=>city.roads.Neighbors(i);
@@ -195,7 +199,7 @@ namespace HarborCity
             {
                 var owner = State.trips.Find(t => t.id == pair.Value);
                 if (owner == null || owner.status != TripStatus.Driving
-                    || !(owner.Next == pair.Key && Ahead(owner) <= .36f || owner.Current == pair.Key && Behind(owner) < .4f)) release.Add(pair.Key);
+                    || !(owner.Next == pair.Key && Ahead(owner) <= .36f || owner.Current == pair.Key && Behind(owner) < .4f && !DepartedQueue(owner))) release.Add(pair.Key);
             }
             foreach (int node in release) junctions.Remove(node);
             foreach (var t in State.trips.ToArray()) Move(t);
@@ -273,6 +277,10 @@ namespace HarborCity
                 if(t.origin!=id && t.destination!=id && t.home!=id && h?.home!=id) continue;
                 if(t.residentId==0)
                 {
+                    // Abandonment and fire leave the building entity in place.
+                    // Its specific corpse still needs the assigned hearse;
+                    // demolition guards prevent deleting a body or cemetery.
+                    if(t.purpose==TripPurpose.Deathcare && city.GetBuilding(id)!=null)continue;
                     if((t.purpose==TripPurpose.FireResponse || t.purpose==TripPurpose.PoliceResponse) && t.home!=id){if(t.origin==id)t.origin=Outside;RedirectFromCurrent(t,t.home);continue;}
                     if(t.cargoKind==CargoKind.Waste && t.home!=id && t.cargo>0)
                     {
@@ -381,7 +389,9 @@ namespace HarborCity
                     offset += Units(t.route[s],t.route[s+1]);
                 }
             }
-            if (!t.walking && Behind(t) < .4f && !Reserve(t.Current, t.id)) proposed = t.progress;
+            // A car leaving an intersection must be allowed to clear it. Trying
+            // to reacquire its departure lock can create a circular wait when
+            // downstream traffic backs up into another nearby intersection.
             if (!t.walking && (1-proposed)*units <= .35f && !Reserve(t.Next, t.id)) proposed = Math.Min(proposed, Math.Max(0,1-.36f/units));
             // A split edge can leave progress one float below 1. Do not classify
             // the final representable increment as blocked: it must reach the next

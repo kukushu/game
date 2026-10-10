@@ -30,6 +30,7 @@ namespace HarborCity
     {
         public int unemployed;
         public int tax;
+        public int loanPayment;
         public int factoryWages, externalWages;
         public int day, households, population, units, employed, wages, rent, living, travel, maintenance, moved, arrived, left;
         public int openingTreasury, closingTreasury, openingSavings, closingSavings, movingCosts, unpaidRent;

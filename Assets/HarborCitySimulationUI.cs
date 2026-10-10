@@ -245,11 +245,11 @@ namespace HarborCity
                 string directory=Path.Combine(Application.persistentDataPath,"SimulationReports"); Directory.CreateDirectory(directory);
                 string path=Path.Combine(directory,"city-day-"+city.day+"-"+DateTime.Now.ToString("yyyyMMdd-HHmmss")+".json");
                 File.WriteAllText(path,JsonUtility.ToJson(city.ToSaveData(),true)); notice="模拟快照已导出："+path;
-                var csv=new System.Text.StringBuilder("day,households,population,units,employed,commute,rent,tax,maintenance,wages,moved,arrived,left,treasuryError,householdError\n");
+                var csv=new System.Text.StringBuilder("day,households,population,units,employed,commute,rent,tax,maintenance,wages,moved,arrived,left,loanPayment,treasuryError,householdError\n");
                 foreach(var r in city.society.history)
                     csv.AppendLine(string.Join(",",new[]{r.day.ToString(),r.households.ToString(),r.population.ToString(),r.units.ToString(),r.employed.ToString(),
                         r.averageCommute.ToString("F2",System.Globalization.CultureInfo.InvariantCulture),r.rent.ToString(),r.tax.ToString(),r.maintenance.ToString(),r.wages.ToString(),r.moved.ToString(),r.arrived.ToString(),r.left.ToString(),
-                        (r.closingTreasury-r.openingTreasury-r.rent-r.tax+r.maintenance).ToString(),(r.closingSavings-r.openingSavings-r.wages+r.living+r.travel+r.rent+r.movingCosts).ToString()}));
+                        r.loanPayment.ToString(),(r.closingTreasury-r.openingTreasury-r.rent-r.tax+r.maintenance+r.loanPayment).ToString(),(r.closingSavings-r.openingSavings-r.wages+r.living+r.travel+r.rent+r.movingCosts).ToString()}));
                 File.WriteAllText(Path.ChangeExtension(path,"csv"),csv.ToString(),new System.Text.UTF8Encoding(true));
             }
             catch(Exception e) {notice="导出失败："+e.Message;}

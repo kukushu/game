@@ -20,16 +20,16 @@ namespace HarborCity
             if(!showEconomy || !city.development.enabled) return;
             Panel(new Rect(360,120,330,490),navy);GUI.Label(new Rect(376,135,220,28),"城市财政",title);
             if(GUI.Button(new Rect(635,135,38,28),"×",button)) showEconomy=false;
-            economyTab=GUI.Toolbar(new Rect(376,174,298,27),economyTab,new[]{"税率","服务预算"},button);
+            economyTab=GUI.Toolbar(new Rect(376,174,298,27),economyTab,new[]{"税率","服务预算","贷款"},button);
             var state=city.development;
             if(economyTab==0)
             {
                 state.residentialTax=TaxSlider(207,"住宅",state.residentialTax);
                 state.commercialTax=TaxSlider(249,"商业",state.commercialTax);
                 state.industrialTax=TaxSlider(291,"工业",state.industrialTax);
-                GUI.Label(new Rect(376,346,298,66),"上日税收 ¥"+city.income+" / 当前公共维护 ¥"+city.upkeep+"\n普通建筑由区域生长，建设不花城市资金。\n私营住宅不计入政府维护支出。",small);
+                GUI.Label(new Rect(376,346,298,88),"上日税收 ¥"+city.income+" / 当前公共维护 ¥"+city.upkeep+"\n下次还贷 ¥"+city.LoanPaymentNextDay+" / 待还 ¥"+city.LoanDebt.ToString("N0")+"\n普通建筑由区域生长，建设不花城市资金。\n私营住宅不计入政府维护支出。",small);
             }
-            else
+            else if(economyTab==1)
             {
                 BudgetSlider(207,"电力",CityServiceKind.Electricity);
                 BudgetSlider(249,"水务",CityServiceKind.Water);
@@ -39,6 +39,21 @@ namespace HarborCity
                 BudgetSlider(417,"消防",CityServiceKind.Fire);
                 BudgetSlider(473,"警察",CityServiceKind.Police);
                 GUI.Label(new Rect(376,529,298,66),"当前公共维护 ¥"+city.upkeep+"\n供电容量 "+city.power+" / 供水容量 "+city.water+"\n垃圾车 "+city.GarbageFleetLimit+" · 消防车 "+city.FireFleetLimit+" · 小学学位 "+city.SchoolCapacity,small);
+            }
+            else DrawLoans();
+        }
+        void DrawLoans()
+        {
+            GUI.Label(new Rect(376,207,298,42),"待还总额 ¥"+city.LoanDebt.ToString("N0")+" · 下次扣款 ¥"+city.LoanPaymentNextDay+"\n开发阶段开放三档；每 7 天为一周。",small);
+            foreach(var offer in CityModel.LoanOffers)
+            {
+                float y=253+offer.id*112;var loan=city.ActiveLoan(offer.id);
+                GUI.Label(new Rect(376,y,298,24),offer.name+" · ¥"+offer.principal.ToString("N0"),label);
+                GUI.Label(new Rect(376,y+24,298,42),"总利息 "+offer.interestPercent+"% · "+offer.weeks+" 周 · 每周约 ¥"+((double)offer.Total/offer.weeks).ToString("F2")+"\n"+(loan==null?"还款总额 ¥"+offer.Total.ToString("N0"):"已还 ¥"+loan.paid.ToString("N0")+" / 剩余 ¥"+city.LoanRemaining(loan).ToString("N0")),small);
+                bool enabled=GUI.enabled;GUI.enabled=enabled && (loan==null || city.money>=city.LoanRemaining(loan));
+                if(GUI.Button(new Rect(376,y+71,298,28),loan==null?"借入 ¥"+offer.principal.ToString("N0"):"立即还清 ¥"+city.LoanRemaining(loan).ToString("N0"),button))
+                {string reason;if(loan==null)city.TakeLoan(offer.id,out reason);else city.RepayLoanEarly(loan.id,out reason);notice=reason;}
+                GUI.enabled=enabled;
             }
         }
         void BudgetSlider(float y,string caption,CityServiceKind kind)

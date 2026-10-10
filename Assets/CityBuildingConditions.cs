@@ -12,10 +12,10 @@ namespace HarborCity
         public string BuildingConditionLabel(int id)
         {
             var b=GetBuilding(id);if(b==null)return "建筑不存在";
-            if(BodiesAt(id)>0)return "等待灵车 · 未收取遗体 "+BodiesAt(id);
             if(b.burned)return "建筑已烧毁 · 需拆除废墟";
-            if(b.crime>=CrimeWarning && !b.abandoned && !b.burning)return "犯罪积压 · "+b.crime.ToString("F0");
             if(b.burning)return "火灾中 · 损坏 "+b.fireDamage.ToString("F0")+"%";
+            if(BodiesAt(id)>0)return (b.abandoned?"已废弃 · ":"")+"等待灵车 · 未收取遗体 "+BodiesAt(id);
+            if(b.crime>=CrimeWarning && !b.abandoned && !b.burning)return "犯罪积压 · "+b.crime.ToString("F0");
             string problem=BuildingAccess(id)?Supply(id).Problem:"道路未接通";
             if(development.enabled && waste.enabled && b.garbage>=GarbageWarning)problem="垃圾积压 · "+b.garbage;
             if(b.abandoned)return HasBasicServices(id)?"已废弃 · 至少还需等待 "+System.Math.Max(0,28-(day-b.abandonedDay))+" 天":"已废弃 · "+problem;
@@ -35,11 +35,11 @@ namespace HarborCity
                     new CityTraffic(this).RemoveBuilding(b.id);
                     foreach(var h in society.families.Where(h=>h.resident && h.home==b.id))
                     {
-                        h.resident=false;h.home=h.unit=-1;h.reason="住宅因持续供给或垃圾服务问题而废弃";left++;
+                        h.resident=false;h.home=h.unit=-1;h.reason=CorpseBacklog(b.id)?"住宅因遗体长期未收取而废弃":"住宅因持续供给或垃圾服务问题而废弃";left++;
                         foreach(var p in h.people.Where(p=>!p.dead)){ReleaseJob(p);p.tripId=0;p.location=-1;p.atWork=false;p.accessNode=-1;p.medicalStage=MedicalStage.None;p.medicalClinicId=-1;p.treatmentMinutes=0;ReleaseSchoolPlace(p);p.atSchool=p.schoolReturning=false;}
                         Trace("household.left",h.reason,h,household:h.id,building:b.id);
                     }
-                    Trace("building.abandoned","持续供给/垃圾问题导致废弃；触发天数为待核实近似参数",b,building:b.id);
+                    Trace("building.abandoned",CorpseBacklog(b.id)?"遗体长期未收取导致废弃；触发天数为待核实近似参数":"持续供给/垃圾问题导致废弃；触发天数为待核实近似参数",b,building:b.id);
                 }
                 else if(b.abandoned && connected && day-b.abandonedDay>=AbandonedRecoveryDays)
                 {

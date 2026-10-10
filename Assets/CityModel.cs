@@ -5,7 +5,7 @@ namespace HarborCity
     public enum LandUse { Empty, Road, Residential, Commercial, Industrial, Power, Water, Park, Bulldoze, Sewage, Landfill, Clinic, ElementarySchool, FireHouse, PoliceStation, HighSchool, University, Cemetery }
     [Serializable] public sealed partial class CityModel
     {
-        public const int SaveFormat=23;
+        public const int SaveFormat=24;
         public const float BuildHalfSize=84f, RoadHalfSize=BuildHalfSize-1.5f;
         public int money=65000, day=1;
         public TrafficState traffic=new TrafficState();
@@ -48,7 +48,7 @@ namespace HarborCity
             Trace("road.created","道路施工成功",new CityLogDetail {amount=plan.cost,count=plan.stroke,origin=plan.start.id,destination=plan.end.id,x=plan.end.x,z=plan.end.z}); return true;
         }
 
-        public bool Valid()=>day>0 && ValidDevelopment() && utilities!=null && utilities.Valid() && waste!=null && waste.Valid() && ValidBuildings() && roads!=null && roads.Valid() && zoning!=null && zoning.Valid() && CityTraffic.Valid(this) && ValidHouseholds() && ValidFire() && ValidPolice() && ValidBuildingGrowth() && ValidResidentAging() && ValidDeathcare();
+        public bool Valid()=>day>0 && ValidDevelopment() && utilities!=null && utilities.Valid() && waste!=null && waste.Valid() && ValidBuildings() && roads!=null && roads.Valid() && zoning!=null && zoning.Valid() && CityTraffic.Valid(this) && ValidHouseholds() && ValidFire() && ValidPolice() && ValidBuildingGrowth() && ValidResidentAging() && ValidDeathcare() && ValidLoans();
         public static CityModel Create()
         {
             var city=new CityModel();city.development.enabled=true;city.roads.nodes.Add(new RoadNode{id=CityRoads.Entrance,x=-52.5f,z=1.5f});

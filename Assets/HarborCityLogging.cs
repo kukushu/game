@@ -28,7 +28,13 @@ namespace HarborCity
             Application.logMessageReceived-=CaptureUnityLog;
             if(city!=null)city.analysis=null;
         }
-        void OnDisable() {StopObservation();ReleaseDashboardGraphics();}
+        void OnDisable()
+        {
+            // Unity's default hot-reload serialization loses derived buildings.
+            // Preserve the same concrete DTO used by normal saves instead.
+            if(Application.isPlaying && city!=null && city.Valid())reloadCityJson=JsonUtility.ToJson(city.ToSaveData());
+            StopObservation();ReleaseDashboardGraphics();
+        }
         void RefreshAnalysis()
         {
             if(city?.analysis==null)return;

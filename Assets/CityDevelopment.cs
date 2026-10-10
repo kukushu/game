@@ -170,6 +170,7 @@ namespace HarborCity
                 +(int)Math.Floor(buildings.OfType<CommercialBuilding>().Sum(b=>EmployedAt(b.id))*160*development.commercialTax/100.0)
                 +(int)Math.Floor(buildings.OfType<IndustrialBuilding>().Sum(b=>EmployedAt(b.id))*180*development.industrialTax/100.0);
             money+=r.tax-r.maintenance;society.lastSettledDay=day;
+            r.loanPayment=SettleLoans();
             r.population=population;r.households=society.families.Count(h=>h.resident);r.units=buildings.OfType<ResidentialBuilding>().Sum(b=>HousingCapacity(b.id));
             r.employed=Employed;r.unemployed=Unemployed;r.averageCommute=AverageCommute;r.closingTreasury=money;r.closingSavings=society.families.Sum(h=>h.savings);
             society.history.Add(r);if(society.history.Count>180) society.history.RemoveAt(0);Trace("city.day","分区城市税收与公共维护结算（税基暂为近似）",r);Recalculate();
