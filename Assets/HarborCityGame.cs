@@ -478,6 +478,7 @@ namespace HarborCity
                     if(keyboard.homeKey.wasPressedThisFrame)SetRoadElevation(0);
                 }
                 if (keyboard.spaceKey.wasPressedThisFrame) speed = speed == 0 ? 1 : 0;
+                if (keyboard.f8Key.wasPressedThisFrame) AddDevelopmentFunds();
                 if (keyboard.escapeKey.wasPressedThisFrame && !CancelRoad()) selected = LandUse.Empty;
                 if (keyboard.zKey.wasPressedThisFrame && (keyboard.leftCtrlKey.isPressed || keyboard.rightCtrlKey.isPressed)) UndoRoad();
                 if (keyboard.digit0Key.wasPressedThisFrame) selected = LandUse.Empty;
@@ -851,7 +852,12 @@ namespace HarborCity
             if (GUI.Button(new Rect(1123,h - 118,76,31),"保存",button)) Save();
             if (GUI.Button(new Rect(1207,h - 118,76,31),"读取",button)) Load();
             if (GUI.Button(new Rect(1291,h - 118,85,31),"帮助",button)) help = !help;
-            GUI.Label(new Rect(955,h - 77,410,42),"中键平移 · 右键左右旋转 / 上下俯仰\n滚轮缩放 · WASD 移动 · Q/E 旋转",small);
+            if(Application.isEditor || Debug.isDebugBuild)
+            {
+                if(GUI.Button(new Rect(955,h-77,210,31),"F8 测试资金 +100,000",button))AddDevelopmentFunds();
+                GUI.Label(new Rect(1175,h-77,210,42),"中键平移 · 右键旋转/俯仰\n滚轮缩放 · WASD/QE",small);
+            }
+            else GUI.Label(new Rect(955,h - 77,410,42),"中键平移 · 右键左右旋转 / 上下俯仰\n滚轮缩放 · WASD 移动 · Q/E 旋转",small);
             Panel(new Rect(24,h - 181,w - 48,33),new Color(.055f,.105f,.14f,.85f));
             GUI.Label(new Rect(38,h - 177,w - 80,29),notice,small);
 
@@ -869,6 +875,17 @@ namespace HarborCity
             GUI.Label(new Rect(x,y,215,25),name + "  " + used + " / " + capacity,small);
             Panel(new Rect(x,y + 28,210,6),new Color(.2f,.27f,.29f));
             Panel(new Rect(x,y + 28,210 * Mathf.Clamp01(capacity == 0 ? 1 : (float)used / capacity),6),used > capacity || capacity == 0 ? palette[8] : color);
+        }
+
+        void AddDevelopmentFunds()
+        {
+            if(city==null || !(Application.isEditor || Debug.isDebugBuild))return;
+            const int grant=100000;
+            if(city.money>int.MaxValue-grant){notice="资金已接近上限，无法再增加测试资金。";return;}
+            city.money+=grant;
+            city.Trace("debug.funds_added","开发测试：增加城市资金",new CityLogDetail{amount=grant,count=city.money});
+            notice="开发测试：资金 +100,000；当前 ¥ "+city.money.ToString("N0")+"（F8 可再次增加）";
+            RefreshAnalysis();
         }
 
         void Save()
