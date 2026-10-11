@@ -524,7 +524,11 @@ namespace HarborCity
             int id=walk.id;c=JsonUtility.FromJson<CitySaveData>(JsonUtility.ToJson(c.ToSaveData())).ToCity();sim=new CityTraffic(c);walk=c.traffic.trips.First(t=>t.id==id);child=c.Citizens.First(p=>p.id==child.id);
             while(c.roads.PedestrianSignal(node,walk.Current,c.traffic.clock)!=SignalAspect.Green || c.roads.PedestrianSignal(node,walk.Current,c.traffic.clock+.7f)!=SignalAspect.Green)c.traffic.clock+=.1f;
             int factory=Build(-20,-5,LandUse.Industrial),shop=Build(20,-5,LandUse.Commercial);c.Inventory(factory).Stock=8;var truck=sim.Dispatch(factory,shop,TripPurpose.Delivery);Approach(truck);sim.Advance(.6f);
-            if(walk.segment<walk.route.IndexOf(node) || truck.Next!=node || truck.blocked<=0)throw new InvalidOperationException("Native freight pedestrian yield");
+            if(walk.segment<walk.route.IndexOf(node) || truck.segment<truck.route.IndexOf(node) || truck.blocked>0)throw new InvalidOperationException("Native parallel freight pedestrian concurrency");
+            c.money+=10000;int crossingFactory=Build(5,-20,LandUse.Industrial),crossingShop=Build(5,20,LandUse.Commercial);
+            c.Inventory(crossingFactory).Stock=8;var crossing=sim.Dispatch(crossingFactory,crossingShop,TripPurpose.Delivery);Approach(crossing);
+            c.roads.SetJunctionControl(node,JunctionControl.Uncontrolled,out _);sim.Advance(.1f);
+            if(crossing.Next!=node || crossing.blocked<=0 || !crossing.junctionWaitReason.Contains("行人"))throw new InvalidOperationException("Native conflicting freight pedestrian yield");
             const BindingFlags flags=BindingFlags.NonPublic|BindingFlags.Instance;var type=typeof(HarborCityGame);var originalCity=type.GetField("city",flags).GetValue(game);var originalTraffic=type.GetField("traffic",flags).GetValue(game);
             try
             {
@@ -537,10 +541,10 @@ namespace HarborCity
             // Check attendance within the actual school day. Fast-forwarding 90
             // seconds would correctly include dismissal and the child's return.
             c=JsonUtility.FromJson<CitySaveData>(JsonUtility.ToJson(c.ToSaveData())).ToCity();sim=new CityTraffic(c);child=c.Citizens.First(p=>p.id==child.id);int truckId=truck.id;sim.Advance(30);
-            if(!child.atSchool || c.Goods(shop)<8 || c.traffic.trips.Any(t=>t.id==truckId) || c.traffic.failed!=0 || c.traffic.lostGoods!=0 || !c.Valid())throw new InvalidOperationException("Native crossing attendance/cargo/save continuation");
+            if(!child.atSchool || c.Goods(shop)<8 || c.Goods(crossingShop)<8 || c.traffic.trips.Any(t=>t.id==truckId || t.id==crossing.id) || c.traffic.failed!=0 || c.traffic.lostGoods!=0 || !c.Valid())throw new InvalidOperationException("Native crossing attendance/cargo/save continuation");
             var back=sim.DispatchSchool(child.id,true);if(back==null)throw new InvalidOperationException("Native pedestrian real return");sim.Advance(30);
             if(child.location!=home || child.schoolReturning || !c.Valid())throw new InvalidOperationException("Native pedestrian return home");
-            File.WriteAllText(Path.Combine(output,"Pedestrians.txt"),"PASS: real enrolled pupil waits at red, actual crossing excludes freight, simultaneous pedestrian/truck render, native JSON during crossing, real attendance/cargo delivery/return and actual walk home");
+            File.WriteAllText(Path.Combine(output,"Pedestrians.txt"),"PASS: real pupil red wait, parallel freight passes alongside walker, perpendicular freight yields to actual crossing, simultaneous pedestrian/truck render, native JSON during crossing, both cargo deliveries/returns and actual school attendance/walk home");
         }
         IEnumerator CheckWideConnectionInput(HarborCityGame game,Mouse mouse)
         {

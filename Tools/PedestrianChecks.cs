@@ -40,18 +40,27 @@ public static class PedestrianChecks
         walk=sim.DispatchSchool(p.id,true);Check(walk!=null && walk.walking && walk.returning,"Actual pupil starts walking home after school");
         for(int i=0;i<1200 && p.tripId>0;i++)sim.Advance(.05f);
         Check(p.location==c.society.families.First(h=>h.id==p.householdId).home && !p.schoolReturning && c.Valid(),"Return crosses the same signal-controlled junction and finishes at home");
-        for(int reverse=0;reverse<2;reverse++)
+        // Parallel, perpendicular, turning and opposite straight freight; use
+        // actual building destinations and reverse task order in every case.
+        for(int reverse=0;reverse<2;reverse++)for(int conflict=0;conflict<4;conflict++)
         {
             c=Fixture(out sim,out p,out school,out node);walk=sim.DispatchSchool(p.id);Approach(c,walk,node,.36f);
             var second=c.Citizens.Where(c.ElementaryEligible).Skip(1).First();Check(c.EnrollElementary(second.id,school),"Second real child enrolls");
             var companion=sim.DispatchSchool(second.id);Approach(c,companion,node,.36f);
             int factory=c.buildings.OfType<IndustrialBuilding>().First(b=>b.x<0).id,shop=c.buildings.OfType<CommercialBuilding>().First(b=>b.x>0).id;
+            if(conflict==1){c.money+=10000;factory=TestCity.Build(c,5,-20,LandUse.Industrial);shop=TestCity.Build(c,5,20,LandUse.Commercial);}
+            if(conflict==2){c.money+=10000;shop=TestCity.Build(c,5,20,LandUse.Commercial);}
+            if(conflict==3){factory=c.buildings.OfType<IndustrialBuilding>().First(b=>b.x>0).id;shop=c.buildings.OfType<CommercialBuilding>().First(b=>b.x<0).id;}
+            bool crosses=conflict==1 || conflict==2;
+            if(!crosses){c.roads.SetJunctionControl(node,JunctionControl.Signals,out _);c.traffic.clock=Phase(c,node,walk.Current,true);}
             c.Inventory(factory).Stock=8;var car=sim.Dispatch(factory,shop,TripPurpose.Delivery);Approach(c,car,node);
-            if(reverse==1)c.traffic.trips.Reverse();sim=new CityTraffic(c);sim.Advance(.6f);
-            Check(Inside(c,walk,node) && Inside(c,companion,node) && car.Next==node && car.blocked>0,"Multiple actual walkers cross together; freight yields in either task-list order: "+reverse+" node="+node+" walk="+walk.Current+"/"+walk.Next+" p="+walk.progress+" why="+walk.junctionWaitReason+" second="+companion.Current+"/"+companion.Next+" p="+companion.progress+" why="+companion.junctionWaitReason+" car="+car.Current+"/"+car.Next+" p="+car.progress+" why="+car.junctionWaitReason);
-            saved=TestCity.RoundTrip(c);savedSim=new CityTraffic(saved);int carId=car.id;bool mixed=false;
+            if(reverse==1)c.traffic.trips.Reverse();sim=new CityTraffic(c);sim.Advance(.1f);
+            saved=TestCity.RoundTrip(c);savedSim=new CityTraffic(saved);sim.Advance(.5f);savedSim.Advance(.5f);
+            Check(TestCity.Snapshot(c)==TestCity.Snapshot(saved),"Loading during admission restores compatible/conflicting movement owners without changing the outcome");
+            Check(Inside(c,walk,node) && Inside(c,companion,node) && (crosses?car.Next==node && car.blocked>0:car.segment>=car.route.IndexOf(node) && car.blocked==0),"Real walkers admit parallel freight but protect perpendicular/turning freight independently of task order: "+reverse+" conflict="+conflict+" car="+car.Current+"/"+car.Next+" why="+car.junctionWaitReason);
+            int carId=car.id;bool mixed=false;
             for(int i=0;i<1600;i++){sim.Advance(.05f);savedSim.Advance(.05f);mixed|=(Inside(c,walk,node) || Inside(c,companion,node)) && Inside(c,car,node);}
-            Check(!mixed && c.Goods(shop)>=8 && !c.traffic.trips.Any(t=>t.id==carId) && c.traffic.failed==0 && c.Valid(),"Real cargo waits for crossing occupancy then delivers and returns without deleting travelers");
+            Check((!crosses || !mixed) && c.Goods(shop)>=8 && !c.traffic.trips.Any(t=>t.id==carId) && c.traffic.failed==0 && c.Valid(),"Real parallel/conflicting cargo delivers and returns without deleting travelers or mixing conflicting occupancy");
             Check(TestCity.Snapshot(c)==TestCity.Snapshot(saved),"In-crossing pedestrians restore their physical occupancy through save/load");
         }
         c=Fixture(out sim,out p,out school,out node);walk=sim.DispatchSchool(p.id);Approach(c,walk,node);int from=walk.Current;

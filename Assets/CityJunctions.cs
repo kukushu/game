@@ -6,6 +6,20 @@ namespace HarborCity
     public static class CityJunctions
     {
         const float Clearance=.46f;
+        // Only prove the simple case: the same two arms, straight and constant
+        // width. TrafficPoint keeps walkers outside the carriageway here.
+        // Turns, bends, tapers and other arms retain conservative protection.
+        public static bool PedestrianConflicts(CityRoads roads,int node,int walkEntry,int walkExit,int carEntry,int carExit)
+        {
+            if(walkEntry<0 || walkExit<0 || carEntry<0 || carExit<0)return true;
+            if(!(walkEntry==carEntry && walkExit==carExit || walkEntry==carExit && walkExit==carEntry))return true;
+            var n=roads.Node(node);var a=roads.Node(walkEntry);var b=roads.Node(walkExit);
+            if(n==null || a==null || b==null)return true;
+            float ax=n.x-a.x,az=n.z-a.z,bx=b.x-n.x,bz=b.z-n.z;
+            float al=CityRoads.Length(a,n),bl=CityRoads.Length(n,b);
+            if(al<.01f || bl<.01f || (ax*bx+az*bz)/(al*bl)<.99999f)return true;
+            return Math.Abs(roads.EdgeWidth(walkEntry,node)-roads.EdgeWidth(node,walkExit))>.001f;
+        }
         public static bool Conflicts(CityRoads roads,int node,int entryA,int exitA,int entryB,int exitB)
             =>Conflicts(roads,node,entryA,exitA,0,0,entryB,exitB,0,0);
         public static bool Conflicts(CityRoads roads,int node,int entryA,int exitA,int inLaneA,int outLaneA,int entryB,int exitB,int inLaneB,int outLaneB)
@@ -110,16 +124,18 @@ namespace HarborCity
             if(!ControlAllows(t,movement))return false;
             if(!t.walking && !ExitClear(t,node)){t.junctionWaitReason="出口队列没有空间";return false;}
             foreach(var owner in owners)
-                // Until sidewalk-side routing is implemented, crossing walkers
-                // conservatively exclude cars throughout this node. Walkers can
-                // cross together; existing car/car lane geometry remains intact.
                 if(movement.walking || owner.walking)
                 {
-                    if(movement.walking!=owner.walking){t.junctionWaitReason=t.walking?"等待路口内车辆驶离":"等待过街行人走完";return false;}
+                    if(movement.walking!=owner.walking && MixedConflicts(movement,owner)){t.junctionWaitReason=t.walking?"等待路口内车辆驶离":"等待过街行人走完";return false;}
                 }
                 else
                 if(CityJunctions.Conflicts(city.roads,node,movement.entry,movement.exit,movement.entryLane,movement.exitLane,owner.entry,owner.exit,owner.entryLane,owner.exitLane)){t.junctionWaitReason="等待路口内冲突车辆驶离";return false;}
             owners.Add(movement);return true;
+        }
+        bool MixedConflicts(JunctionMovement a,JunctionMovement b)
+        {
+            var walk=a.walking?a:b;var car=a.walking?b:a;
+            return CityJunctions.PedestrianConflicts(city.roads,a.node,walk.entry,walk.exit,car.entry,car.exit);
         }
     }
 }

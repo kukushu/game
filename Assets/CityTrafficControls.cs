@@ -104,7 +104,8 @@ namespace HarborCity
             // Protect a walker actually waiting at the crossing, not somebody
             // far away or at a red phase. Physical owners are checked by Reserve.
             if(State.trips.Exists(other=>other.walking && other.status==TripStatus.Driving && other.Next==node && Ahead(other)<=.361f
-                && other.segment+2<other.route.Count && roads.PedestrianSignal(node,other.Current,State.clock)==SignalAspect.Green))
+                && other.segment+2<other.route.Count && roads.PedestrianSignal(node,other.Current,State.clock)==SignalAspect.Green
+                && MixedConflicts(movement,Movement(other,node))))
             {t.junctionWaitReason="让行等待过街的行人";return false;}
             foreach(var other in State.trips)
             {
