@@ -4,9 +4,9 @@ namespace HarborCity
 {
     public sealed partial class CityModel
     {
-        // Manual confirms at least four in-game weeks before reinhabiting.
+        // User override: seven game days from abandonment; services must also recover.
         // The outage trigger is provisional; other original causes follow later.
-        public const int AbandonedRecoveryDays=28;
+        public const int AbandonedRecoveryDays=7;
         public bool HasBasicServices(int id)=>GetBuilding(id)!=null && !GetBuilding(id).burning && !GetBuilding(id).burned && BuildingAccess(id) && Supply(id).Complete
             && (!waste.enabled || GetBuilding(id).garbage<GarbageWarning);
         public string BuildingConditionLabel(int id)
@@ -18,7 +18,7 @@ namespace HarborCity
             if(b.crime>=CrimeWarning && !b.abandoned && !b.burning)return "犯罪积压 · "+b.crime.ToString("F0");
             string problem=BuildingAccess(id)?Supply(id).Problem:"道路未接通";
             if(development.enabled && waste.enabled && b.garbage>=GarbageWarning)problem="垃圾积压 · "+b.garbage;
-            if(b.abandoned)return HasBasicServices(id)?"已废弃 · 至少还需等待 "+System.Math.Max(0,28-(day-b.abandonedDay))+" 天":"已废弃 · "+problem;
+            if(b.abandoned)return HasBasicServices(id)?"已废弃 · 至少还需等待 "+System.Math.Max(0,AbandonedRecoveryDays-(day-b.abandonedDay))+" 天":"已废弃 · "+problem;
             return b.outageDays>0?problem+" · 持续 "+b.outageDays+" 天":problem;
         }
         int UpdateBuildingConditions()
@@ -44,7 +44,7 @@ namespace HarborCity
                 else if(b.abandoned && connected && day-b.abandonedDay>=AbandonedRecoveryDays)
                 {
                     b.abandoned=false;b.abandonedDay=0;changed=true;
-                    Trace("building.reinhabited","供给恢复且已等待至少四个游戏周，建筑重新可用",b,building:b.id);
+                    Trace("building.reinhabited","供给恢复且废弃已满 "+AbandonedRecoveryDays+" 个游戏日，建筑重新可用",b,building:b.id);
                 }
             }
             if(changed){BuildingsChanged();SyncJobs();}

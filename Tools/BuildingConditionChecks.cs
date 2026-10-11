@@ -20,8 +20,8 @@ public static class BuildingConditionChecks
         Check(traffic.Dispatch(-1,shop,TripPurpose.Import)==null,"Abandoned commerce cannot receive new import activity");
         c.utilities.water=water;c.Recalculate();int abandonedDay=c.day;
         for(int i=0;i<CityModel.AbandonedRecoveryDays-1;i++)c.Tick();
-        Check(c.population==0 && c.buildings.Where(b=>CityZoningState.ZoneUse(b.Use)).All(b=>b.abandoned),"Supply restoration alone cannot bypass the four-week minimum");
-        c.Tick();Check(c.day-abandonedDay==28 && c.population>0 && c.jobs>0 && homes.All(id=>!c.GetBuilding(id).abandoned),"Restored buildings re-open after minimum, then actual families return and concrete jobs are regenerated");
+        Check(c.population==0 && c.buildings.Where(b=>CityZoningState.ZoneUse(b.Use)).All(b=>b.abandoned),"Supply restoration alone cannot bypass the seven-day minimum");
+        c.Tick();Check(c.day-abandonedDay==7 && c.population>0 && c.jobs>0 && homes.All(id=>!c.GetBuilding(id).abandoned),"Restored buildings re-open on day seven, then actual families return and concrete jobs are regenerated");
         Check(c.Valid() && TestCity.RoundTrip(c).population==c.population,"Recovery and migration survive saving without phantom population");
         var damaged=TestCity.RoundTrip(c);damaged.buildings[0].abandoned=true;
         Check(!damaged.Valid(),"Inconsistent abandoned flag and date rejected");

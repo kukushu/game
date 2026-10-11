@@ -104,7 +104,7 @@ namespace HarborCity
                 restored.utilities.water=restorePipes;restored.Recalculate();
                 for(int n=0;n<CityModel.AbandonedRecoveryDays;n++)restored.Tick();
                 if(restored.population<=0 || restored.jobs<=0 || !restored.Valid())throw new InvalidOperationException("Player abandoned-city recovery failed");
-                File.WriteAllText(Path.Combine(output,"Conditions.txt"),"PASS: outage, actual household/job release, native abandoned-state save, 28-day minimum and real migration recovery");
+                File.WriteAllText(Path.Combine(output,"Conditions.txt"),"PASS: outage, actual household/job release, native abandoned-state save, seven-day minimum and real migration recovery");
                 File.WriteAllText(Path.Combine(output,"City.json"),json);
                 type.GetField("validationSavePath",flags).SetValue(game,Path.Combine(output,"harbor-city.json"));
                 type.GetMethod("Save",flags).Invoke(game,null);type.GetMethod("Save",flags).Invoke(game,null);

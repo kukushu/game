@@ -31,7 +31,7 @@ public static class FireChecks
         b.fireDamage=99;c.AdvanceFires(20);
         Check(b.burned && b.abandoned && !b.burning && c.population==population-familySize && c.HousingCapacity(target)==0 && c.BurnedBuildings==1 && c.Valid(),"Uncontained fire destroys actual housing and displaces its real family");
         saved=TestCity.RoundTrip(c);Check(saved.GetBuilding(target).burned && saved.GetBuilding(target).fireDamage==100 && saved.Valid(),"Ruins and actual displaced population survive saves");
-        for(int n=0;n<28;n++)c.Tick();Check(b.burned && b.abandoned && c.HousingCapacity(target)==0,"Burned buildings do not use ordinary four-week recovery");
+        for(int n=0;n<CityModel.AbandonedRecoveryDays;n++)c.Tick();Check(b.burned && b.abandoned && c.HousingCapacity(target)==0,"Burned buildings do not use ordinary seven-day recovery");
         Check(c.DemolishBuilding(target) && c.GetBuilding(target)==null && c.Valid(),"Bulldozing removes the stable ruin entity for redevelopment");
         c=Create(out sim,out station,out target);c.IgniteBuilding(target);trip=sim.DispatchFire(station,target);sim.Advance(1);
         int second=c.buildings.OfType<ResidentialBuilding>().Skip(1).First().id;c.IgniteBuilding(second);var two=sim.DispatchFire(station,second);sim.Advance(1);
