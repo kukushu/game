@@ -648,27 +648,9 @@ namespace HarborCity
                 position.y=CityRoadView.SurfaceHeight(city.roads,landscape,position,a,b)+.32f;
                 return position;
             }
-            Vector3 start = RoadPosition(a), end = RoadPosition(b);
-            Vector3 direction = end - start; direction.y = 0; direction.Normalize();
-            Vector3 right = Vector3.Cross(Vector3.up,direction);
-            float offset=city.roads.TripLaneOffset(trip,segment);
-            Vector3 startRight = right*offset, endRight = right*offset;
-            if (segment > 0)
-            {
-                int previous = trip.route[segment - 1];
-                Vector3 incoming = start - RoadPosition(previous); incoming.y = 0;
-                float previousOffset=city.roads.TripLaneOffset(trip,segment-1);
-                startRight = (right*offset + Vector3.Cross(Vector3.up,incoming.normalized)*previousOffset) * .5f;
-            }
-            if (segment + 2 < trip.route.Count)
-            {
-                int next = trip.route[segment + 2];
-                Vector3 outgoing = RoadPosition(next) - end; outgoing.y = 0;
-                float nextOffset=city.roads.TripLaneOffset(trip,segment+1);
-                endRight = (right*offset + Vector3.Cross(Vector3.up,outgoing.normalized)*nextOffset) * .5f;
-            }
-            Vector3 point = Vector3.Lerp(start + startRight,end + endRight,fraction);
-            point.y = (city.roads == null ? landscape.Height(point.x,point.z) : CityRoadView.SurfaceHeight(city.roads,landscape,point,a,b)) + .32f;
+            var lanePoint=CityVehicleGeometry.Position(city.roads,trip,segment,fraction);
+            Vector3 point=new Vector3(lanePoint.x,lanePoint.y,lanePoint.z);
+            point.y=CityRoadView.SurfaceHeight(city.roads,landscape,point,a,b)+.32f;
             return point;
         }
 

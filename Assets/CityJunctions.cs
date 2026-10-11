@@ -130,15 +130,12 @@ namespace HarborCity
         {
             var n=r.Node(node);var a=r.Node(entry);var b=r.Node(exit);if(n==null || a==null || b==null)return null;
             float inLength=CityRoads.Length(a,n),outLength=CityRoads.Length(n,b);if(inLength<.01f || outLength<.01f)return null;
-            float ix=(n.x-a.x)/inLength,iz=(n.z-a.z)/inLength,ox=(b.x-n.x)/outLength,oz=(b.z-n.z)/outLength;
-            float radius=Math.Min(1.2f,Math.Min(inLength,outLength)*.45f);
-            float incomingOffset=r.LaneOffset(entry,node,inLane),outgoingOffset=r.LaneOffset(node,exit,outLane);
-            // The center uses TrafficPoint's averaged right-side offset; the
-            // approach/departure boundaries remain provisional geometry.
-            var center=new RoadNode{x=n.x+(iz*incomingOffset+oz*outgoingOffset)/2,z=n.z-(ix*incomingOffset+ox*outgoingOffset)/2};
-            return new List<RoadNode>{
-                new RoadNode{x=n.x-ix*radius+iz*incomingOffset,z=n.z-iz*radius-ix*incomingOffset},center,
-                new RoadNode{x=n.x+ox*radius+oz*outgoingOffset,z=n.z+oz*radius-ox*outgoingOffset}};
+            var trip=new TrafficTrip{route=new List<int>{entry,node,exit},segment=1,lane=outLane,previousLane=inLane};
+            var path=new List<RoadNode>();
+            // Sample the same lane corner used by vehicles and route highlighting.
+            for(int i=0;i<=8;i++)path.Add(CityVehicleGeometry.Position(r,trip,0,.6f+i*.05f));
+            for(int i=1;i<=8;i++)path.Add(CityVehicleGeometry.Position(r,trip,1,i*.05f));
+            return path;
         }
         static float Cross(RoadNode a,RoadNode b,RoadNode c)=>(b.x-a.x)*(c.z-a.z)-(b.z-a.z)*(c.x-a.x);
         static float SegmentDistance(RoadNode a,RoadNode b,RoadNode c,RoadNode d)

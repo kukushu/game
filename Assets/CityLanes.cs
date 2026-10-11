@@ -34,7 +34,7 @@ namespace HarborCity
         {
             if(t.walking || segment<0 || segment>=t.route.Count-1)return 0;
             if(segment==t.segment-1)return t.previousLane;
-            if(segment<t.segment)return 0;
+            if(segment<t.segment)return Math.Min(t.previousLane,Math.Max(0,LaneCount(t.route[segment],t.route[segment+1])-1));
             int lane=t.lane;
             for(int s=t.segment+1;s<=segment;s++)
             {

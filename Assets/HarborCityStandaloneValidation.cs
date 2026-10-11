@@ -77,6 +77,7 @@ namespace HarborCity
                 CheckLanes(game,output);
                 CheckWideRoads(game,output);
                 CheckLaneChoice(game,output);
+                CheckVehicleTurns(game,output);
                 CheckTrafficControls(game,output);
                 CheckPedestrians(game,output);
                 CheckPedestrians(game,output,true);
@@ -610,6 +611,37 @@ namespace HarborCity
             if(!c.Valid() || c.traffic.failed!=0 || c.traffic.lostGoods!=0 || c.traffic.completed<2 || c.traffic.trips.Any(p=>p.id==id)
                 || JsonUtility.ToJson(c.ToSaveData())!=JsonUtility.ToJson(restored.ToSaveData()))throw new InvalidOperationException("Native lane change freight return/save continuation failed");
             File.WriteAllText(Path.Combine(output,"LaneChoice.txt"),"PASS: real blocked export safely changes lane; actual vehicle Transform follows continuous lateral movement; native in-progress lane JSON resumes identically; both exports and physical returns complete without lost cargo. No GUI or original-game equivalence claim.");
+        }
+        static void CheckVehicleTurns(HarborCityGame game,string output)
+        {
+            Func<float,float,float> flat=(x,z)=>1;var c=CityModel.Create();c.development.enabled=false;c.SetEntranceHeight(flat);
+            if(!c.CommitRoad(c.roads.Plan(c,c.roads.Node(CityRoads.Entrance),new RoadNode{x=45,z=1.5f,y=1},flat,false,RoadKind.FourLane))
+                || !c.CommitRoad(c.roads.Plan(c,new RoadNode{x=0,z=-30,y=1},new RoadNode{x=0,z=30,y=1},flat,false,RoadKind.FourLane)))throw new InvalidOperationException("Native turn fixture construction failed");
+            int end=c.roads.nodes.OrderBy(n=>CityRoads.Length(n,new RoadNode{x=0,z=-30})).First().id;
+            var trip=new TrafficTrip{route=c.roads.FindPath(new System.Collections.Generic.List<int>{CityRoads.Entrance},new System.Collections.Generic.List<int>{end}),lane=1,previousLane=1};
+            const BindingFlags flags=BindingFlags.NonPublic|BindingFlags.Instance;var type=typeof(HarborCityGame);
+            var original=type.GetField("city",flags).GetValue(game);Vector3? previous=null;
+            try
+            {
+                type.GetField("city",flags).SetValue(game,c);
+                for(int s=0;s<trip.route.Count-1;s++)
+                {
+                    trip.segment=s;
+                    for(int k=0;k<=40;k++)
+                    {
+                        var position=(Vector3)type.GetMethod("TrafficPoint",flags).Invoke(game,new object[]{trip,s,k/40f});
+                        var expected=CityVehicleGeometry.Position(c.roads,trip,s,k/40f);
+                        if(Mathf.Abs(position.x-expected.x)+Mathf.Abs(position.z-expected.z)>.001f || float.IsNaN(position.y))throw new InvalidOperationException("Native renderer differs from shared vehicle turn geometry");
+                        if(previous.HasValue && (position.x<previous.Value.x-.001f || position.z>previous.Value.z+.001f))throw new InvalidOperationException("Native right turn folds inward");
+                        previous=position;
+                    }
+                }
+                var parked=(Vector3)type.GetMethod("TrafficPoint",flags).Invoke(game,new object[]{trip,trip.route.Count-1,0f});
+                var destination=c.roads.Node(end);
+                if(Vector2.Distance(new Vector2(parked.x,parked.z),new Vector2(destination.x,destination.z))>2)throw new InvalidOperationException("Native arrived vehicle moved back to preceding segment");
+            }
+            finally{type.GetField("city",flags).SetValue(game,original);}
+            File.WriteAllText(Path.Combine(output,"VehicleTurns.txt"),"PASS: native TrafficPoint used by vehicles and selected routes follows the shared four-lane right-turn geometry without folding inward, including graph-node transitions. This is geometry verification, not a GUI or original-game equivalence claim.");
         }
         static void CheckWideRoads(HarborCityGame game,string output)
         {
