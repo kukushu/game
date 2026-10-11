@@ -74,8 +74,8 @@ namespace HarborCity
                 if(t==null || t.id<=0 || t.id>=s.nextId || !ids.Add(t.id) || !ValidEndpoint(t.origin) || !ValidEndpoint(t.destination) || !ValidEndpoint(t.home)
                     || t.route==null || t.route.Count==0 || t.route.Count>20000 || t.segment<0 || t.segment>=t.route.Count || !Finite(t.progress) || t.progress>=1
                     || t.residentId<0 || !Finite(t.departedAt) || !Finite(t.delay) || !Finite(t.blocked) || t.cargo<0 || t.cargo>8
-                    || t.lane<0 || t.lane>1 || t.previousLane<0 || t.previousLane>1 || t.walking && (t.lane!=0 || t.previousLane!=0)
-                    || t.laneChangeFrom<0 || t.laneChangeFrom>1 || !Finite(t.laneChangeRemaining) || t.laneChangeRemaining>LaneChangeSeconds+.001f
+                    || t.lane<0 || t.lane>2 || t.previousLane<0 || t.previousLane>2 || t.walking && (t.lane!=0 || t.previousLane!=0)
+                    || t.laneChangeFrom<0 || t.laneChangeFrom>2 || !Finite(t.laneChangeRemaining) || t.laneChangeRemaining>LaneChangeSeconds+.001f
                     || !Finite(t.laneChangeCooldown) || t.laneChangeCooldown>LaneChangeRest+.001f || t.walking && t.laneChangeRemaining>0
                     || (int)t.purpose<0 || (int)t.purpose>11 || (int)t.status<0 || (int)t.status>2 || (int)t.cargoKind<0 || (int)t.cargoKind>2
                     || t.cargoKind==CargoKind.RawMaterial && (t.purpose!=TripPurpose.Import || !t.returning && t.origin!=Outside)) return false;
@@ -385,7 +385,7 @@ namespace HarborCity
                 }
             }
             proposed=LimitCrossingAdvance(t,proposed,units);
-            if(t.laneChangeRemaining>0 && t.segment+2<t.route.Count && city.roads.LaneCount(t.Next,t.route[t.segment+2])<2)
+            if(t.laneChangeRemaining>0 && t.segment+2<t.route.Count && city.roads.LaneCount(t.Next,t.route[t.segment+2])<=Math.Max(t.lane,t.laneChangeFrom))
                 proposed=Math.Min(proposed,Math.Max(t.progress,1-.01f/units));
             // A car leaving an intersection must be allowed to clear it. Trying
             // to reacquire its departure lock can create a circular wait when

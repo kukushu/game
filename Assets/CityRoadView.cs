@@ -63,7 +63,12 @@ namespace HarborCity
                 Strip(edge.kind==RoadKind.Gravel?gravelMesh:roadMesh,a,b,width,.08f,edge,city,landscape);
                 float start=city.roads.Neighbors(edge.a).Count>2 ? 1.2f : .3f;
                 float end=length-(city.roads.Neighbors(edge.b).Count>2 ? 1.2f : .3f);
-                if(edge.kind!=RoadKind.Gravel && end>start) Strip(markings,Vector3.Lerp(a,b,start/length),Vector3.Lerp(a,b,Mathf.Min(end,start+.8f)/length),.07f,.10f,edge,city,landscape);
+                if(edge.kind!=RoadKind.Gravel && !CityRoadTypes.LimitedAccess(edge.kind) && end>start) Strip(markings,Vector3.Lerp(a,b,start/length),Vector3.Lerp(a,b,Mathf.Min(end,start+.8f)/length),.07f,.10f,edge,city,landscape);
+                if(edge.kind==RoadKind.Highway && end>start)
+                {
+                    var right=Vector3.Cross(Vector3.up,(b-a).normalized)*.55f;
+                    foreach(float side in new[]{-1f,1f})Strip(markings,Vector3.Lerp(a,b,start/length)+right*side,Vector3.Lerp(a,b,Mathf.Min(end,start+.8f)/length)+right*side,.05f,.10f,edge,city,landscape);
+                }
                 if(edge.kind==RoadKind.FourLane && end>start)
                 {
                     var right=Vector3.Cross(Vector3.up,(b-a).normalized)*1.1f;

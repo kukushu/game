@@ -69,7 +69,7 @@ namespace HarborCity
             zoneCells=new List<ZoneCell>();
             var uses=zoning.designations.ToDictionary(d=>d.key,d=>d.use);
             var claimed=new Dictionary<(int,int),List<ZoneCell>>();
-            foreach(var group in roads.edges.Where(e=>e.structure==RoadStructure.Ground).OrderBy(e=>e.id).GroupBy(e=>new {e.stroke,width=CityRoadTypes.Width(e.kind)}))
+            foreach(var group in roads.edges.Where(e=>e.structure==RoadStructure.Ground && CityRoadTypes.Frontage(e.kind)).OrderBy(e=>e.id).GroupBy(e=>new {e.stroke,width=CityRoadTypes.Width(e.kind)}))
             {
                 var remaining=group.ToList();
                 while(remaining.Count>0)

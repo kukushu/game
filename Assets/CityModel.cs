@@ -5,7 +5,7 @@ namespace HarborCity
     public enum LandUse { Empty, Road, Residential, Commercial, Industrial, Power, Water, Park, Bulldoze, Sewage, Landfill, Clinic, ElementarySchool, FireHouse, PoliceStation, HighSchool, University, Cemetery }
     [Serializable] public sealed partial class CityModel
     {
-        public const int SaveFormat=32;
+        public const int SaveFormat=33;
         public const float BuildHalfSize=84f, RoadHalfSize=BuildHalfSize-1.5f;
         public int money=65000, day=1;
         public TrafficState traffic=new TrafficState();

@@ -133,16 +133,21 @@ namespace HarborCity
             { buildingEntrances.Clear(); accessRoads=roads; accessRevision=roads.revision; }
             if (buildingEntrances.TryGetValue(id,out var result)) return result;
             var b=GetBuilding(id); var p=new RoadNode { x=b.entranceX,z=b.entranceZ };
-            RoadEdge best=null; float distance=float.MaxValue;
-            foreach (var e in roads.edges)
-            {
-                if(e.structure!=RoadStructure.Ground)continue;
-                float d=CityRoads.Distance(p,roads.Node(e.a),roads.Node(e.b));
-                if (d<CityRoadTypes.Width(e.kind)/2+.45f && d<distance) { distance=d; best=e; }
-            }
+            RoadEdge best=FrontageEdge(p.x,p.z);
             result=new List<int>();
             if (best!=null) result.Add(CityRoads.Length(p,roads.Node(best.a))<=CityRoads.Length(p,roads.Node(best.b)) ? best.a : best.b);
             buildingEntrances[id]=result; return result;
+        }
+        RoadEdge FrontageEdge(float x,float z,ISet<int> excluded=null)
+        {
+            var p=new RoadNode{x=x,z=z};RoadEdge best=null;float distance=float.MaxValue;
+            foreach (var e in roads.edges)
+            {
+                if(e.structure!=RoadStructure.Ground || !CityRoadTypes.Frontage(e.kind) || excluded?.Contains(e.id)==true)continue;
+                float d=CityRoads.Distance(p,roads.Node(e.a),roads.Node(e.b));
+                if (d<CityRoadTypes.Width(e.kind)/2+.45f && d<distance) { distance=d; best=e; }
+            }
+            return best;
         }
         public bool BuildingAccess(int id)
         {
@@ -243,7 +248,7 @@ namespace HarborCity
             float distance=BuildingRoadSnapDistance;
             foreach(var e in roads.edges)
             {
-                if(e.structure!=RoadStructure.Ground)continue;
+                if(e.structure!=RoadStructure.Ground || !CityRoadTypes.Frontage(e.kind))continue;
                 float d=CityRoads.Distance(mouse,roads.Node(e.a),roads.Node(e.b));
                 if(d<=distance && (closest==null || d<distance || e.id<closest.id)) {closest=e; distance=d;}
             }

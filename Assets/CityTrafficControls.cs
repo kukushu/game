@@ -14,7 +14,7 @@ namespace HarborCity
         public bool HasSignals(int node)
         {
             var n=Node(node);if(n==null || Neighbors(node).Count<3 || n.control==JunctionControl.Uncontrolled)return false;
-            return n.control==JunctionControl.Signals || Neighbors(node).Exists(from=>EdgeWidth(from,node)>Width);
+            return n.control==JunctionControl.Signals || Neighbors(node).Exists(from=>!CityRoadTypes.LimitedAccess(Kind(from,node)) && EdgeWidth(from,node)>Width);
         }
         List<List<int>> SignalGroups(int node)
         {

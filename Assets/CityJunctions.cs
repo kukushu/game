@@ -81,6 +81,7 @@ namespace HarborCity
             =>Math.Max(.001f,CityRoads.SpatialLength(SidewalkPoint(roads,trip.route,segment),SidewalkPoint(roads,trip.route,Math.Min(segment+1,trip.route.Count-1))));
         public static List<RoadNode> Crosswalk(CityRoads roads,int node,int arm)
         {
+            if(!roads.CanTravel(node,arm,true))return null;
             var n=roads.Node(node);var a=roads.Node(arm);if(n==null || a==null || roads.Neighbors(node).Count<3)return null;
             float length=CityRoads.Length(n,a);if(length<.01f)return null;
             if(roads.Neighbors(node).Count==4)

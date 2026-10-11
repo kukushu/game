@@ -20,13 +20,13 @@ namespace HarborCity
         public float LaneOffset(int from,int to,int lane)
         {
             Cache();if(!roadLookup.TryGetValue(((long)from<<32)|(uint)to,out var e))return .55f;
-            return e.kind==RoadKind.FourLane?.55f+1.1f*lane:e.oneWay && lane==1?-.55f:.55f;
+            return CityRoadTypes.LaneOffset(e.kind,e.oneWay,lane);
         }
         public IEnumerable<RoadLane> Lanes(int from,int to)
         {
             Cache();int count=LaneCount(from,to);if(count==0)yield break;
             var e=roadLookup[((long)from<<32)|(uint)to];
-            for(int lane=0;lane<count;lane++)yield return new RoadLane{id=((long)e.id<<2)|(from<to?0L:2L)|(long)(uint)lane,edgeId=e.id,from=from,to=to,index=lane,offset=LaneOffset(from,to,lane)};
+            for(int lane=0;lane<count;lane++)yield return new RoadLane{id=((long)e.id<<3)|(from<to?0L:4L)|(long)(uint)lane,edgeId=e.id,from=from,to=to,index=lane,offset=LaneOffset(from,to,lane)};
         }
         // Preserve the current lane through short graph segments, narrow at a
         // merge, and distribute a one-to-two lane entry deterministically.
@@ -39,7 +39,7 @@ namespace HarborCity
             for(int s=t.segment+1;s<=segment;s++)
             {
                 int oldCount=Math.Max(1,LaneCount(t.route[s-1],t.route[s]));int count=Math.Max(1,LaneCount(t.route[s],t.route[s+1]));
-                lane=oldCount==1 && count==2?t.id%2:Math.Min(lane,count-1);
+                lane=oldCount==1 && count>1?t.id%count:Math.Min(lane,count-1);
             }
             return lane;
         }
@@ -75,8 +75,10 @@ namespace HarborCity
         int TurnLane(List<int> route,int segment,int fallback)
         {
             if(segment<0 || segment+1>=route.Count || city.roads.LaneCount(route[segment],route[segment+1])<2)return fallback;
-            float distance=0;
-            for(int s=segment;s+2<route.Count && distance<=8;s++)
+            int count=city.roads.LaneCount(route[segment],route[segment+1]);
+            float speed=480f*city.roads.SpeedFactor(route[segment],route[segment+1])/city.society.settings.secondsPerDay;
+            float lookahead=Math.Max(8,speed*(count-1)*(LaneChangeRest+LaneChangeSeconds)+4),distance=0;
+            for(int s=segment;s+2<route.Count && distance<=lookahead;s++)
             {
                 distance+=Units(route[s],route[s+1]);int node=route[s+1];
                 if(city.roads.Neighbors(node).Count<3)continue;
@@ -85,8 +87,11 @@ namespace HarborCity
                 float norm=(float)Math.Sqrt((ix*ix+iz*iz)*(ox*ox+oz*oz));
                 float turn=norm>.001f?(ix*oz-iz*ox)/norm:0;
                 if(Math.Abs(turn)<.3f)return fallback;
-                bool laneOneRight=city.roads.LaneOffset(route[segment],route[segment+1],1)>city.roads.LaneOffset(route[segment],route[segment+1],0);
-                return turn<0?(laneOneRight?1:0):(laneOneRight?0:1);
+                int desired=0;
+                for(int lane=1;lane<count;lane++)
+                    if(turn<0?city.roads.LaneOffset(route[segment],route[segment+1],lane)>city.roads.LaneOffset(route[segment],route[segment+1],desired)
+                        :city.roads.LaneOffset(route[segment],route[segment+1],lane)<city.roads.LaneOffset(route[segment],route[segment+1],desired))desired=lane;
+                return desired;
             }
             return fallback;
         }
@@ -131,11 +136,17 @@ namespace HarborCity
             {float d=-DistanceTo(t,i);if(d>4)break;if(IsJunction(t.route[i]) && d<CityJunctions.CrossingRadius(city.roads,t.route[i])+.2f)return;}
             for(int i=t.segment+1;i<t.route.Count;i++)
             {float d=DistanceTo(t,i);if(d>4+speed*LaneChangeSeconds)break;if(IsJunction(t.route[i]) && d<CityJunctions.CrossingRadius(city.roads,t.route[i])+speed*LaneChangeSeconds+.2f)return;}
-            int desired=TurnLane(t.route,t.segment,-1),target=1-t.lane;
+            int desired=TurnLane(t.route,t.segment,-1),target=-1,count=city.roads.LaneCount(t.Current,t.Next);
             if(desired==t.lane)return;
             bool forTurn=desired>=0;
-            if(!forTurn){float headway=LaneHeadway(t,t.lane);if(headway>Gap+1 || LaneHeadway(t,target)<headway+1)return;}
-            if(!LaneSpace(t,target))return;
+            if(forTurn){target=t.lane+Math.Sign(desired-t.lane);if(!LaneSpace(t,target))return;}
+            else
+            {
+                float headway=LaneHeadway(t,t.lane),best=headway+1;if(headway>Gap+1)return;
+                for(int lane=Math.Max(0,t.lane-1);lane<=Math.Min(count-1,t.lane+1);lane++)
+                    if(lane!=t.lane && LaneHeadway(t,lane)>=best && LaneSpace(t,lane)){best=LaneHeadway(t,lane);target=lane;}
+                if(target<0)return;
+            }
             t.laneChangeFrom=t.lane;t.lane=target;t.laneChangeRemaining=LaneChangeSeconds;t.laneChangeCooldown=LaneChangeRest;
             city.Trace("trip.lane_changed",forTurn?"提前选择转弯车道":"前方受阻，安全换道",t,trip:t.id);
         }

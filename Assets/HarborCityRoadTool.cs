@@ -199,31 +199,34 @@ namespace HarborCity
         }
         void RoadToolPanel(Color background)
         {
-            Panel(new Rect(24,120,310,452),background);
+            Panel(new Rect(24,120,310,484),background);
             GUI.Label(new Rect(40,134,278,32),CityRoadTypes.Name(roadKind),label);
             int type=GUI.Toolbar(new Rect(40,173,278,28),roadOneWay?1:0,new[]{"双向道路","单行道路"},button);
-            if((type==1)!=roadOneWay){ResetRoad();roadOneWay=type==1;if(roadOneWay)roadKind=RoadKind.Standard;}
+            if((type==1)!=roadOneWay){ResetRoad();roadOneWay=type==1;if(!CityRoadTypes.Valid(roadKind,roadOneWay))roadKind=RoadKind.Standard;}
             int operation=GUI.Toolbar(new Rect(40,208,278,28),roadOperation,new[]{"建设","改类型","反向","路口"},button);
             if(operation!=roadOperation){ResetRoad();roadOperation=operation;}
             if(roadOperation==3)
             {int mode=GUI.Toolbar(new Rect(40,243,278,28),junctionTool,new[]{"开关信号","停车牌","恢复默认"},button);if(mode!=junctionTool){ResetRoad();junctionTool=mode;}}
             else
             {int mode=GUI.Toolbar(new Rect(40,243,278,28),roadMode,new[]{"直线","曲线","自由曲线"},button);if(mode!=roadMode){ResetRoad();roadMode=mode;}}
-            int surface=GUI.Toolbar(new Rect(40,278,278,28),(int)roadKind,new[]{"普通铺装","双向土路","四车道"},button);
-            if(surface!=(int)roadKind){ResetRoad();roadKind=(RoadKind)surface;roadUpgradePreview=null;if(roadKind!=RoadKind.Standard)roadOneWay=false;}
+            int surface=GUI.Toolbar(new Rect(40,278,278,28),CityRoadTypes.LimitedAccess(roadKind)?-1:(int)roadKind,new[]{"普通铺装","双向土路","四车道"},button);
+            if(surface>=0 && surface!=(int)roadKind){ResetRoad();roadKind=(RoadKind)surface;roadUpgradePreview=null;if(roadKind!=RoadKind.Standard)roadOneWay=false;}
+            int highway=GUI.Toolbar(new Rect(40,310,278,28),CityRoadTypes.LimitedAccess(roadKind)?(int)roadKind-3:-1,new[]{"三车道高速","单车道匝道"},button);
+            if(highway>=0 && highway+3!=(int)roadKind){ResetRoad();roadKind=(RoadKind)(highway+3);roadOneWay=true;roadUpgradePreview=null;}
             string details=roadStart==null ? (roadMode>0?"起点 → 方向点 → 终点。":"点击起点，再点击终点。")+"\n端点与已有道路会自动吸附。" : roadPlan==null ? (curveControl!=null?"移动鼠标选择终点，再点击确认。":previousCurveControl!=null?"下一段延续末端方向，点击终点。":"移动鼠标选择下一点。")
                 : "长度 "+roadPlan.length.ToString("F1")+" 单位   费用 ¥ "+roadPlan.cost+"\n最大坡度 "+(roadPlan.grade*100).ToString("F1")+"%\n"+(roadPlan.Valid ? "可以建设 · 交叉处自动形成路口" : roadPlan.error);
             if(roadOperation>0)details=roadOperation==2?"左键点击单行路段，反转整个路口间路段。\n有车辆占用时暂不能修改。":"左键点击路段，改为所选类型。\n"+(roadUpgradePreview??"移到道路上预览费用。");
             if(roadOperation==3)details="信号：点路口；停车牌：点驶入道路。\n停车牌关信号；恢复默认保留牌。\n"+(roadUpgradePreview??"移到路口查看状态。");
             else if(roadOneWay)details+="\n单行方向：起点 → 终点。";
-            GUI.Label(new Rect(40,310,278,88),details,small);
-            GUI.Label(new Rect(40,400,278,44),"右键 / Esc 撤回或退出；右键拖动旋转\nCtrl+Z 撤销上一笔道路",small);
-            if(GUI.Button(new Rect(40,454,278,27),"撤销上一笔道路",button)) UndoRoad();
-            if(GUI.Button(new Rect(40,489,55,27),"降",button))SetRoadElevation(roadElevation-3);
-            if(GUI.Button(new Rect(99,489,55,27),"地面",button))SetRoadElevation(0);
-            if(GUI.Button(new Rect(158,489,55,27),"升",button))SetRoadElevation(roadElevation+3);
-            if(GUI.Button(new Rect(217,489,101,27),undergroundView?"地表视图":"地下视图",button))SetUndergroundView(!undergroundView);
-            GUI.Label(new Rect(40,524,278,40),"高度 "+roadElevation.ToString("+0;-0;0")+" · PgUp/PgDn；Home 回地面\n先选地面起点，再升/降终点建立坡道",small);
+            if(CityRoadTypes.LimitedAccess(roadKind) && roadOperation==0)details+="\n无沿路分区、建筑入口或人行道。";
+            GUI.Label(new Rect(40,342,278,88),details,small);
+            GUI.Label(new Rect(40,432,278,44),"右键 / Esc 撤回或退出；右键拖动旋转\nCtrl+Z 撤销上一笔道路",small);
+            if(GUI.Button(new Rect(40,486,278,27),"撤销上一笔道路",button)) UndoRoad();
+            if(GUI.Button(new Rect(40,521,55,27),"降",button))SetRoadElevation(roadElevation-3);
+            if(GUI.Button(new Rect(99,521,55,27),"地面",button))SetRoadElevation(0);
+            if(GUI.Button(new Rect(158,521,55,27),"升",button))SetRoadElevation(roadElevation+3);
+            if(GUI.Button(new Rect(217,521,101,27),undergroundView?"地表视图":"地下视图",button))SetUndergroundView(!undergroundView);
+            GUI.Label(new Rect(40,556,278,40),"高度 "+roadElevation.ToString("+0;-0;0")+" · PgUp/PgDn；Home 回地面\n先选地面起点，再升/降终点建立坡道",small);
         }
         bool Engineered(RoadNode a,RoadNode b)=>Mathf.Abs(a.y-landscape.Height(a.x,a.z))>.15f || Mathf.Abs(b.y-landscape.Height(b.x,b.z))>.15f;
         Vector3 RoadPosition(int id)

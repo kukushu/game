@@ -78,6 +78,7 @@ namespace HarborCity
                 CheckWideRoads(game,output);
                 CheckLaneChoice(game,output);
                 CheckVehicleTurns(game,output);
+                CheckHighways(game,output);
                 CheckTrafficControls(game,output);
                 CheckPedestrians(game,output);
                 CheckPedestrians(game,output,true);
@@ -216,6 +217,8 @@ namespace HarborCity
                     else File.AppendAllText(Path.Combine(output,"Result.txt"),"; wide construction/paid widening world-input PASS");
                 }
                 inputType.GetField("roadOperation",inputFlags).SetValue(inputGame,0);inputType.GetField("roadKind",inputFlags).SetValue(inputGame,RoadKind.Standard);
+                yield return CheckHighwayInput(inputGame,device,output);
+                inputType.GetField("roadOperation",inputFlags).SetValue(inputGame,0);inputType.GetField("roadKind",inputFlags).SetValue(inputGame,RoadKind.Standard);inputType.GetField("roadOneWay",inputFlags).SetValue(inputGame,false);
                 inputType.GetField("selected",inputFlags).SetValue(inputGame,LandUse.Residential);
                 inputType.GetField("zoneTool",inputFlags).SetValue(inputGame,0);
                 inputType.GetField("zoneBrush",inputFlags).SetValue(inputGame,0);
@@ -642,6 +645,69 @@ namespace HarborCity
             }
             finally{type.GetField("city",flags).SetValue(game,original);}
             File.WriteAllText(Path.Combine(output,"VehicleTurns.txt"),"PASS: native TrafficPoint used by vehicles and selected routes follows the shared four-lane right-turn geometry without folding inward, including graph-node transitions. This is geometry verification, not a GUI or original-game equivalence claim.");
+        }
+        static void CheckHighways(HarborCityGame game,string output)
+        {
+            Func<float,float,float> flat=(x,z)=>1;var c=CityModel.Create();c.development.enabled=false;c.SetEntranceHeight(flat);
+            var a=new RoadNode{x=-45,z=1.5f,y=1};var b=new RoadNode{x=40,z=1.5f,y=1};var d=new RoadNode{x=40,z=25,y=1};var e=new RoadNode{x=-45,z=25,y=1};
+            var points=new[]{c.roads.Node(CityRoads.Entrance),a,b,d,e,a};var kinds=new[]{RoadKind.Standard,RoadKind.Highway,RoadKind.Ramp,RoadKind.Standard,RoadKind.Ramp};
+            for(int i=0;i<kinds.Length;i++)if(!c.CommitRoad(c.roads.Plan(c,points[i],points[i+1],flat,CityRoadTypes.LimitedAccess(kinds[i]),kinds[i])))throw new InvalidOperationException("Native highway/ramp loop failed");
+            var trips=new System.Collections.Generic.List<TrafficTrip>();var sim=new CityTraffic(c);var shops=new System.Collections.Generic.List<int>();
+            foreach(float x in new[]{25f,5f,-20f})
+            {
+                int shop=c.PlaceBuilding(c.RoadsidePreview(x,31,LandUse.Commercial,HousingKind.Apartment,out _),LandUse.Commercial,flat,out _);shops.Add(shop);
+                var trip=sim.Dispatch(CityTraffic.Outside,shop,TripPurpose.Import);if(trip==null)throw new InvalidOperationException("Native highway import dispatch failed");
+                int segment=trip.route.FindIndex(n=>c.roads.Node(n).x<=-30 && trip.route.IndexOf(n)+1<trip.route.Count && c.roads.Node(trip.route[trip.route.IndexOf(n)+1]).x>-30);
+                trip.segment=segment;var p=c.roads.Node(trip.Current);var q=c.roads.Node(trip.Next);trip.progress=(-30-p.x)/(q.x-p.x);trip.lane=trip.previousLane=trip.laneChangeFrom=trips.Count;trips.Add(trip);
+            }
+            sim=new CityTraffic(c);sim.Advance(.1f);var saved=JsonUtility.FromJson<CitySaveData>(JsonUtility.ToJson(c.ToSaveData())).ToCity();var resumed=new CityTraffic(saved);
+            const BindingFlags flags=BindingFlags.Instance|BindingFlags.NonPublic;var type=typeof(HarborCityGame);var originalCity=type.GetField("city",flags).GetValue(game);var originalTraffic=type.GetField("traffic",flags).GetValue(game);
+            try
+            {
+                type.GetField("city",flags).SetValue(game,c);type.GetField("traffic",flags).SetValue(game,sim);type.GetMethod("AnimateTraffic",flags).Invoke(game,null);
+                var views=(System.Collections.Generic.Dictionary<int,Transform>)type.GetField("trafficViews",flags).GetValue(game);
+                for(int i=1;i<trips.Count;i++)if(Mathf.Abs(views[trips[i].id].position.z-views[trips[i-1].id].position.z)<1.09f)throw new InvalidOperationException("Native highway third-lane transforms overlap");
+                File.WriteAllText(Path.Combine(output,"HighwayCity.json"),JsonUtility.ToJson(c.ToSaveData(),true));
+            }
+            finally{type.GetField("city",flags).SetValue(game,originalCity);type.GetField("traffic",flags).SetValue(game,originalTraffic);type.GetMethod("AnimateTraffic",flags).Invoke(game,null);}
+            sim.Advance(80);resumed.Advance(80);
+            if(!c.Valid() || c.traffic.failed!=0 || c.traffic.lostGoods!=0 || shops.Any(id=>c.Goods(id)<8) || trips.Any(t=>c.traffic.trips.Any(p=>p.id==t.id)) || JsonUtility.ToJson(c.ToSaveData())!=JsonUtility.ToJson(saved.ToSaveData()))throw new InvalidOperationException("Native highway imports/ramps/return/save failed");
+            File.WriteAllText(Path.Combine(output,"Highways.txt"),"PASS: native three separate highway vehicle Transforms; real imports use off-ramp, deliver to ordinary-street shops, return via on-ramp; format 33 JSON resumes identically. No GUI or exact original-game claim.");
+        }
+        IEnumerator CheckHighwayInput(HarborCityGame game,Mouse mouse,string output)
+        {
+            const BindingFlags flags=BindingFlags.Instance|BindingFlags.NonPublic;var type=typeof(HarborCityGame);var originalCity=type.GetField("city",flags).GetValue(game);var originalTraffic=type.GetField("traffic",flags).GetValue(game);
+            var focus=type.GetField("focus",flags).GetValue(game);var zoom=type.GetField("zoom",flags).GetValue(game);var land=(CityLandscape)type.GetField("landscape",flags).GetValue(game);
+            var c=CityModel.Create();c.money=200000;c.development.enabled=false;c.SetEntranceHeight(land.Height);
+            try
+            {
+                type.GetField("city",flags).SetValue(game,c);type.GetField("traffic",flags).SetValue(game,new CityTraffic(c));type.GetField("selected",flags).SetValue(game,LandUse.Road);
+                type.GetField("roadMode",flags).SetValue(game,0);type.GetField("roadOperation",flags).SetValue(game,0);type.GetField("roadKind",flags).SetValue(game,RoadKind.Highway);type.GetField("roadOneWay",flags).SetValue(game,true);
+                type.GetField("focus",flags).SetValue(game,new Vector3(8,2,2));type.GetField("zoom",flags).SetValue(game,65f);type.GetMethod("UpdateCamera",flags).Invoke(game,null);type.GetMethod("ResetRoad",flags).Invoke(game,null);
+                Vector2 start=new Vector2(0,-20),end=new Vector2(20,-20);var a=c.roads.Snap(start.x,start.y,land.Height);var b=c.roads.Snap(end.x,end.y,land.Height);
+                var plan=c.roads.Plan(c,a,b,land.Height,true,RoadKind.Highway);int money=c.money;
+                if(!plan.Valid){File.WriteAllText(Path.Combine(output,"Failure.txt"),"Highway world-input fixture rejected: "+plan.error);yield break;}
+                yield return ClickWorld(game,mouse,start);yield return ClickWorld(game,mouse,end);
+                if(c.roads.edges.Count==0 || c.roads.edges.Any(edge=>edge.kind!=RoadKind.Highway || !edge.oneWay) || c.money!=money-plan.cost){File.WriteAllText(Path.Combine(output,"Failure.txt"),"Highway construction world-input failed: "+type.GetField("notice",flags).GetValue(game));yield break;}
+                type.GetMethod("ResetRoad",flags).Invoke(game,null);type.GetField("roadKind",flags).SetValue(game,RoadKind.Ramp);
+                Vector2 exit=new Vector2(20,15);a=c.roads.Snap(end.x,end.y,land.Height);b=c.roads.Snap(exit.x,exit.y,land.Height);plan=c.roads.Plan(c,a,b,land.Height,true,RoadKind.Ramp);money=c.money;
+                if(!plan.Valid){File.WriteAllText(Path.Combine(output,"Failure.txt"),"Ramp world-input fixture rejected: "+plan.error);yield break;}
+                yield return ClickWorld(game,mouse,end);yield return ClickWorld(game,mouse,exit);
+                if(!c.roads.edges.Any(edge=>edge.kind==RoadKind.Ramp) || c.money!=money-plan.cost || c.ZoningCells(land.Height).Count!=0 || !c.Valid()){File.WriteAllText(Path.Combine(output,"Failure.txt"),"Ramp construction/frontage world-input failed: "+type.GetField("notice",flags).GetValue(game));yield break;}
+                type.GetMethod("ResetRoad",flags).Invoke(game,null);type.GetField("roadOperation",flags).SetValue(game,2);
+                var edge=c.roads.edges.First(r=>r.kind==RoadKind.Highway);int from=edge.a,to=edge.b;
+                yield return ClickWorld(game,mouse,(start+end)/2);
+                if(edge.a!=to || edge.b!=from){File.WriteAllText(Path.Combine(output,"Failure.txt"),"Highway reverse world-input failed");yield break;}
+                type.GetField("roadOperation",flags).SetValue(game,1);type.GetField("roadKind",flags).SetValue(game,RoadKind.Standard);type.GetField("roadOneWay",flags).SetValue(game,false);
+                yield return ClickWorld(game,mouse,(start+end)/2);
+                if(edge.kind!=RoadKind.Standard || edge.oneWay || !c.Valid()){File.WriteAllText(Path.Combine(output,"Failure.txt"),"Highway downgrade world-input failed");yield break;}
+                File.WriteAllText(Path.Combine(output,"HighwayInput.txt"),"PASS: actual Unity mouse road-tool construction of highway and connected ramp on terrain, correct charges/no zoning, reverse and downgrade; UI toolbar clicks require separate interactive check.");
+            }
+            finally
+            {
+                type.GetField("city",flags).SetValue(game,originalCity);type.GetField("traffic",flags).SetValue(game,originalTraffic);type.GetField("focus",flags).SetValue(game,focus);type.GetField("zoom",flags).SetValue(game,zoom);
+                type.GetMethod("UpdateCamera",flags).Invoke(game,null);type.GetMethod("ResetRoad",flags).Invoke(game,null);type.GetField("roadOperation",flags).SetValue(game,0);type.GetField("roadKind",flags).SetValue(game,RoadKind.Standard);type.GetField("roadOneWay",flags).SetValue(game,false);
+            }
         }
         static void CheckWideRoads(HarborCityGame game,string output)
         {

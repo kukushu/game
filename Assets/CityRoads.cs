@@ -84,7 +84,8 @@ namespace HarborCity
         public List<int> Neighbors(int id) { Cache(); return adjacency.TryGetValue(id,out var n) ? n : new List<int>(); }
         public bool Active(int id) => Node(id) != null && Neighbors(id).Count > 0;
         public bool Linked(int a,int b) => Neighbors(a).Contains(b);
-        public bool CanTravel(int a,int b,bool walking=false){Cache();return walking?Linked(a,b):vehicleConnections.Contains(((long)a<<32)|(uint)b);}
+        public bool CanTravel(int a,int b,bool walking=false){Cache();return walking?roadLookup.TryGetValue(((long)a<<32)|(uint)b,out var e) && CityRoadTypes.Frontage(e.kind):vehicleConnections.Contains(((long)a<<32)|(uint)b);}
+        public RoadKind Kind(int a,int b){Cache();return roadLookup.TryGetValue(((long)a<<32)|(uint)b,out var e)?e.kind:RoadKind.Standard;}
         public float EdgeLength(int a,int b) => Math.Max(.1f,SpatialLength(Node(a),Node(b)));
         public float SpeedFactor(int a,int b){Cache();return roadLookup.TryGetValue(((long)a<<32)|(uint)b,out var e)?CityRoadTypes.SpeedFactor(e.kind):1;}
         public float TravelCost(int a,int b,bool walking=false)=>EdgeLength(a,b)/(walking?1:SpeedFactor(a,b));
@@ -148,7 +149,7 @@ namespace HarborCity
             var plan=new RoadPlan { start=from.Copy(),end=to.Copy(),revision=revision,stroke=nextStroke };
             plan.points.Add(from.Copy()); plan.points.Add(to.Copy());
             plan.length=Length(from,to); plan.cost=ProfileCost(from,to,height,kind,engineered);
-            if(!CityRoadTypes.Valid(kind,oneWay)){plan.error="土路只支持双向，或道路类型无效。";return plan;}
+            if(!CityRoadTypes.Valid(kind,oneWay)){plan.error=CityRoadTypes.DirectionError;return plan;}
             float width=CityRoadTypes.Width(kind);
             if(plan.length<minimum) { plan.error="道路太短（至少 "+minimum+" 米）"; return plan; }
             if(Math.Abs(from.x)>CityModel.RoadHalfSize || Math.Abs(from.z)>CityModel.RoadHalfSize || Math.Abs(to.x)>CityModel.RoadHalfSize || Math.Abs(to.z)>CityModel.RoadHalfSize)
@@ -168,7 +169,7 @@ namespace HarborCity
                 if(!engineered && Math.Min(y,Math.Min(left,right))<=.15f || engineered && terrain<=.15f && y<1.5f && y>terrain-2) { plan.error="跨水道路需抬高桥面，水下隧道需足够覆土"; return plan; }
                 if(!engineered && Math.Abs(left-right)>.95f || plan.grade>.35f) { plan.error="坡度过大，请沿缓坡绕行"; return plan; }
             }
-            if((kind==RoadKind.FourLane || edges.Exists(e=>e.kind==RoadKind.FourLane)) && !city.RoadWidthClear(from,to,kind,height,null,out string widthError,engineered)){plan.error=widthError;return plan;}
+            if((CityRoadTypes.LimitedAccess(kind) || width>Width || edges.Exists(e=>CityRoadTypes.Width(e.kind)>Width)) && !city.RoadWidthClear(from,to,kind,height,null,out string widthError,engineered)){plan.error=widthError;return plan;}
             var copy=Copy(); var crossings=new List<RoadNode>{from.Copy(),to.Copy()};
             float dx=to.x-from.x,dz=to.z-from.z;
             foreach(var e in edges)
@@ -241,7 +242,7 @@ namespace HarborCity
         public RoadPlan PlanCurve(CityModel city,RoadNode from,RoadNode control,RoadNode to,Func<float,float,float> height,bool oneWay=false,RoadKind kind=RoadKind.Standard,bool engineered=false)
         {
             var result=new RoadPlan {start=from.Copy(),end=to.Copy(),revision=revision,stroke=nextStroke};
-            if(!CityRoadTypes.Valid(kind,oneWay)){result.error="土路只支持双向，或道路类型无效。";return result;}
+            if(!CityRoadTypes.Valid(kind,oneWay)){result.error=CityRoadTypes.DirectionError;return result;}
             var dense=new List<RoadNode>(); var distances=new List<float>(); float total=0;
             int samples=Math.Max(16,(int)Math.Ceiling((Length(from,control)+Length(control,to))/.35f));
             if(samples>2000) {result.error="弯道超出施工范围"; return result;}

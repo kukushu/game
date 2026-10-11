@@ -2,19 +2,23 @@ using System;
 using System.Linq;
 namespace HarborCity
 {
-    public enum RoadKind { Standard, Gravel, FourLane }
+    public enum RoadKind { Standard, Gravel, FourLane, Highway, Ramp }
     // Provisional CS1 road parameters; unit/time conversion and upgrade refunds
     // remain provisional until verified against a specific vanilla build.
     public static class CityRoadTypes
     {
         public const float CellLength=1.5f;
-        public static bool Valid(RoadKind kind,bool oneWay)=>Enum.IsDefined(typeof(RoadKind),kind) && !(kind!=RoadKind.Standard && oneWay);
-        public static string Name(RoadKind kind)=>kind==RoadKind.Gravel?"双向土路":kind==RoadKind.FourLane?"四车道双向道路":"普通铺装道路";
-        public static float Width(RoadKind kind)=>kind==RoadKind.FourLane?5.4f:CityRoads.Width;
-        public static int Lanes(RoadKind kind,bool oneWay)=>kind==RoadKind.FourLane || oneWay?2:1;
-        public static float SpeedFactor(RoadKind kind)=>kind==RoadKind.Gravel?.75f:kind==RoadKind.FourLane?1.5f:1;
-        public static int CostPerCell(RoadKind kind)=>kind==RoadKind.Gravel?20:kind==RoadKind.FourLane?60:40;
-        public static double UpkeepPerCellWeek(RoadKind kind)=>kind==RoadKind.Gravel?.19:kind==RoadKind.FourLane?.8:.32;
+        public static bool LimitedAccess(RoadKind kind)=>kind==RoadKind.Highway || kind==RoadKind.Ramp;
+        public static bool Frontage(RoadKind kind)=>!LimitedAccess(kind);
+        public static bool Valid(RoadKind kind,bool oneWay)=>Enum.IsDefined(typeof(RoadKind),kind) && (LimitedAccess(kind)?oneWay:kind==RoadKind.Standard || !oneWay);
+        public const string DirectionError="高速和匝道必须单行；土路和四车道必须双向。";
+        public static string Name(RoadKind kind)=>kind==RoadKind.Highway?"三车道单向高速":kind==RoadKind.Ramp?"单车道高速匝道":kind==RoadKind.Gravel?"双向土路":kind==RoadKind.FourLane?"四车道双向道路":"普通铺装道路";
+        public static float Width(RoadKind kind)=>kind==RoadKind.Highway?4.2f:kind==RoadKind.Ramp?1.8f:kind==RoadKind.FourLane?5.4f:CityRoads.Width;
+        public static int Lanes(RoadKind kind,bool oneWay)=>kind==RoadKind.Highway?3:kind==RoadKind.Ramp?1:kind==RoadKind.FourLane || oneWay?2:1;
+        public static float LaneOffset(RoadKind kind,bool oneWay,int lane)=>kind==RoadKind.Highway?(lane-1)*1.1f:kind==RoadKind.Ramp?0:kind==RoadKind.FourLane?.55f+1.1f*lane:oneWay && lane==1?-.55f:.55f;
+        public static float SpeedFactor(RoadKind kind)=>kind==RoadKind.Highway?2.5f:kind==RoadKind.Ramp?2:kind==RoadKind.Gravel?.75f:kind==RoadKind.FourLane?1.5f:1;
+        public static int CostPerCell(RoadKind kind)=>kind==RoadKind.Highway?70:kind==RoadKind.Ramp?30:kind==RoadKind.Gravel?20:kind==RoadKind.FourLane?60:40;
+        public static double UpkeepPerCellWeek(RoadKind kind)=>kind==RoadKind.Highway?.96:kind==RoadKind.Ramp?.32:kind==RoadKind.Gravel?.19:kind==RoadKind.FourLane?.8:.32;
         public static int ConstructionCost(float length,RoadKind kind)=>(int)Math.Ceiling(length/CellLength*CostPerCell(kind));
     }
     public sealed partial class CityModel
@@ -23,10 +27,17 @@ namespace HarborCity
         public bool PreviewRoadUpgrade(int edgeId,RoadKind kind,bool oneWay,out int cost,out string reason,Func<float,float,float> height=null)
         {
             cost=0;
-            if(!CityRoadTypes.Valid(kind,oneWay)){reason="当前土路和四车道道路只支持双向。";return false;}
+            if(!CityRoadTypes.Valid(kind,oneWay)){reason=CityRoadTypes.DirectionError;return false;}
             var run=roads.Run(edgeId);var affected=roads.edges.Where(e=>run.Contains(e.id)).ToList();
             if(affected.Count==0){reason="请选择已有道路。";return false;}
             if(affected.All(e=>e.kind==kind && e.oneWay==oneWay)){reason="该路段已经是所选类型。";return false;}
+            if(CityRoadTypes.LimitedAccess(kind))
+            {
+                var removed=new System.Collections.Generic.HashSet<int>(affected.Select(e=>e.id));
+                foreach(var b in buildings.Concat(development.projects.Select(p=>p.building.ToBuilding())))
+                    if(FrontageEdge(b.entranceX,b.entranceZ)!=null && FrontageEdge(b.entranceX,b.entranceZ,removed)==null)
+                    {reason="改为高速/匝道会切断建筑的道路入口，请先接入普通道路。";return false;}
+            }
             bool widthChanged=affected.Any(e=>CityRoadTypes.Width(e.kind)!=CityRoadTypes.Width(kind));
             if((widthChanged || affected.Any(e=>e.oneWay!=oneWay)) && traffic.trips.Any(t=>t.status!=TripStatus.Visiting && (!t.walking || widthChanged) && affected.Any(e=>Uses(t,e))))
             {reason="路段上有车辆或行人，暂不能改变宽度/方向；请等其驶离。";return false;}
