@@ -18,6 +18,17 @@ namespace HarborCity
         int powerRevision=-1,waterRevision=-1;
         readonly List<GameObject> utilityObjects=new List<GameObject>();
         Material utilityCoverageMaterial;
+        Vector2 waterFacilityScroll;
+        void DrawWaterFacilityInspector(float h,Color navy)
+        {
+            var b=city.GetBuilding(inspectedHome);if(b==null)return;
+            Panel(new Rect(24,120,310,h-320),navy);GUILayout.BeginArea(new Rect(38,132,282,h-345));
+            GUILayout.BeginHorizontal();GUILayout.Label((b is SewageBuilding?"排污口 #":"水塔 #")+b.id,title);
+            if(GUILayout.Button("关闭",button,GUILayout.Width(60)))inspectedHome=-1;GUILayout.EndHorizontal();
+            waterFacilityScroll=GUILayout.BeginScrollView(waterFacilityScroll);GUILayout.Label(city.WaterFacilityDetails(b.id),small);
+            GUILayout.Space(10);GUILayout.Label("全城排污需求 / 可用："+city.WaterDemand+" / "+city.SewageCapacity+"\n已建排污能力："+city.InstalledSewageCapacity+"\n总量足够仍须接在同一管网；停运设施不计入可用容量。",small);
+            GUILayout.EndScrollView();GUILayout.EndArea();
+        }
         LandUse SelectedFacility=>selected==LandUse.Water && waterTool==2?LandUse.Sewage:selected==LandUse.Park && serviceTool==1?LandUse.Landfill:selected==LandUse.Park && serviceTool==2?LandUse.Clinic:selected==LandUse.Park && serviceTool==3?LandUse.ElementarySchool:selected==LandUse.Park && serviceTool==4?LandUse.FireHouse:selected==LandUse.Park && serviceTool==5?LandUse.PoliceStation:selected==LandUse.Park && serviceTool==6?LandUse.HighSchool:selected==LandUse.Park && serviceTool==7?LandUse.University:selected==LandUse.Park && serviceTool==8?LandUse.Cemetery:selected;
         bool UtilityToolActive=>selected==LandUse.Power && powerTool==1 || selected==LandUse.Water && waterTool==1;
         UtilityKind SelectedUtility=>selected==LandUse.Power?UtilityKind.Electricity:UtilityKind.Water;

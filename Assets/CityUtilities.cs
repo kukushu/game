@@ -12,15 +12,43 @@ namespace HarborCity
     public sealed class BuildingSupply
     {
         public bool electricity,water,sewage;
+        public readonly List<PipeSupply> pipes=new List<PipeSupply>();
         public bool Complete=>electricity && water && sewage;
-        public string Problem=>!electricity?"未接通电力或电网容量不足":!water?"未接通供水或管网容量不足":!sewage?"未接通排污或排污容量不足":"水电与排污已接通";
+        public string Problem=>!electricity?"未接通电力或电网容量不足":!water?WaterProblem:!sewage?SewageProblem:"水电与排污已接通";
+        string WaterProblem=>pipes.Count==0?"未接通水管":pipes.Any(p=>p.fresh>0)?"管网供水容量不足":"管网没有运行中的供水设施";
+        string SewageProblem
+        {
+            get
+            {
+                var p=pipes.Where(p=>p.fresh>0 && p.fresh>=p.load).OrderByDescending(p=>p.drain-p.load).FirstOrDefault();
+                return p==null?"供水未就绪，无法排污":p.drain==0?"管网没有运行中的排污口":"排污容量不足（需求 "+p.load+" / 可用 "+p.drain+"）";
+            }
+        }
     }
+    // Derived per connected component, shared by covered buildings. Never saved
+    // as a second source of truth and never combined across disconnected pipes.
+    public sealed class PipeSupply {public int id,load,fresh,drain;public readonly List<int> inactiveDrains=new List<int>();}
     public sealed partial class CityModel
     {
         public CityUtilityState utilities=new CityUtilityState();
         // Distances/capacities are provisional world-scale parameters. Networks,
         // adjacency and independent pipe coverage follow the CS1 base-game manual.
         public const float ElectricityReach=6,PipeReach=6;
+        public int WaterDemand {get;private set;}
+        public int SewageCapacity {get;private set;}
+        public int InstalledSewageCapacity=>buildings.Count(b=>b is SewageBuilding)*ServiceCapacity(CityServiceKind.Water,160);
+        public string WaterFacilityDetails(int id)
+        {
+            var b=GetBuilding(id);if(!(b is SewageBuilding) && !(b is WaterBuilding))return "请选择供水或排污设施";
+            var s=Supply(id);bool road=BuildingAccess(id),connected=s.pipes.Count>0,running=road && s.electricity && connected;
+            string type=b is SewageBuilding?"排污":"供水";
+            return "水管："+(connected?"已接通 · 管网 "+string.Join(", ",s.pipes.Select(p=>"#"+p.id)):"未接通")
+                +"\n道路："+(road?"已接通":"未接通")+"\n电力："+(s.electricity?"已供电":"未供电或电网容量不足")
+                +"\n运行："+(running?"运行中":!road?"停运 · 缺道路":!s.electricity?"停运 · 缺电力":"停运 · 缺水管")
+                +"\n本设施可用"+type+"容量："+(running?ServiceCapacity(CityServiceKind.Water,160):0)+" / "+ServiceCapacity(CityServiceKind.Water,160)
+                +string.Concat(s.pipes.Select(p=>"\n\n管网 #"+p.id+" · 用水/排污需求 "+p.load+"\n供水容量 "+p.fresh+" · 排污容量 "+p.drain
+                    +(p.inactiveDrains.Count>0?"\n停运排污口："+string.Join(", ",p.inactiveDrains.Select(d=>"#"+d)):"")));
+        }
         [NonSerialized] Dictionary<int,BuildingSupply> supply=new Dictionary<int,BuildingSupply>();
         public BuildingSupply Supply(int id)
         {return supply!=null && supply.TryGetValue(id,out var result)?result:new BuildingSupply();}
@@ -46,8 +74,9 @@ namespace HarborCity
             b.Use==LandUse.Commercial || b.Use==LandUse.Industrial?Math.Max(1,EmployedAt(b.id)*2):b.Use==LandUse.Power?0:2;
         public void RecalculateUtilities()
         {
-            supply=buildings.ToDictionary(b=>b.id,b=>new BuildingSupply());if(!development.enabled)return;
+            supply=buildings.ToDictionary(b=>b.id,b=>new BuildingSupply());WaterDemand=SewageCapacity=0;if(!development.enabled)return;
             demand=buildings.Sum(UtilityLoad);
+            WaterDemand=buildings.Where(b=>CityZoningState.ZoneUse(b.Use)).Sum(UtilityLoad);
             var powerNet=utilities.electricity;var components=powerNet.Components();
             var adjacency=buildings.ToDictionary(b=>b.id,b=>new List<int>());
             // Maximum validated footprint is 8.9; 16-unit buckets plus adjacent
@@ -79,16 +108,20 @@ namespace HarborCity
                 foreach(int id in group)supply[id].electricity=capacity>0 && capacity>=load;
             }
             var waterNet=utilities.water;var pipeComponents=waterNet.Components();water=0;
-            var pipeBuildings=new Dictionary<int,List<int>>();var countedSources=new HashSet<int>();
+            var pipeBuildings=new Dictionary<int,List<int>>();var countedSources=new HashSet<int>();var countedDrains=new HashSet<int>();
             foreach(var b in buildings)
                 foreach(int component in waterNet.edges.Where(e=>LineDistance(b,waterNet,e)<=(b.Use==LandUse.Water || b.Use==LandUse.Sewage?1:PipeReach)).Select(e=>pipeComponents[e.a]).Distinct())
                 {if(!pipeBuildings.ContainsKey(component))pipeBuildings[component]=new List<int>();pipeBuildings[component].Add(b.id);}
-            foreach(var group in pipeBuildings.Values)
+            foreach(var pair in pipeBuildings)
             {
+                var group=pair.Value;
                 int fresh=group.Count(id=>GetBuilding(id) is WaterBuilding && supply[id].electricity && BuildingAccess(id))*ServiceCapacity(CityServiceKind.Water,160);
                 int drain=group.Count(id=>GetBuilding(id) is SewageBuilding && supply[id].electricity && BuildingAccess(id))*ServiceCapacity(CityServiceKind.Water,160);
                 water+=group.Where(id=>GetBuilding(id) is WaterBuilding && supply[id].electricity && BuildingAccess(id) && countedSources.Add(id)).Count()*ServiceCapacity(CityServiceKind.Water,160);int load=group.Where(id=>CityZoningState.ZoneUse(UseOf(id))).Sum(id=>UtilityLoad(GetBuilding(id)));
-                foreach(int id in group){supply[id].water|=fresh>0 && fresh>=load;supply[id].sewage|=fresh>0 && fresh>=load && drain>0 && drain>=load;}
+                SewageCapacity+=group.Count(id=>GetBuilding(id) is SewageBuilding && supply[id].electricity && BuildingAccess(id) && countedDrains.Add(id))*ServiceCapacity(CityServiceKind.Water,160);
+                var status=new PipeSupply{id=pair.Key,load=load,fresh=fresh,drain=drain};
+                status.inactiveDrains.AddRange(group.Where(id=>GetBuilding(id) is SewageBuilding && (!supply[id].electricity || !BuildingAccess(id))));
+                foreach(int id in group){supply[id].pipes.Add(status);supply[id].water|=fresh>0 && fresh>=load;supply[id].sewage|=fresh>0 && fresh>=load && drain>0 && drain>=load;}
             }
         }
     }

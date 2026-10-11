@@ -710,7 +710,7 @@ namespace HarborCity
             float scale = Mathf.Min(Screen.width / 1440f, Screen.height / 900f);
             float x = position.x / scale, y = (Screen.height - position.y) / scale;
             float width = Screen.width / scale, height = Screen.height / scale;
-            return (showEconomy && new Rect(360,120,330,490).Contains(new Vector2(x,y)) || showInfoViews && new Rect(360,120,330,250).Contains(new Vector2(x,y))) || showSimulation && new Rect(340,110,width-640,height-305).Contains(new Vector2(x,y)) || y < 108 || y > height - 185 || (x > width - 290 && y < 490)
+            return (showEconomy && new Rect(360,120,330,490).Contains(new Vector2(x,y)) || showInfoViews && new Rect(360,120,330,250).Contains(new Vector2(x,y))) || showSimulation && new Rect(340,110,width-640,height-305).Contains(new Vector2(x,y)) || y < 108 || y > height - 185 || (x > width - 290 && y < 545)
                 || (help && x < 485 && y < 470) || (!help && x < (selected==LandUse.Empty && city.UseOf(inspectedHome)==LandUse.Residential && !showSimulation?24+ResidenceInspectorWidth:345) && y > 115 && y < (selected==LandUse.Empty && inspectedHome>=0?height-200:selected==LandUse.Park?503:selected==LandUse.Road?505:385));
         }
 
@@ -761,17 +761,18 @@ namespace HarborCity
                 + (speed==0?" · 暂停":" · "+speed.ToString("0.#")+"×"),label);
 
             float rx = w - 274;
-            Panel(new Rect(rx,120,250,312),navy);
+            Panel(new Rect(rx,120,250,367),navy);
             GUI.Label(new Rect(rx + 20,138,220,30),"城市概览",title);
             if(GUI.Button(new Rect(rx+164,138,66,28),"F2 视图",button))ToggleInfoViews();
             Meter(rx + 20,185,"电力总量",city.demand,city.power,palette[5]);
-            Meter(rx + 20,238,"供水总量",city.demand,city.water,palette[6]);
+            Meter(rx + 20,238,"供水需求 / 可用",city.development.enabled?city.WaterDemand:city.demand,city.water,palette[6]);
+            Meter(rx + 20,291,"排污需求 / 可用",city.WaterDemand,city.SewageCapacity,palette[6]);
             if(city.development.enabled)
-            {if(GUI.Button(new Rect(rx+20,293,210,26),"税收 +"+city.income+" / 天 · 调整",button)){showEconomy=!showEconomy;if(showEconomy){showInfoViews=false;inspectedHome=-1;inspectedTrip=-1;}}}
-            else GUI.Label(new Rect(rx+20,293,225,26),"上日实收租金 +"+city.income+" / 天",label);
-            GUI.Label(new Rect(rx + 20,322,225,26),"维护 −" + city.upkeep + " · 还贷 −"+city.LoanPaymentNextDay+" / 天",small);
-            if(city.development.enabled) {DrawDemand(rx+20,365);GUI.Label(new Rect(rx+20,405,212,23),"交通 "+traffic.State.trips.Count+" / 完成 "+traffic.State.completed,small);}
-            else GUI.Label(new Rect(rx + 20,365,212,60),"交通任务 " + traffic.State.trips.Count + "  /  完成 " + traffic.State.completed
+            {if(GUI.Button(new Rect(rx+20,348,210,26),"税收 +"+city.income+" / 天 · 调整",button)){showEconomy=!showEconomy;if(showEconomy){showInfoViews=false;inspectedHome=-1;inspectedTrip=-1;}}}
+            else GUI.Label(new Rect(rx+20,348,225,26),"上日实收租金 +"+city.income+" / 天",label);
+            GUI.Label(new Rect(rx + 20,377,225,26),"维护 −" + city.upkeep + " · 还贷 −"+city.LoanPaymentNextDay+" / 天",small);
+            if(city.development.enabled) {DrawDemand(rx+20,420);GUI.Label(new Rect(rx+20,460,212,23),"交通 "+traffic.State.trips.Count+" / 完成 "+traffic.State.completed,small);}
+            else GUI.Label(new Rect(rx + 20,420,212,60),"交通任务 " + traffic.State.trips.Count + "  /  完成 " + traffic.State.completed
                 + "\n送货 " + traffic.State.delivered + "  /  失败 " + traffic.State.failed,small);
             EconomyPanel(navy);
             DrawInfoViews(navy);

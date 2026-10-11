@@ -45,14 +45,16 @@ namespace HarborCity
             inspectedTrip=-1; showSimulation=false; simulationTyping=false; householdListScroll=Vector2.zero;
             if(routeLine!=null) routeLine.positionCount=0;
             notice="已选中"+names[(int)city.UseOf(inspectedHome)]+" #"+inspectedHome+(city.UseOf(inspectedHome)==LandUse.Cemetery?"，查看实际遗体、预留位置和灵车。":city.UseOf(inspectedHome)==LandUse.PoliceStation?"，查看实际治安和警车出勤。":city.UseOf(inspectedHome)==LandUse.FireHouse?"，查看实际火灾和消防车出勤。":city.GetBuilding(inspectedHome) is SchoolBuilding?"，查看真实学生、学位和学习情况。":city.UseOf(inspectedHome)==LandUse.Clinic?"，查看真实患者、预约和救护车。":city.UseOf(inspectedHome)==LandUse.Residential?"，点击住户查看家庭详情。":"，查看经营、库存和员工情况。");
+            if(city.GetBuilding(inspectedHome) is WaterBuilding || city.GetBuilding(inspectedHome) is SewageBuilding)
+                notice="已选中"+names[(int)city.UseOf(inspectedHome)]+" #"+inspectedHome+"，查看水管、道路、电力与实际可用容量。";
             return true;
         }
-        bool InspectableBuilding(int id) => city.GetBuilding(id)!=null && ((int)city.UseOf(id)>=2 && (int)city.UseOf(id)<=4 || city.UseOf(id)==LandUse.Landfill || city.UseOf(id)==LandUse.Clinic || city.GetBuilding(id) is SchoolBuilding || city.UseOf(id)==LandUse.FireHouse || city.UseOf(id)==LandUse.PoliceStation || city.UseOf(id)==LandUse.Cemetery);
+        bool InspectableBuilding(int id) => city.GetBuilding(id)!=null && ((int)city.UseOf(id)>=2 && (int)city.UseOf(id)<=4 || city.GetBuilding(id) is WaterBuilding || city.GetBuilding(id) is SewageBuilding || city.UseOf(id)==LandUse.Landfill || city.UseOf(id)==LandUse.Clinic || city.GetBuilding(id) is SchoolBuilding || city.UseOf(id)==LandUse.FireHouse || city.UseOf(id)==LandUse.PoliceStation || city.UseOf(id)==LandUse.Cemetery);
         bool InspectingBusiness => selected==LandUse.Empty && (city.UseOf(inspectedHome)==LandUse.Commercial || city.UseOf(inspectedHome)==LandUse.Industrial);
         LineRenderer businessMarker;
         void UpdateBusinessMarker()
         {
-            if(!InspectingBusiness && !InspectingLandfill && city.UseOf(inspectedHome)!=LandUse.Clinic && !(city.GetBuilding(inspectedHome) is SchoolBuilding) && city.UseOf(inspectedHome)!=LandUse.FireHouse && city.UseOf(inspectedHome)!=LandUse.PoliceStation && city.UseOf(inspectedHome)!=LandUse.Cemetery)
+            if(!InspectingBusiness && !InspectingLandfill && !(city.GetBuilding(inspectedHome) is WaterBuilding) && !(city.GetBuilding(inspectedHome) is SewageBuilding) && city.UseOf(inspectedHome)!=LandUse.Clinic && !(city.GetBuilding(inspectedHome) is SchoolBuilding) && city.UseOf(inspectedHome)!=LandUse.FireHouse && city.UseOf(inspectedHome)!=LandUse.PoliceStation && city.UseOf(inspectedHome)!=LandUse.Cemetery)
             {if(businessMarker!=null) businessMarker.positionCount=0; return;}
             if(businessMarker==null) businessMarker=CommuteRenderer("Selected business",new Color(1,.72f,.15f),.2f);
             MarkBuilding(businessMarker,inspectedHome);
@@ -75,6 +77,7 @@ namespace HarborCity
         void DrawHouseholdInspector(float h,Color navy)
         {
             if(selected!=LandUse.Empty || inspectedHome<0)return;
+            if(city.GetBuilding(inspectedHome) is WaterBuilding || city.GetBuilding(inspectedHome) is SewageBuilding){DrawWaterFacilityInspector(h,navy);return;}
             if(city.UseOf(inspectedHome)==LandUse.Clinic){DrawClinicInspector(h,navy);return;}
             if(city.UseOf(inspectedHome)==LandUse.Cemetery){DrawCemeteryInspector(h,navy);return;}
             if(city.GetBuilding(inspectedHome) is SchoolBuilding){DrawSchoolInspector(h,navy);return;}
@@ -210,7 +213,7 @@ namespace HarborCity
         {
             if(city.society==null)return;
             if(!help)DrawHouseholdInspector(h,navy);
-            if(GUI.Button(new Rect(w-274,448,250,34),showSimulation?"F3  关闭城市 Dashboard":"F3  打开城市 Dashboard",button))ToggleSimulationPanel();
+            if(GUI.Button(new Rect(w-274,503,250,34),showSimulation?"F3  关闭城市 Dashboard":"F3  打开城市 Dashboard",button))ToggleSimulationPanel();
             if(!showSimulation) {simulationTyping=false;return;}
             Rect rect=new Rect(340,110,w-640,h-305);Panel(rect,navy);
             GUILayout.BeginArea(new Rect(rect.x+14,rect.y+8,rect.width-28,rect.height-16));
