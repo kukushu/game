@@ -355,10 +355,11 @@ namespace HarborCity
             {
             if(!Road(t.Next) || !city.roads.CanTravel(t.Current,t.Next,t.walking))return;
             float units = Units(t.Current,t.Next);
+            float movementUnits=t.walking?CityJunctions.WalkingLength(city.roads,t,t.segment)/3:units;
             // Every vehicle uses the same simulation clock and its current road's speed.
             // One world unit per game minute = 480 road units per game day (3 world units per road unit).
             float velocity=(t.walking?120f:480f*city.roads.SpeedFactor(t.Current,t.Next))/city.society.settings.secondsPerDay;
-            float advance = remainingTime * velocity / units;
+            float advance = remainingTime * velocity / movementUnits;
             float previous=t.progress;
             float proposed = Math.Min(1, t.progress + advance);
             foreach (var other in State.trips)
@@ -376,6 +377,7 @@ namespace HarborCity
                     offset += Units(t.route[s],t.route[s+1]);
                 }
             }
+            proposed=LimitCrossingAdvance(t,proposed,units);
             // A car leaving an intersection must be allowed to clear it. Trying
             // to reacquire its departure lock can create a circular wait when
             // downstream traffic backs up into another nearby intersection.
@@ -386,7 +388,7 @@ namespace HarborCity
             if (proposed <= t.progress) { t.blocked += Step; if (t.blocked >= 120 && t.residentId==0 && t.cargoKind!=CargoKind.Waste && t.purpose!=TripPurpose.FireResponse && t.purpose!=TripPurpose.PoliceResponse && t.purpose!=TripPurpose.Deathcare) Fail(t); return; }
             t.progress = proposed; t.blocked = 0;
             if(t.progress<1)return;
-            remainingTime-=Math.Max(0,(1-previous)*units/velocity);
+            remainingTime-=Math.Max(0,(1-previous)*movementUnits/velocity);
             int outgoingLane=city.roads.TripLane(t,t.segment+1);t.previousLane=t.lane;t.lane=outgoingLane;
             t.segment++;t.progress=0;
             ClearJunctionQueue(t);

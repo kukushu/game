@@ -634,6 +634,13 @@ namespace HarborCity
         Vector3 TrafficPoint(TrafficTrip trip, int segment, float fraction)
         {
             int a = trip.route[segment], b = trip.route[Mathf.Min(segment + 1,trip.route.Count - 1)];
+            if(trip.walking)
+            {
+                var walking=CityJunctions.WalkingPosition(city.roads,trip,segment,fraction);
+                var position=new Vector3(walking.x,walking.y,walking.z);
+                position.y=CityRoadView.SurfaceHeight(city.roads,landscape,position,a,b)+.32f;
+                return position;
+            }
             Vector3 start = RoadPosition(a), end = RoadPosition(b);
             Vector3 direction = end - start; direction.y = 0; direction.Normalize();
             Vector3 right = Vector3.Cross(Vector3.up,direction);

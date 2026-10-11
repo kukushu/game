@@ -6,19 +6,95 @@ namespace HarborCity
     public static class CityJunctions
     {
         const float Clearance=.46f;
-        // Only prove the simple case: the same two arms, straight and constant
-        // width. TrafficPoint keeps walkers outside the carriageway here.
-        // Turns, bends, tapers and other arms retain conservative protection.
+        // null means unsupported geometry: retain conservative protection.
+        // On an orthogonal junction the right sidewalk crosses the arms on
+        // its right. A right turn stays on the same corner without crossing.
+        public static List<int> PedestrianCrossings(CityRoads roads,int node,int entry,int exit)
+        {
+            var n=roads.Node(node);var a=roads.Node(entry);var b=roads.Node(exit);
+            if(n==null || a==null || b==null || entry==exit || !roads.Linked(node,entry) || !roads.Linked(node,exit))return null;
+            float al=CityRoads.Length(a,n),bl=CityRoads.Length(n,b);if(al<.01f || bl<.01f)return null;
+            float ix=(n.x-a.x)/al,iz=(n.z-a.z)/al,ox=(b.x-n.x)/bl,oz=(b.z-n.z)/bl;
+            float straight=ix*ox+iz*oz,right=iz*ox-ix*oz;
+            if(Math.Abs(straight)<.99999f && Math.Abs(right)<.99999f)return null;
+            if(straight>.99999f && Math.Abs(roads.EdgeWidth(entry,node)-roads.EdgeWidth(node,exit))>.001f)return null;
+            var result=new List<int>();float perpendicularWidth=-1;
+            foreach(int arm in roads.Neighbors(node))
+            {
+                var p=roads.Node(arm);float length=CityRoads.Length(n,p);if(length<.01f)return null;
+                float dx=(p.x-n.x)/length,dz=(p.z-n.z)/length,dot=dx*ix+dz*iz;
+                if(Math.Abs(dot)>.001f && Math.Abs(dot)<.99999f)return null;
+                float width=roads.EdgeWidth(node,arm);
+                if(Math.Abs(dot)>.99999f && Math.Abs(width-roads.EdgeWidth(node,entry))>.001f)return null;
+                if(Math.Abs(dot)<.001f){if(perpendicularWidth>=0 && Math.Abs(width-perpendicularWidth)>.001f)return null;perpendicularWidth=width;}
+                if(right>.99999f)continue;
+                if(dx*iz-dz*ix>.99999f || right<-.99999f && dx*oz-dz*ox>.99999f)result.Add(arm);
+            }
+            return result;
+        }
+        public static RoadNode SidewalkCorner(CityRoads roads,int node,int entry,int exit)
+        {
+            if(PedestrianCrossings(roads,node,entry,exit)==null)return null;
+            var n=roads.Node(node);var a=roads.Node(entry);var b=roads.Node(exit);
+            float al=CityRoads.Length(a,n),bl=CityRoads.Length(n,b),ix=(n.x-a.x)/al,iz=(n.z-a.z)/al,ox=(b.x-n.x)/bl,oz=(b.z-n.z)/bl;
+            float incoming=roads.EdgeWidth(entry,node)/2+.2f,outgoing=roads.EdgeWidth(node,exit)/2+.2f;
+            float scale=ix*ox+iz*oz>.99999f?.5f:1;
+            return new RoadNode{x=n.x+(iz*incoming+oz*outgoing)*scale,z=n.z-(ix*incoming+ox*outgoing)*scale,y=n.y};
+        }
+        public static float CrossingRadius(CityRoads roads,int node)
+        {
+            float width=CityRoads.Width;
+            foreach(int arm in roads.Neighbors(node))width=Math.Max(width,roads.EdgeWidth(node,arm));
+            // Covers sidewalk offset, corner interpolation and vehicle body;
+            // world units -> existing road units. This is not an original-game parameter.
+            return (width+1)/3;
+        }
+        static RoadNode SidewalkPoint(CityRoads roads,List<int> route,int index)
+        {
+            var n=roads.Node(route[index]);
+            int before=index>0?index-1:index,after=index+1<route.Count?index+1:index;
+            if(before<index && after>index)
+            {
+                var corner=SidewalkCorner(roads,n.id,route[before],route[after]);if(corner!=null)return corner;
+            }
+            var a=roads.Node(route[before]);var b=roads.Node(route[after]);
+            float dx=0,dz=0;int count=0;
+            if(before<index){float length=CityRoads.Length(a,n);if(length>.001f){float offset=roads.EdgeWidth(a.id,n.id)/2+.2f;dx+=(n.z-a.z)/length*offset;dz-=(n.x-a.x)/length*offset;count++;}}
+            if(after>index){float length=CityRoads.Length(n,b);if(length>.001f){float offset=roads.EdgeWidth(n.id,b.id)/2+.2f;dx+=(b.z-n.z)/length*offset;dz-=(b.x-n.x)/length*offset;count++;}}
+            return new RoadNode{x=n.x+(count>0?dx/count:0),z=n.z+(count>0?dz/count:0),y=n.y};
+        }
+        public static RoadNode WalkingPosition(CityRoads roads,TrafficTrip trip,int segment,float fraction)
+        {
+            var a=SidewalkPoint(roads,trip.route,segment);var b=SidewalkPoint(roads,trip.route,Math.Min(segment+1,trip.route.Count-1));
+            return CityRoads.Lerp(a,b,fraction);
+        }
+        public static float WalkingLength(CityRoads roads,TrafficTrip trip,int segment)
+            =>Math.Max(.001f,CityRoads.Length(SidewalkPoint(roads,trip.route,segment),SidewalkPoint(roads,trip.route,Math.Min(segment+1,trip.route.Count-1))));
+        public static List<RoadNode> Crosswalk(CityRoads roads,int node,int arm)
+        {
+            var n=roads.Node(node);var a=roads.Node(arm);if(n==null || a==null || roads.Neighbors(node).Count<3)return null;
+            float length=CityRoads.Length(n,a);if(length<.01f)return null;
+            float dx=(a.x-n.x)/length,dz=(a.z-n.z)/length,perpendicular=-1;
+            foreach(int other in roads.Neighbors(node))
+            {
+                var b=roads.Node(other);float bl=CityRoads.Length(n,b);if(bl<.01f)return null;
+                float dot=((b.x-n.x)*dx+(b.z-n.z)*dz)/bl;
+                if(Math.Abs(dot)>.001f && Math.Abs(dot)<.99999f)return null;
+                float width=roads.EdgeWidth(node,other);
+                if(Math.Abs(dot)>.99999f && Math.Abs(width-roads.EdgeWidth(node,arm))>.001f)return null;
+                if(Math.Abs(dot)<.001f){if(perpendicular>=0 && Math.Abs(width-perpendicular)>.001f)return null;perpendicular=width;}
+            }
+            if(perpendicular<0)return null;
+            float along=perpendicular/2+.2f,across=roads.EdgeWidth(node,arm)/2+.2f;
+            return new List<RoadNode>{new RoadNode{x=n.x+dx*along+dz*across,z=n.z+dz*along-dx*across,y=n.y},new RoadNode{x=n.x+dx*along-dz*across,z=n.z+dz*along+dx*across,y=n.y}};
+        }
         public static bool PedestrianConflicts(CityRoads roads,int node,int walkEntry,int walkExit,int carEntry,int carExit)
         {
-            if(walkEntry<0 || walkExit<0 || carEntry<0 || carExit<0)return true;
-            if(!(walkEntry==carEntry && walkExit==carExit || walkEntry==carExit && walkExit==carEntry))return true;
-            var n=roads.Node(node);var a=roads.Node(walkEntry);var b=roads.Node(walkExit);
-            if(n==null || a==null || b==null)return true;
-            float ax=n.x-a.x,az=n.z-a.z,bx=b.x-n.x,bz=b.z-n.z;
-            float al=CityRoads.Length(a,n),bl=CityRoads.Length(n,b);
-            if(al<.01f || bl<.01f || (ax*bx+az*bz)/(al*bl)<.99999f)return true;
-            return Math.Abs(roads.EdgeWidth(walkEntry,node)-roads.EdgeWidth(node,walkExit))>.001f;
+            if(walkEntry<0 || walkExit<0)return true;
+            var crossings=PedestrianCrossings(roads,node,walkEntry,walkExit);
+            if(crossings!=null && crossings.Count==0)return false;
+            if(carEntry<0 || carExit<0)return true;
+            return crossings==null || crossings.Contains(carEntry) || crossings.Contains(carExit);
         }
         public static bool Conflicts(CityRoads roads,int node,int entryA,int exitA,int entryB,int exitB)
             =>Conflicts(roads,node,entryA,exitA,0,0,entryB,exitB,0,0);
@@ -61,7 +137,7 @@ namespace HarborCity
         int junctionRevision=-1;
         JunctionMovement Movement(TrafficTrip t,int node)
         {
-            int index=t.Current==node?t.segment:t.Next==node?t.segment+1:-1;
+            int index=t.route.IndexOf(node);
             return new JunctionMovement{trip=t.id,node=node,entry=index>0?t.route[index-1]:-1,exit=index>=0 && index+1<t.route.Count?t.route[index+1]:-1,entryLane=city.roads.TripLane(t,index-1),exitLane=city.roads.TripLane(t,index),walking=t.walking};
         }
         void RestoreJunctions()
@@ -71,25 +147,26 @@ namespace HarborCity
             // resolve old overlaps by deleting cars or moving them during load.
             foreach(var t in State.trips)if(t.status==TripStatus.Driving && Behind(t)<.4f && IsJunction(t.Current))
             {if(!junctions.TryGetValue(t.Current,out var owners))junctions[t.Current]=owners=new List<JunctionMovement>();owners.Add(Movement(t,t.Current));}
-            // Tiny sampling spans must not release a pedestrian still physically
-            // inside the crossing merely because its Current node changed.
+            // Rebuild walking reservations throughout the physical crossing
+            // region, including short samples before and after the center.
             foreach(var t in State.trips)if(t.walking && t.status==TripStatus.Driving)
-                for(int index=t.segment-1;index>=0;index--)
+                for(int index=1;index<t.route.Count-1;index++)
                 {
-                    int node=t.route[index];if(WalkingDistanceFrom(t,index)>=.4f)break;
-                    if(!IsJunction(node))continue;
+                    int node=t.route[index];if(!IsJunction(node) || Math.Abs(DistanceTo(t,index))>=CityJunctions.CrossingRadius(city.roads,node))continue;
                     if(!junctions.TryGetValue(node,out var owners))junctions[node]=owners=new List<JunctionMovement>();
-                    owners.Add(new JunctionMovement{trip=t.id,node=node,entry=index>0?t.route[index-1]:-1,exit=t.route[index+1],walking=true});
+                    if(!owners.Exists(m=>m.trip==t.id))owners.Add(Movement(t,node));
                 }
             foreach(var t in State.trips)if(t.status==TripStatus.Driving && Ahead(t)<=.35f)Reserve(t.Next,t.id);
         }
-        float WalkingDistanceFrom(TrafficTrip t,int index)
-        {float distance=Behind(t);for(int i=index;i<t.segment && distance<.4f;i++)distance+=Units(t.route[i],t.route[i+1]);return distance;}
+        float DistanceTo(TrafficTrip t,int index)
+        {
+            if(index>t.segment){float ahead=Ahead(t);for(int i=t.segment+1;i<index;i++)ahead+=Units(t.route[i],t.route[i+1]);return ahead;}
+            float behind=Behind(t);for(int i=index;i<t.segment;i++)behind+=Units(t.route[i],t.route[i+1]);return -behind;
+        }
         bool StillOccupies(TrafficTrip t,int node)
         {
-            if(t.Next==node && Ahead(t)<=.36f)return true;
-            if(!t.walking)return t.Current==node && Behind(t)<.4f;
-            int index=t.route.IndexOf(node);return index>=0 && index<=t.segment && WalkingDistanceFrom(t,index)<.4f;
+            if(!t.walking)return t.Next==node && Ahead(t)<=.36f || t.Current==node && Behind(t)<.4f;
+            int index=t.route.IndexOf(node);return index>=0 && Math.Abs(DistanceTo(t,index))<CityJunctions.CrossingRadius(city.roads,node)+.011f;
         }
         void ReleaseJunctions()
         {
@@ -122,6 +199,7 @@ namespace HarborCity
             if(t.walking && movement.exit<0)return true;
             t.junctionWaitReason=null;
             if(!ControlAllows(t,movement))return false;
+            if(t.walking && !WalkingEntryClear(t,movement))return false;
             if(!t.walking && !ExitClear(t,node)){t.junctionWaitReason="出口队列没有空间";return false;}
             foreach(var owner in owners)
                 if(movement.walking || owner.walking)
@@ -136,6 +214,58 @@ namespace HarborCity
         {
             var walk=a.walking?a:b;var car=a.walking?b:a;
             return CityJunctions.PedestrianConflicts(city.roads,a.node,walk.entry,walk.exit,car.entry,car.exit);
+        }
+        bool WalkingEntryClear(TrafficTrip t,JunctionMovement movement)
+        {
+            float radius=CityJunctions.CrossingRadius(city.roads,movement.node);
+            foreach(var car in State.trips)
+            {
+                if(car.walking || car.status!=TripStatus.Driving)continue;
+                int index=car.route.IndexOf(movement.node);if(index<0)continue;
+                float distance=DistanceTo(car,index);
+                // Cars already inside must clear instead of being trapped by
+                // a newly arriving pedestrian. Cars waiting at the edge do not.
+                if(distance<radius-.02f && distance>-radius && MixedConflicts(movement,Movement(car,movement.node)))
+                {t.junctionWaitReason="等待横道内车辆驶离";return false;}
+            }
+            return true;
+        }
+        bool PendingWalker(int node,JunctionMovement car)
+        {
+            float radius=CityJunctions.CrossingRadius(city.roads,node);
+            foreach(var walker in State.trips)
+            {
+                if(!walker.walking || walker.status!=TripStatus.Driving)continue;
+                int index=walker.route.IndexOf(node);if(index<1 || index+1>=walker.route.Count)continue;
+                float distance=DistanceTo(walker,index);if(distance<0 || distance>radius+.061f)continue;
+                var movement=Movement(walker,node);
+                if(city.roads.PedestrianSignal(node,movement.entry,State.clock)==SignalAspect.Green && MixedConflicts(car,movement))return true;
+            }
+            return false;
+        }
+        float LimitCrossingAdvance(TrafficTrip t,float proposed,float units)
+        {
+            // Look across short graph samples; a crossing is not necessarily Next.
+            float maxRadius=(CityRoadTypes.Width(RoadKind.FourLane)+1)/3;
+            for(int index=t.segment+1;index<t.route.Count;index++)
+            {
+                float distance=DistanceTo(t,index);if(distance>maxRadius+(proposed-t.progress)*units+.061f)break;
+                int node=t.route[index];if(!IsJunction(node))continue;
+                float radius=CityJunctions.CrossingRadius(city.roads,node);
+                if(distance-(proposed-t.progress)*units>radius+.01f)continue;
+                var movement=Movement(t,node);bool allowed;
+                if(t.walking)allowed=movement.exit<0 || Reserve(node,t.id);
+                else
+                {
+                    // The entrant is checked at the outer boundary. Once inside,
+                    // continue clearing; walkers will wait for its actual position.
+                    if(distance<radius-.02f)continue;
+                    allowed=!(junctions.TryGetValue(node,out var owners) && owners.Exists(m=>m.walking && MixedConflicts(movement,m))) && !PendingWalker(node,movement);
+                    if(!allowed)t.junctionWaitReason="让行横道上的行人";
+                }
+                if(!allowed)proposed=Math.Min(proposed,t.progress+Math.Max(0,distance-radius-.01f)/units);
+            }
+            return proposed;
         }
     }
 }

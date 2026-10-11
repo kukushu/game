@@ -88,6 +88,8 @@ namespace HarborCity
             if(t.junctionWaitNode!=node){ClearJunctionQueue(t);t.junctionWaitNode=node;t.junctionQueuedAt=State.clock;}
             if(t.walking)
             {
+                var crossings=CityJunctions.PedestrianCrossings(roads,node,movement.entry,movement.exit);
+                if(crossings!=null && crossings.Count==0)return true;
                 if(roads.PedestrianSignal(node,movement.entry,State.clock)!=SignalAspect.Green)
                 {t.junctionWaitReason="等待行人通行信号";return false;}
                 return true;
@@ -103,9 +105,8 @@ namespace HarborCity
             bool stopped=!roads.HasSignals(node) && roads.Node(node).stopFrom.Contains(movement.entry);
             // Protect a walker actually waiting at the crossing, not somebody
             // far away or at a red phase. Physical owners are checked by Reserve.
-            if(State.trips.Exists(other=>other.walking && other.status==TripStatus.Driving && other.Next==node && Ahead(other)<=.361f
-                && other.segment+2<other.route.Count && roads.PedestrianSignal(node,other.Current,State.clock)==SignalAspect.Green
-                && MixedConflicts(movement,Movement(other,node))))
+            int junctionIndex=t.route.IndexOf(node);
+            if(junctionIndex>=0 && DistanceTo(t,junctionIndex)>=CityJunctions.CrossingRadius(roads,node)-.02f && PendingWalker(node,movement))
             {t.junctionWaitReason="让行等待过街的行人";return false;}
             foreach(var other in State.trips)
             {

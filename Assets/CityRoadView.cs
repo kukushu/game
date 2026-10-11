@@ -58,6 +58,20 @@ namespace HarborCity
                 Disk(baseMesh,n,width/2+.09f,.065f,landscape);
                 bool gravel=!pavedNodes.Contains(n.id);
                 Disk(gravel?gravelMesh:roadMesh,n,width/2,.08f,landscape);
+                if(city.roads.Neighbors(n.id).Count>=3)
+                foreach(int arm in city.roads.Neighbors(n.id))
+                {
+                    var edge=city.roads.edges.Find(e=>e.a==n.id && e.b==arm || e.b==n.id && e.a==arm);
+                    if(edge==null || edge.kind==RoadKind.Gravel)continue;
+                    var crossing=CityJunctions.Crosswalk(city.roads,n.id,arm);if(crossing==null)continue;
+                    var a=Point(crossing[0]);var b=Point(crossing[1]);float span=Vector3.Distance(a,b);
+                    var forward=Point(city.roads.Node(arm))-Point(n);forward.y=0;forward.Normalize();
+                    for(float stripe=.18f;stripe<span-.1f;stripe+=.35f)
+                    {
+                        var p=Vector3.Lerp(a,b,stripe/span);
+                        Strip(markings,p-forward*.27f,p+forward*.27f,.16f,.105f,edge,city,landscape);
+                    }
+                }
             }
             AddMesh("Road shoulders",baseMesh,shoulder); AddMesh("Road surface",roadMesh,asphalt); AddMesh("Gravel surface",gravelMesh,shoulder); AddMesh("Road markings",markings,paint);
         }
