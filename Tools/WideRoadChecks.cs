@@ -58,8 +58,8 @@ public static class WideRoadChecks
         Check(!c.UpgradeRoad(c.roads.edges[0].id,RoadKind.FourLane,false,out why,Shore) && why.Contains("水面") && before==TestCity.Snapshot(c),"Full expanded road width is checked against water");
         c=Street();var parallel=c.roads.Plan(c,TestCity.P(-45,5.2f),TestCity.P(35,5.2f),TestCity.Flat);Check(c.CommitRoad(parallel),"Separate narrow streets can coexist before widening");before=TestCity.Snapshot(c);
         Check(!c.UpgradeRoad(c.roads.edges[0].id,RoadKind.FourLane,false,out why,TestCity.Flat) && why.Contains("邻近") && before==TestCity.Snapshot(c),"Wider footprint cannot silently overlap an unconnected parallel road");
-        c=TestCity.Empty();Check(!c.roads.Plan(c,TestCity.P(-20,82),TestCity.P(20,82),TestCity.Flat,false,RoadKind.FourLane).Valid,"Wide construction checks road edges against map boundary");
-        Check(!c.roads.Plan(c,TestCity.P(20,20),TestCity.P(83,20),TestCity.Flat,false,RoadKind.FourLane).Valid,"Wide road end cap also fits inside construction boundary");
+        c=TestCity.Empty();Check(!c.roads.Plan(c,TestCity.P(-20,CityModel.BuildHalfSize-2),TestCity.P(20,CityModel.BuildHalfSize-2),TestCity.Flat,false,RoadKind.FourLane).Valid,"Wide construction checks road edges against map boundary");
+        Check(!c.roads.Plan(c,TestCity.P(20,20),TestCity.P(CityModel.BuildHalfSize-1,20),TestCity.Flat,false,RoadKind.FourLane).Valid,"Wide road end cap also fits inside construction boundary");
         var curve=c.roads.PlanCurve(c,c.roads.Node(CityRoads.Entrance),TestCity.P(-20,1.5f),TestCity.P(20,25),TestCity.Flat,false,RoadKind.FourLane);
         Check(curve.Valid && c.CommitRoad(curve) && c.roads.edges.All(r=>r.kind==RoadKind.FourLane) && c.Valid(),"Wide curved construction creates real four-lane graph spans");
         c=Street();c.money=0;before=TestCity.Snapshot(c);Check(!c.UpgradeRoad(c.roads.edges[0].id,RoadKind.FourLane,false,out _,TestCity.Flat) && before==TestCity.Snapshot(c),"Insufficient funds leave geometry, land use and IDs unchanged");

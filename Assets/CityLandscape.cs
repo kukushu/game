@@ -3,11 +3,11 @@ using UnityEngine;
 
 namespace HarborCity
 {
-    // Fixed landscape seed/shape: older city saves keep exactly the same lot coordinates.
+    // V2 extends the island; the complete old build area and sampling spacing stay intact.
     public sealed class CityLandscape : MonoBehaviour
     {
-        const int Resolution = 513;
-        const float HalfSize = 120f;
+        const int Resolution = CityMapState.TerrainResolution;
+        const float HalfSize = CityMapState.TerrainHalfSize;
         const float BaseHeight = -8f;
         const float HeightRange = 64f;
         Terrain terrain;
@@ -23,7 +23,7 @@ namespace HarborCity
             return height * Mathf.Exp(-(dx * dx + dz * dz));
         }
 
-        static float Elevation(float x, float z)
+        internal static float LegacyElevation(float x, float z)
         {
             float radius = Mathf.Sqrt(x * x + z * z);
             float angle = Mathf.Atan2(z, x);
@@ -41,11 +41,34 @@ namespace HarborCity
             return Mathf.Lerp(land, -7f, coast);
         }
 
+        internal static float Elevation(float x,float z)
+        {
+            float old=LegacyElevation(x,z);
+            // Two units of guard space preserve interpolation at the old +/-84 boundary.
+            float extent=Mathf.Max(Mathf.Abs(x),Mathf.Abs(z));
+            if(extent<=86) return old;
+            float blend=Mathf.SmoothStep(0,1,Mathf.InverseLerp(86,108,extent));
+            float noise=(Mathf.PerlinNoise(x*.012f+41,z*.012f+73)-.5f)*2;
+            float land=2.6f+noise*.45f+Hill(x,z,135,110,30,15)+Hill(x,z,-132,120,36,20)
+                +Hill(x,z,125,-125,32,12)+Hill(x,z,-135,-110,30,16);
+            float radius=Mathf.Sqrt(x*x+z*z),angle=Mathf.Atan2(z,x);
+            float coast=Mathf.SmoothStep(0,1,Mathf.InverseLerp(200+8*Mathf.Sin(angle*3),225,radius));
+            return Mathf.Lerp(old,Mathf.Lerp(land,-7,coast),blend);
+        }
+
 
         public void Build()
         {
-            // 如果 terrain 已经创建过，就直接返回，避免重复生成
-            if (terrain != null) return;
+            if(terrain!=null && terrain.terrainData.heightmapResolution==Resolution && terrain.terrainData.size.x==HalfSize*2)return;
+            // A live script reload can retain the old Terrain. Replace it before rebuilding city meshes.
+            if(terrain!=null)
+            {
+                terrain.gameObject.SetActive(false);Destroy(terrain.gameObject);
+                if(ground!=null)ground.terrainData=null;
+                terrain.terrainData=null;terrain=null;ground=null;
+                foreach(var asset in ownedAssets)if(asset!=null)Destroy(asset);
+                ownedAssets.Clear();data=null;
+            }
 
 
             // 从 Resources/HarborCity/Terrain 加载一个 Material
@@ -71,10 +94,10 @@ namespace HarborCity
             // 4. 地形尺寸
             data = new TerrainData
             {
-                name = "Harbor Island v1",
+                name = "Harbor Island v2",
 
                 // 高度图分辨率
-                // 这里是 513 × 513 个高度采样点
+                // 这里是 1025 × 1025 个高度采样点
                 heightmapResolution = Resolution,
 
                 // 地形的世界尺寸：
@@ -82,7 +105,7 @@ namespace HarborCity
                 // y = 64
                 // z = 240
                 //
-                // HalfSize = 120
+                // HalfSize = 240
                 // HeightRange = 64
                 size = new Vector3(
                     HalfSize * 2,
@@ -92,10 +115,10 @@ namespace HarborCity
 
                 // 地表纹理权重图分辨率
                 // 即后面控制“哪里是草、哪里是岩石、哪里是沙”的图
-                alphamapResolution = 256,
+                alphamapResolution = 512,
 
                 // 远距离使用的 base map 分辨率
-                baseMapResolution = 512
+                baseMapResolution = 1024
             };
 
             // 记录起来，OnDestroy 时手动 Destroy
@@ -104,7 +127,7 @@ namespace HarborCity
 
             // 创建高度图数组
             //
-            // 513 × 513
+            // 1025 × 1025
             // 每个元素是一个 0~1 的高度值
             var heights = new float[Resolution, Resolution];
 
@@ -296,7 +319,7 @@ namespace HarborCity
 
 
 
-            // alphamapResolution = 256
+            // alphamapResolution = 512
             int size = data.alphamapResolution;
 
 
@@ -442,13 +465,13 @@ namespace HarborCity
             // 因为希望整个地图中心在世界坐标 (0,0,0)
             // 所以把 Terrain 左下角放到：
             //
-            // (-120, -8, -120)
+            // (-240, -8, -240)
             //
             // 地形尺寸又是：
-            // 240 × 64 × 240
+            // 480 × 64 × 480
             //
             // 因此 x/z 最终正好覆盖：
-            // -120 ~ +120
+            // -240 ~ +240
             obj.transform.localPosition =
                 new Vector3(
                     -HalfSize,

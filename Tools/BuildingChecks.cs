@@ -117,8 +117,8 @@ public static class BuildingChecks
         var junction=Preview(c,0,1.8f);
         Check(junction!=null && !c.CanBuild(junction,Flat,out string junctionError) && junctionError.Contains("道路"),"Junction encroachment is rejected by CanBuild without special parcels");
         c=ContinuousCity(out sim);
-        Check(c.CommitRoad(c.roads.Plan(c,P(0,82),P(30,82),Flat)),"Boundary placement fixture built");
-        var outside=Preview(c,15,84);
+        Check(c.CommitRoad(c.roads.Plan(c,P(0,CityModel.BuildHalfSize-2),P(30,CityModel.BuildHalfSize-2),Flat)),"Boundary placement fixture built");
+        var outside=Preview(c,15,CityModel.BuildHalfSize);
         Check(outside!=null && !c.CanBuild(outside,Flat,out string boundaryError) && boundaryError.Contains("边界"),"Continuous preview retains rotated-footprint boundary validation");
     }
 }

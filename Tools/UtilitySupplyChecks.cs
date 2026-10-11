@@ -28,7 +28,7 @@ public static class UtilitySupplyChecks
         var saved=TestCity.RoundTrip(c);Check(saved.Supply(home).Complete && saved.utilities.water.edges.Count>0,"Networks persist and supply is derived after load");
         int edge=c.utilities.water.edges[0].id;c.RemoveUtility(UtilityKind.Water,edge);
         Check(!c.Supply(home).water && c.Supply(home).electricity,"Deleting pipe disconnects water independently of electricity");
-        Check(!c.BuildUtility(UtilityKind.Water,TestCity.P(90,0),TestCity.P(0,0),out _) && c.Valid(),"Out-of-map utility rejected without corrupting city");
+        Check(!c.BuildUtility(UtilityKind.Water,TestCity.P(CityModel.BuildHalfSize+1,0),TestCity.P(0,0),out _) && c.Valid(),"Out-of-map utility rejected without corrupting city");
         var inland=c.RoadsidePreview(0,-5,LandUse.Sewage,HousingKind.Villa,out string error);
         Check(c.PlaceBuilding(inland,LandUse.Sewage,TestCity.Flat,out error)<0 && error.Contains("水岸"),"Base-game outfall cannot be an inland sewage plant");
         // Supply and drain in separate islands must not be merged through a coverage overlap.

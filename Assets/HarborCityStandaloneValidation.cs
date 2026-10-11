@@ -42,6 +42,7 @@ namespace HarborCity
                 Directory.CreateDirectory(output);var game=FindAnyObjectByType<HarborCityGame>();
                 const BindingFlags flags=BindingFlags.Instance|BindingFlags.NonPublic;var type=typeof(HarborCityGame);
                 var city=(CityModel)type.GetField("city",flags).GetValue(game);var land=(CityLandscape)type.GetField("landscape",flags).GetValue(game);
+                CheckMapExpansion(land,output);
                 var end=new RoadNode{x=28,z=1.5f,y=land.Height(28,1.5f)};var road=city.roads.Plan(city,city.roads.Node(CityRoads.Entrance),end,land.Height);
                 if(!city.CommitRoad(road)) throw new InvalidOperationException(road.error??"Road failed");
                 var cells=city.ZoningCells(land.Height);city.PaintZones(System.Linq.Enumerable.Where(cells,c=>c.pose.x<-22),LandUse.Residential);
@@ -646,6 +647,47 @@ namespace HarborCity
             finally{type.GetField("city",flags).SetValue(game,original);}
             File.WriteAllText(Path.Combine(output,"VehicleTurns.txt"),"PASS: native TrafficPoint used by vehicles and selected routes follows the shared four-lane right-turn geometry without folding inward, including graph-node transitions. This is geometry verification, not a GUI or original-game equivalence claim.");
         }
+        static void CheckMapExpansion(CityLandscape land,string output)
+        {
+            if(land.Terrain.terrainData.heightmapResolution!=1025 || land.Terrain.terrainData.size.x!=480)
+                throw new InvalidOperationException("Expanded native terrain dimensions/resolution");
+            // Compare against the original Terrain interpolation, not just its analytical height.
+            var old=new TerrainData{heightmapResolution=513,size=new Vector3(240,64,240)};
+            try
+            {
+                var heights=new float[513,513];
+                for(int z=0;z<513;z++)for(int x=0;x<513;x++)heights[z,x]=Mathf.Clamp01((CityLandscape.LegacyElevation(x/512f*240-120,z/512f*240-120)+8)/64);
+                old.SetHeights(0,0,heights);
+                for(float z=-84;z<=84;z+=7)for(float x=-84;x<=84;x+=7)
+                    if(Mathf.Abs(land.Height(x,z)-(old.GetInterpolatedHeight((x+120)/240,(z+120)/240)-8))>.002f)
+                        throw new InvalidOperationException("Legacy build-area terrain moved at "+x+","+z);
+            }
+            finally{Destroy(old);}
+            Physics.SyncTransforms();int rays=0;
+            foreach(var p in new[]{new Vector2(150,0),new Vector2(-150,0),new Vector2(0,150),new Vector2(0,-150),new Vector2(160,50),new Vector2(-160,-50)})
+            {
+                if(land.Height(p.x,p.y)<=.15f || !land.Raycast(new Ray(new Vector3(p.x,200,p.y),Vector3.down),out var hit)
+                    || Mathf.Abs(hit.y-land.Height(p.x,p.y))>.04f)throw new InvalidOperationException("Expanded land picking "+p);
+                rays++;
+            }
+            var c=CityModel.Create();c.money=1000000;c.development.enabled=false;c.SetEntranceHeight(land.Height);
+            var plan=c.roads.Plan(c,c.roads.Node(CityRoads.Entrance),new RoadNode{x=156,z=1.5f,y=land.Height(156,1.5f)},land.Height);
+            if(!c.CommitRoad(plan))throw new InvalidOperationException("Real-terrain expansion route: "+plan.error);
+            var preview=c.RoadsidePreview(145,7,LandUse.Commercial,HousingKind.Apartment,out string error);
+            int shop=c.PlaceBuilding(preview,LandUse.Commercial,land.Height,out error);
+            if(shop<0 || !c.BuildUtility(UtilityKind.Water,new RoadNode{x=0,z=0},new RoadNode{x=155,z=0},out error)
+                || !c.BuildUtility(UtilityKind.Electricity,new RoadNode{x=0,z=0},new RoadNode{x=155,z=0},out error))throw new InvalidOperationException("Expanded building/utilities: "+error);
+            c.PaintZones(c.ZoningCells(land.Height).Where(z=>z.pose.x>110),LandUse.Residential);
+            var sim=new CityTraffic(c);if(sim.Dispatch(CityTraffic.Outside,shop,TripPurpose.Import)==null)throw new InvalidOperationException("Expanded dispatch");
+            var saved=JsonUtility.FromJson<CitySaveData>(JsonUtility.ToJson(c.ToSaveData())).ToCity();var resumed=new CityTraffic(saved);
+            sim.Advance(180);resumed.Advance(180);
+            if(!c.Valid() || c.Goods(shop)<8 || c.traffic.completed==0 || c.traffic.failed!=0
+                || JsonUtility.ToJson(c.ToSaveData())!=JsonUtility.ToJson(saved.ToSaveData()))throw new InvalidOperationException("Expanded native transport/save continuation");
+            var legacy=c.ToSaveData();legacy.format=33;legacy.map=null;
+            if(legacy.ToCity().GetBuilding(shop).x!=c.GetBuilding(shop).x)throw new InvalidOperationException("Legacy map migration moved entities");
+            File.WriteAllText(Path.Combine(output,"MapExpansion.txt"),"PASS: 480 terrain/336 build area; 625 old terrain interpolated heights within 2 mm; "+rays+" expanded native collider picks; real terrain road, stable-ID shop, zoning, pipes/power; loaded import delivered/returned; native format34 deterministic continuation and format33 migration");
+        }
+
         static void CheckHighways(HarborCityGame game,string output)
         {
             Func<float,float,float> flat=(x,z)=>1;var c=CityModel.Create();c.development.enabled=false;c.SetEntranceHeight(flat);
