@@ -5,7 +5,7 @@ namespace HarborCity
 {
     public sealed partial class HarborCityGame
     {
-        GUIStyle dashCaption,dashValue,dashNote,dashHeading,dashBadge;
+        [NonSerialized] GUIStyle dashCaption,dashValue,dashNote,dashHeading,dashBadge;
         readonly Color dashSurface=new Color(.075f,.14f,.18f),dashTrack=new Color(.12f,.21f,.26f);
         readonly Color dashBlue=new Color(.45f,.69f,.81f),dashGreen=new Color(.35f,.81f,.63f),dashAmber=new Color(1,.73f,.32f),dashRed=new Color(1,.43f,.43f);
         CityHistorySample chartLastHistory;
@@ -27,18 +27,34 @@ namespace HarborCity
         bool showAllFindings,showHistoryRows;
         void DashboardStyles()
         {
+            Styles();
             if(dashCaption!=null)return;
             dashCaption=new GUIStyle(small) {fontSize=13,wordWrap=false,clipping=TextClipping.Clip};
             dashValue=new GUIStyle(number) {fontSize=25,wordWrap=false,clipping=TextClipping.Clip};
             dashNote=new GUIStyle(small) {fontSize=12,wordWrap=false,clipping=TextClipping.Clip};
             dashHeading=new GUIStyle(label) {fontSize=17,fontStyle=FontStyle.Bold};
             dashBadge=new GUIStyle(dashNote) {alignment=TextAnchor.MiddleCenter};
+            // Do not inherit skin-dependent black text in any interaction state.
+            // Ink applies semantic colours over a white base, without multiplying
+            // them by the muted main-label colour.
+            foreach(var style in new[]{dashCaption,dashValue,dashNote,dashHeading,dashBadge})
+                SetPanelTextColor(style,Color.white);
+        }
+        static void SetPanelTextColor(GUIStyle style,Color color)
+        {
+            style.normal.textColor=style.hover.textColor=style.active.textColor=style.focused.textColor=color;
+            style.onNormal.textColor=style.onHover.textColor=style.onActive.textColor=style.onFocused.textColor=color;
         }
         Color ToneColor(DashboardTone tone)=>tone==DashboardTone.Critical?dashRed:tone==DashboardTone.Attention?dashAmber:tone==DashboardTone.Positive?dashGreen:dashBlue;
         void Fill(Rect rect,Color color)
         {if(Event.current.type!=EventType.Repaint)return;var previous=GUI.color;GUI.color=color;GUI.DrawTexture(rect,Texture2D.whiteTexture);GUI.color=previous;}
         void Ink(Rect rect,string text,GUIStyle style,Color? color=null,string tooltip=null)
-        {var previous=GUI.contentColor;if(color.HasValue)GUI.contentColor=color.Value;GUI.Label(rect,new GUIContent(text,tooltip),style);GUI.contentColor=previous;}
+        {
+            var previous=GUI.contentColor;var tint=GUI.color;
+            GUI.color=Color.white;GUI.contentColor=color??new Color(.94f,.97f,.98f);
+            GUI.Label(rect,new GUIContent(text,tooltip),style);
+            GUI.contentColor=previous;GUI.color=tint;
+        }
         Rect Block(float height)=>GUILayoutUtility.GetRect(0,height,GUILayout.ExpandWidth(true));
         void SectionCard(string title,string caption=null)
         {
