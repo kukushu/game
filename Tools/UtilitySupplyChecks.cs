@@ -49,6 +49,36 @@ public static class UtilitySupplyChecks
         Check(factory.factory.produced==1,"Connected factory can process actual on-site labour and raw materials");
         c.utilities.water=new CityUtilityNetwork();c.Recalculate();c.ProcessFactoryWork(person,60);
         Check(factory.factory.produced==1 && factory.factory.raw==1,"Disconnected factory cannot turn further labour into goods");
+        CheckOverload();
         Console.WriteLine("PASS: "+checks+" utility coverage/capacity/connection/save checks");
+    }
+    static int Load(CityModel c,CityBuilding b)=>b is ResidentialBuilding?Math.Max(1,c.society.families.Where(h=>h.resident && h.home==b.id).Sum(h=>c.LivingMembers(h))):
+        b is CommercialBuilding || b is IndustrialBuilding?Math.Max(1,c.EmployedAt(b.id)*2):b is PowerBuilding?0:2;
+    static void CheckOverload()
+    {
+        var c=TestCity.Create();c.development.enabled=true;ConnectFixture(c);
+        var families=c.society.families.ToArray();int added=0;
+        while(c.demand<161)
+        {
+            var h=families[added++%families.Length];h.people.Add(new CityResident{id=c.society.nextCitizenId++,householdId=h.id,name="供给测试居民",age=10,location=h.home});
+            c.Recalculate();
+        }
+        Check(c.demand==161 && c.power==160,"Fixture has only one unit of electric overload");
+        Check(c.buildings.Where(b=>b is WaterBuilding || b is SewageBuilding).All(b=>c.Supply(b.id).electricity) && c.water==160 && c.SewageCapacity==160,"Small shortfall keeps actual water providers powered and running");
+        int off=c.buildings.Count(b=>!c.Supply(b.id).electricity);
+        Check(off>0 && off<c.buildings.Count/2,"Small deficit sheds a subset rather than the whole network");
+        Check(c.buildings.Where(b=>c.Supply(b.id).electricity).Sum(b=>Load(c,b))<=c.power,"Allocated real electric loads never exceed capacity");
+        string supplied=string.Join(",",c.buildings.Where(b=>c.Supply(b.id).electricity).Select(b=>b.id).OrderBy(id=>id));
+        c.Recalculate();Check(supplied==string.Join(",",c.buildings.Where(b=>c.Supply(b.id).electricity).Select(b=>b.id).OrderBy(id=>id)),"Unchanged network has stable load shedding");
+        c=TestCity.RoundTrip(c);Check(c.Valid() && supplied==string.Join(",",c.buildings.Where(b=>c.Supply(b.id).electricity).Select(b=>b.id).OrderBy(id=>id)),"Allocation is derived identically from actual saved entities");
+        c.SetServiceBudget(CityServiceKind.Water,50);
+        var consumers=c.buildings.Where(b=>CityZoningState.ZoneUse(b.Use)).ToArray();
+        Check(consumers.Any(b=>c.Supply(b.id).water) && consumers.Any(b=>!c.Supply(b.id).water),"Water shortfall only denies some consumers");
+        Check(consumers.Where(b=>c.Supply(b.id).water).Sum(b=>Load(c,b))<=80 && consumers.Where(b=>c.Supply(b.id).sewage).Sum(b=>Load(c,b))<=80,"Water and sewage allocations respect real component budgets");
+        Check(consumers.All(b=>!c.Supply(b.id).sewage || c.Supply(b.id).water),"Drain service requires water from the same pipe component");
+        c.SetServiceBudget(CityServiceKind.Water,100);c.SetServiceBudget(CityServiceKind.Electricity,150);
+        Check(c.buildings.All(b=>c.Supply(b.id).Complete),"Restoring enough capacity restores every connected consumer");
+        c.buildings.RemoveAll(b=>b is PowerBuilding);c.Recalculate();
+        Check(c.power==0 && c.buildings.All(b=>!c.Supply(b.id).electricity) && c.water==0 && c.SewageCapacity==0,"Actual loss of all power generation still shuts down water facilities");
     }
 }

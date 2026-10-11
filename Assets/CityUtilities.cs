@@ -20,7 +20,7 @@ namespace HarborCity
         {
             get
             {
-                var p=pipes.Where(p=>p.fresh>0 && p.fresh>=p.load).OrderByDescending(p=>p.drain-p.load).FirstOrDefault();
+                var p=pipes.Where(p=>p.fresh>0).OrderByDescending(p=>p.drain-p.load).FirstOrDefault();
                 return p==null?"供水未就绪，无法排污":p.drain==0?"管网没有运行中的排污口":"排污容量不足（需求 "+p.load+" / 可用 "+p.drain+"）";
             }
         }
@@ -72,6 +72,19 @@ namespace HarborCity
         {return Math.Max(0,CityRoads.Distance(new RoadNode{x=b.x,z=b.z},net.Node(edge.a),net.Node(edge.b))-Math.Min(b.width,b.depth)/2);}
         int UtilityLoad(CityBuilding b)=>b.Use==LandUse.Residential?Math.Max(1,society.families.Where(h=>h.resident && h.home==b.id).Sum(h=>LivingMembers(h))):
             b.Use==LandUse.Commercial || b.Use==LandUse.Industrial?Math.Max(1,EmployedAt(b.id)*2):b.Use==LandUse.Power?0:2;
+        // Provisional load shedding, not a claim about CS1's exact allocation algorithm.
+        // Keep essential services operating first; stable IDs avoid random daily flicker.
+        // Supply whole buildings only, never spending more than this component provides.
+        IEnumerable<int> AllocateUtility(IEnumerable<int> ids,int capacity,Func<int,int> load)
+        {
+            if(capacity<=0)yield break;
+            foreach(int id in ids.OrderBy(id=>GetBuilding(id) is WaterBuilding || GetBuilding(id) is SewageBuilding?0:
+                CityZoningState.ZoneUse(UseOf(id))?2:1).ThenBy(id=>id))
+            {
+                int cost=load(id);if(cost>capacity)continue;
+                capacity-=cost;yield return id;
+            }
+        }
         public void RecalculateUtilities()
         {
             supply=buildings.ToDictionary(b=>b.id,b=>new BuildingSupply());WaterDemand=SewageCapacity=0;if(!development.enabled)return;
@@ -104,8 +117,8 @@ namespace HarborCity
                 if(visited.Contains(b.id))continue;var group=new List<int>();var queue=new Queue<int>();queue.Enqueue(b.id);visited.Add(b.id);
                 while(queue.Count>0){int id=queue.Dequeue();group.Add(id);foreach(int next in adjacency[id])if(visited.Add(next))queue.Enqueue(next);}
                 int capacity=group.Count(id=>GetBuilding(id) is PowerBuilding && BuildingAccess(id))*ServiceCapacity(CityServiceKind.Electricity,160);
-                power+=capacity;int load=group.Sum(id=>UtilityLoad(GetBuilding(id)));
-                foreach(int id in group)supply[id].electricity=capacity>0 && capacity>=load;
+                power+=capacity;
+                foreach(int id in AllocateUtility(group,capacity,id=>UtilityLoad(GetBuilding(id))))supply[id].electricity=true;
             }
             var waterNet=utilities.water;var pipeComponents=waterNet.Components();water=0;
             var pipeBuildings=new Dictionary<int,List<int>>();var countedSources=new HashSet<int>();var countedDrains=new HashSet<int>();
@@ -121,7 +134,10 @@ namespace HarborCity
                 SewageCapacity+=group.Count(id=>GetBuilding(id) is SewageBuilding && supply[id].electricity && BuildingAccess(id) && countedDrains.Add(id))*ServiceCapacity(CityServiceKind.Water,160);
                 var status=new PipeSupply{id=pair.Key,load=load,fresh=fresh,drain=drain};
                 status.inactiveDrains.AddRange(group.Where(id=>GetBuilding(id) is SewageBuilding && (!supply[id].electricity || !BuildingAccess(id))));
-                foreach(int id in group){supply[id].pipes.Add(status);supply[id].water|=fresh>0 && fresh>=load;supply[id].sewage|=fresh>0 && fresh>=load && drain>0 && drain>=load;}
+                foreach(int id in group)supply[id].pipes.Add(status);
+                var watered=AllocateUtility(group,fresh,id=>CityZoningState.ZoneUse(UseOf(id))?UtilityLoad(GetBuilding(id)):0).ToList();
+                foreach(int id in watered)supply[id].water=true;
+                foreach(int id in AllocateUtility(watered,drain,id=>CityZoningState.ZoneUse(UseOf(id))?UtilityLoad(GetBuilding(id)):0))supply[id].sewage=true;
             }
         }
     }

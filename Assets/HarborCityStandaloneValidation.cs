@@ -70,6 +70,7 @@ namespace HarborCity
                 CheckEducation(land.Height,output);
                 CheckResidentIdentity(city,output);
                 CheckLoans(city,output);
+                CheckUtilityAllocation(city,output);
                 CheckRoadDirection(output);
                 CheckJunctions(output);
                 CheckRoadTypes(output);
@@ -804,6 +805,25 @@ namespace HarborCity
             for(int n=0;n<4000 && c.traffic.trips.Any(t=>t.id==id);n++)sim.Advance(.05f);
             if(c.traffic.trips.Any(t=>t.id==id) || c.Goods(destination)<8 || !c.Valid())throw new InvalidOperationException("Native saved one-way freight did not deliver and return");
             File.WriteAllText(Path.Combine(output,"RoadDirection.txt"),"PASS: directed loop, real freight detour/delivery/return and native JSON continuation");
+        }
+        static void CheckUtilityAllocation(CityModel source,string output)
+        {
+            var probe=JsonUtility.FromJson<CitySaveData>(JsonUtility.ToJson(source.ToSaveData())).ToCity();
+            var families=probe.society.families.Where(h=>h.resident).ToArray();int n=0;
+            if(families.Length==0)throw new InvalidOperationException("Utility allocation fixture needs resident households");
+            while(probe.demand<=probe.power)
+            {
+                var h=families[n++%families.Length];h.people.Add(new CityResident{id=probe.society.nextCitizenId++,householdId=h.id,name="供给测试居民",age=10,location=h.home});probe.Recalculate();
+            }
+            int supplied=probe.buildings.Count(b=>probe.Supply(b.id).electricity);
+            if(supplied==0 || supplied==probe.buildings.Count || probe.water==0 || probe.SewageCapacity==0
+                || probe.buildings.Where(b=>b is WaterBuilding || b is SewageBuilding).Any(b=>!probe.Supply(b.id).electricity))
+                throw new InvalidOperationException("Native slight overload cut off the entire city or water facilities");
+            string ids=string.Join(",",probe.buildings.Where(b=>probe.Supply(b.id).electricity).Select(b=>b.id).OrderBy(id=>id));
+            probe=JsonUtility.FromJson<CitySaveData>(JsonUtility.ToJson(probe.ToSaveData())).ToCity();
+            if(!probe.Valid() || ids!=string.Join(",",probe.buildings.Where(b=>probe.Supply(b.id).electricity).Select(b=>b.id).OrderBy(id=>id)))
+                throw new InvalidOperationException("Native load shedding changed after save reload");
+            File.WriteAllText(Path.Combine(output,"UtilityAllocation.txt"),"PASS: native electricity demand="+probe.demand+" / capacity="+probe.power+"; powered="+supplied+" / buildings="+probe.buildings.Count+"; water="+probe.water+"; sewage="+probe.SewageCapacity+"; stable native save reload. No GUI claim.");
         }
         static void CheckLoans(CityModel source,string output)
         {
