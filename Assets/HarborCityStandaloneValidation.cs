@@ -78,6 +78,8 @@ namespace HarborCity
                 CheckTrafficControls(game,output);
                 CheckPedestrians(game,output);
                 CheckPedestrians(game,output,true);
+                CheckPedestrians(game,output,false,.5f);
+                CheckPedestrians(game,output,false,-.5f);
                 CheckElevatedTraffic(game,output);
                 CheckDeathcare(land.Height,output);
                 CheckAging(output);
@@ -567,10 +569,11 @@ namespace HarborCity
             }
             finally{type.GetField("city",flags).SetValue(game,originalCity);type.GetField("traffic",flags).SetValue(game,originalTraffic);type.GetField("roadOperation",flags).SetValue(game,0);type.GetMethod("AnimateTraffic",flags).Invoke(game,null);}
         }
-        static void CheckPedestrians(HarborCityGame game,string output,bool wide=false)
+        static void CheckPedestrians(HarborCityGame game,string output,bool wide=false,float skew=0)
         {
             Func<float,float,float> flat=(x,z)=>1;var c=CityModel.Create();c.money=150000;c.development.enabled=false;c.SetEntranceHeight(flat);
-            foreach(var ends in new[]{new[]{c.roads.Node(CityRoads.Entrance),new RoadNode{x=48,z=1.5f,y=1}},new[]{new RoadNode{x=0,z=-40,y=1},new RoadNode{x=0,z=40,y=1}},new[]{c.roads.Node(CityRoads.Entrance),new RoadNode{x=-68,z=1.5f,y=1}}})
+            string prefix=skew>0?"PositiveSkew":skew<0?"NegativeSkew":"";
+            foreach(var ends in new[]{new[]{c.roads.Node(CityRoads.Entrance),new RoadNode{x=48,z=1.5f,y=1}},new[]{new RoadNode{x=-41.5f*skew,z=-40,y=1},new RoadNode{x=38.5f*skew,z=40,y=1}},new[]{c.roads.Node(CityRoads.Entrance),new RoadNode{x=-68,z=1.5f,y=1}}})
                 if(!c.CommitRoad(c.roads.Plan(c,ends[0],ends[1],flat,false,wide?RoadKind.FourLane:RoadKind.Standard)))throw new InvalidOperationException("Native pedestrian road fixture");
             int Build(float x,float z,LandUse use)
             {int id=c.PlaceBuilding(c.RoadsidePreview(x,z,use,HousingKind.Apartment,out _),use,flat,out string error);if(id<0)throw new InvalidOperationException(error);return id;}
@@ -603,7 +606,7 @@ namespace HarborCity
             while(c.roads.PedestrianSignal(node,From(walk),c.traffic.clock)!=SignalAspect.Green || c.roads.PedestrianSignal(node,From(walk),c.traffic.clock+.7f)!=SignalAspect.Green)c.traffic.clock+=.1f;
             int factory=Build(-20,side,LandUse.Industrial),shop=Build(20,side,LandUse.Commercial);c.Inventory(factory).Stock=8;var truck=sim.Dispatch(factory,shop,TripPurpose.Delivery);Approach(truck);sim.Advance(.6f);
             if(walk.blocked>0 || truck.segment<truck.route.IndexOf(node) || truck.blocked>0)throw new InvalidOperationException("Native parallel freight pedestrian concurrency");
-            c.money+=10000;int crossingFactory=Build(wide?8:5,-20,LandUse.Industrial),crossingShop=Build(wide?8:5,20,LandUse.Commercial);
+            c.money+=10000;int crossingFactory=Build(skew==0?(wide?8:5):-21.5f*skew+4,-20,LandUse.Industrial),crossingShop=Build(skew==0?(wide?8:5):18.5f*skew+4,20,LandUse.Commercial);
             c.Inventory(crossingFactory).Stock=8;var crossing=sim.Dispatch(crossingFactory,crossingShop,TripPurpose.Delivery);Approach(crossing);
             c.roads.SetJunctionControl(node,JunctionControl.Uncontrolled,out _);sim.Advance(.1f);
             if(crossing.segment>=crossing.route.IndexOf(node) || crossing.blocked<=0 || !crossing.junctionWaitReason.Contains("行人"))throw new InvalidOperationException("Native conflicting freight pedestrian yield");
@@ -622,7 +625,7 @@ namespace HarborCity
                     var crosswalk=CityJunctions.Crosswalk(c.roads,node,arm);
                     if(crosswalk==null || painted.Count(v=>CityRoads.Distance(new RoadNode{x=v.x,z=v.z},crosswalk[0],crosswalk[1])<.31f)<16)throw new InvalidOperationException("Native crosswalk paint missing at physical crossing");
                 }
-                File.WriteAllText(Path.Combine(output,wide?"WidePedestrianCrossingCity.json":"PedestrianCrossingCity.json"),JsonUtility.ToJson(c.ToSaveData(),true));
+                File.WriteAllText(Path.Combine(output,prefix+(wide?"WidePedestrianCrossingCity.json":"PedestrianCrossingCity.json")),JsonUtility.ToJson(c.ToSaveData(),true));
             }
             finally{type.GetField("city",flags).SetValue(game,originalCity);type.GetField("traffic",flags).SetValue(game,originalTraffic);type.GetMethod("RefreshRoadView",flags).Invoke(game,null);type.GetMethod("AnimateTraffic",flags).Invoke(game,null);}
             // Check attendance within the actual school day. Fast-forwarding 90
@@ -631,7 +634,7 @@ namespace HarborCity
             if(!child.atSchool || c.Goods(shop)<8 || c.Goods(crossingShop)<8 || c.traffic.trips.Any(t=>t.id==truckId || t.id==crossing.id) || c.traffic.failed!=0 || c.traffic.lostGoods!=0 || !c.Valid())throw new InvalidOperationException("Native crossing attendance/cargo/save continuation");
             var back=sim.DispatchSchool(child.id,true);if(back==null)throw new InvalidOperationException("Native pedestrian real return");sim.Advance(30);
             if(child.location!=home || child.schoolReturning || !c.Valid())throw new InvalidOperationException("Native pedestrian return home");
-            File.WriteAllText(Path.Combine(output,wide?"WidePedestrians.txt":"Pedestrians.txt"),"PASS: real pupil red wait outside width-based crossing boundary, parallel freight passes alongside walker, perpendicular freight yields to actual crossing, actual sidewalk render and all four crosswalk stripe meshes, native JSON during crossing, both cargo deliveries/returns and actual school attendance/walk home");
+            File.WriteAllText(Path.Combine(output,prefix+(wide?"WidePedestrians.txt":"Pedestrians.txt")),"PASS: real pupil red wait outside width-based crossing boundary, parallel freight passes alongside walker, crossing freight yields to actual crossing, actual sidewalk render and all four crosswalk stripe meshes, native JSON during crossing, both cargo deliveries/returns and actual school attendance/walk home");
         }
         IEnumerator CheckWideConnectionInput(HarborCityGame game,Mouse mouse)
         {

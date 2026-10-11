@@ -6,11 +6,12 @@ public static class PedestrianChecks
 {
     static int checks;
     static void Check(bool ok,string why){if(!ok)throw new Exception("Pedestrian: "+why);checks++;}
-    static CityModel Fixture(out CityTraffic sim,out CityResident child,out int school,out int node)
+    static CityModel Fixture(out CityTraffic sim,out CityResident child,out int school,out int node,float skew=0)
     {
-        var c=TestCity.Create();c.development.enabled=true;c.waste.enabled=false;c.society.settings.applicantsPerDay=0;
+        var c=TestCity.Create();if(skew!=0)c.money=200000;c.development.enabled=true;c.waste.enabled=false;c.society.settings.applicantsPerDay=0;
         foreach(var p in c.Citizens)c.ReleaseJob(p);
-        var plan=c.roads.Plan(c,TestCity.P(0,-40),TestCity.P(0,40),TestCity.Flat);
+        if(skew!=0)foreach(var b in c.buildings.Where(b=>b.HitsRoad(TestCity.P(-41.5f*skew,-40),TestCity.P(38.5f*skew,40))).ToList())c.DemolishBuilding(b.id);
+        var plan=c.roads.Plan(c,TestCity.P(-41.5f*skew,-40),TestCity.P(38.5f*skew,40),TestCity.Flat);
         if(!c.CommitRoad(plan))throw new Exception(plan.error);
         UtilitySupplyChecks.ConnectFixture(c);school=TestCity.Build(c,40,-5,LandUse.ElementarySchool);
         child=c.Citizens.First(c.ElementaryEligible);node=c.roads.nodes.First(n=>Math.Abs(n.x)<.01f && Math.Abs(n.z-1.5f)<.01f).id;
@@ -35,6 +36,31 @@ public static class PedestrianChecks
     {for(float time=0;time<20;time+=.1f)if((c.roads.PedestrianSignal(node,from,time)==SignalAspect.Green)==green && (c.roads.PedestrianSignal(node,from,time+.5f)==SignalAspect.Green)==green)return time;throw new Exception("Phase fixture");}
     public static void Run()
     {
+        foreach(float skew in new[]{-.5f,.5f})
+        {
+            var diagonal=Fixture(out var diagonalSim,out var pupil,out int target,out int junction,skew);
+            diagonal.roads.SetJunctionControl(junction,JunctionControl.Uncontrolled,out _);
+            var walking=diagonalSim.DispatchSchool(pupil.id);Approach(diagonal,walking,junction);diagonalSim.Advance(.6f);
+            int index=walking.route.IndexOf(junction);var mask=CityJunctions.PedestrianCrossings(diagonal.roads,junction,walking.route[index-1],walking.route[index+1]);
+            Check(mask!=null && mask.Count==1 && CityJunctions.SidewalkCorner(diagonal.roads,junction,walking.route[index-1],walking.route[index+1])!=null,"Skew crossing uses actual arm mask and sidewalk geometry");
+            int origin=TestCity.Build(diagonal,-20*skew+4,-18.5f,LandUse.Industrial),destination=TestCity.Build(diagonal,20*skew+4,21.5f,LandUse.Commercial);
+            diagonal.Inventory(origin).Stock=8;var truck=diagonalSim.Dispatch(origin,destination,TripPurpose.Delivery);Approach(diagonal,truck,junction);diagonalSim.Advance(.1f);
+            Check(truck.blocked>0 && truck.junctionWaitReason.Contains("行人"),"Actual skew-road cargo yields at crossed arm");
+            var twin=TestCity.RoundTrip(diagonal);var twinSim=new CityTraffic(twin);diagonalSim.Advance(30);twinSim.Advance(30);
+            Check(pupil.atSchool && diagonal.Goods(destination)>=8 && diagonal.traffic.failed==0 && diagonal.Valid(),"Skew road clears, school attendance and cargo arrival are real");
+            Check(TestCity.Snapshot(diagonal)==TestCity.Snapshot(twin),"Skew crossing save resumes identically");
+        }
+        {
+            var taper=Fixture(out var taperSim,out var student,out int removedSchool,out int center);taper.money=200000;
+            foreach(var building in taper.buildings.Where(b=>b.x>0).ToList())taper.DemolishBuilding(building.id);
+            var east=taper.roads.Pick(20,1.5f);Check(taper.UpgradeRoad(east.id,RoadKind.FourLane,false,out string reason,TestCity.Flat),"Actual wide/narrow junction upgrade: "+reason);
+            int target=TestCity.Build(taper,40,-8,LandUse.ElementarySchool);Check(taper.EnrollElementary(student.id,target),"Re-enroll child in wide-road school");
+            taper.roads.SetJunctionControl(center,JunctionControl.Uncontrolled,out _);taperSim=new CityTraffic(taper);var walking=taperSim.DispatchSchool(student.id);Approach(taper,walking,center);
+            int index=walking.route.IndexOf(center);var corner=CityJunctions.SidewalkCorner(taper.roads,center,walking.route[index-1],walking.route[index+1]);
+            Check(corner!=null && Math.Abs(corner.z-1.5f)>CityRoadTypes.Width(RoadKind.FourLane)/2 && CityJunctions.PedestrianCrossings(taper.roads,center,walking.route[index-1],walking.route[index+1]).Count==1,"Taper sidewalk clears the wider road and identifies actual crossed arm");
+            var twin=TestCity.RoundTrip(taper);var twinSim=new CityTraffic(twin);taperSim.Advance(30);twinSim.Advance(30);
+            Check(student.atSchool && taper.Valid() && TestCity.Snapshot(taper)==TestCity.Snapshot(twin),"Actual width-transition school trip and save continuation");
+        }
         var c=Fixture(out var sim,out var p,out int school,out int node);
         c.roads.SetJunctionControl(node,JunctionControl.Signals,out _);var walk=sim.DispatchSchool(p.id);Approach(c,walk,node);
         c.traffic.clock=Phase(c,node,walk.route[walk.route.IndexOf(node)-1],false);sim=new CityTraffic(c);sim.Advance(.3f);

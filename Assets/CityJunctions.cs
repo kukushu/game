@@ -6,48 +6,57 @@ namespace HarborCity
     public static class CityJunctions
     {
         const float Clearance=.46f;
-        // null means unsupported geometry: retain conservative protection.
-        // On an orthogonal junction the right sidewalk crosses the arms on
-        // its right. A right turn stays on the same corner without crossing.
+        // Follow the right sidewalk around the node. Only arms between the
+        // entry and exit on this angular arc are crossed. U-turns remain conservative.
         public static List<int> PedestrianCrossings(CityRoads roads,int node,int entry,int exit)
         {
             var n=roads.Node(node);var a=roads.Node(entry);var b=roads.Node(exit);
             if(n==null || a==null || b==null || entry==exit || !roads.Linked(node,entry) || !roads.Linked(node,exit))return null;
-            float al=CityRoads.Length(a,n),bl=CityRoads.Length(n,b);if(al<.01f || bl<.01f)return null;
-            float ix=(n.x-a.x)/al,iz=(n.z-a.z)/al,ox=(b.x-n.x)/bl,oz=(b.z-n.z)/bl;
-            float straight=ix*ox+iz*oz,right=iz*ox-ix*oz;
-            if(Math.Abs(straight)<.99999f && Math.Abs(right)<.99999f)return null;
-            if(straight>.99999f && Math.Abs(roads.EdgeWidth(entry,node)-roads.EdgeWidth(node,exit))>.001f)return null;
-            var result=new List<int>();float perpendicularWidth=-1;
+            if(Corner(roads,node,entry,exit)==null)return null;
+            double start=Math.Atan2(a.z-n.z,a.x-n.x),end=PositiveAngle(Math.Atan2(b.z-n.z,b.x-n.x)-start);
+            var result=new List<int>();
             foreach(int arm in roads.Neighbors(node))
             {
-                var p=roads.Node(arm);float length=CityRoads.Length(n,p);if(length<.01f)return null;
-                float dx=(p.x-n.x)/length,dz=(p.z-n.z)/length,dot=dx*ix+dz*iz;
-                if(Math.Abs(dot)>.001f && Math.Abs(dot)<.99999f)return null;
-                float width=roads.EdgeWidth(node,arm);
-                if(Math.Abs(dot)>.99999f && Math.Abs(width-roads.EdgeWidth(node,entry))>.001f)return null;
-                if(Math.Abs(dot)<.001f){if(perpendicularWidth>=0 && Math.Abs(width-perpendicularWidth)>.001f)return null;perpendicularWidth=width;}
-                if(right>.99999f)continue;
-                if(dx*iz-dz*ix>.99999f || right<-.99999f && dx*oz-dz*ox>.99999f)result.Add(arm);
+                if(arm==entry || arm==exit)continue;
+                var p=roads.Node(arm);double delta=PositiveAngle(Math.Atan2(p.z-n.z,p.x-n.x)-start);
+                if(delta>.001 && delta<end-.001)result.Add(arm);
             }
             return result;
         }
-        public static RoadNode SidewalkCorner(CityRoads roads,int node,int entry,int exit)
+        static double PositiveAngle(double value)=>value<0?value+Math.PI*2:value;
+        static RoadNode Corner(CityRoads roads,int node,int entry,int exit)
         {
-            if(PedestrianCrossings(roads,node,entry,exit)==null)return null;
             var n=roads.Node(node);var a=roads.Node(entry);var b=roads.Node(exit);
-            float al=CityRoads.Length(a,n),bl=CityRoads.Length(n,b),ix=(n.x-a.x)/al,iz=(n.z-a.z)/al,ox=(b.x-n.x)/bl,oz=(b.z-n.z)/bl;
+            if(n==null || a==null || b==null)return null;
+            float al=CityRoads.Length(a,n),bl=CityRoads.Length(n,b);if(al<.01f || bl<.01f)return null;
+            float ix=(n.x-a.x)/al,iz=(n.z-a.z)/al,ox=(b.x-n.x)/bl,oz=(b.z-n.z)/bl;
             float incoming=roads.EdgeWidth(entry,node)/2+.2f,outgoing=roads.EdgeWidth(node,exit)/2+.2f;
-            float scale=ix*ox+iz*oz>.99999f?.5f:1;
-            return new RoadNode{x=n.x+(iz*incoming+oz*outgoing)*scale,z=n.z-(ix*incoming+ox*outgoing)*scale,y=n.y};
+            float px=iz*incoming,pz=-ix*incoming,qx=oz*outgoing,qz=-ox*outgoing,det=ix*oz-iz*ox;
+            if(Math.Abs(det)<.0001f)
+            {
+                if(ix*ox+iz*oz<0)return null;
+                float offset=Math.Max(incoming,outgoing);
+                return new RoadNode{x=n.x+iz*offset,z=n.z-ix*offset,y=n.y};
+            }
+            float t=((qx-px)*oz-(qz-pz)*ox)/det,dx=px+ix*t,dz=pz+iz*t;
+            if(dx*dx+dz*dz>16*Math.Max(incoming*incoming,outgoing*outgoing))return null;
+            return new RoadNode{x=n.x+dx,z=n.z+dz,y=n.y};
         }
+        public static RoadNode SidewalkCorner(CityRoads roads,int node,int entry,int exit)
+            =>Corner(roads,node,entry,exit);
         public static float CrossingRadius(CityRoads roads,int node)
         {
             float width=CityRoads.Width;
             foreach(int arm in roads.Neighbors(node))width=Math.Max(width,roads.EdgeWidth(node,arm));
             // Covers sidewalk offset, corner interpolation and vehicle body;
             // world units -> existing road units. This is not an original-game parameter.
-            return (width+1)/3;
+            float radius=width+1;
+            foreach(int entry in roads.Neighbors(node))foreach(int exit in roads.Neighbors(node))if(entry!=exit)
+            {
+                var p=Corner(roads,node,entry,exit);
+                if(p!=null)radius=Math.Max(radius,CityRoads.Length(p,roads.Node(node))+.65f);
+            }
+            return radius/3;
         }
         static RoadNode SidewalkPoint(CityRoads roads,List<int> route,int index)
         {
@@ -69,23 +78,32 @@ namespace HarborCity
             return CityRoads.Lerp(a,b,fraction);
         }
         public static float WalkingLength(CityRoads roads,TrafficTrip trip,int segment)
-            =>Math.Max(.001f,CityRoads.Length(SidewalkPoint(roads,trip.route,segment),SidewalkPoint(roads,trip.route,Math.Min(segment+1,trip.route.Count-1))));
+            =>Math.Max(.001f,CityRoads.SpatialLength(SidewalkPoint(roads,trip.route,segment),SidewalkPoint(roads,trip.route,Math.Min(segment+1,trip.route.Count-1))));
         public static List<RoadNode> Crosswalk(CityRoads roads,int node,int arm)
         {
             var n=roads.Node(node);var a=roads.Node(arm);if(n==null || a==null || roads.Neighbors(node).Count<3)return null;
             float length=CityRoads.Length(n,a);if(length<.01f)return null;
-            float dx=(a.x-n.x)/length,dz=(a.z-n.z)/length,perpendicular=-1;
+            if(roads.Neighbors(node).Count==4)
+            {
+                double direction=Math.Atan2(a.z-n.z,a.x-n.x);int previous=-1,next=-1;double before=Math.PI*2,after=Math.PI*2;
+                foreach(int other in roads.Neighbors(node))if(other!=arm)
+                {
+                    var p=roads.Node(other);double delta=PositiveAngle(Math.Atan2(p.z-n.z,p.x-n.x)-direction);
+                    if(delta<after){after=delta;next=other;}if(Math.PI*2-delta<before){before=Math.PI*2-delta;previous=other;}
+                }
+                var left=Corner(roads,node,previous,arm);var right=Corner(roads,node,arm,next);
+                if(left!=null && right!=null)return new List<RoadNode>{left,right};
+            }
+            float dx=(a.x-n.x)/length,dz=(a.z-n.z)/length,along=0,across=roads.EdgeWidth(node,arm)/2+.2f;
             foreach(int other in roads.Neighbors(node))
             {
+                if(other==arm)continue;
                 var b=roads.Node(other);float bl=CityRoads.Length(n,b);if(bl<.01f)return null;
-                float dot=((b.x-n.x)*dx+(b.z-n.z)*dz)/bl;
-                if(Math.Abs(dot)>.001f && Math.Abs(dot)<.99999f)return null;
-                float width=roads.EdgeWidth(node,other);
-                if(Math.Abs(dot)>.99999f && Math.Abs(width-roads.EdgeWidth(node,arm))>.001f)return null;
-                if(Math.Abs(dot)<.001f){if(perpendicular>=0 && Math.Abs(width-perpendicular)>.001f)return null;perpendicular=width;}
+                float dot=((b.x-n.x)*dx+(b.z-n.z)*dz)/bl,sine=(float)Math.Sqrt(Math.Max(0,1-dot*dot));
+                if(sine<.01f)continue;
+                along=Math.Max(along,(roads.EdgeWidth(node,other)/2+.2f+Math.Abs(dot)*across)/sine);
             }
-            if(perpendicular<0)return null;
-            float along=perpendicular/2+.2f,across=roads.EdgeWidth(node,arm)/2+.2f;
+            if(along<=0 || along>CityRoadTypes.Width(RoadKind.FourLane)*2)return null;
             return new List<RoadNode>{new RoadNode{x=n.x+dx*along+dz*across,z=n.z+dz*along-dx*across,y=n.y},new RoadNode{x=n.x+dx*along-dz*across,z=n.z+dz*along+dx*across,y=n.y}};
         }
         public static bool PedestrianConflicts(CityRoads roads,int node,int walkEntry,int walkExit,int carEntry,int carExit)
@@ -246,7 +264,7 @@ namespace HarborCity
         float LimitCrossingAdvance(TrafficTrip t,float proposed,float units)
         {
             // Look across short graph samples; a crossing is not necessarily Next.
-            float maxRadius=(CityRoadTypes.Width(RoadKind.FourLane)+1)/3;
+            float maxRadius=((CityRoadTypes.Width(RoadKind.FourLane)/2+.2f)*4+.65f)/3;
             for(int index=t.segment+1;index<t.route.Count;index++)
             {
                 float distance=DistanceTo(t,index);if(distance>maxRadius+(proposed-t.progress)*units+.061f)break;
