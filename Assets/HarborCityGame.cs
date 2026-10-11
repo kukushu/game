@@ -10,7 +10,7 @@ namespace HarborCity
     public sealed partial class HarborCityGame : MonoBehaviour
     {
         const float MinZoom = 10f;
-        const float MaxZoom = 155f;
+        const float MaxZoom = 230f;
         const float ZoomPerStep = .85f;
         [NonSerialized] CityModel city;
         [SerializeField,HideInInspector] string reloadCityJson;
@@ -85,7 +85,7 @@ namespace HarborCity
 
             // 相机最近和最远能看到多远
             cam.nearClipPlane = .1f;
-            cam.farClipPlane = 500;
+            cam.farClipPlane = 2000;
 
             // 背景使用纯色
             cam.clearFlags = CameraClearFlags.SolidColor;
@@ -159,7 +159,7 @@ namespace HarborCity
             Box(
                 "Sea",
                 new Vector3(0, -.18f, 0),
-                new Vector3(700, .3f, 700),
+                new Vector3(CityMapState.TerrainHalfSize*8, .3f, CityMapState.TerrainHalfSize*8),
                 new Color(.24f, .53f, .63f),
                 transform
             );
@@ -239,6 +239,7 @@ namespace HarborCity
 
             // 14. 创建/准备交通车辆对应的 GameObject
             EnsureTrafficViews();
+            EnsureBuildBoundary();
 
 
             // 15. 从系统字体中创建 Unity 字体
@@ -271,10 +272,12 @@ namespace HarborCity
                 city=restored;reloadCityJson=null;
             }
             if (city == null || landscape == null) return;
+            landscape.Build();
             city.Recalculate();
             Rebuild();
             traffic = new CityTraffic(city);
             EnsureTrafficViews();
+            EnsureBuildBoundary();UpdateCamera();
             StartObservation("脚本重载或组件重新启用");
         }
 
@@ -419,6 +422,8 @@ namespace HarborCity
 
         void UpdateCamera()
         {
+            // Also update retained cameras after a live script reload.
+            cam.farClipPlane=2000;
             if (landscape != null) focus.y = Mathf.Max(0,landscape.Height(focus.x,focus.z));
             cam.transform.rotation = Quaternion.Euler(pitch, yaw, 0);
             // Keep the lower edge of the orthographic view above ground at low angles.
@@ -430,6 +435,11 @@ namespace HarborCity
 
         void Update()
         {
+            if(buildBoundary!=null)
+            {
+                buildBoundary.enabled=selected!=LandUse.Empty;
+                buildBoundary.startWidth=buildBoundary.endWidth=Mathf.Clamp(zoom*.006f,.24f,1.38f);
+            }
             if(city!=null)RefreshBuildingProblems();
             var keyboard = Keyboard.current;
             var mouse = Mouse.current;
@@ -707,7 +717,7 @@ namespace HarborCity
             float x = position.x / scale, y = (Screen.height - position.y) / scale;
             float width = Screen.width / scale, height = Screen.height / scale;
             return OverProblemUI(new Vector2(x,y)) || (showEconomy && new Rect(360,120,330,490).Contains(new Vector2(x,y)) || showInfoViews && new Rect(360,120,330,250).Contains(new Vector2(x,y))) || showSimulation && new Rect(340,110,width-640,height-305).Contains(new Vector2(x,y)) || y < 108 || y > height - 185 || (x > width - 290 && y < 545)
-                || (help && x < 485 && y < 470) || (!help && x < (selected==LandUse.Empty && city.UseOf(inspectedHome)==LandUse.Residential && !showSimulation?24+ResidenceInspectorWidth:345) && y > 115 && y < (selected==LandUse.Empty && inspectedHome>=0?height-200:selected==LandUse.Park?503:selected==LandUse.Road?604:385));
+                || (help && x < 485 && y < 500) || (!help && x < (selected==LandUse.Empty && city.UseOf(inspectedHome)==LandUse.Residential && !showSimulation?24+ResidenceInspectorWidth:345) && y > 115 && y < (selected==LandUse.Empty && inspectedHome>=0?height-200:selected==LandUse.Park?503:selected==LandUse.Road?604:385));
         }
 
         void Styles()
@@ -826,9 +836,9 @@ namespace HarborCity
             DrawSimulationPanel(w,h,navy);
             if (help)
             {
-                Panel(new Rect(24,120,450,337),navy);
+                Panel(new Rect(24,120,450,367),navy);
                 GUI.Label(new Rect(44,140,410,40),"从一条道路开始",title);
-                GUI.Label(new Rect(44,190,400,250),"1   道路须连接地图西侧的入口。\n\n2   在路边拖拽划分住宅、商业和工业区。\n\n3   电站供电，输电线跨越远处街区。水塔和水岸排水口接入同一管网。\n\n4   平衡人口与就业，建公园提升幸福度。\n\n按 1 点击起点、终点修路；2–8 切换工具。\n右键拖动旋转，中键拖动平移。\n右键 / Esc 撤回道路起点或退出；空格暂停。\n存档保存在本机，读取会替换当前进度。",small);
+                GUI.Label(new Rect(44,190,400,280),"1   道路须连接地图西侧的入口。\n\n2   在路边拖拽划分住宅、商业和工业区。\n\n3   电站供电，输电线跨越远处街区。水塔和水岸排水口接入同一管网。\n\n4   平衡人口与就业，建公园提升幸福度。\n\n按 1 点击起点、终点修路；2–8 切换工具。\n右键拖动旋转，中键拖动平移。\n建设范围 336×336；建造时黄线标示边界。\n右键 / Esc 撤回道路起点或退出；空格暂停。\n存档保存在本机，读取会替换当前进度。",small);
             }
         }
 

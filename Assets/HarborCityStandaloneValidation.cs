@@ -219,6 +219,7 @@ namespace HarborCity
                 }
                 inputType.GetField("roadOperation",inputFlags).SetValue(inputGame,0);inputType.GetField("roadKind",inputFlags).SetValue(inputGame,RoadKind.Standard);
                 yield return CheckHighwayInput(inputGame,device,output);
+                yield return CheckExpandedMapInput(inputGame,device,output);
                 inputType.GetField("roadOperation",inputFlags).SetValue(inputGame,0);inputType.GetField("roadKind",inputFlags).SetValue(inputGame,RoadKind.Standard);inputType.GetField("roadOneWay",inputFlags).SetValue(inputGame,false);
                 inputType.GetField("selected",inputFlags).SetValue(inputGame,LandUse.Residential);
                 inputType.GetField("zoneTool",inputFlags).SetValue(inputGame,0);
@@ -647,6 +648,53 @@ namespace HarborCity
             finally{type.GetField("city",flags).SetValue(game,original);}
             File.WriteAllText(Path.Combine(output,"VehicleTurns.txt"),"PASS: native TrafficPoint used by vehicles and selected routes follows the shared four-lane right-turn geometry without folding inward, including graph-node transitions. This is geometry verification, not a GUI or original-game equivalence claim.");
         }
+        IEnumerator CheckExpandedMapInput(HarborCityGame game,Mouse mouse,string output)
+        {
+            const BindingFlags flags=BindingFlags.Instance|BindingFlags.NonPublic;var type=typeof(HarborCityGame);
+            var savedCity=type.GetField("city",flags).GetValue(game);var savedTraffic=type.GetField("traffic",flags).GetValue(game);
+            var focus=type.GetField("focus",flags).GetValue(game);var zoom=type.GetField("zoom",flags).GetValue(game);
+            var yaw=type.GetField("yaw",flags).GetValue(game);var pitch=type.GetField("pitch",flags).GetValue(game);
+            var land=(CityLandscape)type.GetField("landscape",flags).GetValue(game);var cam=(Camera)type.GetField("cam",flags).GetValue(game);
+            var c=CityModel.Create();c.money=1000000;c.development.enabled=false;c.SetEntranceHeight(land.Height);
+            try
+            {
+                type.GetField("focus",flags).SetValue(game,Vector3.zero);type.GetField("zoom",flags).SetValue(game,230f);type.GetField("pitch",flags).SetValue(game,20f);type.GetField("yaw",flags).SetValue(game,0f);
+                type.GetMethod("UpdateCamera",flags).Invoke(game,null);
+                if(game.transform.Find("Sea").localScale.x<CityMapState.TerrainHalfSize*8){File.WriteAllText(Path.Combine(output,"Failure.txt"),"Sea backdrop too small for expanded camera");yield break;}
+                foreach(float x in new[]{-168f,168f})foreach(float z in new[]{-168f,168f})
+                {
+                    var v=cam.WorldToViewportPoint(new Vector3(x,land.Height(x,z),z));
+                    if(v.x<0 || v.x>1 || v.y<0 || v.y>1 || v.z<cam.nearClipPlane || v.z>cam.farClipPlane){File.WriteAllText(Path.Combine(output,"Failure.txt"),"Expanded map clipped at widest zoom/lowest pitch");yield break;}
+                }
+                if(!c.CommitRoad(c.roads.Plan(c,c.roads.Node(CityRoads.Entrance),new RoadNode{x=115,z=1.5f,y=land.Height(115,1.5f)},land.Height))){File.WriteAllText(Path.Combine(output,"Failure.txt"),"Expanded input approach road");yield break;}
+                type.GetField("city",flags).SetValue(game,c);type.GetField("traffic",flags).SetValue(game,new CityTraffic(c));
+                type.GetField("focus",flags).SetValue(game,new Vector3(135,0,0));type.GetField("zoom",flags).SetValue(game,40f);type.GetField("pitch",flags).SetValue(game,60f);type.GetMethod("UpdateCamera",flags).Invoke(game,null);
+                type.GetField("selected",flags).SetValue(game,LandUse.Road);type.GetField("roadKind",flags).SetValue(game,RoadKind.Standard);type.GetField("roadOneWay",flags).SetValue(game,false);
+                type.GetField("roadOperation",flags).SetValue(game,0);type.GetField("roadMode",flags).SetValue(game,0);type.GetMethod("ResetRoad",flags).Invoke(game,null);
+                yield return ClickWorld(game,mouse,new Vector2(115,1.5f));yield return ClickWorld(game,mouse,new Vector2(156,1.5f));
+                if(!c.roads.nodes.Any(n=>n.x>150) || !c.Valid()){File.WriteAllText(Path.Combine(output,"Failure.txt"),"Actual expanded land road input failed: "+type.GetField("notice",flags).GetValue(game));yield break;}
+                type.GetField("selected",flags).SetValue(game,LandUse.Water);type.GetField("waterTool",flags).SetValue(game,1);type.GetField("utilityStart",flags).SetValue(game,null);
+                yield return ClickWorld(game,mouse,new Vector2(116,0));yield return ClickWorld(game,mouse,new Vector2(154,0));
+                if(c.utilities.water.edges.Count!=1){File.WriteAllText(Path.Combine(output,"Failure.txt"),"Actual expanded pipe input failed");yield break;}
+                var boundary=(LineRenderer)type.GetField("buildBoundary",flags).GetValue(game);
+                if(boundary==null || boundary.positionCount!=768 || !boundary.loop || !boundary.enabled){File.WriteAllText(Path.Combine(output,"Failure.txt"),"Expanded construction boundary missing");yield break;}
+                for(int i=0;i<boundary.positionCount;i++)
+                {
+                    var p=boundary.GetPosition(i);
+                    if(Mathf.Abs(Mathf.Max(Mathf.Abs(p.x),Mathf.Abs(p.z))-168)>.001f || Mathf.Abs(p.y-(Mathf.Max(0,land.Height(p.x,p.z))+.16f))>.001f){File.WriteAllText(Path.Combine(output,"Failure.txt"),"Construction boundary not aligned with terrain/legal bounds");yield break;}
+                }
+                type.GetField("selected",flags).SetValue(game,LandUse.Empty);yield return null;yield return null;
+                if(boundary.enabled){File.WriteAllText(Path.Combine(output,"Failure.txt"),"Boundary did not hide outside construction");yield break;}
+                File.WriteAllText(Path.Combine(output,"MapExpansionInput.txt"),"PASS: full 336-square bounds visible at widest zoom/lowest pitch; real world-input road and pipe on x115-156 land; 768 boundary vertices aligned to terrain/bounds; hidden in selection mode");
+            }
+            finally
+            {
+                type.GetField("city",flags).SetValue(game,savedCity);type.GetField("traffic",flags).SetValue(game,savedTraffic);
+                type.GetField("focus",flags).SetValue(game,focus);type.GetField("zoom",flags).SetValue(game,zoom);type.GetField("yaw",flags).SetValue(game,yaw);type.GetField("pitch",flags).SetValue(game,pitch);
+                type.GetField("selected",flags).SetValue(game,LandUse.Road);type.GetField("utilityStart",flags).SetValue(game,null);type.GetMethod("ResetRoad",flags).Invoke(game,null);type.GetMethod("UpdateCamera",flags).Invoke(game,null);
+            }
+        }
+
         static void CheckMapExpansion(CityLandscape land,string output)
         {
             if(land.Terrain.terrainData.heightmapResolution!=1025 || land.Terrain.terrainData.size.x!=480)
@@ -658,6 +706,11 @@ namespace HarborCity
                 var heights=new float[513,513];
                 for(int z=0;z<513;z++)for(int x=0;x<513;x++)heights[z,x]=Mathf.Clamp01((CityLandscape.LegacyElevation(x/512f*240-120,z/512f*240-120)+8)/64);
                 old.SetHeights(0,0,heights);
+                // Exercise the same stale Terrain replacement used by live script reloads.
+                land.Terrain.terrainData=old;land.Terrain.GetComponent<TerrainCollider>().terrainData=old;
+                land.Build();
+                if(land.Terrain.terrainData.heightmapResolution!=1025 || land.Terrain.terrainData.size.x!=480)
+                    throw new InvalidOperationException("Retained legacy Terrain did not expand");
                 for(float z=-84;z<=84;z+=7)for(float x=-84;x<=84;x+=7)
                     if(Mathf.Abs(land.Height(x,z)-(old.GetInterpolatedHeight((x+120)/240,(z+120)/240)-8))>.002f)
                         throw new InvalidOperationException("Legacy build-area terrain moved at "+x+","+z);
