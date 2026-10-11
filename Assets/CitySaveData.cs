@@ -22,7 +22,7 @@ namespace HarborCity
         public List<int> interestedFamilies;
     }
     [Serializable] public sealed class CommercialSaveData {public int customers,retailSold,retailDay,retailSoldToday;}
-    [Serializable] public sealed class LandfillSaveData {public int stored;public bool emptying;}
+    [Serializable] public sealed class LandfillSaveData {public int stored;public bool emptying;public float processingRemainder;}
     [Serializable] public sealed class BuildingSaveData
     {
         public LandUse type;
@@ -42,7 +42,7 @@ namespace HarborCity
             if(b is IndustrialBuilding f) d.industrial=new[] {f.factory};
             if(b is IGoodsBuilding goods) d.stock=goods.Stock;
             if(b is CommercialBuilding shop)d.commercial=new[]{new CommercialSaveData{customers=shop.customers,retailSold=shop.retailSold,retailDay=shop.retailDay,retailSoldToday=shop.retailSoldToday}};
-            if(b is LandfillBuilding dump)d.landfill=new[]{new LandfillSaveData{stored=dump.stored,emptying=dump.emptying}};
+            if(b is LandfillBuilding dump)d.landfill=new[]{new LandfillSaveData{stored=dump.stored,emptying=dump.emptying,processingRemainder=dump.processingRemainder}};
             return d;
         }
         public CityBuilding ToBuilding()
@@ -58,7 +58,7 @@ namespace HarborCity
             if(b is IndustrialBuilding f) f.factory=industrial[0];
             if(b is IGoodsBuilding goods) goods.Stock=stock;
             if(b is CommercialBuilding shop){shop.customers=commercial[0].customers;shop.retailSold=commercial[0].retailSold;shop.retailDay=commercial[0].retailDay;shop.retailSoldToday=commercial[0].retailSoldToday;}
-            if(b is LandfillBuilding dump){dump.stored=landfill[0].stored;dump.emptying=landfill[0].emptying;}
+            if(b is LandfillBuilding dump){dump.stored=landfill[0].stored;dump.emptying=landfill[0].emptying;dump.processingRemainder=landfill[0].processingRemainder;}
             return b;
         }
     }
@@ -85,7 +85,10 @@ namespace HarborCity
             if(format==23 && loans==null)loans=new CityLoanState {lastSettledDay=day};
             // Formats 23/24 predate one-way roads; their missing bool fields are
             // false, preserving all existing roads as two-way without changing IDs.
-            if(format!=CityModel.SaveFormat && format!=29 && format!=28 && format!=27 && format!=26 && format!=25 && format!=24 && format!=23) throw new ArgumentException("存档格式不支持，请使用新城市（格式 "+CityModel.SaveFormat+"）");
+            if(format!=CityModel.SaveFormat && format!=30 && format!=29 && format!=28 && format!=27 && format!=26 && format!=25 && format!=24 && format!=23) throw new ArgumentException("存档格式不支持，请使用新城市（格式 "+CityModel.SaveFormat+"）");
+            // Retain old physical stock/trucks, but resume collection at converted treatment plants.
+            if(format<31 && buildings!=null)foreach(var b in buildings)
+                if(b?.landfill!=null)foreach(var depot in b.landfill)if(depot!=null){depot.emptying=false;depot.processingRemainder=0;}
             if(format<29)
             {
                 if(roads?.nodes!=null)foreach(var n in roads.nodes){if(n==null)continue;n.control=JunctionControl.Automatic;n.stopFrom=new List<int>();}

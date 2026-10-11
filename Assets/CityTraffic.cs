@@ -188,6 +188,7 @@ namespace HarborCity
             AdvanceSchools(Step*1440/city.society.settings.secondsPerDay);
             city.AdvanceFires(Step*1440/city.society.settings.secondsPerDay);
             city.AdvancePolice(Step*1440/city.society.settings.secondsPerDay);
+            city.AdvanceWasteProcessing(Step);
             city.ObserveAnalysisTraffic();
             AdvanceResidents();
             State.dispatchTimer += Step;

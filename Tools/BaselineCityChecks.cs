@@ -14,7 +14,7 @@ public static class BaselineCityChecks
         c.PaintZones(land.Where(x=>x.pose.x<-23),LandUse.Residential);c.PaintZones(land.Where(x=>x.pose.x>=-23 && x.pose.x<0),LandUse.Commercial);c.PaintZones(land.Where(x=>x.pose.x>=0),LandUse.Industrial);
         TestCity.Build(c,-47,-5,LandUse.Power);TestCity.Build(c,-40,-5,LandUse.Water);UtilitySupplyChecks.ConnectFixture(c);TestCity.Build(c,-33,-7,LandUse.Landfill);
         var sim=new CityTraffic(c);sim.Advance(600);int openingPopulation=c.population;
-        Check(openingPopulation>0 && c.Employed>0 && c.traffic.consumedGoods>0 && c.LandfillWaste>0 && c.Valid(),"Zoning, real people, jobs, shopping and garbage operate together");
+        Check(openingPopulation>0 && c.Employed>0 && c.traffic.consumedGoods>0 && c.waste.collected>0 && c.waste.processed>0 && c.WasteBalanceError==0 && c.Valid(),"Zoning, real people, jobs, shopping, actual garbage collection and disposal operate together");
         sim.Advance(2401);
         Check(c.population>0 && c.Employed>0 && c.WasteBalanceError==0 && c.Valid(),"Basic city survives 25 simulated days without phantom waste or broken relations");
         Check(c.society.history.All(d=>d.closingTreasury==d.openingTreasury+d.tax-d.maintenance) && c.society.history.Count>=25,"Long normal-ruleset city accounts close each day; recorded="+c.society.history.Count+", mismatches="+c.society.history.Count(d=>d.closingTreasury!=d.openingTreasury+d.tax-d.maintenance));

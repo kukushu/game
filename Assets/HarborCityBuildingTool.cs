@@ -84,7 +84,7 @@ namespace HarborCity
             if(selected==LandUse.Bulldoze)
             {
                 if(city.DemolishBuilding(existing)) {DrawLot(existing); notice="已拆除建筑，原有车辆会重新处理目的地。"; ResetBuildingPreview();}
-                else notice=city.GetBuilding(existing) is ClinicBuilding?"当前诊所仍有关联患者或救护车，暂不能拆除。":city.GetBuilding(existing) is LandfillBuilding?"填埋场需要清空库存并等待关联车辆返回后才能拆除。":"资金不足，无法拆除。";
+                else notice=city.GetBuilding(existing) is ClinicBuilding?"当前诊所仍有关联患者或救护车，暂不能拆除。":city.GetBuilding(existing) is LandfillBuilding?"垃圾处理场需要清空库存并等待关联车辆返回后才能拆除。":"资金不足，无法拆除。";
             }
             else
             {

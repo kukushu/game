@@ -276,7 +276,7 @@ namespace HarborCity
                 if(b is IGoodsBuilding inventory && (inventory.Stock<0 || inventory.Stock>(b is IndustrialBuilding?24:32))) return false;
                 if(b is CommercialBuilding shop && (shop.customers<0 || shop.retailSold<0 || shop.retailSold>shop.customers || shop.retailDay<-1 || shop.retailDay>day || shop.retailSoldToday<0 || shop.retailSoldToday>shop.retailSold))return false;
                 if(b is IndustrialBuilding i && i.factory==null) return false;
-                if(b is LandfillBuilding dump && (dump.stored<0 || dump.stored>LandfillBuilding.Capacity))return false;
+                if(b is LandfillBuilding dump && (dump.stored<0 || dump.stored>LandfillBuilding.Capacity || float.IsNaN(dump.processingRemainder) || float.IsInfinity(dump.processingRemainder) || dump.processingRemainder<0 || dump.processingRemainder>=1))return false;
             }
             buildingLookup=null;return true;
         }

@@ -22,7 +22,7 @@ namespace HarborCity
             int next=GUI.SelectionGrid(new Rect(376,174,298,116),(int)mapView,mapCaptions,3,button);
             if(next!=(int)mapView){mapView=(CityMapView)next;nextInfoRefresh=0;}
             bool nuisance=mapView==CityMapView.Garbage || mapView==CityMapView.Noise || mapView==CityMapView.Pollution || mapView==CityMapView.Crime;
-            GUI.Label(new Rect(376,302,298,48),nuisance?"绿色：低  →  红色：高\n垃圾显示积压 / 填埋占用；环境来自活动记录；治安为建筑犯罪积压。":mapView==CityMapView.Employment?"浅色：没有岗位  ·  红色 → 绿色：占用比例\n显示真实岗位占用，空缺本身不代表异常。":mapView==CityMapView.LandValue?"红色 → 绿色：低 → 高土地价值\n由可达服务、环境、治安和废墟推导。":"绿色：已供应  ·  红色：尚未供应\n供水视图同时要求排污；总容量不代表接通。",small);
+            GUI.Label(new Rect(376,302,298,48),nuisance?"绿色：低  →  红色：高\n垃圾显示积压 / 暂存占用；环境来自活动记录；治安为建筑犯罪积压。":mapView==CityMapView.Employment?"浅色：没有岗位  ·  红色 → 绿色：占用比例\n显示真实岗位占用，空缺本身不代表异常。":mapView==CityMapView.LandValue?"红色 → 绿色：低 → 高土地价值\n由可达服务、环境、治安和废墟推导。":"绿色：已供应  ·  红色：尚未供应\n供水视图同时要求排污；总容量不代表接通。",small);
         }
         void RefreshInfoViews()
         {
