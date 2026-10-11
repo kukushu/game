@@ -651,20 +651,20 @@ namespace HarborCity
             Vector3 start = RoadPosition(a), end = RoadPosition(b);
             Vector3 direction = end - start; direction.y = 0; direction.Normalize();
             Vector3 right = Vector3.Cross(Vector3.up,direction);
-            float offset=trip.walking?city.roads.EdgeWidth(a,b)/2+.2f:city.roads.LaneOffset(a,b,city.roads.TripLane(trip,segment));
+            float offset=city.roads.TripLaneOffset(trip,segment);
             Vector3 startRight = right*offset, endRight = right*offset;
             if (segment > 0)
             {
                 int previous = trip.route[segment - 1];
                 Vector3 incoming = start - RoadPosition(previous); incoming.y = 0;
-                float previousOffset=trip.walking?city.roads.EdgeWidth(previous,a)/2+.2f:city.roads.LaneOffset(previous,a,city.roads.TripLane(trip,segment-1));
+                float previousOffset=city.roads.TripLaneOffset(trip,segment-1);
                 startRight = (right*offset + Vector3.Cross(Vector3.up,incoming.normalized)*previousOffset) * .5f;
             }
             if (segment + 2 < trip.route.Count)
             {
                 int next = trip.route[segment + 2];
                 Vector3 outgoing = RoadPosition(next) - end; outgoing.y = 0;
-                float nextOffset=trip.walking?city.roads.EdgeWidth(b,next)/2+.2f:city.roads.LaneOffset(b,next,city.roads.TripLane(trip,segment+1));
+                float nextOffset=city.roads.TripLaneOffset(trip,segment+1);
                 endRight = (right*offset + Vector3.Cross(Vector3.up,outgoing.normalized)*nextOffset) * .5f;
             }
             Vector3 point = Vector3.Lerp(start + startRight,end + endRight,fraction);

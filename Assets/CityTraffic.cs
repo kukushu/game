@@ -23,6 +23,8 @@ namespace HarborCity
         public int clinicId=-1;
         public int corpseId;
         public int lane,previousLane;
+        public int laneChangeFrom;
+        public float laneChangeRemaining,laneChangeCooldown;
         public int junctionWaitNode=-1;
         public float junctionQueuedAt,junctionStopTime;
         [NonSerialized] public string junctionWaitReason;
@@ -73,6 +75,8 @@ namespace HarborCity
                     || t.route==null || t.route.Count==0 || t.route.Count>20000 || t.segment<0 || t.segment>=t.route.Count || !Finite(t.progress) || t.progress>=1
                     || t.residentId<0 || !Finite(t.departedAt) || !Finite(t.delay) || !Finite(t.blocked) || t.cargo<0 || t.cargo>8
                     || t.lane<0 || t.lane>1 || t.previousLane<0 || t.previousLane>1 || t.walking && (t.lane!=0 || t.previousLane!=0)
+                    || t.laneChangeFrom<0 || t.laneChangeFrom>1 || !Finite(t.laneChangeRemaining) || t.laneChangeRemaining>LaneChangeSeconds+.001f
+                    || !Finite(t.laneChangeCooldown) || t.laneChangeCooldown>LaneChangeRest+.001f || t.walking && t.laneChangeRemaining>0
                     || (int)t.purpose<0 || (int)t.purpose>11 || (int)t.status<0 || (int)t.status>2 || (int)t.cargoKind<0 || (int)t.cargoKind>2
                     || t.cargoKind==CargoKind.RawMaterial && (t.purpose!=TripPurpose.Import || !t.returning && t.origin!=Outside)) return false;
                 if((t.purpose==TripPurpose.GarbagePickup || t.purpose==TripPurpose.GarbageTransfer)!=(t.cargoKind==CargoKind.Waste) || t.cargoKind==CargoKind.Waste && t.residentId!=0)return false;
@@ -89,6 +93,7 @@ namespace HarborCity
                 if(t.route.Any(n=>roads.Node(n)==null)) return false;
                 if(t.junctionWaitNode< -1 || t.junctionWaitNode>=0 && roads.Node(t.junctionWaitNode)==null || float.IsNaN(t.junctionQueuedAt+t.junctionStopTime) || float.IsInfinity(t.junctionQueuedAt+t.junctionStopTime) || t.junctionQueuedAt<0 || t.junctionQueuedAt>city.traffic.clock+.051f || t.junctionStopTime<0 || t.junctionStopTime>1)return false;
                 if(t.Current!=t.Next && roads.Linked(t.Current,t.Next) && roads.CanTravel(t.Current,t.Next) && t.lane>=roads.LaneCount(t.Current,t.Next))return false;
+                if(t.laneChangeRemaining>0 && (t.laneChangeFrom==t.lane || t.Current==t.Next || roads.Linked(t.Current,t.Next) && roads.LaneCount(t.Current,t.Next)<=t.laneChangeFrom))return false;
             }
             return true;
             bool ValidEndpoint(int id)=>id==Outside || city.GetBuilding(id)!=null;
@@ -183,7 +188,7 @@ namespace HarborCity
         {
             State.clock += Step;
             ReleaseJunctions();
-            foreach (var t in State.trips.ToArray()){AdvanceStopWait(t);Move(t);}
+            foreach (var t in State.trips.ToArray()){AdvanceLaneChange(t);AdvanceStopWait(t);Move(t);}
             AdvanceHealthcare(Step*1440/city.society.settings.secondsPerDay);
             AdvanceSchools(Step*1440/city.society.settings.secondsPerDay);
             city.AdvanceFires(Step*1440/city.society.settings.secondsPerDay);
@@ -352,6 +357,7 @@ namespace HarborCity
             // Carry the unused part of this frame across graph segments. A road
             // split must not silently discard movement time or change its speed.
             float remainingTime=Step;
+            TryChooseLane(t);
             while(remainingTime>.000001f)
             {
             if(!Road(t.Next) || !city.roads.CanTravel(t.Current,t.Next,t.walking))return;
@@ -370,7 +376,7 @@ namespace HarborCity
                 float offset = -Behind(t);
                 for (int s = t.segment; s < t.route.Count-1 && offset < Gap + units; s++)
                 {
-                    if (other.Current == t.route[s] && other.Next == t.route[s+1] && other.lane==city.roads.TripLane(t,s))
+                    if (other.Current == t.route[s] && other.Next == t.route[s+1] && (OccupiesLane(other,city.roads.TripLane(t,s)) || t.laneChangeRemaining>0 && OccupiesLane(other,t.laneChangeFrom)))
                     {
                         float distance = offset + Behind(other);
                         if (distance > .0001f) proposed = Math.Min(proposed,t.progress+(distance-Gap)/units);
@@ -379,6 +385,8 @@ namespace HarborCity
                 }
             }
             proposed=LimitCrossingAdvance(t,proposed,units);
+            if(t.laneChangeRemaining>0 && t.segment+2<t.route.Count && city.roads.LaneCount(t.Next,t.route[t.segment+2])<2)
+                proposed=Math.Min(proposed,Math.Max(t.progress,1-.01f/units));
             // A car leaving an intersection must be allowed to clear it. Trying
             // to reacquire its departure lock can create a circular wait when
             // downstream traffic backs up into another nearby intersection.

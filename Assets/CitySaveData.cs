@@ -85,7 +85,8 @@ namespace HarborCity
             if(format==23 && loans==null)loans=new CityLoanState {lastSettledDay=day};
             // Formats 23/24 predate one-way roads; their missing bool fields are
             // false, preserving all existing roads as two-way without changing IDs.
-            if(format!=CityModel.SaveFormat && format!=30 && format!=29 && format!=28 && format!=27 && format!=26 && format!=25 && format!=24 && format!=23) throw new ArgumentException("存档格式不支持，请使用新城市（格式 "+CityModel.SaveFormat+"）");
+            if(format!=CityModel.SaveFormat && format!=31 && format!=30 && format!=29 && format!=28 && format!=27 && format!=26 && format!=25 && format!=24 && format!=23) throw new ArgumentException("存档格式不支持，请使用新城市（格式 "+CityModel.SaveFormat+"）");
+            if(format<32 && traffic?.trips!=null)foreach(var t in traffic.trips)if(t!=null){t.laneChangeFrom=t.lane;t.laneChangeRemaining=t.laneChangeCooldown=0;}
             // Retain old physical stock/trucks, but resume collection at converted treatment plants.
             if(format<31 && buildings!=null)foreach(var b in buildings)
                 if(b?.landfill!=null)foreach(var depot in b.landfill)if(depot!=null){depot.emptying=false;depot.processingRemainder=0;}

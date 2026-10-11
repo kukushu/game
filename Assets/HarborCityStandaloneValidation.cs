@@ -76,6 +76,7 @@ namespace HarborCity
                 CheckRoadTypes(output);
                 CheckLanes(game,output);
                 CheckWideRoads(game,output);
+                CheckLaneChoice(game,output);
                 CheckTrafficControls(game,output);
                 CheckPedestrians(game,output);
                 CheckPedestrians(game,output,true);
@@ -568,6 +569,47 @@ namespace HarborCity
             int firstId=first.id,secondId=second.id;sim.Advance(100);
             if(!c.Valid() || c.traffic.failed>0 || c.traffic.lostGoods>0 || c.traffic.completed<2 || c.traffic.trips.Any(t=>t.id==firstId || t.id==secondId))throw new InvalidOperationException("Native two-lane freight merge/return failed");
             File.WriteAllText(Path.Combine(output,"Lanes.txt"),"PASS: two simultaneous real exports, separate lane vehicle transforms, native lane JSON, one-lane merge and both return trips without lost tasks/cargo");
+        }
+        static void CheckLaneChoice(HarborCityGame game,string output)
+        {
+            Func<float,float,float> flat=(x,z)=>1;var c=CityModel.Create();c.development.enabled=false;c.SetEntranceHeight(flat);
+            if(!c.CommitRoad(c.roads.Plan(c,c.roads.Node(CityRoads.Entrance),new RoadNode{x=45,z=1.5f,y=1},flat,false,RoadKind.FourLane)))throw new InvalidOperationException("Native lane change road failed");
+            int origin=c.PlaceBuilding(c.RoadsidePreview(35,7,LandUse.Industrial,HousingKind.Apartment,out _),LandUse.Industrial,flat,out _);c.Inventory(origin).Stock=16;
+            var sim=new CityTraffic(c);var t=sim.Dispatch(origin,CityTraffic.Outside,TripPurpose.Export);var lead=sim.Dispatch(origin,CityTraffic.Outside,TripPurpose.Export);
+            foreach(var item in new[]{t,lead})
+            {
+                float x=item==t?10:8;
+                item.segment=item.route.FindIndex(n=>c.roads.Node(n).x>=x && item.route.IndexOf(n)+1<item.route.Count && c.roads.Node(item.route[item.route.IndexOf(n)+1]).x<x);
+                var a=c.roads.Node(item.Current);var b=c.roads.Node(item.Next);item.progress=(a.x-x)/(a.x-b.x);item.lane=item.previousLane=0;
+            }
+            sim.Advance(.1f);
+            if(t.lane!=1 || t.laneChangeRemaining<=0 || !c.Valid())throw new InvalidOperationException("Native real export did not safely change lane");
+            int id=t.id;var restored=JsonUtility.FromJson<CitySaveData>(JsonUtility.ToJson(c.ToSaveData())).ToCity();var resumed=new CityTraffic(restored);
+            if(restored.traffic.trips.First(p=>p.id==id).laneChangeRemaining!=t.laneChangeRemaining)throw new InvalidOperationException("Native lateral progress save failed");
+            const BindingFlags flags=BindingFlags.NonPublic|BindingFlags.Instance;var type=typeof(HarborCityGame);
+            var originalCity=type.GetField("city",flags).GetValue(game);var originalTraffic=type.GetField("traffic",flags).GetValue(game);
+            try
+            {
+                type.GetField("city",flags).SetValue(game,c);type.GetField("traffic",flags).SetValue(game,sim);
+                float previous=1.5f+.55f;
+                for(int n=0;n<8;n++)
+                {
+                    type.GetMethod("AnimateTraffic",flags).Invoke(game,null);
+                    var views=(System.Collections.Generic.Dictionary<int,Transform>)type.GetField("trafficViews",flags).GetValue(game);
+                    float z=views[id].position.z;
+                    if(!views[id].gameObject.activeSelf || z<previous-.001f || z-previous>.5f || z>1.5f+1.65f+.001f)throw new InvalidOperationException("Native actual vehicle lane animation jumped or reversed");
+                    previous=z;sim.Advance(.05f);resumed.Advance(.05f);
+                }
+                var stopped=new TrafficTrip{route=new System.Collections.Generic.List<int>{CityRoads.Entrance}};
+                var stopPoint=(Vector3)type.GetMethod("TrafficPoint",flags).Invoke(game,new object[]{stopped,0,0f});
+                if(float.IsNaN(stopPoint.x+stopPoint.z))throw new InvalidOperationException("Native single-node stopped vehicle rendering failed");
+            }
+            finally
+            {type.GetField("city",flags).SetValue(game,originalCity);type.GetField("traffic",flags).SetValue(game,originalTraffic);type.GetMethod("AnimateTraffic",flags).Invoke(game,null);}
+            sim.Advance(15);resumed.Advance(15);
+            if(!c.Valid() || c.traffic.failed!=0 || c.traffic.lostGoods!=0 || c.traffic.completed<2 || c.traffic.trips.Any(p=>p.id==id)
+                || JsonUtility.ToJson(c.ToSaveData())!=JsonUtility.ToJson(restored.ToSaveData()))throw new InvalidOperationException("Native lane change freight return/save continuation failed");
+            File.WriteAllText(Path.Combine(output,"LaneChoice.txt"),"PASS: real blocked export safely changes lane; actual vehicle Transform follows continuous lateral movement; native in-progress lane JSON resumes identically; both exports and physical returns complete without lost cargo. No GUI or original-game equivalence claim.");
         }
         static void CheckWideRoads(HarborCityGame game,string output)
         {

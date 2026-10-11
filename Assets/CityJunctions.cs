@@ -201,7 +201,7 @@ namespace HarborCity
             for(int i=index;i<t.route.Count-1 && offset<Gap+.4f;i++)
             {
                 foreach(var other in State.trips)
-                    if(other!=t && !other.walking && other.status!=TripStatus.Visiting && other.Current==t.route[i] && other.Next==t.route[i+1] && other.lane==city.roads.TripLane(t,i) && offset+Behind(other)<Gap+.4f)return false;
+                    if(other!=t && !other.walking && other.status!=TripStatus.Visiting && other.Current==t.route[i] && other.Next==t.route[i+1] && OccupiesLane(other,city.roads.TripLane(t,i)) && offset+Behind(other)<Gap+.4f)return false;
                 offset+=Units(t.route[i],t.route[i+1]);
             }
             return true;
