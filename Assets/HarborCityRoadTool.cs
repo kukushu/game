@@ -76,7 +76,7 @@ namespace HarborCity
             GUI.Label(new Rect(40,177,278,25),"拆除道路 / 建筑",label);
             if(GUI.Button(new Rect(40,210,134,30),undergroundView?"地表视图":"● 地表视图",button))SetUndergroundView(false);
             if(GUI.Button(new Rect(182,210,136,30),undergroundView?"● 地下视图":"地下视图",button))SetUndergroundView(true);
-            GUI.Label(new Rect(40,254,278,112),"点击红色预览的路段拆除。\n地下视图只选取隧道，不拆地表建筑。\n地表视图可拆地面路和高架。\n无需把道路高度调到同一深度。\n每次拆除 ¥40；西侧连接路保留。",small);
+            GUI.Label(new Rect(40,254,278,112),"点击红色预览的路段拆除。\n地下视图只选取隧道，不拆地表建筑。\n地表视图可拆地面路和高架。\n无需把道路高度调到同一深度。\n每次拆除 ¥40；西侧入口点保留。",small);
         }
         bool HandleRoadInput(Mouse mouse,Ray ray,bool blocked)
         {
@@ -108,15 +108,14 @@ namespace HarborCity
                 roadPreview.positionCount=points.Count; roadPreview.SetPositions(points.ToArray());
                 if(mouse.leftButton.wasPressedThisFrame)
                 {
-                    if(run.Exists(id=> { var e=city.roads.edges.Find(r=>r.id==id); return e.a==CityRoads.Entrance || e.b==CityRoads.Entrance; }))
-                        notice="西侧入口的连接路段需要保留。";
-                    else if(city.money<40) notice="拆路资金不足。";
-                    else
+                    if(city.money<40) notice="拆路资金不足。";
+                    else if(city.RemoveRoads(run))
                     {
-                        city.RemoveRoads(run); RefreshRoadView(); roadUndo.Clear();
+                        RefreshRoadView(); roadUndo.Clear();
                         city.Trace("road.demolished","拆除道路",new CityLogDetail {ids=run,amount=40});
                         notice="已拆除这段道路；车辆会重新寻路或等待道路恢复。";
                     }
+                    else notice="道路已变化，请重新选择拆除路段。";
                 }
                 return true;
             }

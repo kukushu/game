@@ -62,6 +62,16 @@ public static class RoadChecks
         Check(CityRoads.Length(before,after)<.001f,"Splitting occupied road preserves vehicle position");
         sim.Advance(30);Check(t.cargo==0 && c.Goods(destination)==8,"Delivery completes after live road splitting");
         c.traffic.dispatchTimer=0;Check(c.Valid(),"Graph and entity references remain saveable");
+        c=TestCity.Empty();var entrance=c.roads.Node(CityRoads.Entrance).Copy();
+        Build(c,c.roads.Node(CityRoads.Entrance),P(30,1.5f));
+        var entranceRun=c.roads.Run(c.roads.edges.Last().id);funds=c.money;
+        Check(entranceRun.Any(id=>{var e=c.roads.edges.Find(r=>r.id==id);return e.a==CityRoads.Entrance || e.b==CityRoads.Entrance;}),"User-built stroke reaches external entrance");
+        Check(c.RemoveRoads(entranceRun) && c.money==funds-40 && c.roads.edges.Count==0,"User-built entrance road can be bulldozed at normal cost");
+        Check(c.roads.Node(CityRoads.Entrance)!=null && CityRoads.SpatialLength(entrance,c.roads.Node(CityRoads.Entrance))==0 && c.Valid(),"Demolition preserves stable external entrance point");
+        c=TestCity.RoundTrip(c);
+        Check(!c.roads.Active(CityRoads.Entrance) && c.Valid(),"Disconnected external point saves and loads without fabricated connection");
+        Build(c,c.roads.Node(CityRoads.Entrance),P(20,10));
+        Check(c.roads.FindPath(new List<int>{CityRoads.Entrance},new List<int>{c.roads.edges.Last().b}).Count>1,"Saved disconnected entrance can reconnect on a different alignment");
         Console.WriteLine("PASS: "+checks+" free-road/curve checks");
     }
 }

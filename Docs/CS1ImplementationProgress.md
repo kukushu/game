@@ -566,3 +566,10 @@ F2 打开水电、垃圾、噪声、污染与岗位占用视图。供给来自�
 - computer-use已在用户真实Unity刷新并运行原城：车辆26006离开卡点，居民290最终location=130、tripId=0、atWork=false；完成交通40202→40529，失败12→12，建筑245栋和道路434段不变。验证期间时钟14:33→21:37，已恢复暂停，未点击保存/读取、未改道路建筑；诊断前后副本在Temp/TrafficJamBeforeFix.json与TrafficJamAfterFix.json。
 - 增加编辑器Harbor/Export live traffic diagnostic snapshot，复制真实运行城市到Temp/TrafficJam.json；重放只推进副本。支持按指定车辆ID验收，并检查原生JSON重新读取后的确定性。完整城市30秒重放另有6个原先长等待任务仍未解除，本次不宣称全城所有拥堵/断路都修复；继续保留在后续诊断范围。
 - 最终Unity批处理原生重放Temp/RouteReplanTargetNativeReplay.log退出0：原107日现场副本推进30秒，完成+285、失败+0、指定26006不再等待且居民已返家，原生JSON保存读取后相同续跑，城市Valid=true。未把其他6个任务的存在隐藏为全城通畅，也未以隔离副本替代上面的真实桌面验证。
+## 2026-10-11 拆路修复：入口点保留，玩家道路允许拆除
+
+- 用户截图已命中红色道路预览，但提示“西侧入口的连接路段需要保留”。HarborCityRoadTool对整个Run检查任一边接触Entrance即拒绝，导致第一笔玩家道路整段（包含远处桥梁）不可拆；不是桥梁碰撞或地下拾取问题。
+- 当前空白开局只有稳定外部入口节点648，没有预置不可拆道路。移除工具对入口道路整笔禁止拆除的限制；所有玩家路段沿用已有选择、费用40、RemoveRoads和车辆重寻路/等待逻辑。Remove只删边、不删节点，入口点仍可重新接路；真的断开外部道路不会伪造连通。失败不再显示成功提示，帮助改为“西侧入口点保留”。无新增存档字段，格式34不变。
+- Tools/RoadChecks新增5项断言及2次施工检查：整笔入口道路拆除、只扣40、节点ID/位置保留、断开存档可靠、读回后另换方向接路恢复路径；全模型回归通过Temp/EntranceDemolitionChecks.log（道路/曲线42项）。
+- Unity独立构建Temp/EntranceDemolitionBuild.log退出0。Temp/EntranceDemolitionPlayer/EntranceDemolitionInput.txt通过实际鼠标拆除接触入口的玩家道路、扣费40、保留其他道路与入口、原生JSON有效；原有地面/高架/隧道拆除及其他实际输入回归、Result.txt、LongRun.txt通过，无Failure.txt，26日经营垃圾守恒误差0。
+- 已通过computer-use刷新用户真实Unity加载修复，保留运行状态；未直接拆掉用户跨河道路或覆盖存档。实际拆除验证在独立测试地图完成，用户可在现城选择8拆除并点击红色路段复验。仍按原Run整笔/路口边界选择，不宣称已完成原作逐段任意切割拆除。

@@ -543,6 +543,18 @@ namespace HarborCity
                 }
                 if(!JsonUtility.FromJson<CitySaveData>(JsonUtility.ToJson(c.ToSaveData())).ToCity().Valid())
                 {File.WriteAllText(Path.Combine(output,"Failure.txt"),"Native demolition save invalid");yield break;}
+                // User-built entrance roads may be removed; the external point stays.
+                var entrance=c.roads.Node(CityRoads.Entrance);var entranceEnd=new Vector2(entrance.x+16,entrance.z);
+                var entrancePlan=c.roads.Plan(c,entrance,new RoadNode{x=entranceEnd.x,z=entranceEnd.y,y=land.Height(entranceEnd.x,entranceEnd.y)},land.Height);
+                if(!c.CommitRoad(entrancePlan)){File.WriteAllText(Path.Combine(output,"Failure.txt"),"Entrance demolition fixture: "+entrancePlan.error);yield break;}
+                var entranceEdges=c.roads.edges.Where(e=>e.stroke==entrancePlan.stroke).Select(e=>e.id).ToArray();
+                var oldEdges=c.roads.edges.Where(e=>e.stroke!=entrancePlan.stroke).Select(e=>e.id).ToArray();int beforeFunds=c.money;
+                type.GetField("focus",flags).SetValue(game,new Vector3(entranceEnd.x-8,0,entranceEnd.y));
+                type.GetMethod("UpdateCamera",flags).Invoke(game,null);
+                yield return ClickWorld(game,mouse,new Vector2(entranceEnd.x-8,entranceEnd.y));
+                if(c.roads.edges.Any(e=>entranceEdges.Contains(e.id)) || oldEdges.Any(id=>!c.roads.edges.Any(e=>e.id==id)) || c.money!=beforeFunds-40 || c.roads.Node(CityRoads.Entrance)==null || !JsonUtility.FromJson<CitySaveData>(JsonUtility.ToJson(c.ToSaveData())).ToCity().Valid())
+                {File.WriteAllText(Path.Combine(output,"Failure.txt"),"Actual mouse could not demolish player-built entrance stroke: "+type.GetField("notice",flags).GetValue(game));yield break;}
+                File.WriteAllText(Path.Combine(output,"EntranceDemolitionInput.txt"),"PASS: actual bulldozer mouse click removes player-built entrance stroke, charges 40, preserves other roads and stable outside point; native save valid");
                 File.WriteAllText(Path.Combine(output,"DemolitionInput.txt"),"PASS: actual oblique-camera mouse clicks remove tunnel, elevated and surface roads with construction elevation at zero; other levels preserved and native JSON remains valid");
             }
             finally{InputSystem.RemoveDevice(keys);type.GetField("city",flags).SetValue(game,originalCity);type.GetField("traffic",flags).SetValue(game,originalTraffic);type.GetMethod("ResetRoad",flags).Invoke(game,null);type.GetMethod("SetRoadElevation",flags).Invoke(game,new object[]{0f});}
