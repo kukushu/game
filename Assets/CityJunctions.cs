@@ -151,9 +151,14 @@ namespace HarborCity
         sealed class JunctionMovement {public int trip,node,entry,exit,entryLane,exitLane;public bool walking;}
         readonly Dictionary<int,List<JunctionMovement>> junctions=new Dictionary<int,List<JunctionMovement>>();
         int junctionRevision=-1;
+        int RouteNodeIndex(TrafficTrip t,int node)
+        {
+            int index=t.route.FindIndex(t.segment,n=>n==node);
+            return index>=0?index:t.route.LastIndexOf(node,t.segment);
+        }
         JunctionMovement Movement(TrafficTrip t,int node)
         {
-            int index=t.route.IndexOf(node);
+            int index=RouteNodeIndex(t,node);
             return new JunctionMovement{trip=t.id,node=node,entry=index>0?t.route[index-1]:-1,exit=index>=0 && index+1<t.route.Count?t.route[index+1]:-1,entryLane=city.roads.TripLane(t,index-1),exitLane=city.roads.TripLane(t,index),walking=t.walking};
         }
         void RestoreJunctions()
@@ -182,7 +187,7 @@ namespace HarborCity
         bool StillOccupies(TrafficTrip t,int node)
         {
             if(!t.walking)return t.Next==node && Ahead(t)<=.36f || t.Current==node && Behind(t)<.4f;
-            int index=t.route.IndexOf(node);return index>=0 && Math.Abs(DistanceTo(t,index))<CityJunctions.CrossingRadius(city.roads,node)+.011f;
+            int index=RouteNodeIndex(t,node);return index>=0 && Math.Abs(DistanceTo(t,index))<CityJunctions.CrossingRadius(city.roads,node)+.011f;
         }
         void ReleaseJunctions()
         {
@@ -238,7 +243,7 @@ namespace HarborCity
             foreach(var car in State.trips)
             {
                 if(car.walking || car.status!=TripStatus.Driving)continue;
-                int index=car.route.IndexOf(movement.node);if(index<0)continue;
+                int index=RouteNodeIndex(car,movement.node);if(index<0)continue;
                 float distance=DistanceTo(car,index);
                 // Cars already inside must clear instead of being trapped by
                 // a newly arriving pedestrian. Cars waiting at the edge do not.
@@ -253,7 +258,7 @@ namespace HarborCity
             foreach(var walker in State.trips)
             {
                 if(!walker.walking || walker.status!=TripStatus.Driving)continue;
-                int index=walker.route.IndexOf(node);if(index<1 || index+1>=walker.route.Count)continue;
+                int index=RouteNodeIndex(walker,node);if(index<1 || index+1>=walker.route.Count)continue;
                 float distance=DistanceTo(walker,index);if(distance<0 || distance>radius+.061f)continue;
                 var movement=Movement(walker,node);
                 if(city.roads.PedestrianSignal(node,movement.entry,State.clock)==SignalAspect.Green && MixedConflicts(car,movement))return true;

@@ -347,9 +347,22 @@ namespace HarborCity
                     t.delay = Math.Max(0, t.delay - Step);
                     if (t.delay > 0) { Wait(t); return; }
                     var route = Search(new List<int> { t.Current }, Access(t.destination),t.walking);
-                    if (route.Count == 0 || !CanEnter(route,t)) { t.delay = 1; Wait(t); return; }
-                    t.route = route; t.segment = 0;
-                    InitializeLane(t);
+                    if (route.Count == 0) { t.delay = 1; Wait(t); return; }
+                    // This vehicle already occupies the road. A follower must
+                    // not veto replanning as if it were spawning a new car:
+                    // that follower is itself waiting for this car to move.
+                    // Keep the travelled prefix and incoming lane so junction
+                    // geometry/reservations continue from the actual position.
+                    int oldNext=t.Next;
+                    t.route.RemoveRange(t.segment+1,t.route.Count-t.segment-1);
+                    t.route.AddRange(route.GetRange(1,route.Count-1));
+                    if(t.Next!=oldNext)
+                    {
+                        t.lane=Math.Min(t.lane,Math.Max(0,city.roads.LaneCount(t.Current,t.Next)-1));
+                        t.laneChangeFrom=t.lane;t.laneChangeRemaining=0;
+                        ClearJunctionQueue(t);
+                    }
+                    city.Trace("trip.replanned","在当前位置更新剩余路线，保留车辆与已行驶路径",t,trip:t.id);
                 }
             }
             t.status = TripStatus.Driving;

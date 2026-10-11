@@ -106,7 +106,7 @@ namespace HarborCity
             if(!HighwayGapAllows(t,movement))return false;
             // Protect a walker actually waiting at the crossing, not somebody
             // far away or at a red phase. Physical owners are checked by Reserve.
-            int junctionIndex=t.route.IndexOf(node);
+            int junctionIndex=RouteNodeIndex(t,node);
             if(junctionIndex>=0 && DistanceTo(t,junctionIndex)>=CityJunctions.CrossingRadius(roads,node)-.02f && PendingWalker(node,movement))
             {t.junctionWaitReason="让行等待过街的行人";return false;}
             foreach(var other in State.trips)
