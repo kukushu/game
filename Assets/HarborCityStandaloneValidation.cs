@@ -384,7 +384,78 @@ namespace HarborCity
                 yield return CheckElevationInput(elevationGame,elevationMouse);
                 if(File.Exists(Path.Combine(output,"Failure.txt")))ok=false;
             }
+            if(ok)
+            {
+                yield return CheckProblemPresentation(FindAnyObjectByType<HarborCityGame>());
+                if(File.Exists(Path.Combine(output,"Failure.txt")))ok=false;
+            }
             Application.Quit(ok?0:1);
+        }
+
+        IEnumerator CheckProblemPresentation(HarborCityGame game)
+        {
+            const BindingFlags flags=BindingFlags.Instance|BindingFlags.NonPublic;var type=typeof(HarborCityGame);
+            var c=JsonUtility.FromJson<CitySaveData>(File.ReadAllText(Path.Combine(output,"City.json"))).ToCity();
+            var depot=c.buildings.OfType<LandfillBuilding>().First();
+            depot.stored+=100;c.waste.generated+=100;long before=c.waste.processed;
+            c.AdvanceWasteProcessing(12);
+            try
+            {
+                var copy=JsonUtility.FromJson<CitySaveData>(JsonUtility.ToJson(c.ToSaveData())).ToCity();
+                if(c.waste.processed-before!=25 || copy.WasteBalanceError!=0 || copy.waste.processed!=c.waste.processed
+                    || Math.Abs(((LandfillBuilding)copy.GetBuilding(depot.id)).processingRemainder-depot.processingRemainder)>.0001f)
+                    throw new InvalidOperationException("Native treatment stock/progress/processed JSON failed");
+                File.WriteAllText(Path.Combine(output,"WasteProcessing.txt"),"PASS: physical inventory processed at actual game-day rate, native progress/cumulative disposal JSON and conserved waste");
+            }
+            catch(Exception ex){File.WriteAllText(Path.Combine(output,"Failure.txt"),ex.ToString());yield break;}
+            var homes=c.buildings.OfType<ResidentialBuilding>().Where(b=>!b.abandoned && !b.burning && !b.burned).Take(2).ToList();
+            c.utilities.water=new CityUtilityNetwork();c.Recalculate();
+            foreach(var home in homes){home.outageDays=2;home.garbage+=32;c.waste.generated+=32;}
+            type.GetField("city",flags).SetValue(game,c);type.GetField("traffic",flags).SetValue(game,new CityTraffic(c));
+            type.GetField("speed",flags).SetValue(game,0f);type.GetField("selected",flags).SetValue(game,LandUse.Empty);
+            type.GetField("inspectedHome",flags).SetValue(game,-1);type.GetField("showProblems",flags).SetValue(game,true);
+            type.GetField("showInfoViews",flags).SetValue(game,false);type.GetField("showSimulation",flags).SetValue(game,false);
+            type.GetField("showEconomy",flags).SetValue(game,false);type.GetField("nextProblemRefresh",flags).SetValue(game,0f);
+            type.GetField("help",flags).SetValue(game,false);type.GetField("followResident",flags).SetValue(game,false);
+            type.GetMethod("SetUndergroundView",flags).Invoke(game,new object[]{false});
+            type.GetField("focus",flags).SetValue(game,new Vector3(homes[0].x,0,homes[0].z));type.GetField("zoom",flags).SetValue(game,25f);
+            type.GetMethod("Rebuild",flags).Invoke(game,null);type.GetMethod("UpdateCamera",flags).Invoke(game,null);
+            for(int i=0;i<15;i++)yield return null;
+            try
+            {
+                var rects=(System.Collections.Generic.List<Rect>)type.GetField("problemHitRects",flags).GetValue(game);
+                if(c.BuildingProblems().Count(p=>p.buildingId==homes[0].id && p.severity==2)<3)
+                    throw new InvalidOperationException("Native multi-problem warning badges missing; rects="+rects.Count+"; snapshot="+((System.Collections.Generic.List<BuildingProblem>)type.GetField("problemSnapshot",flags).GetValue(game)).Count+"; underground="+type.GetField("undergroundView",flags).GetValue(game)+"; help="+type.GetField("help",flags).GetValue(game)+"; focus="+type.GetField("focus",flags).GetValue(game)+"; screen="+Screen.width+"x"+Screen.height+"; problems="+string.Join(",",c.BuildingProblems().Where(p=>p.buildingId==homes[0].id).Select(p=>p.kind+":"+p.severity)));
+                // A hidden Windows player can simulate without issuing IMGUI repaint events.
+                // Never call that a passed visual/input check; interactive Unity covers it separately.
+                if(rects.Count>0)
+                {
+                    float scale=Mathf.Min(Screen.width/1440f,Screen.height/900f);var rect=rects[0];
+                    if(!(bool)type.GetMethod("OverUI",flags).Invoke(game,new object[]{new Vector2(rect.center.x*scale,Screen.height-rect.center.y*scale)}))
+                        throw new InvalidOperationException("Warning badge input leaks into world construction");
+                }
+                else File.WriteAllText(Path.Combine(output,"ProblemGUIUnverified.txt"),"Hidden player produced no IMGUI hit rectangles. Visuals, hover and button input require the separate interactive Unity check.");
+                var text=(string)type.GetMethod("ProblemTooltip",flags).Invoke(game,new object[]{c.BuildingProblems().Where(p=>p.buildingId==homes[0].id)});
+                if(!text.Contains("再 1 次") || !text.Contains("垃圾积压") || !text.Contains("排污"))throw new InvalidOperationException("Native warning tooltip countdown/detail missing");
+            }
+            catch(Exception ex){File.WriteAllText(Path.Combine(output,"Failure.txt"),ex.ToString());yield break;}
+            yield return new WaitForEndOfFrame();ScreenCapture.CaptureScreenshot(Path.Combine(output,"BuildingProblems.png"));
+            yield return null;yield return null;
+            try
+            {
+                type.GetMethod("LocateProblem",flags).Invoke(game,new object[]{BuildingProblemKind.Garbage});
+                int first=(int)type.GetField("inspectedHome",flags).GetValue(game);
+                type.GetMethod("LocateProblem",flags).Invoke(game,new object[]{BuildingProblemKind.Garbage});
+                int second=(int)type.GetField("inspectedHome",flags).GetValue(game);
+                var focus=(Vector3)type.GetField("focus",flags).GetValue(game);var building=c.GetBuilding(second);
+                if(first==second || first<0 || building==null || Mathf.Abs(focus.x-building.x)>.01f || Mathf.Abs(focus.z-building.z)>.01f)
+                    throw new InvalidOperationException("Native problem navigation does not cycle actual buildings");
+                File.WriteAllText(Path.Combine(output,"BuildingProblems.txt"),"PASS: native multiple problem states, severity/countdown/tooltip text and actual camera/selection/marker navigation cycling. Hidden-window GUI, button click and real mouse hover are verified separately in interactive Unity, not inferred from these checks.");
+            }
+            catch(Exception ex){File.WriteAllText(Path.Combine(output,"Failure.txt"),ex.ToString());}
+            for(int i=0;i<8;i++)yield return null;
+            yield return new WaitForEndOfFrame();ScreenCapture.CaptureScreenshot(Path.Combine(output,"ProblemNavigation.png"));
+            yield return null;yield return null;
         }
 
         static void CheckElevatedTraffic(HarborCityGame game,string output)

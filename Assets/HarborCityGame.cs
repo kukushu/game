@@ -21,7 +21,7 @@ namespace HarborCity
         CityTraffic traffic;
         LineRenderer routeLine;
         int inspectedTrip = -1;
-        readonly string[] names = { "选择", "道路", "住宅", "商业", "工业", "电站", "水务", "市政", "拆除", "排水口", "填埋场", "诊所", "小学", "消防站", "警局", "高中", "大学", "墓地" };
+        readonly string[] names = { "选择", "道路", "住宅", "商业", "工业", "电站", "水务", "市政", "拆除", "排水口", "垃圾处理场", "诊所", "小学", "消防站", "警局", "高中", "大学", "墓地" };
         readonly Color[] palette = { new Color(.27f,.43f,.32f), new Color(.19f,.23f,.27f), new Color(.37f,.76f,.52f),
             new Color(.32f,.64f,.83f), new Color(.89f,.68f,.32f), new Color(.96f,.65f,.3f), new Color(.37f,.77f,.83f),
             new Color(.26f,.62f,.39f), new Color(.93f,.4f,.38f),new Color(.37f,.65f,.62f),new Color(.62f,.53f,.38f),new Color(.65f,.82f,.82f),new Color(.65f,.68f,.88f),new Color(.8f,.46f,.4f),new Color(.3f,.45f,.75f),new Color(.55f,.62f,.8f),new Color(.65f,.55f,.78f),new Color(.4f,.55f,.48f) };
@@ -430,6 +430,7 @@ namespace HarborCity
 
         void Update()
         {
+            if(city!=null)RefreshBuildingProblems();
             var keyboard = Keyboard.current;
             var mouse = Mouse.current;
             if(keyboard!=null && keyboard.f3Key.wasPressedThisFrame) ToggleSimulationPanel();
@@ -723,7 +724,7 @@ namespace HarborCity
             float scale = Mathf.Min(Screen.width / 1440f, Screen.height / 900f);
             float x = position.x / scale, y = (Screen.height - position.y) / scale;
             float width = Screen.width / scale, height = Screen.height / scale;
-            return (showEconomy && new Rect(360,120,330,490).Contains(new Vector2(x,y)) || showInfoViews && new Rect(360,120,330,250).Contains(new Vector2(x,y))) || showSimulation && new Rect(340,110,width-640,height-305).Contains(new Vector2(x,y)) || y < 108 || y > height - 185 || (x > width - 290 && y < 545)
+            return OverProblemUI(new Vector2(x,y)) || (showEconomy && new Rect(360,120,330,490).Contains(new Vector2(x,y)) || showInfoViews && new Rect(360,120,330,250).Contains(new Vector2(x,y))) || showSimulation && new Rect(340,110,width-640,height-305).Contains(new Vector2(x,y)) || y < 108 || y > height - 185 || (x > width - 290 && y < 545)
                 || (help && x < 485 && y < 470) || (!help && x < (selected==LandUse.Empty && city.UseOf(inspectedHome)==LandUse.Residential && !showSimulation?24+ResidenceInspectorWidth:345) && y > 115 && y < (selected==LandUse.Empty && inspectedHome>=0?height-200:selected==LandUse.Park?503:selected==LandUse.Road?572:385));
         }
 
@@ -756,6 +757,7 @@ namespace HarborCity
             GUI.matrix = Matrix4x4.Scale(new Vector3(scale,scale,1));
             float w = Screen.width / scale, h = Screen.height / scale;
             Color navy = new Color(.055f,.105f,.14f,.96f);
+            DrawBuildingProblems(scale,w,h,navy);
             DrawCommuteLabels(scale,navy);
             DrawTrafficEndpointLabel(scale,navy);
             Panel(new Rect(0,0,w,100),navy);
@@ -788,6 +790,7 @@ namespace HarborCity
             else GUI.Label(new Rect(rx + 20,420,212,60),"交通任务 " + traffic.State.trips.Count + "  /  完成 " + traffic.State.completed
                 + "\n送货 " + traffic.State.delivered + "  /  失败 " + traffic.State.failed,small);
             EconomyPanel(navy);
+            DrawProblemSummary(w,navy);
             DrawInfoViews(navy);
 
             if (!help && selected == LandUse.Road) RoadToolPanel(navy);
