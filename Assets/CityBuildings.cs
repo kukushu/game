@@ -136,6 +136,7 @@ namespace HarborCity
             RoadEdge best=null; float distance=float.MaxValue;
             foreach (var e in roads.edges)
             {
+                if(e.structure!=RoadStructure.Ground)continue;
                 float d=CityRoads.Distance(p,roads.Node(e.a),roads.Node(e.b));
                 if (d<CityRoadTypes.Width(e.kind)/2+.45f && d<distance) { distance=d; best=e; }
             }
@@ -170,7 +171,7 @@ namespace HarborCity
                     if(height(px,pz)<=.15f) {shore=true;break;}}
                 if(!shore) {error="排水设施须建在水岸附近";return false;}
             }
-            foreach(var e in roads.edges) if(lot.HitsRoad(roads.Node(e.a),roads.Node(e.b),CityRoadTypes.Width(e.kind)))
+            foreach(var e in roads.edges) if(CityRoads.BuildingCollision(lot,roads.Node(e.a),roads.Node(e.b),CityRoadTypes.Width(e.kind),height,e.structure!=RoadStructure.Ground))
             { error="地块与道路重叠"; return false; }
             foreach(var existing in buildings) if(lot.Overlaps(existing))
             { error="地块与已有建筑或分区重叠"; return false; }
@@ -242,6 +243,7 @@ namespace HarborCity
             float distance=BuildingRoadSnapDistance;
             foreach(var e in roads.edges)
             {
+                if(e.structure!=RoadStructure.Ground)continue;
                 float d=CityRoads.Distance(mouse,roads.Node(e.a),roads.Node(e.b));
                 if(d<=distance && (closest==null || d<distance || e.id<closest.id)) {closest=e; distance=d;}
             }

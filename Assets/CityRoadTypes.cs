@@ -19,7 +19,7 @@ namespace HarborCity
     }
     public sealed partial class CityModel
     {
-        public int RoadMaintenance=>(int)Math.Ceiling(roads.edges.Sum(e=>roads.EdgeLength(e.a,e.b)/CityRoadTypes.CellLength*CityRoadTypes.UpkeepPerCellWeek(e.kind))/7);
+        public int RoadMaintenance=>(int)Math.Ceiling(roads.edges.Sum(e=>roads.EdgeLength(e.a,e.b)/CityRoadTypes.CellLength*CityRoadTypes.UpkeepPerCellWeek(e.kind)*CityRoads.StructureMultiplier(e.structure))/7);
         public bool PreviewRoadUpgrade(int edgeId,RoadKind kind,bool oneWay,out int cost,out string reason,Func<float,float,float> height=null)
         {
             cost=0;
@@ -34,9 +34,9 @@ namespace HarborCity
             {
                 if(height==null){reason="宽度升级需要地形校验。";return false;}
                 foreach(var e in affected)
-                    if(CityRoadTypes.Width(kind)>CityRoadTypes.Width(e.kind) && !RoadWidthClear(roads.Node(e.a),roads.Node(e.b),kind,height,affected.Select(x=>x.id).ToList(),out reason))return false;
+                    if(CityRoadTypes.Width(kind)>CityRoadTypes.Width(e.kind) && !RoadWidthClear(roads.Node(e.a),roads.Node(e.b),kind,height,affected.Select(x=>x.id).ToList(),out reason,e.structure!=RoadStructure.Ground))return false;
             }
-            double amount=affected.Sum(e=>roads.EdgeLength(e.a,e.b)/CityRoadTypes.CellLength*Math.Max(0,CityRoadTypes.CostPerCell(kind)-CityRoadTypes.CostPerCell(e.kind)));
+            double amount=affected.Sum(e=>roads.EdgeLength(e.a,e.b)/CityRoadTypes.CellLength*Math.Max(0,CityRoadTypes.CostPerCell(kind)-CityRoadTypes.CostPerCell(e.kind))*CityRoads.StructureMultiplier(e.structure));
             cost=(int)Math.Ceiling(amount);
             if(money<cost){reason="升级资金不足，需 ¥ "+cost+"。";return false;}
             reason="改为"+CityRoadTypes.Name(kind)+(oneWay?" · 单行":" · 双向")+"，费用 ¥ "+cost+"。";return true;

@@ -85,7 +85,7 @@ namespace HarborCity
             if(format==23 && loans==null)loans=new CityLoanState {lastSettledDay=day};
             // Formats 23/24 predate one-way roads; their missing bool fields are
             // false, preserving all existing roads as two-way without changing IDs.
-            if(format!=CityModel.SaveFormat && format!=28 && format!=27 && format!=26 && format!=25 && format!=24 && format!=23) throw new ArgumentException("存档格式不支持，请使用新城市（格式 "+CityModel.SaveFormat+"）");
+            if(format!=CityModel.SaveFormat && format!=29 && format!=28 && format!=27 && format!=26 && format!=25 && format!=24 && format!=23) throw new ArgumentException("存档格式不支持，请使用新城市（格式 "+CityModel.SaveFormat+"）");
             if(format<29)
             {
                 if(roads?.nodes!=null)foreach(var n in roads.nodes){if(n==null)continue;n.control=JunctionControl.Automatic;n.stopFrom=new List<int>();}

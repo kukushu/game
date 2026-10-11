@@ -7,6 +7,7 @@ namespace HarborCity
     {
         readonly List<Mesh> meshes = new List<Mesh>();
         Transform content;
+        public bool underground;
         public static Vector3 Point(RoadNode n) => new Vector3(n.x,n.y,n.z);
         public static float SurfaceHeight(CityRoads roads,CityLandscape landscape,Vector3 p,int a,int b)
         {
@@ -15,7 +16,7 @@ namespace HarborCity
             float t=CityRoads.Projection(new RoadNode{x=p.x,z=p.z},na,nb);
             var center=CityRoads.Lerp(na,nb,t);
             // Preserve the road's longitudinal profile and the terrain's cross slope.
-            return center.y+landscape.Height(p.x,p.z)-landscape.Height(center.x,center.z);
+            return center.y+(roads.Ground(a,b)?landscape.Height(p.x,p.z)-landscape.Height(center.x,center.z):0);
         }
         public void Rebuild(CityModel city,CityLandscape landscape,Material asphalt,Material shoulder,Material paint)
         {
@@ -23,14 +24,41 @@ namespace HarborCity
             foreach(var mesh in meshes) Destroy(mesh); meshes.Clear();
             content=new GameObject("Road geometry").transform; content.SetParent(transform,false);
             var baseMesh=new Builder(); var roadMesh=new Builder(); var gravelMesh=new Builder(); var markings=new Builder();
+            var supports=new Builder();
             var pavedNodes=new HashSet<int>();foreach(var e in city.roads.edges)if(e.kind!=RoadKind.Gravel){pavedNodes.Add(e.a);pavedNodes.Add(e.b);}
             var entry=city.roads.Node(CityRoads.Entrance);
             if(entry!=null && !city.roads.Active(entry.id)) Disk(markings,entry,.6f,.10f,landscape);
             foreach(var edge in city.roads.edges)
             {
                 Vector3 a=Point(city.roads.Node(edge.a)),b=Point(city.roads.Node(edge.b));
+                if(edge.structure==RoadStructure.Tunnel && !underground)
+                {
+                    foreach(int node in new[]{edge.a,edge.b})if(city.roads.Neighbors(node).Exists(other=>!city.roads.Underground(node,other)))
+                    {
+                        var p=Point(city.roads.Node(node));p.y=landscape.Height(p.x,p.z)+.1f;
+                        var right=Vector3.Cross(Vector3.up,(b-a).normalized).normalized*(CityRoadTypes.Width(edge.kind)/2+.2f);
+                        Column(supports,p-right+Vector3.up*1.4f,p-right,.16f);Column(supports,p+right+Vector3.up*1.4f,p+right,.16f);
+                    }
+                    continue;
+                }
                 float length=Vector3.Distance(a,b);
                 float width=CityRoadTypes.Width(edge.kind);
+                if(edge.structure==RoadStructure.Elevated)
+                {
+                    var center=(a+b)/2;float ground=landscape.Height(center.x,center.z);
+                    if(center.y-ground>1){var top=center+Vector3.up*.04f;var bottom=new Vector3(center.x,ground,center.z);Column(supports,top,bottom,.28f);}
+                    var right=Vector3.Cross(Vector3.up,(b-a).normalized).normalized*width/2;
+                    supports.Quad(new[]{a-right+Vector3.up*.065f,a-right-Vector3.up*.2f,b-right+Vector3.up*.065f,b-right-Vector3.up*.2f});
+                    supports.Quad(new[]{a+right-Vector3.up*.2f,a+right+Vector3.up*.065f,b+right-Vector3.up*.2f,b+right+Vector3.up*.065f});
+                }
+                if(edge.structure==RoadStructure.Tunnel)
+                {
+                    foreach(var p in new[]{a,b})if(city.roads.edges.Exists(e=>e.structure!=RoadStructure.Tunnel && (e.a==(p==a?edge.a:edge.b) || e.b==(p==a?edge.a:edge.b))))
+                    {
+                        var right=Vector3.Cross(Vector3.up,(b-a).normalized).normalized*(width/2+.2f);
+                        Column(supports,p-right+Vector3.up*1.4f,p-right,.16f);Column(supports,p+right+Vector3.up*1.4f,p+right,.16f);
+                    }
+                }
                 Strip(baseMesh,a,b,width+.18f,.065f,edge,city,landscape);
                 Strip(edge.kind==RoadKind.Gravel?gravelMesh:roadMesh,a,b,width,.08f,edge,city,landscape);
                 float start=city.roads.Neighbors(edge.a).Count>2 ? 1.2f : .3f;
@@ -53,11 +81,13 @@ namespace HarborCity
             }
             foreach(var n in city.roads.nodes) if(city.roads.Active(n.id))
             {
+                if(!underground && city.roads.Neighbors(n.id).TrueForAll(other=>city.roads.Underground(n.id,other)))continue;
                 // Caps also fill the union of arbitrary-angle road mouths at a junction.
                 float width=CityRoads.Width;foreach(var other in city.roads.Neighbors(n.id))width=Mathf.Max(width,city.roads.EdgeWidth(n.id,other));
-                Disk(baseMesh,n,width/2+.09f,.065f,landscape);
+                bool groundNode=city.roads.Neighbors(n.id).TrueForAll(other=>city.roads.Ground(n.id,other));
+                Disk(baseMesh,n,width/2+.09f,.065f,landscape,groundNode);
                 bool gravel=!pavedNodes.Contains(n.id);
-                Disk(gravel?gravelMesh:roadMesh,n,width/2,.08f,landscape);
+                Disk(gravel?gravelMesh:roadMesh,n,width/2,.08f,landscape,groundNode);
                 if(city.roads.Neighbors(n.id).Count>=3)
                 foreach(int arm in city.roads.Neighbors(n.id))
                 {
@@ -73,7 +103,13 @@ namespace HarborCity
                     }
                 }
             }
+            AddMesh("Bridge supports and tunnel portals",supports,shoulder);
             AddMesh("Road shoulders",baseMesh,shoulder); AddMesh("Road surface",roadMesh,asphalt); AddMesh("Gravel surface",gravelMesh,shoulder); AddMesh("Road markings",markings,paint);
+        }
+        void Column(Builder builder,Vector3 top,Vector3 bottom,float radius)
+        {
+            var offsets=new[]{new Vector3(-radius,0,-radius),new Vector3(radius,0,-radius),new Vector3(radius,0,radius),new Vector3(-radius,0,radius)};
+            for(int i=0;i<4;i++){int j=(i+1)%4;builder.Quad(new[]{top+offsets[i],bottom+offsets[i],top+offsets[j],bottom+offsets[j]});}
         }
         void Strip(Builder builder,Vector3 a,Vector3 b,float width,float lift,RoadEdge edge,CityModel city,CityLandscape land)
         {
@@ -87,7 +123,7 @@ namespace HarborCity
                 builder.Quad(points);
             }
         }
-        void Disk(Builder builder,RoadNode node,float radius,float lift,CityLandscape land)
+        void Disk(Builder builder,RoadNode node,float radius,float lift,CityLandscape land,bool groundNode=true)
         {
             Vector3 center=Point(node)+Vector3.up*lift;
             for(int i=0;i<20;i++)
@@ -95,8 +131,8 @@ namespace HarborCity
                 float angle=i*Mathf.PI*2/20,next=(i+1)*Mathf.PI*2/20;
                 Vector3 a=center+new Vector3(Mathf.Cos(angle)*radius,0,Mathf.Sin(angle)*radius);
                 Vector3 b=center+new Vector3(Mathf.Cos(next)*radius,0,Mathf.Sin(next)*radius);
-                a.y=node.y+land.Height(a.x,a.z)-land.Height(node.x,node.z)+lift;
-                b.y=node.y+land.Height(b.x,b.z)-land.Height(node.x,node.z)+lift;
+                a.y=node.y+(groundNode?land.Height(a.x,a.z)-land.Height(node.x,node.z):0)+lift;
+                b.y=node.y+(groundNode?land.Height(b.x,b.z)-land.Height(node.x,node.z):0)+lift;
                 builder.Triangle(center,b,a);
             }
         }

@@ -7,7 +7,7 @@ namespace HarborCity
     {
         // The complete carriageway must fit. Shared nodes and centerline crossings
         // are legal junctions; close roads without a connection must not overlap.
-        public bool RoadWidthClear(RoadNode a,RoadNode b,RoadKind kind,Func<float,float,float> height,List<int> ignore,out string reason)
+        public bool RoadWidthClear(RoadNode a,RoadNode b,RoadKind kind,Func<float,float,float> height,List<int> ignore,out string reason,bool engineered=false)
         {
             reason="";float width=CityRoadTypes.Width(kind),length=CityRoads.Length(a,b);
             if(length<.01f){reason="道路太短。";return false;}
@@ -21,19 +21,20 @@ namespace HarborCity
                 {
                     float x=p.x+rx*width/2*side,z=p.z+rz*width/2*side;
                     if(Math.Abs(x)>RoadHalfSize || Math.Abs(z)>RoadHalfSize){reason="道路宽度超出建设边界。";return false;}
-                    float y=height(x,z);if(y<=.15f){reason="拓宽路面进入水面，当前需绕行。";return false;}
+                    float y=height(x,z);if(!engineered && y<=.15f){reason="拓宽路面进入水面，当前需绕行。";return false;}
                     if(side==-1)left=y;if(side==1)right=y;
                 }
-                if(Math.Abs(left-right)>.95f){reason="拓宽后的横坡过大。";return false;}
+                if(!engineered && Math.Abs(left-right)>.95f){reason="拓宽后的横坡过大。";return false;}
             }
-            foreach(var lot in buildings)if(lot.HitsRoad(a,b,width)){reason="道路拓宽侵占建筑 #"+lot.id+"，请先拆除或绕行。";return false;}
-            foreach(var p in development.projects)if(p.building.ToBuilding().HitsRoad(a,b,width)){reason="道路拓宽侵占正在施工的建筑。";return false;}
+            foreach(var lot in buildings)if(CityRoads.BuildingCollision(lot,a,b,width,height,engineered)){reason="道路拓宽侵占建筑 #"+lot.id+"，请先拆除或绕行。";return false;}
+            foreach(var p in development.projects)if(CityRoads.BuildingCollision(p.building.ToBuilding(),a,b,width,height,engineered)){reason="道路拓宽侵占正在施工的建筑。";return false;}
             var footprint=new ResidentialBuilding{x=(a.x+b.x)/2,z=(a.z+b.z)/2,yaw=-(float)(Math.Atan2(b.z-a.z,b.x-a.x)*180/Math.PI),width=length+.08f,depth=width+.12f};
             List<(RoadNode point,float radius,HashSet<int> run)> junctions=null;
             foreach(var e in roads.edges)
             {
                 if(ignore!=null && ignore.Contains(e.id))continue;
                 var c=roads.Node(e.a);var d=roads.Node(e.b);
+                if(CityRoads.Separated(a,b,c,d))continue;
                 if(CityRoads.Length(a,c)<.08f || CityRoads.Length(a,d)<.08f || CityRoads.Length(b,c)<.08f || CityRoads.Length(b,d)<.08f || Crosses(a,b,c,d))continue;
                 if(!footprint.HitsRoad(c,d,CityRoadTypes.Width(e.kind)))continue;
                 if(junctions==null)junctions=RoadJunctionFootprints(a,b,width,ignore);
@@ -56,6 +57,20 @@ namespace HarborCity
         List<(RoadNode point,float radius,HashSet<int> run)> RoadJunctionFootprints(RoadNode a,RoadNode b,float width,List<int> ignore)
         {
             var result=new List<(RoadNode,float,HashSet<int>)>();float length=CityRoads.Length(a,b);
+            // An upgrade checks each sampling span separately. Its second span
+            // can still overlap a junction mouth even though it does not itself
+            // contain the junction center. Use the endpoints of the whole run.
+            if(ignore!=null)
+            foreach(var changed in roads.edges.Where(e=>ignore.Contains(e.id)))
+            foreach(int node in new[]{changed.a,changed.b})
+            foreach(var edge in roads.edges.Where(e=>!ignore.Contains(e.id) && (e.a==node || e.b==node)))
+            {
+                var center=roads.Node(node);var other=roads.Node(edge.a==node?edge.b:edge.a);
+                var run=new HashSet<int>(roads.Run(edge.id));
+                float oldWidth=roads.edges.Where(e=>run.Contains(e.id)).Max(e=>CityRoadTypes.Width(e.kind));
+                float sine=Math.Abs((b.x-a.x)*(other.z-center.z)-(b.z-a.z)*(other.x-center.x))/(length*CityRoads.Length(center,other));
+                result.Add((center,(width/2+oldWidth/2+.2f)/(sine<.01f?1:Math.Max(.33f,sine)),run));
+            }
             foreach(var edge in roads.edges)
             {
                 if(ignore!=null && ignore.Contains(edge.id))continue;

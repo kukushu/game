@@ -445,6 +445,12 @@ namespace HarborCity
                 focus.x = Mathf.Clamp(focus.x,-CityModel.BuildHalfSize,CityModel.BuildHalfSize); focus.z = Mathf.Clamp(focus.z,-CityModel.BuildHalfSize,CityModel.BuildHalfSize);
                 if (keyboard.qKey.isPressed) yaw -= Time.deltaTime * 55;
                 if (keyboard.eKey.isPressed) yaw += Time.deltaTime * 55;
+                if(selected==LandUse.Road || selected==LandUse.Bulldoze)
+                {
+                    if(keyboard.pageUpKey.wasPressedThisFrame)SetRoadElevation(roadElevation+3);
+                    if(keyboard.pageDownKey.wasPressedThisFrame)SetRoadElevation(roadElevation-3);
+                    if(keyboard.homeKey.wasPressedThisFrame)SetRoadElevation(0);
+                }
                 if (keyboard.spaceKey.wasPressedThisFrame) speed = speed == 0 ? 1 : 0;
                 if (keyboard.escapeKey.wasPressedThisFrame && !CancelRoad()) selected = LandUse.Empty;
                 if (keyboard.zKey.wasPressedThisFrame && (keyboard.leftCtrlKey.isPressed || keyboard.rightCtrlKey.isPressed)) UndoRoad();
@@ -595,7 +601,7 @@ namespace HarborCity
                     }
                     trafficViews[trip.id] = car;
                 }
-                bool visible=city.roads.Active(trip.Current) && (trip.progress==0 || city.roads.Linked(trip.Current,trip.Next));
+                bool visible=(undergroundView || !city.roads.Underground(trip.Current,trip.Next)) && city.roads.Active(trip.Current) && (trip.progress==0 || city.roads.Linked(trip.Current,trip.Next));
                 car.gameObject.SetActive(visible);
                 if (!visible) continue;
                 bool freight = trip.residentId==0 && trip.purpose!=TripPurpose.Deathcare;
@@ -718,7 +724,7 @@ namespace HarborCity
             float x = position.x / scale, y = (Screen.height - position.y) / scale;
             float width = Screen.width / scale, height = Screen.height / scale;
             return (showEconomy && new Rect(360,120,330,490).Contains(new Vector2(x,y)) || showInfoViews && new Rect(360,120,330,250).Contains(new Vector2(x,y))) || showSimulation && new Rect(340,110,width-640,height-305).Contains(new Vector2(x,y)) || y < 108 || y > height - 185 || (x > width - 290 && y < 545)
-                || (help && x < 485 && y < 470) || (!help && x < (selected==LandUse.Empty && city.UseOf(inspectedHome)==LandUse.Residential && !showSimulation?24+ResidenceInspectorWidth:345) && y > 115 && y < (selected==LandUse.Empty && inspectedHome>=0?height-200:selected==LandUse.Park?503:selected==LandUse.Road?505:385));
+                || (help && x < 485 && y < 470) || (!help && x < (selected==LandUse.Empty && city.UseOf(inspectedHome)==LandUse.Residential && !showSimulation?24+ResidenceInspectorWidth:345) && y > 115 && y < (selected==LandUse.Empty && inspectedHome>=0?height-200:selected==LandUse.Park?503:selected==LandUse.Road?572:385));
         }
 
         void Styles()

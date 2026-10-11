@@ -78,6 +78,7 @@ namespace HarborCity
                 CheckTrafficControls(game,output);
                 CheckPedestrians(game,output);
                 CheckPedestrians(game,output,true);
+                CheckElevatedTraffic(game,output);
                 CheckDeathcare(land.Height,output);
                 CheckAging(output);
                 CheckHigherEducation(land.Height,output);
@@ -375,7 +376,73 @@ namespace HarborCity
                 }
                 catch(Exception ex){ok=false;File.WriteAllText(Path.Combine(output,"Failure.txt"),ex.ToString());}
             }
+            if(ok)
+            {
+                var elevationGame=FindAnyObjectByType<HarborCityGame>();var elevationMouse=Mouse.current;
+                yield return CheckElevationInput(elevationGame,elevationMouse);
+                if(File.Exists(Path.Combine(output,"Failure.txt")))ok=false;
+            }
             Application.Quit(ok?0:1);
+        }
+
+        static void CheckElevatedTraffic(HarborCityGame game,string output)
+        {
+            const BindingFlags flags=BindingFlags.Instance|BindingFlags.NonPublic;var type=typeof(HarborCityGame);
+            var originalCity=type.GetField("city",flags).GetValue(game);var originalTraffic=type.GetField("traffic",flags).GetValue(game);
+            try
+            {
+                foreach(float level in new[]{7f,-5f})
+                {
+                    Func<float,float,float> flat=(x,z)=>1;var c=CityModel.Create();c.money=200000;c.development.enabled=false;c.SetEntranceHeight(flat);
+                    RoadNode P(float x,float y)=>new RoadNode{x=x,z=1.5f,y=y};
+                    var points=new[]{c.roads.Node(CityRoads.Entrance),P(-30,1),P(-8,level),P(8,level),P(30,1),P(45,1)};
+                    for(int i=1;i<points.Length;i++){var plan=c.roads.Plan(c,points[i-1],points[i],flat,engineered:points[i-1].y!=1 || points[i].y!=1);if(!c.CommitRoad(plan))throw new InvalidOperationException(plan.error);}
+                    int Build(float x,LandUse use)=>c.PlaceBuilding(c.RoadsidePreview(x,7,use,HousingKind.Apartment,out _),use,flat,out _);
+                    int factory=Build(-42,LandUse.Industrial),shop=Build(40,LandUse.Commercial);c.Inventory(factory).Stock=8;c.society.settings.applicantsPerDay=0;c.traffic.dispatchTimer=-10000;
+                    var sim=new CityTraffic(c);var t=sim.Dispatch(factory,shop,TripPurpose.Delivery);if(t==null)throw new InvalidOperationException("Native bridge/tunnel trip missing");
+                    int deck=t.route.FindIndex(id=>Math.Abs(c.roads.Node(id).y-level)<.01f);t.segment=deck;t.progress=.5f;
+                    type.GetField("city",flags).SetValue(game,c);type.GetField("traffic",flags).SetValue(game,sim);
+                    type.GetMethod("SetUndergroundView",flags).Invoke(game,new object[]{false});type.GetMethod("AnimateTraffic",flags).Invoke(game,null);
+                    var views=(System.Collections.Generic.Dictionary<int,Transform>)type.GetField("trafficViews",flags).GetValue(game);
+                    if(views[t.id].gameObject.activeSelf!=(level>1) || Math.Abs(((Vector3)type.GetMethod("TrafficPoint",flags).Invoke(game,new object[]{t,t.segment,t.progress})).y-(level+.32f))>.01f)throw new InvalidOperationException("Vehicle deck height or tunnel visibility failed");
+                    type.GetMethod("SetUndergroundView",flags).Invoke(game,new object[]{true});type.GetMethod("AnimateTraffic",flags).Invoke(game,null);
+                    if(!views[t.id].gameObject.activeSelf || Math.Abs(views[t.id].position.y-(level+.32f))>.01f)throw new InvalidOperationException("Underground vehicle render failed");
+                    c.traffic.dispatchTimer=0;c=JsonUtility.FromJson<CitySaveData>(JsonUtility.ToJson(c.ToSaveData())).ToCity();c.traffic.dispatchTimer=-10000;sim=new CityTraffic(c);sim.Advance(40);c.traffic.dispatchTimer=0;
+                    if(c.Goods(shop)!=8 || c.traffic.lostGoods!=0 || !c.Valid())throw new InvalidOperationException("Native bridge/tunnel freight save continuation failed");
+                    File.WriteAllText(Path.Combine(output,level>1?"ElevatedCity.json":"TunnelCity.json"),JsonUtility.ToJson(c.ToSaveData(),true));
+                }
+                File.WriteAllText(Path.Combine(output,"ElevatedTraffic.txt"),"PASS: real bridge/tunnel delivery, actual vehicle height, normal/underground visibility, native JSON and cargo arrival/return");
+            }
+            finally{type.GetField("city",flags).SetValue(game,originalCity);type.GetField("traffic",flags).SetValue(game,originalTraffic);type.GetMethod("SetUndergroundView",flags).Invoke(game,new object[]{false});type.GetMethod("AnimateTraffic",flags).Invoke(game,null);}
+        }
+        IEnumerator CheckElevationInput(HarborCityGame game,Mouse mouse)
+        {
+            const BindingFlags flags=BindingFlags.Instance|BindingFlags.NonPublic;var type=typeof(HarborCityGame);var originalCity=type.GetField("city",flags).GetValue(game);var originalTraffic=type.GetField("traffic",flags).GetValue(game);
+            var land=(CityLandscape)type.GetField("landscape",flags).GetValue(game);var c=CityModel.Create();c.money=200000;c.development.enabled=false;c.SetEntranceHeight(land.Height);
+            var cross=c.roads.Plan(c,new RoadNode{x=-20,z=-8,y=land.Height(-20,-8)},new RoadNode{x=35,z=-8,y=land.Height(35,-8)},land.Height);if(!c.CommitRoad(cross)){File.WriteAllText(Path.Combine(output,"Failure.txt"),cross.error);yield break;}
+            var keys=InputSystem.AddDevice<Keyboard>("ElevationKeys");
+            try
+            {
+                type.GetField("city",flags).SetValue(game,c);type.GetField("traffic",flags).SetValue(game,new CityTraffic(c));type.GetField("selected",flags).SetValue(game,LandUse.Road);type.GetField("roadMode",flags).SetValue(game,0);type.GetField("roadOperation",flags).SetValue(game,0);type.GetField("roadKind",flags).SetValue(game,RoadKind.Standard);type.GetField("roadOneWay",flags).SetValue(game,false);
+                type.GetField("focus",flags).SetValue(game,new Vector3(8,2,2));type.GetField("zoom",flags).SetValue(game,65f);type.GetMethod("UpdateCamera",flags).Invoke(game,null);
+                foreach(int sign in new[]{1,-1})
+                {
+                    type.GetMethod("ResetRoad",flags).Invoke(game,null);type.GetMethod("SetRoadElevation",flags).Invoke(game,new object[]{0f});float x=sign>0?6:22;
+                    yield return ClickWorld(game,mouse,new Vector2(x,-20));
+                    for(int i=0;i<2;i++){InputSystem.QueueStateEvent(keys,new KeyboardState(sign>0?Key.PageUp:Key.PageDown));yield return null;yield return null;InputSystem.QueueStateEvent(keys,new KeyboardState());yield return null;yield return null;}
+                    if((float)type.GetField("roadElevation",flags).GetValue(game)!=sign*6){File.WriteAllText(Path.Combine(output,"Failure.txt"),"Elevation keyboard failed");yield break;}
+                    yield return ClickWorld(game,mouse,new Vector2(x,2));
+                    yield return ClickWorld(game,mouse,new Vector2(x,14));
+                    InputSystem.QueueStateEvent(keys,new KeyboardState(Key.Home));yield return null;yield return null;InputSystem.QueueStateEvent(keys,new KeyboardState());yield return null;yield return null;
+                    var exit=sign>0?new Vector2(x,36):new Vector2(-10,14);
+                    yield return ClickWorld(game,mouse,exit);
+                    if(!c.roads.edges.Any(e=>e.structure==(sign>0?RoadStructure.Elevated:RoadStructure.Tunnel)) || !c.roads.nodes.Any(n=>CityRoads.Length(n,new RoadNode{x=exit.x,z=exit.y})<.05f && Math.Abs(n.y-land.Height(exit.x,exit.y))<.05f))
+                    {File.WriteAllText(Path.Combine(output,"Failure.txt"),"Elevation world-input construction or exit ramp failed: "+type.GetField("notice",flags).GetValue(game));yield break;}
+                }
+                if(c.roads.nodes.Any(n=>Math.Abs(n.z+8)<.1f && c.roads.Neighbors(n.id).Count>2)){File.WriteAllText(Path.Combine(output,"Failure.txt"),"Elevation world-input made false at-grade connection");yield break;}
+                File.WriteAllText(Path.Combine(output,"ElevationInputCity.json"),JsonUtility.ToJson(c.ToSaveData(),true));File.WriteAllText(Path.Combine(output,"ElevationInput.txt"),"PASS: actual mouse/keyboard ground start, PgUp/PgDn, raised/buried straight decks, Home and ramps; no false cross connection");
+            }
+            finally{InputSystem.RemoveDevice(keys);type.GetField("city",flags).SetValue(game,originalCity);type.GetField("traffic",flags).SetValue(game,originalTraffic);type.GetMethod("ResetRoad",flags).Invoke(game,null);type.GetMethod("SetRoadElevation",flags).Invoke(game,new object[]{0f});}
         }
 
         static void CheckLanes(HarborCityGame game,string output)

@@ -53,9 +53,9 @@ namespace HarborCity
             int parallel=approaches.OrderByDescending(p=>Math.Abs((Node(p).x-n.x)*(a.x-n.x)+(Node(p).z-n.z)*(a.z-n.z))/(Length(Node(p),n)*Length(a,n))).ThenBy(p=>p).First();
             return Signal(node,parallel,clock);
         }
-        public int PickJunction(float x,float z)
+        public int PickJunction(float x,float z,float? level=null)
         {
-            var p=new RoadNode{x=x,z=z};var n=nodes.Where(n=>Neighbors(n.id).Count>=3 && Length(n,p)<4.5f).OrderBy(n=>Length(n,p)).FirstOrDefault();return n?.id??-1;
+            var p=new RoadNode{x=x,z=z};var n=nodes.Where(n=>Neighbors(n.id).Count>=3 && (!level.HasValue || Math.Abs(n.y-level.Value)<1.6f) && Length(n,p)<4.5f).OrderBy(n=>Length(n,p)).FirstOrDefault();return n?.id??-1;
         }
         public int PickJunctionApproach(int node,float x,float z)
         {var p=new RoadNode{x=x,z=z};return Neighbors(node).Where(from=>CanTravel(from,node)).OrderBy(from=>Distance(p,Node(node),Node(from))).ThenBy(from=>from).DefaultIfEmpty(-1).First();}

@@ -18,7 +18,8 @@ namespace HarborCity
         public int id, a, b, stroke;
         public bool oneWay;
         public RoadKind kind;
-        public RoadEdge Copy() => new RoadEdge { id = id, a = a, b = b, stroke = stroke, oneWay=oneWay,kind=kind };
+        public RoadStructure structure;
+        public RoadEdge Copy() => new RoadEdge { id = id, a = a, b = b, stroke = stroke, oneWay=oneWay,kind=kind,structure=structure };
     }
     public sealed class RoadSplit
     {
@@ -52,6 +53,7 @@ namespace HarborCity
         [NonSerialized] Dictionary<long,RoadEdge> roadLookup;
 
         public static float Length(RoadNode a, RoadNode b) => (float)Math.Sqrt((a.x-b.x)*(a.x-b.x)+(a.z-b.z)*(a.z-b.z));
+        public static float SpatialLength(RoadNode a,RoadNode b)=>(float)Math.Sqrt(Length(a,b)*Length(a,b)+(a.y-b.y)*(a.y-b.y));
         static float Cross(float ax, float az, float bx, float bz) => ax*bz-az*bx;
         public static RoadNode Lerp(RoadNode a, RoadNode b, float t) => new RoadNode { x=a.x+(b.x-a.x)*t, y=a.y+(b.y-a.y)*t, z=a.z+(b.z-a.z)*t };
         public static float Projection(RoadNode p, RoadNode a, RoadNode b)
@@ -83,7 +85,7 @@ namespace HarborCity
         public bool Active(int id) => Node(id) != null && Neighbors(id).Count > 0;
         public bool Linked(int a,int b) => Neighbors(a).Contains(b);
         public bool CanTravel(int a,int b,bool walking=false){Cache();return walking?Linked(a,b):vehicleConnections.Contains(((long)a<<32)|(uint)b);}
-        public float EdgeLength(int a,int b) => Math.Max(.1f,Length(Node(a),Node(b)));
+        public float EdgeLength(int a,int b) => Math.Max(.1f,SpatialLength(Node(a),Node(b)));
         public float SpeedFactor(int a,int b){Cache();return roadLookup.TryGetValue(((long)a<<32)|(uint)b,out var e)?CityRoadTypes.SpeedFactor(e.kind):1;}
         public float TravelCost(int a,int b,bool walking=false)=>EdgeLength(a,b)/(walking?1:SpeedFactor(a,b));
         public bool Connected(int id) { Cache(); return connected.Contains(id) && Active(id); }
@@ -98,26 +100,26 @@ namespace HarborCity
             return copy;
         }
         
-        void AddEdge(int a,int b,int stroke,bool oneWay=false,RoadKind kind=RoadKind.Standard)
+        void AddEdge(int a,int b,int stroke,bool oneWay=false,RoadKind kind=RoadKind.Standard,RoadStructure structure=RoadStructure.Ground)
         {
-            if(a!=b) edges.Add(new RoadEdge { id=nextEdge++,a=a,b=b,stroke=stroke,oneWay=oneWay,kind=kind });
+            if(a!=b) edges.Add(new RoadEdge { id=nextEdge++,a=a,b=b,stroke=stroke,oneWay=oneWay,kind=kind,structure=structure });
         }
         int AddNode(RoadNode p)
         {
-            foreach(var n in nodes) if(Length(n,p)<.08f) return n.id;
+            foreach(var n in nodes) if(Length(n,p)<.08f && Math.Abs(n.y-p.y)<.15f) return n.id;
             var added=p.Copy(); added.id=nextNode++; nodes.Add(added); lookup=null; return added.id;
         }
-        public RoadNode Snap(float x,float z,Func<float,float,float> height)
+        public RoadNode Snap(float x,float z,Func<float,float,float> height,float elevation=0)
         {
-            var p=new RoadNode { x=x,z=z,y=height(x,z) }; RoadNode best=null; float nearest=.85f;
-            foreach(var n in nodes) if((Active(n.id) || n.id==Entrance) && Length(n,p)<nearest) { best=n; nearest=Length(n,p); }
+            var p=new RoadNode { x=x,z=z,y=height(x,z)+elevation }; RoadNode best=null; float nearest=.85f;
+            foreach(var n in nodes) if((Active(n.id) || n.id==Entrance) && Math.Abs(n.y-p.y)<.6f && Length(n,p)<nearest) { best=n; nearest=Length(n,p); }
             if(best!=null) return best.Copy();
             // Include the visible road edge and shoulder, not just its centre line.
             nearest=float.MaxValue;
             foreach(var e in edges)
             {
                 var q=Lerp(Node(e.a),Node(e.b),Projection(p,Node(e.a),Node(e.b)));
-                if(Length(q,p)<CityRoadTypes.Width(e.kind)/2+.45f && Length(q,p)<nearest)
+                if(Math.Abs(q.y-p.y)<.6f && Length(q,p)<CityRoadTypes.Width(e.kind)/2+.45f && Length(q,p)<nearest)
                 {
                     nearest=Length(q,p);
                     var a=Node(e.a); var b=Node(e.b);
@@ -126,50 +128,52 @@ namespace HarborCity
             }
             return best ?? p;
         }
-        public RoadEdge Pick(float x,float z,float radius=-1)
+        public RoadEdge Pick(float x,float z,float radius=-1,float? level=null)
         {
             var p=new RoadNode{x=x,z=z}; RoadEdge best=null;float nearest=float.MaxValue;
             foreach(var e in edges)
             {
                 float d=Distance(p,Node(e.a),Node(e.b));
+                var projected=Lerp(Node(e.a),Node(e.b),Projection(p,Node(e.a),Node(e.b)));
+                if(level.HasValue && Math.Abs(projected.y-level.Value)>1.6f)continue;
                 if(d<(radius<0?CityRoadTypes.Width(e.kind)/2+.45f:radius) && d<nearest) { nearest=d; best=e; }
             }
             return best;
         }
 
-        public RoadPlan Plan(CityModel city,RoadNode from,RoadNode to,Func<float,float,float> height,bool oneWay=false,RoadKind kind=RoadKind.Standard)
-            => PlanSegment(city,from,to,height,1.5f,oneWay,kind);
-        RoadPlan PlanSegment(CityModel city,RoadNode from,RoadNode to,Func<float,float,float> height,float minimum,bool oneWay=false,RoadKind kind=RoadKind.Standard)
+        public RoadPlan Plan(CityModel city,RoadNode from,RoadNode to,Func<float,float,float> height,bool oneWay=false,RoadKind kind=RoadKind.Standard,bool engineered=false)
+            => PlanSegment(city,from,to,height,1.5f,oneWay,kind,engineered);
+        RoadPlan PlanSegment(CityModel city,RoadNode from,RoadNode to,Func<float,float,float> height,float minimum,bool oneWay=false,RoadKind kind=RoadKind.Standard,bool engineered=false)
         {
             var plan=new RoadPlan { start=from.Copy(),end=to.Copy(),revision=revision,stroke=nextStroke };
             plan.points.Add(from.Copy()); plan.points.Add(to.Copy());
-            plan.length=Length(from,to); plan.cost=CityRoadTypes.ConstructionCost(plan.length,kind);
+            plan.length=Length(from,to); plan.cost=ProfileCost(from,to,height,kind,engineered);
             if(!CityRoadTypes.Valid(kind,oneWay)){plan.error="土路只支持双向，或道路类型无效。";return plan;}
             float width=CityRoadTypes.Width(kind);
             if(plan.length<minimum) { plan.error="道路太短（至少 "+minimum+" 米）"; return plan; }
             if(Math.Abs(from.x)>CityModel.RoadHalfSize || Math.Abs(from.z)>CityModel.RoadHalfSize || Math.Abs(to.x)>CityModel.RoadHalfSize || Math.Abs(to.z)>CityModel.RoadHalfSize)
             { plan.error="道路超出当前建设边界"; return plan; }
-            foreach(var building in city.buildings) if(building.HitsRoad(from,to,width))
+            foreach(var building in city.buildings) if(BuildingCollision(building,from,to,width,height,engineered))
             { plan.error="道路侵占建筑或分区，请先拆除或绕行"; return plan; }
-            foreach(var project in city.development.projects) if(project.building.ToBuilding().HitsRoad(from,to,width))
+            foreach(var project in city.development.projects) if(BuildingCollision(project.building.ToBuilding(),from,to,width,height,engineered))
             {plan.error="道路侵占正在施工的建筑，请绕行";return plan;}
-            float previous=height(from.x,from.z); int samples=(int)Math.Ceiling(plan.length/.5f);
+            float previous=engineered?from.y:height(from.x,from.z); int samples=(int)Math.Ceiling(plan.length/.5f);
             float rx=-(to.z-from.z)/plan.length,rz=(to.x-from.x)/plan.length;
             for(int i=0;i<=samples;i++)
             {
-                var p=Lerp(from,to,(float)i/samples); float y=height(p.x,p.z);
+                var p=Lerp(from,to,(float)i/samples); float terrain=height(p.x,p.z),y=engineered?p.y:terrain;
                 if(i>0) plan.grade=Math.Max(plan.grade,Math.Abs(y-previous)/(plan.length/samples));
                 previous=y;
                 float left=height(p.x+rx*width/2,p.z+rz*width/2),right=height(p.x-rx*width/2,p.z-rz*width/2);
-                if(Math.Min(y,Math.Min(left,right))<=.15f) { plan.error="水面暂不能修路，桥梁将在后续加入"; return plan; }
-                if(Math.Abs(left-right)>.95f || plan.grade>.35f) { plan.error="坡度过大，请沿缓坡绕行"; return plan; }
+                if(!engineered && Math.Min(y,Math.Min(left,right))<=.15f || engineered && terrain<=.15f && y<1.5f && y>terrain-2) { plan.error="跨水道路需抬高桥面，水下隧道需足够覆土"; return plan; }
+                if(!engineered && Math.Abs(left-right)>.95f || plan.grade>.35f) { plan.error="坡度过大，请沿缓坡绕行"; return plan; }
             }
-            if((kind==RoadKind.FourLane || edges.Exists(e=>e.kind==RoadKind.FourLane)) && !city.RoadWidthClear(from,to,kind,height,null,out string widthError)){plan.error=widthError;return plan;}
+            if((kind==RoadKind.FourLane || edges.Exists(e=>e.kind==RoadKind.FourLane)) && !city.RoadWidthClear(from,to,kind,height,null,out string widthError,engineered)){plan.error=widthError;return plan;}
             var copy=Copy(); var crossings=new List<RoadNode>{from.Copy(),to.Copy()};
             float dx=to.x-from.x,dz=to.z-from.z;
             foreach(var e in edges)
             {
-                var a=Node(e.a); var b=Node(e.b); float ex=b.x-a.x,ez=b.z-a.z;
+                var a=Node(e.a); var b=Node(e.b); if(Separated(from,to,a,b))continue; float ex=b.x-a.x,ez=b.z-a.z;
                 float cross=Cross(dx,dz,ex,ez);
                 if(Math.Abs(cross)<.0001f)
                 {
@@ -187,13 +191,16 @@ namespace HarborCity
                 float u=Cross(a.x-from.x,a.z-from.z,dx,dz)/cross;
                 if(t<-.0001f || t>1.0001f || u<-.0001f || u>1.0001f) continue;
                 var point=Lerp(a,b,Math.Clamp(u,0,1));
+                float difference=Math.Abs((engineered?Lerp(from,to,Math.Clamp(t,0,1)).y:height(point.x,point.z))-point.y);
+                if(difference>=VerticalClearance)continue;
+                if(difference>.15f){plan.error="上下道路净空不足；请升高高架或加深隧道";return plan;}
                 if(Length(point,a)<.08f) point=a.Copy(); else if(Length(point,b)<.08f) point=b.Copy();
                 crossings.Add(point);
                 if(Length(point,a)>.08f && Length(point,b)>.08f)
                 {
                     if(Math.Min(Length(point,a),Length(point,b))<.4f) { plan.error="路口过近，请吸附到已有节点"; return plan; }
                     int id=copy.AddNode(point); copy.edges.RemoveAll(edge=>edge.id==e.id);
-                    copy.AddEdge(e.a,id,e.stroke,e.oneWay,e.kind); copy.AddEdge(id,e.b,e.stroke,e.oneWay,e.kind);
+                    copy.AddEdge(e.a,id,e.stroke,e.oneWay,e.kind,e.structure); copy.AddEdge(id,e.b,e.stroke,e.oneWay,e.kind,e.structure);
                     copy.SplitJunctionApproach(e.a,e.b,id);
                     plan.splits.Add(new RoadSplit { a=e.a,b=e.b,path=new List<int>{e.a,id,e.b} });
                 }
@@ -208,8 +215,8 @@ namespace HarborCity
                 int count=Math.Max(1,(int)Math.Ceiling(length/3)),last=copy.AddNode(a);
                 for(int i=1;i<=count;i++)
                 {
-                    var p=Lerp(a,b,(float)i/count); p.y=i==count ? b.y : height(p.x,p.z);
-                    int next=copy.AddNode(p); copy.AddEdge(last,next,plan.stroke,oneWay,kind); last=next;
+                    var p=Lerp(a,b,(float)i/count); p.y=engineered || i==count ? p.y : height(p.x,p.z);
+                    int next=copy.AddNode(p); copy.AddEdge(last,next,plan.stroke,oneWay,kind,engineered?Structure(copy.Node(last),p,height):RoadStructure.Ground); last=next;
                 }
             }
             copy.Changed();
@@ -231,7 +238,7 @@ namespace HarborCity
 
         // Quadratic Bezier is sampled by arc length into the same graph used by
         // straight roads. The whole stroke is previewed on copies and committed once.
-        public RoadPlan PlanCurve(CityModel city,RoadNode from,RoadNode control,RoadNode to,Func<float,float,float> height,bool oneWay=false,RoadKind kind=RoadKind.Standard)
+        public RoadPlan PlanCurve(CityModel city,RoadNode from,RoadNode control,RoadNode to,Func<float,float,float> height,bool oneWay=false,RoadKind kind=RoadKind.Standard,bool engineered=false)
         {
             var result=new RoadPlan {start=from.Copy(),end=to.Copy(),revision=revision,stroke=nextStroke};
             if(!CityRoadTypes.Valid(kind,oneWay)){result.error="土路只支持双向，或道路类型无效。";return result;}
@@ -242,7 +249,7 @@ namespace HarborCity
             {
                 float t=(float)i/samples,u=1-t;
                 var p=new RoadNode {x=u*u*from.x+2*u*t*control.x+t*t*to.x,z=u*u*from.z+2*u*t*control.z+t*t*to.z};
-                p.y=height(p.x,p.z); if(i>0) total+=Length(dense[i-1],p);
+                p.y=engineered?from.y+(to.y-from.y)*t:height(p.x,p.z); if(i>0) total+=Length(dense[i-1],p);
                 dense.Add(p); distances.Add(total);
             }
             result.length=total; result.cost=CityRoadTypes.ConstructionCost(total,kind);
@@ -254,7 +261,7 @@ namespace HarborCity
                 while(index<distances.Count-1 && distances[index]<d) index++;
                 float gap=distances[index]-distances[index-1];
                 var p=Lerp(dense[index-1],dense[index],gap>0?(d-distances[index-1])/gap:0);
-                p.y=height(p.x,p.z); result.points.Add(p);
+                if(!engineered)p.y=height(p.x,p.z); result.points.Add(p);
             }
             result.points.Add(to.Copy());
             if(total<1.5f || Length(from,to)<1.5f) {result.error="弯道端点太近（至少 1.5 米）"; return result;}
@@ -267,7 +274,7 @@ namespace HarborCity
                 if(Math.Abs(cross)<.0001f) continue;
                 float t=Cross(p.x-a.x,p.z-a.z,ex,ez)/cross,u=Cross(p.x-a.x,p.z-a.z,dx,dz)/cross;
                 if(t<0 || t>1 || u<0 || u>1) continue;
-                var crossing=Lerp(p,q,u);
+                var crossing=Lerp(p,q,u);if(Math.Abs(crossing.y-Lerp(a,b,t).y)>.15f)continue;
                 if(i>1 && Length(a,crossing)<.4f) result.points[i-1]=crossing;
                 else if(i<result.points.Count-1 && Length(b,crossing)<.4f) result.points[i]=crossing;
             }
@@ -275,7 +282,7 @@ namespace HarborCity
             // junction vertices, rather than its straight chord or control polygon.
             result.length=0;
             for(int i=1;i<result.points.Count;i++) result.length+=Length(result.points[i-1],result.points[i]);
-            result.cost=CityRoadTypes.ConstructionCost(result.length,kind);
+            result.cost=0;for(int i=1;i<result.points.Count;i++)result.cost+=ProfileCost(result.points[i-1],result.points[i],height,kind,engineered);
             // Prevent hairpins with overlapping carriageways and nearly stationary
             // tangents; sharp curves need a larger footprint, not a cosmetic mesh.
             for(int i=0;i<=samples;i++)
@@ -292,7 +299,7 @@ namespace HarborCity
             {
                 // One stroke ID across all spans keeps undo and demolition coherent.
                 copy.nextStroke=result.stroke;
-                var part=copy.PlanSegment(city,result.points[i-1],result.points[i],height,.4f,oneWay,kind);
+                var part=copy.PlanSegment(city,result.points[i-1],result.points[i],height,.4f,oneWay,kind,engineered);
                 result.grade=Math.Max(result.grade,part.grade);
                 if(part.error!=null) {result.error=part.error; return result;}
                 result.splits.AddRange(part.splits); copy=part.network;
@@ -325,7 +332,7 @@ namespace HarborCity
                     int oldSegment=trip.segment;
                     if(i==oldSegment)
                     {
-                        float distance=Length(Node(a),Node(b))*trip.progress;
+                        float distance=SpatialLength(Node(a),Node(b))*trip.progress;
                         int offset=0;
                         while(offset<path.Count-2 && distance>=EdgeLength(path[offset],path[offset+1]))
                         { distance-=EdgeLength(path[offset],path[offset+1]); offset++; }
@@ -386,7 +393,7 @@ namespace HarborCity
             foreach(var n in nodes) if(n==null || n.id<0 || n.id>=nextNode || !ids.Add(n.id)
                 || float.IsNaN(n.x+n.y+n.z) || float.IsInfinity(n.x+n.y+n.z) || Math.Abs(n.x)>CityModel.BuildHalfSize || Math.Abs(n.z)>CityModel.BuildHalfSize || Math.Abs(n.y)>100) return false;
             foreach(var e in edges) if(e==null || e.id<1 || e.id>=nextEdge || !edgeIds.Add(e.id) || !ids.Contains(e.a) || !ids.Contains(e.b)
-                || e.a==e.b || e.stroke<0 || e.stroke>=nextStroke || !CityRoadTypes.Valid(e.kind,e.oneWay) || !pairs.Add(Math.Min(e.a,e.b)+":"+Math.Max(e.a,e.b))) return false;
+                || e.a==e.b || e.stroke<0 || e.stroke>=nextStroke || !CityRoadTypes.Valid(e.kind,e.oneWay) || !Enum.IsDefined(typeof(RoadStructure),e.structure) || !pairs.Add(Math.Min(e.a,e.b)+":"+Math.Max(e.a,e.b))) return false;
             lookup=null;
             foreach(var e in edges) if(EdgeLength(e.a,e.b)<.39f) return false;
             foreach(var n in nodes)if(!Enum.IsDefined(typeof(JunctionControl),n.control) || n.stopFrom==null || new HashSet<int>(n.stopFrom).Count!=n.stopFrom.Count || n.stopFrom.Exists(from=>!Linked(from,n.id)))return false;

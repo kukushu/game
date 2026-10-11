@@ -69,7 +69,7 @@ namespace HarborCity
             zoneCells=new List<ZoneCell>();
             var uses=zoning.designations.ToDictionary(d=>d.key,d=>d.use);
             var claimed=new Dictionary<(int,int),List<ZoneCell>>();
-            foreach(var group in roads.edges.OrderBy(e=>e.id).GroupBy(e=>new {e.stroke,width=CityRoadTypes.Width(e.kind)}))
+            foreach(var group in roads.edges.Where(e=>e.structure==RoadStructure.Ground).OrderBy(e=>e.id).GroupBy(e=>new {e.stroke,width=CityRoadTypes.Width(e.kind)}))
             {
                 var remaining=group.ToList();
                 while(remaining.Count>0)
@@ -110,7 +110,7 @@ namespace HarborCity
                         if(Math.Abs(corner.x)>BuildHalfSize || Math.Abs(corner.z)>BuildHalfSize) {valid=false;break;}
                         float y=height(corner.x,corner.z);low=Math.Min(low,y);high=Math.Max(high,y);
                     }
-                    if(!valid || low<=.15f || high-low>1.5f || roads.edges.Any(e=>pose.HitsRoad(roads.Node(e.a),roads.Node(e.b),CityRoadTypes.Width(e.kind)))) continue;
+                    if(!valid || low<=.15f || high-low>1.5f || roads.edges.Any(e=>e.structure!=RoadStructure.Tunnel && pose.HitsRoad(roads.Node(e.a),roads.Node(e.b),CityRoadTypes.Width(e.kind)))) continue;
                     int bx=(int)Math.Floor(pose.x/size),bz=(int)Math.Floor(pose.z/size);
                     for(int x=bx-2;x<=bx+2;x++) for(int z=bz-2;z<=bz+2;z++)
                         if(claimed.TryGetValue((x,z),out var near) && near.Any(c=>pose.Overlaps(c.pose))) valid=false;
