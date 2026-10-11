@@ -78,7 +78,7 @@ namespace HarborCity
                 || State.trips.Count>=TaskCapacity || State.nextId==int.MaxValue || State.trips.Any(t=>t.purpose==TripPurpose.FireResponse && !t.returning && t.destination==target))return null;
             var route=FindRoute(station,target);if(route.Count==0 || !CanEnter(route,null))return null;
             var trip=new TrafficTrip{id=State.nextId++,origin=station,home=station,destination=target,purpose=TripPurpose.FireResponse,route=route,departedAt=State.clock};
-            State.trips.Add(trip);city.Trace("fire.dispatched","有限消防车从设施实际出发，途中不计灭火能力",trip,building:target,trip:trip.id);return trip;
+            AddTrip(trip);city.Trace("fire.dispatched","有限消防车从设施实际出发，途中不计灭火能力",trip,building:target,trip:trip.id);return trip;
         }
         void ScheduleFire()
         {

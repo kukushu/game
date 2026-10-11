@@ -45,7 +45,7 @@ public static class DevelopmentChecks
         Check(copy.Valid() && TestCity.RoundTrip(copy).Valid(),"Developed city saves after actual traffic and payroll");
         var factory=copy.buildings.OfType<IndustrialBuilding>().First();factory.factory.cash=0;
         Check(copy.society.jobEntities.Where(j=>j.buildingId==factory.id).All(copy.JobFunded),"Prototype cash constraint is disabled in baseline ruleset");
-        Check(copy.upkeep==copy.roads.edges.Sum(e=>(int)Math.Ceiling(copy.roads.EdgeLength(e.a,e.b)/3))+228,"Private homes do not charge government maintenance");
+        Check(copy.upkeep==copy.RoadMaintenance+228,"Private homes do not charge government maintenance");
         c=Planned();TestCity.Build(c,-47,-5,LandUse.Power);TestCity.Build(c,-40,-5,LandUse.Water);sim=new CityTraffic(c);sim.Advance(7);
         var project=c.development.projects.First(p=>p.building.type==LandUse.Residential);
         c.PaintZones(c.ZoningCells(TestCity.Flat).Where(x=>project.cells.Contains(x.key)),LandUse.Empty);sim.Advance(13);

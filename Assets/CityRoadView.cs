@@ -22,26 +22,44 @@ namespace HarborCity
             if(content!=null) { content.gameObject.SetActive(false); Destroy(content.gameObject); }
             foreach(var mesh in meshes) Destroy(mesh); meshes.Clear();
             content=new GameObject("Road geometry").transform; content.SetParent(transform,false);
-            var baseMesh=new Builder(); var roadMesh=new Builder(); var markings=new Builder();
+            var baseMesh=new Builder(); var roadMesh=new Builder(); var gravelMesh=new Builder(); var markings=new Builder();
+            var pavedNodes=new HashSet<int>();foreach(var e in city.roads.edges)if(e.kind!=RoadKind.Gravel){pavedNodes.Add(e.a);pavedNodes.Add(e.b);}
             var entry=city.roads.Node(CityRoads.Entrance);
             if(entry!=null && !city.roads.Active(entry.id)) Disk(markings,entry,.6f,.10f,landscape);
             foreach(var edge in city.roads.edges)
             {
                 Vector3 a=Point(city.roads.Node(edge.a)),b=Point(city.roads.Node(edge.b));
                 float length=Vector3.Distance(a,b);
-                Strip(baseMesh,a,b,CityRoads.Width+.18f,.065f,edge,city,landscape);
-                Strip(roadMesh,a,b,CityRoads.Width,.08f,edge,city,landscape);
+                float width=CityRoadTypes.Width(edge.kind);
+                Strip(baseMesh,a,b,width+.18f,.065f,edge,city,landscape);
+                Strip(edge.kind==RoadKind.Gravel?gravelMesh:roadMesh,a,b,width,.08f,edge,city,landscape);
                 float start=city.roads.Neighbors(edge.a).Count>2 ? 1.2f : .3f;
                 float end=length-(city.roads.Neighbors(edge.b).Count>2 ? 1.2f : .3f);
-                if(end>start) Strip(markings,Vector3.Lerp(a,b,start/length),Vector3.Lerp(a,b,Mathf.Min(end,start+.8f)/length),.07f,.10f,edge,city,landscape);
+                if(edge.kind!=RoadKind.Gravel && end>start) Strip(markings,Vector3.Lerp(a,b,start/length),Vector3.Lerp(a,b,Mathf.Min(end,start+.8f)/length),.07f,.10f,edge,city,landscape);
+                if(edge.kind==RoadKind.FourLane && end>start)
+                {
+                    var right=Vector3.Cross(Vector3.up,(b-a).normalized)*1.1f;
+                    foreach(float side in new[]{-1f,1f})Strip(markings,Vector3.Lerp(a,b,start/length)+right*side,Vector3.Lerp(a,b,Mathf.Min(end,start+.8f)/length)+right*side,.05f,.10f,edge,city,landscape);
+                }
+                if(edge.oneWay)
+                {
+                    var center=(a+b)/2;var forward=(b-a).normalized;var right=Vector3.Cross(Vector3.up,forward).normalized;
+                    var tip=center+forward*.4f;var left=center-forward*.2f-right*.24f;var wing=center-forward*.2f+right*.24f;
+                    tip.y=SurfaceHeight(city.roads,landscape,tip,edge.a,edge.b)+.11f;
+                    left.y=SurfaceHeight(city.roads,landscape,left,edge.a,edge.b)+.11f;
+                    wing.y=SurfaceHeight(city.roads,landscape,wing,edge.a,edge.b)+.11f;
+                    markings.Triangle(tip,wing,left);
+                }
             }
             foreach(var n in city.roads.nodes) if(city.roads.Active(n.id))
             {
                 // Caps also fill the union of arbitrary-angle road mouths at a junction.
-                Disk(baseMesh,n,CityRoads.Width/2+.09f,.065f,landscape);
-                Disk(roadMesh,n,CityRoads.Width/2,.08f,landscape);
+                float width=CityRoads.Width;foreach(var other in city.roads.Neighbors(n.id))width=Mathf.Max(width,city.roads.EdgeWidth(n.id,other));
+                Disk(baseMesh,n,width/2+.09f,.065f,landscape);
+                bool gravel=!pavedNodes.Contains(n.id);
+                Disk(gravel?gravelMesh:roadMesh,n,width/2,.08f,landscape);
             }
-            AddMesh("Road shoulders",baseMesh,shoulder); AddMesh("Road surface",roadMesh,asphalt); AddMesh("Road markings",markings,paint);
+            AddMesh("Road shoulders",baseMesh,shoulder); AddMesh("Road surface",roadMesh,asphalt); AddMesh("Gravel surface",gravelMesh,shoulder); AddMesh("Road markings",markings,paint);
         }
         void Strip(Builder builder,Vector3 a,Vector3 b,float width,float lift,RoadEdge edge,CityModel city,CityLandscape land)
         {

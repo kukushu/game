@@ -69,7 +69,7 @@ namespace HarborCity
             zoneCells=new List<ZoneCell>();
             var uses=zoning.designations.ToDictionary(d=>d.key,d=>d.use);
             var claimed=new Dictionary<(int,int),List<ZoneCell>>();
-            foreach(var group in roads.edges.OrderBy(e=>e.id).GroupBy(e=>e.stroke))
+            foreach(var group in roads.edges.OrderBy(e=>e.id).GroupBy(e=>new {e.stroke,width=CityRoadTypes.Width(e.kind)}))
             {
                 var remaining=group.ToList();
                 while(remaining.Count>0)
@@ -83,25 +83,25 @@ namespace HarborCity
                         var edge=remaining.FirstOrDefault(e=>e.a==current || e.b==current);if(edge==null) break;
                         remaining.Remove(edge);current=edge.a==current?edge.b:edge.a;path.Add(roads.Node(current));
                     } while(current!=start && degrees[current]==2);
-                    GenerateZoneRun(path,group.Key+":"+start+":"+current,height,uses,claimed);
+                    GenerateZoneRun(path,group.Key.stroke+":"+start+":"+current,group.Key.width,height,uses,claimed);
                 }
             }
             return zoneCells;
         }
-        void GenerateZoneRun(List<RoadNode> path,string block,Func<float,float,float> height,Dictionary<string,LandUse> uses,Dictionary<(int,int),List<ZoneCell>> claimed)
+        void GenerateZoneRun(List<RoadNode> path,string block,float roadWidth,Func<float,float,float> height,Dictionary<string,LandUse> uses,Dictionary<(int,int),List<ZoneCell>> claimed)
         {
             float size=CityZoningState.CellSize,total=0;
             var lengths=new List<float>();for(int i=1;i<path.Count;i++) {float length=CityRoads.Length(path[i-1],path[i]);lengths.Add(length);total+=length;}
-            int columns=(int)Math.Floor((total-CityRoads.Width)/size);
+            int columns=(int)Math.Floor((total-roadWidth)/size);
             for(int column=0;column<columns;column++)
             {
-                float distance=CityRoads.Width/2+(column+.5f)*size;int span=0;
+                float distance=roadWidth/2+(column+.5f)*size;int span=0;
                 while(span<lengths.Count-1 && distance>lengths[span]) {distance-=lengths[span];span++;}
                 var a=path[span];var b=path[span+1];var center=CityRoads.Lerp(a,b,distance/lengths[span]);
                 float dx=(b.x-a.x)/lengths[span],dz=(b.z-a.z)/lengths[span];
                 for(int side=-1;side<=1;side+=2) for(int row=0;row<CityZoningState.Depth;row++)
                 {
-                    float offset=side*(CityRoads.Width/2+BuildingSetback+(row+.5f)*size);
+                    float offset=side*(roadWidth/2+BuildingSetback+(row+.5f)*size);
                     float yaw=(-(float)(Math.Atan2(dz,dx)*180/Math.PI)+(side<0?180:0)+360)%360;
                     var pose=new ResidentialBuilding{x=center.x-dz*offset,z=center.z+dx*offset,yaw=yaw,width=size-.04f,depth=size-.04f};
                     bool valid=true;float low=float.MaxValue,high=float.MinValue;
@@ -110,7 +110,7 @@ namespace HarborCity
                         if(Math.Abs(corner.x)>BuildHalfSize || Math.Abs(corner.z)>BuildHalfSize) {valid=false;break;}
                         float y=height(corner.x,corner.z);low=Math.Min(low,y);high=Math.Max(high,y);
                     }
-                    if(!valid || low<=.15f || high-low>1.5f || roads.edges.Any(e=>pose.HitsRoad(roads.Node(e.a),roads.Node(e.b)))) continue;
+                    if(!valid || low<=.15f || high-low>1.5f || roads.edges.Any(e=>pose.HitsRoad(roads.Node(e.a),roads.Node(e.b),CityRoadTypes.Width(e.kind)))) continue;
                     int bx=(int)Math.Floor(pose.x/size),bz=(int)Math.Floor(pose.z/size);
                     for(int x=bx-2;x<=bx+2;x++) for(int z=bz-2;z<=bz+2;z++)
                         if(claimed.TryGetValue((x,z),out var near) && near.Any(c=>pose.Overlaps(c.pose))) valid=false;

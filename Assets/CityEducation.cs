@@ -63,7 +63,7 @@ namespace HarborCity
             if(person.schoolId==school)return true;
             if(person.schoolId>=0)return false;
             var family=society.families.First(h=>h.id==person.householdId);
-            if(!family.resident || person.location!=family.home || EnrolledAt(school)>=CapacityAtSchool(school) || TravelMinutes(family.home,school)<0)return false;
+            if(!family.resident || person.location!=family.home || EnrolledAt(school)>=CapacityAtSchool(school) || TravelMinutes(family.home,school,true)<0)return false;
             person.schoolId=school;if(facility.Grade==3)person.canWork=false;
             Trace("education.enrolled","居民占用"+SchoolName(facility.Grade)+"学位；尚未到校",person,household:family.id,citizen:person.id,building:school);return true;
         }
@@ -73,7 +73,7 @@ namespace HarborCity
             foreach(var p in Citizens.Where(p=>p.schoolId<0 && SchoolEligible(p)))
             {
                 var h=society.families.First(f=>f.id==p.householdId);
-                foreach(var s in buildings.OfType<SchoolBuilding>().OrderBy(b=>TravelMinutes(h.home,b.id)).ThenBy(b=>b.id))if(EnrollSchool(p.id,s.id))break;
+                foreach(var s in buildings.OfType<SchoolBuilding>().OrderBy(b=>TravelMinutes(h.home,b.id,true)).ThenBy(b=>b.id))if(EnrollSchool(p.id,s.id))break;
             }
         }
         bool ValidEducation()
@@ -106,11 +106,11 @@ namespace HarborCity
             if(!returning && (p.sick || p.atSchool || p.schoolReturning || !city.HasBasicServices(p.schoolId) || p.location!=h.home))return null;
             if(returning && !p.atSchool && !p.schoolReturning)return null;
             int origin=returning?p.location:h.home,destination=returning?h.home:p.schoolId;
-            var route=Endpoint(origin)?FindRoute(origin,destination):Road(p.accessNode)?Search(new List<int>{p.accessNode},Access(destination)):new List<int>();
+            var route=Endpoint(origin)?FindRoute(origin,destination,true):Road(p.accessNode)?Search(new List<int>{p.accessNode},Access(destination),true):new List<int>();
             if(route.Count==0)return null;
             var trip=new TrafficTrip{id=State.nextId++,origin=Endpoint(origin)?origin:Outside,destination=destination,home=h.home,householdId=h.id,residentId=p.id,
                 purpose=TripPurpose.School,walking=true,returning=returning,route=route,departedAt=State.clock};
-            State.trips.Add(trip);p.tripId=trip.id;p.atSchool=false;p.schoolReturning=returning;if(!returning)p.schoolDepartureDay=city.day;
+            AddTrip(trip);p.tripId=trip.id;p.atSchool=false;p.schoolReturning=returning;if(!returning)p.schoolDepartureDay=city.day;
             city.Trace("education.trip_started",returning?"儿童从实际位置步行回家":"儿童实际步行上学",trip,household:h.id,citizen:p.id,building:p.schoolId,trip:trip.id);return trip;
         }
         bool ValidateSchoolTrip(TrafficTrip trip)
@@ -156,10 +156,10 @@ namespace HarborCity
                 if(p.schoolId<0)
                 {
                     p.retryAt=State.clock+.25f;
-                    foreach(var school in city.buildings.OfType<SchoolBuilding>().OrderBy(b=>city.TravelMinutes(h.home,b.id)).ThenBy(b=>b.id))if(city.EnrollSchool(p.id,school.id))break;
+                    foreach(var school in city.buildings.OfType<SchoolBuilding>().OrderBy(b=>city.TravelMinutes(h.home,b.id,true)).ThenBy(b=>b.id))if(city.EnrollSchool(p.id,school.id))break;
                 }
                 if(p.schoolId<0 || p.schoolDepartureDay==city.day)continue;
-                float estimate=city.TravelMinutes(h.home,p.schoolId)*4;
+                float estimate=city.TravelMinutes(h.home,p.schoolId,true)*4;
                 if(estimate>=0 && minute>=Math.Max(0,480-estimate) && minute<960){p.retryAt=State.clock+.25f;DispatchSchool(p.id);}
             }
         }

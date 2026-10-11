@@ -70,7 +70,7 @@ namespace HarborCity
                 || State.trips.Any(t=>t.purpose==TripPurpose.PoliceResponse && !t.returning && t.destination==target))return null;
             var route=FindRoute(station,target);if(route.Count==0 || !CanEnter(route,null))return null;
             var trip=new TrafficTrip{id=State.nextId++,origin=station,home=station,destination=target,purpose=TripPurpose.PoliceResponse,route=route,departedAt=State.clock};
-            State.trips.Add(trip);city.Trace("police.dispatched","有限警车实际出发，途中不消除犯罪积压",trip,building:target,trip:trip.id);return trip;
+            AddTrip(trip);city.Trace("police.dispatched","有限警车实际出发，途中不消除犯罪积压",trip,building:target,trip:trip.id);return trip;
         }
         void SchedulePolice()
         {

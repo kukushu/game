@@ -74,22 +74,23 @@ namespace HarborCity
             if(Residence(home)==null || GetBuilding(work)==null || JobCapacity(work)==0) return -1;
             return TravelMinutes(home,work);
         }
-        public float TravelMinutes(int home,int work)
+        public float TravelMinutes(int home,int work,bool walking=false)
         {
             if(GetBuilding(home)==null || GetBuilding(work)==null)return -1;
             if(commuteCache==null) commuteCache=new Dictionary<long,float>();
             if(commuteRoads!=roads || commuteRevision!=roads.revision)
             { commuteCache.Clear(); commuteRoads=roads; commuteRevision=roads.revision; }
             long key=((long)home<<32)|(uint)work;
+            if(walking)key^=long.MinValue;
             if(commuteCache.TryGetValue(key,out float value)) return value;
-            var path=roads.FindPath(AccessBuilding(home),AccessBuilding(work));
+            var path=roads.FindPath(AccessBuilding(home),AccessBuilding(work),walking);
             value=-1;
             if(path.Count>0)
             {
                 // Prototype map scale: one world unit represents one commute minute.
                 value=CityRoads.Length(new RoadNode{x=GetBuilding(home).entranceX,z=GetBuilding(home).entranceZ},roads.Node(path[0]))
                     +CityRoads.Length(new RoadNode{x=GetBuilding(work).entranceX,z=GetBuilding(work).entranceZ},roads.Node(path[path.Count-1]));
-                for(int i=1;i<path.Count;i++) value+=roads.EdgeLength(path[i-1],path[i]);
+                for(int i=1;i<path.Count;i++) value+=roads.TravelCost(path[i-1],path[i],walking);
             }
             commuteCache[key]=value; return value;
         }
@@ -228,7 +229,7 @@ namespace HarborCity
         {
             SyncJobs();
             population=jobs=income=upkeep=power=water=demand=0;
-            foreach(var e in roads.edges) upkeep+=(int)Math.Ceiling(roads.EdgeLength(e.a,e.b)/3);
+            upkeep+=RoadMaintenance;
             foreach(var building in buildings)
             {
                 int i=building.id;bool access=EntityRoadAccess(i);

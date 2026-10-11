@@ -70,6 +70,12 @@ namespace HarborCity
                 CheckEducation(land.Height,output);
                 CheckResidentIdentity(city,output);
                 CheckLoans(city,output);
+                CheckRoadDirection(output);
+                CheckJunctions(output);
+                CheckRoadTypes(output);
+                CheckLanes(game,output);
+                CheckWideRoads(game,output);
+                CheckTrafficControls(game,output);
                 CheckDeathcare(land.Height,output);
                 CheckAging(output);
                 CheckHigherEducation(land.Height,output);
@@ -144,12 +150,64 @@ namespace HarborCity
                 {ok=false;File.WriteAllText(Path.Combine(output,"Failure.txt"),"Actual pipe world-input path failed");}
                 else File.AppendAllText(Path.Combine(output,"Result.txt"),"; pipe world-input PASS");
                 inputType.GetField("selected",inputFlags).SetValue(inputGame,LandUse.Road);
+                inputType.GetField("roadOneWay",inputFlags).SetValue(inputGame,true);
                 int roadEdges=inputCity.roads.edges.Count;
                 yield return ClickWorld(inputGame,device,new Vector2(28,1.5f));
                 yield return ClickWorld(inputGame,device,new Vector2(28,20));
                 if(inputCity.roads.edges.Count<=roadEdges)
                 {ok=false;File.WriteAllText(Path.Combine(output,"Failure.txt"),"Actual road world-input path failed");}
                 else File.AppendAllText(Path.Combine(output,"Result.txt"),"; road world-input PASS");
+                var directed=inputCity.roads.edges.Skip(roadEdges).ToList();
+                if(directed.Count==0 || directed.Any(e=>!e.oneWay)){ok=false;File.WriteAllText(Path.Combine(output,"Failure.txt"),"One-way construction input failed");}
+                inputType.GetField("roadOperation",inputFlags).SetValue(inputGame,2);
+                yield return ClickWorld(inputGame,device,new Vector2(28,12));
+                if(directed.Any(e=>inputCity.roads.Node(e.a).z<inputCity.roads.Node(e.b).z)){ok=false;File.WriteAllText(Path.Combine(output,"Failure.txt"),"One-way reverse world-input failed");}
+                inputType.GetField("roadOperation",inputFlags).SetValue(inputGame,1);
+                inputType.GetField("roadOneWay",inputFlags).SetValue(inputGame,false);
+                yield return ClickWorld(inputGame,device,new Vector2(28,12));
+                if(directed.Any(e=>e.oneWay)){ok=false;File.WriteAllText(Path.Combine(output,"Failure.txt"),"Two-way conversion world-input failed");}
+                else File.AppendAllText(Path.Combine(output,"Result.txt"),"; directed construction/reverse/conversion world-input PASS");
+                inputType.GetField("roadKind",inputFlags).SetValue(inputGame,RoadKind.Gravel);
+                yield return ClickWorld(inputGame,device,new Vector2(28,12));
+                if(directed.Any(e=>e.kind!=RoadKind.Gravel)){ok=false;File.WriteAllText(Path.Combine(output,"Failure.txt"),"Gravel conversion world-input failed");}
+                int pavingFunds=inputCity.money;
+                inputCity.PreviewRoadUpgrade(directed[0].id,RoadKind.Standard,false,out int pavingCost,out _);
+                inputType.GetField("roadKind",inputFlags).SetValue(inputGame,RoadKind.Standard);
+                yield return ClickWorld(inputGame,device,new Vector2(28,12));
+                if(directed.Any(e=>e.kind!=RoadKind.Standard) || pavingCost<=0 || inputCity.money!=pavingFunds-pavingCost){ok=false;File.WriteAllText(Path.Combine(output,"Failure.txt"),"Paid paving world-input failed");}
+                else File.AppendAllText(Path.Combine(output,"Result.txt"),"; gravel/paid paving world-input PASS");
+                inputType.GetField("roadOperation",inputFlags).SetValue(inputGame,0);
+                inputType.GetField("roadKind",inputFlags).SetValue(inputGame,RoadKind.FourLane);int wideStart=inputCity.roads.edges.Count;
+                // Use a genuine legal terrain site; a wider cross-slope may reject
+                // the narrow-road fixture's hillside. Do not relax slope rules.
+                Vector2 wideFrom=default,wideTo=default;bool wideSite=false;
+                // Keep the continuous-curve corridor (28,20 -> 10,16 -> -8,8)
+                // clear. A now-legal westbound wide branch would occupy it and
+                // correctly fail the later curve's junction-angle validation.
+                var candidates=new[]{new[]{new Vector2(0,-20),new Vector2(20,-20)},new[]{new Vector2(-20,-20),new Vector2(0,-20)},new[]{new Vector2(28,20),new Vector2(28,40)}};
+                foreach(var pair in candidates)
+                {
+                    var from=inputCity.roads.Snap(pair[0].x,pair[0].y,inputLand.Height);var to=inputCity.roads.Snap(pair[1].x,pair[1].y,inputLand.Height);
+                    if(!inputCity.roads.Plan(inputCity,from,to,inputLand.Height,false,RoadKind.FourLane).Valid)continue;
+                    wideFrom=new Vector2(from.x,from.z);wideTo=new Vector2(to.x,to.z);wideSite=true;break;
+                }
+                if(!wideSite){ok=false;File.WriteAllText(Path.Combine(output,"Failure.txt"),"No legal wide-road terrain site for world-input validation");}
+                else {yield return ClickWorld(inputGame,device,wideFrom);yield return ClickWorld(inputGame,device,wideTo);}
+                var wide=inputCity.roads.edges.Skip(wideStart).ToList();
+                if(wide.Count==0 || wide.Any(e=>e.kind!=RoadKind.FourLane || inputCity.roads.LaneCount(e.a,e.b)!=2 || inputCity.roads.LaneCount(e.b,e.a)!=2))
+                {ok=false;File.WriteAllText(Path.Combine(output,"Failure.txt"),"Wide construction world-input failed: "+inputType.GetField("notice",inputFlags).GetValue(inputGame));}
+                else
+                {
+                    inputType.GetField("roadOperation",inputFlags).SetValue(inputGame,1);inputType.GetField("roadKind",inputFlags).SetValue(inputGame,RoadKind.Standard);
+                    yield return ClickWorld(inputGame,device,(wideFrom+wideTo)/2);
+                    int wideningFunds=inputCity.money;bool preview=inputCity.PreviewRoadUpgrade(wide[0].id,RoadKind.FourLane,false,out int wideningCost,out _,inputLand.Height);
+                    inputType.GetField("roadKind",inputFlags).SetValue(inputGame,RoadKind.FourLane);
+                    yield return ClickWorld(inputGame,device,(wideFrom+wideTo)/2);
+                    if(!preview || wideningCost<=0 || wide.Any(e=>e.kind!=RoadKind.FourLane) || inputCity.money!=wideningFunds-wideningCost)
+                    {ok=false;File.WriteAllText(Path.Combine(output,"Failure.txt"),"Paid widening world-input failed: "+inputType.GetField("notice",inputFlags).GetValue(inputGame));}
+                    else File.AppendAllText(Path.Combine(output,"Result.txt"),"; wide construction/paid widening world-input PASS");
+                }
+                inputType.GetField("roadOperation",inputFlags).SetValue(inputGame,0);inputType.GetField("roadKind",inputFlags).SetValue(inputGame,RoadKind.Standard);
                 inputType.GetField("selected",inputFlags).SetValue(inputGame,LandUse.Residential);
                 inputType.GetField("zoneTool",inputFlags).SetValue(inputGame,0);
                 inputType.GetField("zoneBrush",inputFlags).SetValue(inputGame,0);
@@ -173,6 +231,9 @@ namespace HarborCity
                 if(inputCity.roads.nextStroke!=beforeCurves+2)
                 {ok=false;File.WriteAllText(Path.Combine(output,"Failure.txt"),"Actual continuous curve world-input failed: "+inputType.GetField("notice",inputFlags).GetValue(inputGame));}
                 else File.AppendAllText(Path.Combine(output,"Result.txt"),"; continuous curve world-input PASS");
+                yield return CheckTrafficControlInput(inputGame,device);
+                yield return CheckWideConnectionInput(inputGame,device);
+                if(File.Exists(Path.Combine(output,"Failure.txt")))ok=false;
                 inputType.GetField("selected",inputFlags).SetValue(inputGame,LandUse.Water);
                 for(int n=0;n<12;n++) yield return null;
                 try {
@@ -315,6 +376,205 @@ namespace HarborCity
             Application.Quit(ok?0:1);
         }
 
+        static void CheckLanes(HarborCityGame game,string output)
+        {
+            Func<float,float,float> flat=(x,z)=>1;var c=CityModel.Create();c.development.enabled=false;c.SetEntranceHeight(flat);
+            var a=new RoadNode{x=-45,z=1.5f,y=1};var b=new RoadNode{x=30,z=1.5f,y=1};var d=new RoadNode{x=30,z=25,y=1};var e=new RoadNode{x=-45,z=25,y=1};
+            var points=new[]{c.roads.Node(CityRoads.Entrance),a,b,d,e,a};
+            for(int n=1;n<points.Length;n++)if(!c.CommitRoad(c.roads.Plan(c,points[n-1],points[n],flat,n>1)))throw new InvalidOperationException("Native lane loop construction failed");
+            int origin=c.PlaceBuilding(c.RoadsidePreview(-35,7,LandUse.Industrial,HousingKind.Apartment,out _),LandUse.Industrial,flat,out _);c.Inventory(origin).Stock=16;
+            var sim=new CityTraffic(c);var first=sim.Dispatch(origin,CityTraffic.Outside,TripPurpose.Export);var second=sim.Dispatch(origin,CityTraffic.Outside,TripPurpose.Export);
+            if(first==null || second==null || first.lane==second.lane)throw new InvalidOperationException("Native two-lane departure failed");
+            sim.Advance(.25f);c=JsonUtility.FromJson<CitySaveData>(JsonUtility.ToJson(c.ToSaveData())).ToCity();sim=new CityTraffic(c);
+            first=c.traffic.trips.First(t=>t.id==first.id);second=c.traffic.trips.First(t=>t.id==second.id);
+            if(first.lane==second.lane || !c.Valid())throw new InvalidOperationException("Native lane save failed");
+            const BindingFlags flags=BindingFlags.NonPublic|BindingFlags.Instance;var type=typeof(HarborCityGame);
+            var originalCity=type.GetField("city",flags).GetValue(game);var originalTraffic=type.GetField("traffic",flags).GetValue(game);
+            try
+            {
+                type.GetField("city",flags).SetValue(game,c);type.GetField("traffic",flags).SetValue(game,sim);type.GetMethod("AnimateTraffic",flags).Invoke(game,null);
+                var views=(System.Collections.Generic.Dictionary<int,Transform>)type.GetField("trafficViews",flags).GetValue(game);
+                Vector3 p=views[first.id].position,q=views[second.id].position;p.y=q.y=0;
+                if(!views[first.id].gameObject.activeSelf || !views[second.id].gameObject.activeSelf || Vector3.Distance(p,q)<1.05f)throw new InvalidOperationException("Native separate lane vehicle transforms failed");
+            }
+            finally
+            {
+                type.GetField("city",flags).SetValue(game,originalCity);type.GetField("traffic",flags).SetValue(game,originalTraffic);type.GetMethod("AnimateTraffic",flags).Invoke(game,null);
+            }
+            int firstId=first.id,secondId=second.id;sim.Advance(100);
+            if(!c.Valid() || c.traffic.failed>0 || c.traffic.lostGoods>0 || c.traffic.completed<2 || c.traffic.trips.Any(t=>t.id==firstId || t.id==secondId))throw new InvalidOperationException("Native two-lane freight merge/return failed");
+            File.WriteAllText(Path.Combine(output,"Lanes.txt"),"PASS: two simultaneous real exports, separate lane vehicle transforms, native lane JSON, one-lane merge and both return trips without lost tasks/cargo");
+        }
+        static void CheckWideRoads(HarborCityGame game,string output)
+        {
+            Func<float,float,float> flat=(x,z)=>1;var c=CityModel.Create();c.development.enabled=false;c.SetEntranceHeight(flat);
+            if(!c.CommitRoad(c.roads.Plan(c,c.roads.Node(CityRoads.Entrance),new RoadNode{x=40,z=1.5f,y=1},flat)))throw new InvalidOperationException("Native wide road initial construction failed");
+            int edge=c.roads.edges[0].id,money=c.money;var ids=c.roads.edges.Select(e=>e.id).ToArray();
+            c.PaintZones(c.ZoningCells(flat).Where(z=>z.pose.x<0),LandUse.Residential);
+            if(!c.PreviewRoadUpgrade(edge,RoadKind.FourLane,false,out int cost,out _,flat) || !c.UpgradeRoad(edge,RoadKind.FourLane,false,out _,flat) || c.money!=money-cost || !ids.SequenceEqual(c.roads.edges.Select(e=>e.id)) || !c.ZoningCells(flat).Any(z=>z.use==LandUse.Residential))throw new InvalidOperationException("Native paid widening/zoning failed");
+            int origin=c.PlaceBuilding(c.RoadsidePreview(-35,7,LandUse.Industrial,HousingKind.Apartment,out _),LandUse.Industrial,flat,out _);if(origin<0)throw new InvalidOperationException("Native wide building access failed");c.Inventory(origin).Stock=16;
+            var sim=new CityTraffic(c);var first=sim.Dispatch(origin,CityTraffic.Outside,TripPurpose.Export);var second=sim.Dispatch(origin,CityTraffic.Outside,TripPurpose.Export);
+            if(first==null || second==null || first.lane==second.lane)throw new InvalidOperationException("Native wide freight departure failed");
+            sim.Advance(.25f);c=JsonUtility.FromJson<CitySaveData>(JsonUtility.ToJson(c.ToSaveData())).ToCity();sim=new CityTraffic(c);
+            first=c.traffic.trips.First(t=>t.id==first.id);second=c.traffic.trips.First(t=>t.id==second.id);
+            const BindingFlags flags=BindingFlags.NonPublic|BindingFlags.Instance;var type=typeof(HarborCityGame);
+            var originalCity=type.GetField("city",flags).GetValue(game);var originalTraffic=type.GetField("traffic",flags).GetValue(game);
+            try
+            {
+                type.GetField("city",flags).SetValue(game,c);type.GetField("traffic",flags).SetValue(game,sim);type.GetMethod("AnimateTraffic",flags).Invoke(game,null);
+                var views=(System.Collections.Generic.Dictionary<int,Transform>)type.GetField("trafficViews",flags).GetValue(game);
+                Vector3 a=views[first.id].position,b=views[second.id].position;a.y=b.y=0;
+                if(Vector3.Distance(a,b)<1.05f)throw new InvalidOperationException("Native wide lane placement failed");
+            }
+            finally
+            {
+                type.GetField("city",flags).SetValue(game,originalCity);type.GetField("traffic",flags).SetValue(game,originalTraffic);type.GetMethod("AnimateTraffic",flags).Invoke(game,null);
+            }
+            int ai=first.id,bi=second.id;sim.Advance(100);
+            if(!c.Valid() || c.traffic.failed!=0 || c.traffic.lostGoods!=0 || c.traffic.completed<2 || c.traffic.trips.Any(t=>t.id==ai || t.id==bi))throw new InvalidOperationException("Native wide freight/return failed");
+            File.WriteAllText(Path.Combine(output,"WideRoads.txt"),"PASS: paid whole-street widening, stable IDs, retained roadside land use, actual parallel exports, separate vehicle transforms, native profile/lane JSON and complete returns without lost goods");
+        }
+        static CityModel ControlCity()
+        {
+            Func<float,float,float> flat=(x,z)=>1;var c=CityModel.Create();c.development.enabled=false;c.SetEntranceHeight(flat);
+            foreach(var points in new[]{new[]{c.roads.Node(CityRoads.Entrance),new RoadNode{x=48,z=1.5f,y=1}},new[]{new RoadNode{x=0,z=-40,y=1},new RoadNode{x=0,z=40,y=1}}})
+                if(!c.CommitRoad(c.roads.Plan(c,points[0],points[1],flat)))throw new InvalidOperationException("Native controlled crossroads failed");
+            return c;
+        }
+        static void CheckTrafficControls(HarborCityGame game,string output)
+        {
+            Func<float,float,float> flat=(x,z)=>1;var c=ControlCity();int node=c.roads.nodes.First(p=>Math.Abs(p.x)<.01f && Math.Abs(p.z-1.5f)<.01f).id;
+            int w=c.roads.Neighbors(node).First(p=>c.roads.Node(p).x<-.01f),n=c.roads.Neighbors(node).First(p=>c.roads.Node(p).z>1.51f);
+            c.roads.SetJunctionControl(node,JunctionControl.Signals,out _);
+            int west=c.PlaceBuilding(c.RoadsidePreview(-35,7,LandUse.Industrial,HousingKind.Apartment,out _),LandUse.Industrial,flat,out _),east=c.PlaceBuilding(c.RoadsidePreview(35,7,LandUse.Commercial,HousingKind.Apartment,out _),LandUse.Commercial,flat,out _);
+            int north=c.PlaceBuilding(c.RoadsidePreview(5,30,LandUse.Industrial,HousingKind.Apartment,out _),LandUse.Industrial,flat,out _),south=c.PlaceBuilding(c.RoadsidePreview(5,-30,LandUse.Commercial,HousingKind.Apartment,out _),LandUse.Commercial,flat,out _);
+            c.Inventory(west).Stock=c.Inventory(north).Stock=8;var sim=new CityTraffic(c);var a=sim.Dispatch(west,east,TripPurpose.Delivery);var b=sim.Dispatch(north,south,TripPurpose.Delivery);
+            foreach(var t in new[]{a,b}){if(t==null)throw new InvalidOperationException("Native controlled freight failed");t.segment=t.route.IndexOf(node)-1;t.progress=1-.4f/(c.roads.EdgeLength(t.Current,t.Next)/3);}
+            for(int i=0;i<200;i++){float time=i*.1f;if(c.roads.Signal(node,w,time)==SignalAspect.Green && c.roads.Signal(node,w,time+.7f)==SignalAspect.Green){c.traffic.clock=time;break;}}
+            sim=new CityTraffic(c);sim.Advance(.15f);
+            if(a.segment<a.route.IndexOf(node) || b.Next!=node || b.blocked<=0 || b.junctionWaitReason!="等待信号灯")throw new InvalidOperationException("Native actual red/green control failed");
+            var saved=JsonUtility.FromJson<CitySaveData>(JsonUtility.ToJson(c.ToSaveData())).ToCity();var savedSim=new CityTraffic(saved);
+            if(!saved.Valid() || saved.traffic.trips.First(t=>t.id==b.id).junctionWaitNode!=node)throw new InvalidOperationException("Native queued control JSON failed");
+            const BindingFlags flags=BindingFlags.NonPublic|BindingFlags.Instance;var type=typeof(HarborCityGame);var originalCity=type.GetField("city",flags).GetValue(game);var originalTraffic=type.GetField("traffic",flags).GetValue(game);
+            try
+            {
+                type.GetField("city",flags).SetValue(game,c);type.GetField("traffic",flags).SetValue(game,sim);type.GetMethod("AnimateTraffic",flags).Invoke(game,null);
+                var views=(System.Collections.Generic.Dictionary<(int node,int from),Renderer>)type.GetField("trafficControlViews",flags).GetValue(game);
+                if(!views.ContainsKey((node,w)) || !views.ContainsKey((node,n)) || views[(node,w)].sharedMaterial.color.g<.8f || views[(node,n)].sharedMaterial.color.r<.8f)throw new InvalidOperationException("Native actual signal marker phases failed");
+                c.roads.ToggleStop(node,w,out _);type.GetMethod("AnimateTraffic",flags).Invoke(game,null);
+                if(views.Count!=1 || !views[(node,w)].name.StartsWith("Stop sign"))throw new InvalidOperationException("Native stop marker control change failed");
+                c.roads.SetJunctionControl(node,JunctionControl.Signals,out _);
+            }
+            finally{type.GetField("city",flags).SetValue(game,originalCity);type.GetField("traffic",flags).SetValue(game,originalTraffic);type.GetMethod("AnimateTraffic",flags).Invoke(game,null);}
+            sim.Advance(80);savedSim.Advance(80);
+            if(!c.Valid() || !saved.Valid() || c.Goods(east)<8 || c.Goods(south)<8 || saved.Goods(east)<8 || saved.Goods(south)<8 || c.traffic.failed!=0 || saved.traffic.failed!=0 || c.traffic.trips.Any(t=>t.id==a.id || t.id==b.id))throw new InvalidOperationException("Native saved signals failed actual delivery/return");
+            c=ControlCity();node=c.roads.nodes.First(p=>Math.Abs(p.x)<.01f && Math.Abs(p.z-1.5f)<.01f).id;w=c.roads.Neighbors(node).First(p=>c.roads.Node(p).x<-.01f);c.roads.ToggleStop(node,w,out _);
+            west=c.PlaceBuilding(c.RoadsidePreview(-35,7,LandUse.Industrial,HousingKind.Apartment,out _),LandUse.Industrial,flat,out _);east=c.PlaceBuilding(c.RoadsidePreview(35,7,LandUse.Commercial,HousingKind.Apartment,out _),LandUse.Commercial,flat,out _);
+            c.Inventory(west).Stock=8;sim=new CityTraffic(c);a=sim.Dispatch(west,east,TripPurpose.Delivery);a.segment=a.route.IndexOf(node)-1;a.progress=1-.4f/(c.roads.EdgeLength(a.Current,a.Next)/3);sim=new CityTraffic(c);sim.Advance(.2f);
+            if(a.Next!=node || a.junctionStopTime<=0)throw new InvalidOperationException("Native actual stop duration failed");
+            saved=JsonUtility.FromJson<CitySaveData>(JsonUtility.ToJson(c.ToSaveData())).ToCity();float stopTime=saved.traffic.trips.First(t=>t.id==a.id).junctionStopTime;savedSim=new CityTraffic(saved);
+            if(saved.traffic.trips.First(t=>t.id==a.id).junctionStopTime!=stopTime)throw new InvalidOperationException("Native load advanced stop time");
+            sim.Advance(80);savedSim.Advance(80);
+            if(c.Goods(east)<8 || saved.Goods(east)<8 || c.traffic.failed!=0 || saved.traffic.failed!=0 || !c.Valid() || !saved.Valid() || c.traffic.trips.Any(t=>t.id==a.id) || saved.traffic.trips.Any(t=>t.id==a.id))throw new InvalidOperationException("Native saved stopping cargo delivery/return failed");
+            File.WriteAllText(Path.Combine(output,"TrafficControls.txt"),"PASS: native actual cargo red waits/green crossing, retained queued arrival in JSON, red/green signal and stop marker renderers, saved phase continuation, actual stopping duration retained on load, deliveries and complete return trips without failure");
+        }
+        IEnumerator CheckTrafficControlInput(HarborCityGame game,Mouse mouse)
+        {
+            const BindingFlags flags=BindingFlags.NonPublic|BindingFlags.Instance;var type=typeof(HarborCityGame);var originalCity=type.GetField("city",flags).GetValue(game);var originalTraffic=type.GetField("traffic",flags).GetValue(game);
+            var c=ControlCity();int node=c.roads.nodes.First(p=>Math.Abs(p.x)<.01f && Math.Abs(p.z-1.5f)<.01f).id;int w=c.roads.Neighbors(node).First(p=>c.roads.Node(p).x<-.01f);
+            try
+            {
+                type.GetField("city",flags).SetValue(game,c);type.GetField("traffic",flags).SetValue(game,new CityTraffic(c));type.GetField("selected",flags).SetValue(game,LandUse.Road);type.GetField("roadOperation",flags).SetValue(game,3);type.GetField("junctionTool",flags).SetValue(game,0);
+                yield return ClickWorld(game,mouse,new Vector2(0,1.5f));
+                if(!c.roads.HasSignals(node)){File.WriteAllText(Path.Combine(output,"Failure.txt"),"Signal on world-input failed");yield break;}
+                yield return ClickWorld(game,mouse,new Vector2(0,1.5f));
+                if(c.roads.HasSignals(node)){File.WriteAllText(Path.Combine(output,"Failure.txt"),"Signal off world-input failed");yield break;}
+                type.GetField("junctionTool",flags).SetValue(game,1);yield return ClickWorld(game,mouse,new Vector2(-2,1.5f));
+                if(!c.roads.Node(node).stopFrom.Contains(w)){File.WriteAllText(Path.Combine(output,"Failure.txt"),"Stop sign world-input failed");yield break;}
+                yield return ClickWorld(game,mouse,new Vector2(-2,1.5f));
+                type.GetField("junctionTool",flags).SetValue(game,2);yield return ClickWorld(game,mouse,new Vector2(0,1.5f));
+                if(c.roads.Node(node).stopFrom.Count!=0 || c.roads.Node(node).control!=JunctionControl.Automatic){File.WriteAllText(Path.Combine(output,"Failure.txt"),"Stop removal/default world-input failed");yield break;}
+                File.AppendAllText(Path.Combine(output,"Result.txt"),"; signal on/off, stop placement/removal and default world-input PASS (isolated controlled crossroads)");
+            }
+            finally{type.GetField("city",flags).SetValue(game,originalCity);type.GetField("traffic",flags).SetValue(game,originalTraffic);type.GetField("roadOperation",flags).SetValue(game,0);type.GetMethod("AnimateTraffic",flags).Invoke(game,null);}
+        }
+        IEnumerator CheckWideConnectionInput(HarborCityGame game,Mouse mouse)
+        {
+            const BindingFlags flags=BindingFlags.NonPublic|BindingFlags.Instance;var type=typeof(HarborCityGame);var originalCity=type.GetField("city",flags).GetValue(game);var originalTraffic=type.GetField("traffic",flags).GetValue(game);
+            var land=(CityLandscape)type.GetField("landscape",flags).GetValue(game);var c=CityModel.Create();c.development.enabled=false;c.SetEntranceHeight(land.Height);
+            var street=c.roads.Plan(c,c.roads.Node(CityRoads.Entrance),new RoadNode{x=40,z=1.5f,y=land.Height(40,1.5f)},land.Height,false,RoadKind.FourLane);
+            if(!c.CommitRoad(street)){File.WriteAllText(Path.Combine(output,"Failure.txt"),"Wide junction native initial road failed: "+street.error);yield break;}
+            try
+            {
+                type.GetField("city",flags).SetValue(game,c);type.GetField("traffic",flags).SetValue(game,new CityTraffic(c));type.GetField("selected",flags).SetValue(game,LandUse.Road);type.GetField("roadOperation",flags).SetValue(game,0);type.GetField("roadMode",flags).SetValue(game,0);type.GetField("roadKind",flags).SetValue(game,RoadKind.FourLane);type.GetField("roadOneWay",flags).SetValue(game,false);type.GetMethod("ResetRoad",flags).Invoke(game,null);type.GetMethod("RefreshRoadView",flags).Invoke(game,null);
+                foreach(var pair in new[]{new[]{new Vector2(0,1.5f),new Vector2(0,18)},new[]{new Vector2(0,-22),new Vector2(0,-10)},new[]{new Vector2(0,-10),new Vector2(0,1.5f)}})
+                {
+                    type.GetMethod("ResetRoad",flags).Invoke(game,null);int stroke=c.roads.nextStroke;yield return ClickWorld(game,mouse,pair[0]);yield return ClickWorld(game,mouse,pair[1]);
+                    if(c.roads.nextStroke!=stroke+1){File.WriteAllText(Path.Combine(output,"Failure.txt"),"Wide junction world-input connection failed: "+type.GetField("notice",flags).GetValue(game));yield break;}
+                }
+                int center=c.roads.nodes.First(n=>Math.Abs(n.x)<.01f && Math.Abs(n.z-1.5f)<.01f).id;
+                if(c.roads.Neighbors(center).Count!=4 || !c.roads.HasSignals(center) || !c.Valid()){File.WriteAllText(Path.Combine(output,"Failure.txt"),"Wide junction actual four-arm topology/control failed");yield break;}
+                c=JsonUtility.FromJson<CitySaveData>(JsonUtility.ToJson(c.ToSaveData())).ToCity();
+                int factory=c.PlaceBuilding(c.RoadsidePreview(5,-18,LandUse.Industrial,HousingKind.Apartment,out _),LandUse.Industrial,land.Height,out _),shop=c.PlaceBuilding(c.RoadsidePreview(5,13,LandUse.Commercial,HousingKind.Apartment,out _),LandUse.Commercial,land.Height,out _);
+                if(factory<0 || shop<0){File.WriteAllText(Path.Combine(output,"Failure.txt"),"Wide junction real cargo building fixture failed");yield break;}
+                c.Inventory(factory).Stock=8;var sim=new CityTraffic(c);var trip=sim.Dispatch(factory,shop,TripPurpose.Delivery);
+                if(trip==null || !trip.route.Contains(center)){File.WriteAllText(Path.Combine(output,"Failure.txt"),"Wide junction real freight route failed");yield break;}
+                int id=trip.id;sim.Advance(.3f);c=JsonUtility.FromJson<CitySaveData>(JsonUtility.ToJson(c.ToSaveData())).ToCity();sim=new CityTraffic(c);sim.Advance(80);
+                if(c.Goods(shop)<8 || c.traffic.failed!=0 || c.traffic.lostGoods!=0 || c.traffic.trips.Any(t=>t.id==id) || !c.Valid()){File.WriteAllText(Path.Combine(output,"Failure.txt"),"Wide junction saved actual cargo delivery/return failed");yield break;}
+                File.WriteAllText(Path.Combine(output,"WideConnections.txt"),"PASS: actual world-input four-lane T connection, separate south stub joined to form four-arm crossroads, native JSON, default signals, real cross-junction cargo delivery and return without task loss");
+                File.AppendAllText(Path.Combine(output,"Result.txt"),"; four-lane T/stub/crossroads world-input and real freight PASS");
+            }
+            finally{type.GetField("city",flags).SetValue(game,originalCity);type.GetField("traffic",flags).SetValue(game,originalTraffic);type.GetField("roadKind",flags).SetValue(game,RoadKind.Standard);type.GetMethod("ResetRoad",flags).Invoke(game,null);type.GetMethod("RefreshRoadView",flags).Invoke(game,null);type.GetMethod("AnimateTraffic",flags).Invoke(game,null);}
+        }
+        static void CheckRoadTypes(string output)
+        {
+            Func<float,float,float> flat=(x,z)=>1;var c=CityModel.Create();c.development.enabled=false;c.SetEntranceHeight(flat);
+            var plan=c.roads.Plan(c,c.roads.Node(CityRoads.Entrance),new RoadNode{x=45,z=1.5f,y=1},flat,false,RoadKind.Gravel);
+            if(!c.CommitRoad(plan))throw new InvalidOperationException("Native gravel build failed");
+            int origin=c.PlaceBuilding(c.RoadsidePreview(-35,7,LandUse.Industrial,HousingKind.Apartment,out _),LandUse.Industrial,flat,out _);
+            int destination=c.PlaceBuilding(c.RoadsidePreview(35,7,LandUse.Commercial,HousingKind.Apartment,out _),LandUse.Commercial,flat,out _);
+            c.Inventory(origin).Stock=8;var sim=new CityTraffic(c);var t=sim.Dispatch(origin,destination,TripPurpose.Delivery);if(t==null)throw new InvalidOperationException("Native gravel freight failed");
+            sim.Advance(.05f);c=JsonUtility.FromJson<CitySaveData>(JsonUtility.ToJson(c.ToSaveData())).ToCity();t=c.traffic.trips.First(p=>p.id==t.id);
+            float before=t.progress;int funds=c.money;int upkeep=c.RoadMaintenance;
+            if(!c.PreviewRoadUpgrade(c.roads.edges[0].id,RoadKind.Standard,false,out int cost,out _) || !c.UpgradeRoad(c.roads.edges[0].id,RoadKind.Standard,false,out _) || c.money!=funds-cost || t.progress!=before || c.RoadMaintenance<=upkeep)throw new InvalidOperationException("Native moving gravel upgrade failed");
+            c=JsonUtility.FromJson<CitySaveData>(JsonUtility.ToJson(c.ToSaveData())).ToCity();sim=new CityTraffic(c);sim.Advance(60);
+            if(!c.Valid() || c.Goods(destination)<8 || c.traffic.failed>0 || c.traffic.trips.Any(p=>p.id==t.id) || c.roads.edges.Any(e=>e.kind!=RoadKind.Standard))throw new InvalidOperationException("Native upgraded freight save/delivery/return failed");
+            File.WriteAllText(Path.Combine(output,"RoadTypes.txt"),"PASS: gravel construction, real moving freight, native JSON, paid paving with upkeep/speed changes, preserved position, cargo delivery and return");
+        }
+        static void CheckJunctions(string output)
+        {
+            Func<float,float,float> flat=(x,z)=>1;var c=CityModel.Create();c.development.enabled=false;c.SetEntranceHeight(flat);
+            foreach(var points in new[]{new[]{c.roads.Node(CityRoads.Entrance),new RoadNode{x=48,z=1.5f,y=1}},new[]{new RoadNode{x=0,z=-40,y=1},new RoadNode{x=0,z=40,y=1}}})
+                if(!c.CommitRoad(c.roads.Plan(c,points[0],points[1],flat)))throw new InvalidOperationException("Native crossroads construction failed");
+            int west=c.PlaceBuilding(c.RoadsidePreview(-35,7,LandUse.Industrial,HousingKind.Apartment,out _),LandUse.Industrial,flat,out _);
+            int eastShop=c.PlaceBuilding(c.RoadsidePreview(35,7,LandUse.Commercial,HousingKind.Apartment,out _),LandUse.Commercial,flat,out _);
+            int east=c.PlaceBuilding(c.RoadsidePreview(35,-5,LandUse.Industrial,HousingKind.Apartment,out _),LandUse.Industrial,flat,out _);
+            int westShop=c.PlaceBuilding(c.RoadsidePreview(-35,-5,LandUse.Commercial,HousingKind.Apartment,out _),LandUse.Commercial,flat,out _);
+            int node=c.roads.nodes.First(n=>Math.Abs(n.x)<.01f && Math.Abs(n.z-1.5f)<.01f).id;
+            c.Inventory(west).Stock=8;c.Inventory(east).Stock=8;var sim=new CityTraffic(c);
+            var trips=new[]{sim.Dispatch(west,eastShop,TripPurpose.Delivery),sim.Dispatch(east,westShop,TripPurpose.Delivery)};
+            foreach(var t in trips){if(t==null)throw new InvalidOperationException("Native junction dispatch failed");t.segment=t.route.IndexOf(node)-1;t.progress=1-.4f/(CityRoads.Length(c.roads.Node(t.Current),c.roads.Node(t.Next))/3);}
+            sim=new CityTraffic(c);sim.Advance(.15f);
+            if(trips.Any(t=>t.Current!=node || t.blocked>0))throw new InvalidOperationException("Native opposite freight did not share junction");
+            c=JsonUtility.FromJson<CitySaveData>(JsonUtility.ToJson(c.ToSaveData())).ToCity();sim=new CityTraffic(c);sim.Advance(60);
+            if(!c.Valid() || c.traffic.failed>0 || c.Goods(eastShop)<8 || c.Goods(westShop)<8 || c.traffic.trips.Any(t=>trips.Any(p=>p.id==t.id)))throw new InvalidOperationException("Native shared junction save/delivery/return failed");
+            File.WriteAllText(Path.Combine(output,"Junctions.txt"),"PASS: simultaneous opposite real freight, native JSON in-junction save, both cargo deliveries and returns without task loss");
+        }
+        static void CheckRoadDirection(string output)
+        {
+            Func<float,float,float> flat=(x,z)=>1;var c=CityModel.Create();c.development.enabled=false;c.SetEntranceHeight(flat);
+            var a=new RoadNode{x=-45,z=1.5f,y=1};var b=new RoadNode{x=30,z=1.5f,y=1};var d=new RoadNode{x=30,z=25,y=1};var e=new RoadNode{x=-45,z=25,y=1};
+            var points=new[]{c.roads.Node(CityRoads.Entrance),a,b,d,e,a};
+            for(int n=1;n<points.Length;n++)if(!c.CommitRoad(c.roads.Plan(c,points[n-1],points[n],flat,n>1)))throw new InvalidOperationException("Native directed loop construction failed");
+            int origin=c.PlaceBuilding(c.RoadsidePreview(-35,7,LandUse.Industrial,HousingKind.Apartment,out _),LandUse.Industrial,flat,out _);
+            int destination=c.PlaceBuilding(c.RoadsidePreview(20,7,LandUse.Commercial,HousingKind.Apartment,out _),LandUse.Commercial,flat,out _);
+            c.Inventory(origin).Stock=8;var sim=new CityTraffic(c);var trip=sim.Dispatch(origin,destination,TripPurpose.Delivery);
+            if(trip==null || sim.FindRoute(destination,origin).Count<=trip.route.Count)throw new InvalidOperationException("Native vehicle did not respect one-way return detour");
+            sim.Advance(.05f);int id=trip.id;c=JsonUtility.FromJson<CitySaveData>(JsonUtility.ToJson(c.ToSaveData())).ToCity();sim=new CityTraffic(c);
+            for(int n=0;n<4000 && c.traffic.trips.Any(t=>t.id==id);n++)sim.Advance(.05f);
+            if(c.traffic.trips.Any(t=>t.id==id) || c.Goods(destination)<8 || !c.Valid())throw new InvalidOperationException("Native saved one-way freight did not deliver and return");
+            File.WriteAllText(Path.Combine(output,"RoadDirection.txt"),"PASS: directed loop, real freight detour/delivery/return and native JSON continuation");
+        }
         static void CheckLoans(CityModel source,string output)
         {
             var city=JsonUtility.FromJson<CitySaveData>(JsonUtility.ToJson(source.ToSaveData())).ToCity();

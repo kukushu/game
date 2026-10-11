@@ -12,7 +12,8 @@ namespace HarborCity
         public static void Run()
         {
             // Replays an exported copy only; never advances or overwrites the live city.
-            const string input="Temp/TrafficJam.json";
+            var args=Environment.GetCommandLineArgs();int index=Array.IndexOf(args,"-harbor-traffic-snapshot");
+            string input=index>=0 && index+1<args.Length?args[index+1]:"Temp/TrafficJam.json";
             if(!File.Exists(input)) throw new Exception("Copy a city snapshot to "+input+" first.");
             var c=JsonUtility.FromJson<CitySaveData>(File.ReadAllText(input)).ToCity();
             if(!c.Valid()) throw new Exception("Invalid traffic diagnostic snapshot");
@@ -22,7 +23,7 @@ namespace HarborCity
             int remaining=c.traffic.trips.Count(t=>stuck.Contains(t.id) && t.blocked>30);
             string result="Traffic replay 30s: completed +"+(c.traffic.completed-completed)+", failed +"+(c.traffic.failed-failed)+
                 ", originally blocked="+stuck.Length+", still blocked="+remaining+", valid="+c.Valid();
-            File.WriteAllText("Temp/TrafficReplayChecks.txt",result);
+            File.WriteAllText(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(input)),"TrafficReplayChecks.txt"),result);
             if(remaining>0 || c.traffic.failed!=failed || !c.Valid()) throw new Exception(result);
             Debug.Log("PASS: "+result);
         }

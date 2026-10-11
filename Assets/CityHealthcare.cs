@@ -43,15 +43,15 @@ namespace HarborCity
             var h=city.society.families.FirstOrDefault(f=>f.resident && f.people.Any(p=>p.id==citizen));var person=h?.people.Find(p=>p.id==citizen);
             if(!city.development.enabled || person==null || !person.sick || person.atWork || person.tripId!=0 || person.medicalStage!=MedicalStage.None || person.location!=h.home || State.trips.Count>=TaskCapacity || State.nextId==int.MaxValue)return null;
             foreach(var clinic in city.buildings.OfType<ClinicBuilding>().Where(b=>city.HasBasicServices(b.id) && city.ClinicReservations(b.id)<city.ClinicCapacity)
-                .OrderBy(b=>city.TravelMinutes(h.home,b.id)).ThenBy(b=>b.id))
+                .OrderBy(b=>city.TravelMinutes(h.home,b.id,true)).ThenBy(b=>b.id))
             {
-                var walk=FindRoute(h.home,clinic.id);if(walk.Count==0)continue;
+                var walk=FindRoute(h.home,clinic.id,true);if(walk.Count==0)continue;
                 var pickup=FindRoute(clinic.id,h.home);
-                bool ambulance=city.ClinicAmbulances(clinic.id)<city.ClinicFleetLimit && pickup.Count>0 && CanEnter(pickup,null);
+                bool ambulance=city.ClinicAmbulances(clinic.id)<city.ClinicFleetLimit && pickup.Count>0 && FindRoute(h.home,clinic.id).Count>0 && CanEnter(pickup,null);
                 var trip=new TrafficTrip{id=State.nextId++,origin=ambulance?clinic.id:h.home,destination=ambulance?h.home:clinic.id,
                     home=h.home,residentId=citizen,householdId=h.id,purpose=TripPurpose.Healthcare,clinicId=clinic.id,medicalPickup=ambulance,walking=!ambulance,
                     route=ambulance?pickup:walk,departedAt=State.clock};
-                State.trips.Add(trip);person.tripId=trip.id;person.medicalClinicId=clinic.id;person.medicalStage=MedicalStage.Assigned;person.treatmentMinutes=0;
+                AddTrip(trip);person.tripId=trip.id;person.medicalClinicId=clinic.id;person.medicalStage=MedicalStage.Assigned;person.treatmentMinutes=0;
                 city.Trace("healthcare.dispatched",ambulance?"救护车从诊所实际出发接人；居民仍在家":"暂无可发救护车，居民实际步行就诊",trip,household:h.id,citizen:citizen,building:clinic.id,trip:trip.id);return trip;
             }
             return null;
@@ -96,10 +96,10 @@ namespace HarborCity
                 if(p.tripId!=0 || p.atWork || State.clock<p.retryAt)continue;
                 if(p.medicalStage==MedicalStage.Returning)
                 {
-                    p.retryAt=State.clock+.25f;var route=FindRoute(p.location,h.home);if(route.Count==0 || State.trips.Count>=TaskCapacity || State.nextId==int.MaxValue)continue;
+                    p.retryAt=State.clock+.25f;var route=FindRoute(p.location,h.home,true);if(route.Count==0 || State.trips.Count>=TaskCapacity || State.nextId==int.MaxValue)continue;
                     var trip=new TrafficTrip{id=State.nextId++,origin=p.location,destination=h.home,home=h.home,householdId=h.id,residentId=p.id,
                         purpose=TripPurpose.Healthcare,clinicId=p.medicalClinicId,walking=true,returning=true,route=route,departedAt=State.clock};
-                    State.trips.Add(trip);p.tripId=trip.id;
+                    AddTrip(trip);p.tripId=trip.id;
                     city.Trace("healthcare.returning","居民从治疗地点实际步行返家",trip,household:h.id,citizen:p.id,trip:trip.id);
                 }
                 else if(p.medicalStage==MedicalStage.None && p.sick && p.location==h.home)

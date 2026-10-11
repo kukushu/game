@@ -26,7 +26,7 @@ namespace HarborCity
             var trip=new TrafficTrip{id=State.nextId++,origin=landfillId,destination=destination,home=landfillId,cargo=cargo,cargoKind=CargoKind.Waste,
                 purpose=transfer?TripPurpose.GarbageTransfer:TripPurpose.GarbagePickup,route=route,departedAt=State.clock};
             if(transfer)landfill.stored-=cargo;
-            State.trips.Add(trip);city.Trace("garbage.truck_started",transfer?"垃圾转运车实际出发":"垃圾车出发收集",trip,building:landfillId,trip:trip.id);return trip;
+            AddTrip(trip);city.Trace("garbage.truck_started",transfer?"垃圾转运车实际出发":"垃圾车出发收集",trip,building:landfillId,trip:trip.id);return trip;
         }
         bool ScheduleWaste()
         {

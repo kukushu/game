@@ -15,7 +15,7 @@ namespace HarborCity
             var route=FindRoute(home,shop);if(route.Count==0 || !CanEnter(route,null))return null;
             var trip=new TrafficTrip{id=State.nextId++,origin=home,destination=shop,home=home,residentId=citizen,householdId=family.id,
                 purpose=TripPurpose.Shopping,route=route,departedAt=State.clock};
-            State.trips.Add(trip);person.tripId=trip.id;family.shoppingDay=city.day;
+            AddTrip(trip);person.tripId=trip.id;family.shoppingDay=city.day;
             city.Trace("trip.started","家庭成员实际出发购物",trip,household:family.id,citizen:citizen,trip:trip.id);return trip;
         }
         void ScheduleShopping()

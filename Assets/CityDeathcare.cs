@@ -110,7 +110,7 @@ namespace HarborCity
             if(!city.development.enabled || !(city.GetBuilding(cemetery) is CemeteryBuilding) || !city.HasBasicServices(cemetery) || body==null || body.stage!=CorpseStage.Waiting || city.CemeteryReserved(cemetery)>=CemeteryBuilding.Capacity || city.HearsesAt(cemetery)>=city.HearseFleetLimit || State.trips.Count>=TaskCapacity || State.nextId==int.MaxValue)return null;
             var route=FindRoute(cemetery,body.buildingId);if(route.Count==0 || !CanEnter(route,null))return null;
             var trip=new TrafficTrip{id=State.nextId++,origin=cemetery,home=cemetery,destination=body.buildingId,purpose=TripPurpose.Deathcare,corpseId=citizen,route=route,departedAt=State.clock};
-            body.stage=CorpseStage.Assigned;body.cemeteryId=cemetery;body.tripId=trip.id;State.trips.Add(trip);
+            body.stage=CorpseStage.Assigned;body.cemeteryId=cemetery;body.tripId=trip.id;AddTrip(trip);
             city.Trace("deathcare.dispatched","有限灵车实际出发；遗体仍在原建筑，墓地预留一个位置",trip,citizen:citizen,building:body.buildingId,trip:trip.id);return trip;
         }
         void ScheduleDeathcare()

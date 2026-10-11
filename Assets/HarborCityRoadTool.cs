@@ -11,6 +11,11 @@ namespace HarborCity
         RoadNode roadStart;
         RoadNode curveControl,previousCurveControl;
         int roadMode;
+        int roadOperation;
+        int junctionTool;
+        bool roadOneWay;
+        RoadKind roadKind;
+        string roadUpgradePreview;
         RoadPlan roadPlan;
         readonly List<(int stroke,int cost)> roadUndo = new List<(int,int)>();
         Vector2 plannedPointer = new Vector2(float.MaxValue,float.MaxValue);
@@ -43,6 +48,7 @@ namespace HarborCity
         void ResetRoad()
         {
             roadStart=null;curveControl=null;previousCurveControl=null;roadPlan=null;
+            roadUpgradePreview=null;
             if(roadPreview!=null) roadPreview.positionCount=0;
         }
         void RefreshRoadView()
@@ -91,6 +97,29 @@ namespace HarborCity
                 }
                 return true;
             }
+            if(roadOperation==3)
+            {
+                ResetRoad();int node=city.roads.PickJunction(hit.x,hit.z);if(node<0)return true;
+                int from=city.roads.PickJunctionApproach(node,hit.x,hit.z);
+                roadUpgradePreview="路口 #"+node+" · "+(city.roads.HasSignals(node)?"信号控制":"无信号")+(from<0?"":"\n入口 #"+from+" · "+(city.roads.Node(node).stopFrom.Contains(from)?"停车牌":"无停车牌"));
+                if(mouse.leftButton.wasPressedThisFrame)
+                {
+                    string reason;bool changed=junctionTool==1?city.roads.ToggleStop(node,from,out reason):city.roads.SetJunctionControl(node,junctionTool==2?JunctionControl.Automatic:city.roads.HasSignals(node)?JunctionControl.Uncontrolled:JunctionControl.Signals,out reason);
+                    if(changed)city.Trace("junction.control_changed",reason,new CityLogDetail{ids=new List<int>{node,from}});
+                    notice=reason;
+                }
+                return true;
+            }
+            if(roadOperation>0)
+            {
+                ResetRoad();var picked=city.roads.Pick(hit.x,hit.z);if(picked==null)return true;
+                roadPreview.sharedMaterial=Mat(palette[2]);roadPreview.startWidth=roadPreview.endWidth=CityRoadTypes.Width(roadOperation==1?roadKind:picked.kind);
+                roadPreview.positionCount=2;roadPreview.SetPositions(new[]{RoadPosition(picked.a)+Vector3.up*.2f,RoadPosition(picked.b)+Vector3.up*.2f});
+                if(roadOperation==1)city.PreviewRoadUpgrade(picked.id,roadKind,roadOneWay,out _,out roadUpgradePreview,landscape.Height);
+                if(mouse.leftButton.wasPressedThisFrame)
+                {string reason;bool changed=roadOperation==2?city.ChangeRoadDirection(picked.id,true,true,out reason):city.UpgradeRoad(picked.id,roadKind,roadOneWay,out reason,landscape.Height);if(changed){RefreshRoadView();roadUndo.Clear();}notice=reason;}
+                return true;
+            }
             var end=city.roads.Snap(hit.x,hit.z,landscape.Height);
             if(roadStart==null)
             {
@@ -106,8 +135,8 @@ namespace HarborCity
             var control=curveControl??(roadMode==2 && previousCurveControl!=null?CityRoads.ContinuationControl(roadStart,previousCurveControl,end):null);
             var pointer=new Vector2(end.x,end.z);
             if(roadPlan==null || Vector2.Distance(pointer,plannedPointer)>.05f || roadPlan.revision!=city.roads.revision || mouse.leftButton.wasPressedThisFrame)
-            { roadPlan=roadMode>0 && control!=null?city.roads.PlanCurve(city,roadStart,control,end,landscape.Height):city.roads.Plan(city,roadStart,end,landscape.Height); plannedPointer=pointer; }
-            roadPreview.sharedMaterial=Mat(roadPlan.Valid ? palette[2] : palette[8]); roadPreview.startWidth=roadPreview.endWidth=CityRoads.Width;
+            { roadPlan=roadMode>0 && control!=null?city.roads.PlanCurve(city,roadStart,control,end,landscape.Height,roadOneWay,roadKind):city.roads.Plan(city,roadStart,end,landscape.Height,roadOneWay,roadKind); plannedPointer=pointer; }
+            roadPreview.sharedMaterial=Mat(roadPlan.Valid ? palette[2] : palette[8]); roadPreview.startWidth=roadPreview.endWidth=CityRoadTypes.Width(roadKind);
             var preview=new List<Vector3>();
             for(int k=1;k<roadPlan.points.Count;k++)
             {
@@ -146,15 +175,26 @@ namespace HarborCity
         }
         void RoadToolPanel(Color background)
         {
-            Panel(new Rect(24,120,310,258),background);
-            GUI.Label(new Rect(40,134,278,32),"基础道路 · 双向",label);
-            int mode=GUI.Toolbar(new Rect(40,173,278,28),roadMode,new[]{"直线","曲线","自由曲线"},button);
-            if(mode!=roadMode) {ResetRoad();roadMode=mode;}
+            Panel(new Rect(24,120,310,385),background);
+            GUI.Label(new Rect(40,134,278,32),CityRoadTypes.Name(roadKind),label);
+            int type=GUI.Toolbar(new Rect(40,173,278,28),roadOneWay?1:0,new[]{"双向道路","单行道路"},button);
+            if((type==1)!=roadOneWay){ResetRoad();roadOneWay=type==1;if(roadOneWay)roadKind=RoadKind.Standard;}
+            int operation=GUI.Toolbar(new Rect(40,208,278,28),roadOperation,new[]{"建设","改类型","反向","路口"},button);
+            if(operation!=roadOperation){ResetRoad();roadOperation=operation;}
+            if(roadOperation==3)
+            {int mode=GUI.Toolbar(new Rect(40,243,278,28),junctionTool,new[]{"开关信号","停车牌","恢复默认"},button);if(mode!=junctionTool){ResetRoad();junctionTool=mode;}}
+            else
+            {int mode=GUI.Toolbar(new Rect(40,243,278,28),roadMode,new[]{"直线","曲线","自由曲线"},button);if(mode!=roadMode){ResetRoad();roadMode=mode;}}
+            int surface=GUI.Toolbar(new Rect(40,278,278,28),(int)roadKind,new[]{"普通铺装","双向土路","四车道"},button);
+            if(surface!=(int)roadKind){ResetRoad();roadKind=(RoadKind)surface;roadUpgradePreview=null;if(roadKind!=RoadKind.Standard)roadOneWay=false;}
             string details=roadStart==null ? (roadMode>0?"起点 → 方向点 → 终点。":"点击起点，再点击终点。")+"\n端点与已有道路会自动吸附。" : roadPlan==null ? (curveControl!=null?"移动鼠标选择终点，再点击确认。":previousCurveControl!=null?"下一段延续末端方向，点击终点。":"移动鼠标选择下一点。")
                 : "长度 "+roadPlan.length.ToString("F1")+" 单位   费用 ¥ "+roadPlan.cost+"\n最大坡度 "+(roadPlan.grade*100).ToString("F1")+"%\n"+(roadPlan.Valid ? "可以建设 · 交叉处自动形成路口" : roadPlan.error);
-            GUI.Label(new Rect(40,208,278,76),details,small);
-            GUI.Label(new Rect(40,284,278,44),"右键 / Esc 逐点撤回，再按退出\nCtrl+Z 撤销上一笔道路",small);
-            if(GUI.Button(new Rect(40,337,278,27),"撤销上一笔道路",button)) UndoRoad();
+            if(roadOperation>0)details=roadOperation==2?"左键点击单行路段，反转整个路口间路段。\n有车辆占用时暂不能修改。":"左键点击路段，改为所选类型。\n"+(roadUpgradePreview??"移到道路上预览费用。");
+            if(roadOperation==3)details="信号：点路口；停车牌：点驶入道路。\n停车牌关信号；恢复默认保留牌。\n"+(roadUpgradePreview??"移到路口查看状态。");
+            else if(roadOneWay)details+="\n单行方向：起点 → 终点。";
+            GUI.Label(new Rect(40,310,278,88),details,small);
+            GUI.Label(new Rect(40,400,278,44),"右键 / Esc 撤回或退出；右键拖动旋转\nCtrl+Z 撤销上一笔道路",small);
+            if(GUI.Button(new Rect(40,454,278,27),"撤销上一笔道路",button)) UndoRoad();
         }
         Vector3 RoadPosition(int id)
         {

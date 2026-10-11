@@ -148,7 +148,7 @@ namespace HarborCity
                     {
                         var route=Search(new System.Collections.Generic.List<int>{p.accessNode},Access(h.home));
                         if(route.Count>0 && CanEnter(route,null) && State.trips.Count<TaskCapacity)
-                        {trip=new TrafficTrip{id=State.nextId++,origin=-1,destination=h.home,purpose=TripPurpose.Commute,residentId=p.id,route=route}; State.trips.Add(trip);}
+                        {trip=new TrafficTrip{id=State.nextId++,origin=-1,destination=h.home,purpose=TripPurpose.Commute,residentId=p.id,route=route}; AddTrip(trip);}
                     }
                     if(trip==null)
                     {

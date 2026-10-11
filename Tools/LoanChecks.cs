@@ -28,7 +28,7 @@ public static class LoanChecks
         }
         c=CityModel.Create();c.TakeLoan(0,out _);c.money=-100;c.Tick();Check(c.money<-100 && c.loans.contracts[0].paid==57 && c.Valid(),"Negative treasury still records repayment");
         c=CityModel.Create();var dto=c.ToSaveData();dto.format=23;dto.loans=null;money=c.money;var migrated=dto.ToCity();
-        Check(migrated.money==money && migrated.LoanDebt==0 && migrated.Valid() && migrated.ToSaveData().format==24,"Format 23 migrates without changing money");
+        Check(migrated.money==money && migrated.LoanDebt==0 && migrated.Valid() && migrated.ToSaveData().format==CityModel.SaveFormat,"Format 23 migrates without changing money");
         dto=migrated.ToSaveData();dto.loans=null;bool rejected=false;try{dto.ToCity();}catch(ArgumentException){rejected=true;}Check(rejected,"Format 24 requires loan state");
         c=CityModel.Create();c.TakeLoan(0,out _);saved=TestCity.RoundTrip(c);saved.loans.contracts[0].paid=21001;Check(!saved.Valid(),"Overpaid contract rejected");
         saved=TestCity.RoundTrip(c);saved.loans.contracts[0].offerId=9;Check(!saved.Valid(),"Unknown saved offer rejected");

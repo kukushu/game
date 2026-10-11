@@ -572,6 +572,7 @@ namespace HarborCity
 
         void AnimateTraffic()
         {
+            UpdateTrafficControlViews();
             var activeIds = new HashSet<int>();
             foreach(var trip in traffic.State.trips) if(trip.status!=TripStatus.Visiting || trip.purpose==TripPurpose.FireResponse || trip.purpose==TripPurpose.PoliceResponse || trip.purpose==TripPurpose.Deathcare) activeIds.Add(trip.id);
             var expired = new List<int>();
@@ -636,21 +637,23 @@ namespace HarborCity
             Vector3 start = RoadPosition(a), end = RoadPosition(b);
             Vector3 direction = end - start; direction.y = 0; direction.Normalize();
             Vector3 right = Vector3.Cross(Vector3.up,direction);
-            Vector3 startRight = right, endRight = right;
+            float offset=trip.walking?city.roads.EdgeWidth(a,b)/2+.2f:city.roads.LaneOffset(a,b,city.roads.TripLane(trip,segment));
+            Vector3 startRight = right*offset, endRight = right*offset;
             if (segment > 0)
             {
                 int previous = trip.route[segment - 1];
                 Vector3 incoming = start - RoadPosition(previous); incoming.y = 0;
-                startRight = (right + Vector3.Cross(Vector3.up,incoming.normalized)) * .5f;
+                float previousOffset=trip.walking?city.roads.EdgeWidth(previous,a)/2+.2f:city.roads.LaneOffset(previous,a,city.roads.TripLane(trip,segment-1));
+                startRight = (right*offset + Vector3.Cross(Vector3.up,incoming.normalized)*previousOffset) * .5f;
             }
             if (segment + 2 < trip.route.Count)
             {
                 int next = trip.route[segment + 2];
                 Vector3 outgoing = RoadPosition(next) - end; outgoing.y = 0;
-                endRight = (right + Vector3.Cross(Vector3.up,outgoing.normalized)) * .5f;
+                float nextOffset=trip.walking?city.roads.EdgeWidth(b,next)/2+.2f:city.roads.LaneOffset(b,next,city.roads.TripLane(trip,segment+1));
+                endRight = (right*offset + Vector3.Cross(Vector3.up,outgoing.normalized)*nextOffset) * .5f;
             }
-            float offset=trip.walking?CityRoads.Width/2+.2f:.55f;
-            Vector3 point = Vector3.Lerp(start + startRight * offset,end + endRight * offset,fraction);
+            Vector3 point = Vector3.Lerp(start + startRight,end + endRight,fraction);
             point.y = (city.roads == null ? landscape.Height(point.x,point.z) : CityRoadView.SurfaceHeight(city.roads,landscape,point,a,b)) + .32f;
             return point;
         }
@@ -708,7 +711,7 @@ namespace HarborCity
             float x = position.x / scale, y = (Screen.height - position.y) / scale;
             float width = Screen.width / scale, height = Screen.height / scale;
             return (showEconomy && new Rect(360,120,330,490).Contains(new Vector2(x,y)) || showInfoViews && new Rect(360,120,330,250).Contains(new Vector2(x,y))) || showSimulation && new Rect(340,110,width-640,height-305).Contains(new Vector2(x,y)) || y < 108 || y > height - 185 || (x > width - 290 && y < 490)
-                || (help && x < 485 && y < 470) || (!help && x < (selected==LandUse.Empty && city.UseOf(inspectedHome)==LandUse.Residential && !showSimulation?24+ResidenceInspectorWidth:345) && y > 115 && y < (selected==LandUse.Empty && inspectedHome>=0?height-200:selected==LandUse.Park?503:385));
+                || (help && x < 485 && y < 470) || (!help && x < (selected==LandUse.Empty && city.UseOf(inspectedHome)==LandUse.Residential && !showSimulation?24+ResidenceInspectorWidth:345) && y > 115 && y < (selected==LandUse.Empty && inspectedHome>=0?height-200:selected==LandUse.Park?503:selected==LandUse.Road?505:385));
         }
 
         void Styles()
@@ -788,6 +791,9 @@ namespace HarborCity
                 {
                     string status = trip.status == TripStatus.Visiting ? "已到达 / 停留" : trip.status == TripStatus.Waiting ? "等待道路恢复"
                         : trip.blocked > .1f ? "排队让行" : "行驶中";
+                    if(!trip.walking && trip.Current!=trip.Next && city.roads.LaneCount(trip.Current,trip.Next)>0 && trip.status!=TripStatus.Visiting)
+                        status+=" · 车道 "+(trip.lane+1)+"/"+city.roads.LaneCount(trip.Current,trip.Next);
+                    if(trip.blocked>.1f && !string.IsNullOrEmpty(trip.junctionWaitReason))status+=" · "+trip.junctionWaitReason;
                     GUI.Label(new Rect(40,180,278,158),"车辆 #" + trip.id + "  " + Purpose(trip) + "\n从：" + EndpointName(trip.origin)
                         + "\n到：" + EndpointName(trip.destination) + "\n状态：" + status + "\n剩余路段：" + (trip.route.Count - 1 - trip.segment)
                         + (trip.blocked>.1f?"\n连续等待："+trip.blocked.ToString("F1")+" 秒":"")
@@ -806,7 +812,7 @@ namespace HarborCity
                 Rect r = new Rect(40 + (n - 1) * 111,h - 120,101,74);
                 Panel(r,selected == (LandUse)n ? new Color(.23f,.39f,.43f) : new Color(.1f,.17f,.21f));
                 Panel(new Rect(r.x,r.y,101,4),palette[n]);
-                if (GUI.Button(r,n + "  " + names[n] + (n == 1 ? "\n¥ 100 / 3单位" : n>=2 && n<=4 ? "\n沿路划区" : n==7?"\n公共服务":n==5 || n==6?"\n设施 / 管线":"\n¥ " + CityModel.Cost((LandUse)n)),button)) selected = (LandUse)n;
+                if (GUI.Button(r,n + "  " + names[n] + (n == 1 ? "\n¥ "+CityRoadTypes.ConstructionCost(3,roadKind)+" / 3单位" : n>=2 && n<=4 ? "\n沿路划区" : n==7?"\n公共服务":n==5 || n==6?"\n设施 / 管线":"\n¥ " + CityModel.Cost((LandUse)n)),button)) selected = (LandUse)n;
             }
             if (GUI.Button(new Rect(955,h - 118,76,31),speed == 0 ? "继续" : "暂停",button)) speed = speed == 0 ? 1 : 0;
             if (GUI.Button(new Rect(1039,h - 118,76,31),speed == 3 ? "3×" : "1×",button)) speed = speed == 3 ? 1 : 3;

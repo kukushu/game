@@ -44,10 +44,10 @@ namespace HarborCity
             }
             return true;
         }
-        public bool HitsRoad(RoadNode a, RoadNode b)
+        public bool HitsRoad(RoadNode a, RoadNode b,float roadWidth=CityRoads.Width)
         {
             float length = CityRoads.Length(a,b);
-            return Overlaps((a.x+b.x)/2,(a.z+b.z)/2,-(float)(Math.Atan2(b.z-a.z,b.x-a.x)*180/Math.PI),length+.08f,CityRoads.Width+.12f);
+            return Overlaps((a.x+b.x)/2,(a.z+b.z)/2,-(float)(Math.Atan2(b.z-a.z,b.x-a.x)*180/Math.PI),length+.08f,roadWidth+.12f);
         }
     }
 
@@ -133,11 +133,11 @@ namespace HarborCity
             { buildingEntrances.Clear(); accessRoads=roads; accessRevision=roads.revision; }
             if (buildingEntrances.TryGetValue(id,out var result)) return result;
             var b=GetBuilding(id); var p=new RoadNode { x=b.entranceX,z=b.entranceZ };
-            RoadEdge best=null; float distance=CityRoads.Width/2+.45f;
+            RoadEdge best=null; float distance=float.MaxValue;
             foreach (var e in roads.edges)
             {
                 float d=CityRoads.Distance(p,roads.Node(e.a),roads.Node(e.b));
-                if (d<distance) { distance=d; best=e; }
+                if (d<CityRoadTypes.Width(e.kind)/2+.45f && d<distance) { distance=d; best=e; }
             }
             result=new List<int>();
             if (best!=null) result.Add(CityRoads.Length(p,roads.Node(best.a))<=CityRoads.Length(p,roads.Node(best.b)) ? best.a : best.b);
@@ -170,7 +170,7 @@ namespace HarborCity
                     if(height(px,pz)<=.15f) {shore=true;break;}}
                 if(!shore) {error="排水设施须建在水岸附近";return false;}
             }
-            foreach(var e in roads.edges) if(lot.HitsRoad(roads.Node(e.a),roads.Node(e.b)))
+            foreach(var e in roads.edges) if(lot.HitsRoad(roads.Node(e.a),roads.Node(e.b),CityRoadTypes.Width(e.kind)))
             { error="地块与道路重叠"; return false; }
             foreach(var existing in buildings) if(lot.Overlaps(existing))
             { error="地块与已有建筑或分区重叠"; return false; }
@@ -254,7 +254,7 @@ namespace HarborCity
             var lot=NewBuilding(use); lot.id=-1; lot.yaw=(float)(Math.Atan2(nx,nz)*180/Math.PI);
             if(lot is ResidentialBuilding home)
             {home.housing=housing;lot.width=housing==HousingKind.Villa?5.9f:2.9f; lot.depth=5.9f;}
-            float offset=CityRoads.Width/2+lot.depth/2+BuildingSetback;
+            float offset=CityRoadTypes.Width(closest.kind)/2+lot.depth/2+BuildingSetback;
             lot.x=p.x+nx*offset; lot.z=p.z+nz*offset;
             var front=lot.Point(0,-lot.depth/2); lot.entranceX=front.x; lot.entranceZ=front.z;
             return lot;

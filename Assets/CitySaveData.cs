@@ -83,7 +83,14 @@ namespace HarborCity
         public CityModel ToCity()
         {
             if(format==23 && loans==null)loans=new CityLoanState {lastSettledDay=day};
-            if(format!=CityModel.SaveFormat && format!=23) throw new ArgumentException("存档格式不支持，请使用新城市（格式 "+CityModel.SaveFormat+"）");
+            // Formats 23/24 predate one-way roads; their missing bool fields are
+            // false, preserving all existing roads as two-way without changing IDs.
+            if(format!=CityModel.SaveFormat && format!=28 && format!=27 && format!=26 && format!=25 && format!=24 && format!=23) throw new ArgumentException("存档格式不支持，请使用新城市（格式 "+CityModel.SaveFormat+"）");
+            if(format<29)
+            {
+                if(roads?.nodes!=null)foreach(var n in roads.nodes){if(n==null)continue;n.control=JunctionControl.Automatic;n.stopFrom=new List<int>();}
+                if(traffic?.trips!=null)foreach(var t in traffic.trips){if(t==null)continue;t.junctionWaitNode=-1;t.junctionQueuedAt=0;t.junctionStopTime=0;}
+            }
             if(loans==null)throw new ArgumentException("存档缺少贷款状态");
             if(buildings==null || buildings.Any(b=>b==null) || roads==null || zoning==null || development==null || utilities==null || waste==null || fire==null || police==null || lifecycle==null || deathcare==null || traffic==null || society==null || residualIndustry==null) throw new ArgumentException("存档缺少必要实体");
             var c=new CityModel {money=money,day=day,nextBuildingId=nextBuildingId,buildings=buildings.Select(b=>b.ToBuilding()).ToList(),roads=roads,zoning=zoning,development=development,utilities=utilities,waste=waste,fire=fire,police=police,lifecycle=lifecycle,deathcare=deathcare,loans=loans,traffic=traffic,society=society,retiredFactoryWages=retiredFactoryWages,residualIndustry=residualIndustry};

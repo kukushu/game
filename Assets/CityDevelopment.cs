@@ -79,7 +79,7 @@ namespace HarborCity
                         // only its own selected cells, never unzoned gaps or neighbours.
                         if(footprint.Any(c=>!lot.Contains(c.pose.x,c.pose.z)) || candidates.Any(c=>c.pose.Overlaps(lot) && !footprint.Contains(c)))continue;
                         var entrance=lot.Point(0,-lot.depth/2);lot.entranceX=entrance.x;lot.entranceZ=entrance.z;
-                        var edge=roads.Pick(entrance.x,entrance.z,CityRoads.Width/2+.45f);
+                        var edge=roads.Pick(entrance.x,entrance.z);
                         if(edge==null || !roads.Connected(edge.a) || !CanBuild(lot,height,out _) || development.projects.Any(p=>lot.Overlaps(p.building.ToBuilding()))) continue;
                         var project=new DevelopmentProject{id=development.nextProjectId++,started=traffic.clock,completeAt=traffic.clock+12,building=BuildingSaveData.FromBuilding(lot),cells=footprint.Select(c=>c.key).ToList()};
                         development.projects.Add(project);development.revision++;Trace("building.construction","分区私人建筑开始施工",project);planned=true;break;
