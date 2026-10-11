@@ -28,6 +28,15 @@ public static class ElevationChecks
             Check(c.roads.edges.Where(e=>e.stroke==deck.stroke).All(e=>e.structure==(level>1?RoadStructure.Elevated:RoadStructure.Tunnel)),"real structure recorded");
             Check(!c.ZoningCells(TestCity.Flat).Any(z=>z.block.StartsWith(deck.stroke+":")),"no zoning along decks");
             var surface=c.roads.Pick(0,10,level:1);var upper=c.roads.Pick(0,1.5f,level:level);
+            float rayZ=1.5f+20-level-.09f;
+            var visible=c.roads.PickVisibleRay(0,20,rayZ,0,-1,-1,level<1);
+            Check(visible!=null && visible.stroke==deck.stroke,"oblique mouse ray picks the actual bridge/tunnel rather than its terrain projection");
+            Check(c.roads.PickVisibleRay(0,20,rayZ,0,-1,-1,false).structure==(level>1?RoadStructure.Elevated:RoadStructure.Ground),"surface mode ignores tunnels and picks nearest visible deck");
+            Check(TestCity.RoundTrip(c).roads.PickVisibleRay(0,20,rayZ,0,-1,-1,level<1).id==visible.id,"visible-road pick survives save reload");
+            Check(c.roads.PickVisibleRay(70,20,70,0,-1,0,level<1)==null && c.roads.PickVisibleRay(0,20,1.5f,1,0,0,level<1)==null,"empty space and parallel rays do not select unrelated roads");
+            var slopeEdge=c.roads.edges.First(e=>e.structure==(level>1?RoadStructure.Elevated:RoadStructure.Tunnel) && Math.Abs(c.roads.Node(e.a).y-c.roads.Node(e.b).y)>.01f);
+            var midpoint=CityRoads.Lerp(c.roads.Node(slopeEdge.a),c.roads.Node(slopeEdge.b),.5f);
+            Check(c.roads.PickVisibleRay(midpoint.x,midpoint.y+20.09f,midpoint.z+20,0,-1,-1,level<1)?.stroke==slopeEdge.stroke,"sloped ramp can be selected at its actual height");
             Check(c.roads.FindPath(new List<int>{upper.a},new List<int>{surface.a}).Count==0,"disconnected layers cannot route into each other");
             int origin=TestCity.Build(c,-42,7,LandUse.Industrial),dest=TestCity.Build(c,40,7,LandUse.Commercial);
             c.Inventory(origin).Stock=8;c.society.settings.applicantsPerDay=0;c.traffic.dispatchTimer=-10000;
@@ -39,6 +48,7 @@ public static class ElevationChecks
             int funds=c.money;Check(c.UpgradeRoad(upper.id,RoadKind.FourLane,false,out string reason,TestCity.Flat),"deck widening: "+reason);
             Check(c.money<funds && c.roads.edges.Where(e=>e.stroke==deck.stroke).All(e=>e.structure==(level>1?RoadStructure.Elevated:RoadStructure.Tunnel)),"paid upgrade preserves structure");
             var ids=c.roads.edges.Where(e=>e.stroke==deck.stroke).Select(e=>e.id).ToList();c.RemoveRoads(ids,0);
+            Check(c.roads.edges.Any(e=>e.id==surface.id),"deleting selected deck retains the crossing road on the other level");
             Check(c.roads.FindPath(c.AccessBuilding(origin),c.AccessBuilding(dest)).Count==0,"demolition really cuts route");
         }
         var city=TestCity.Empty();city.money=200000;Build(city,P(-20,0),P(20,0));

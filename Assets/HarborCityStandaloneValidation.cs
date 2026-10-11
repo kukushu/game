@@ -514,6 +514,27 @@ namespace HarborCity
                 }
                 if(c.roads.nodes.Any(n=>Math.Abs(n.z+8)<.1f && c.roads.Neighbors(n.id).Count>2)){File.WriteAllText(Path.Combine(output,"Failure.txt"),"Elevation world-input made false at-grade connection");yield break;}
                 File.WriteAllText(Path.Combine(output,"ElevationInputCity.json"),JsonUtility.ToJson(c.ToSaveData(),true));File.WriteAllText(Path.Combine(output,"ElevationInput.txt"),"PASS: actual mouse/keyboard ground start, PgUp/PgDn, raised/buried straight decks, Home and ramps; no false cross connection");
+                type.GetField("selected",flags).SetValue(game,LandUse.Bulldoze);
+                type.GetMethod("SetRoadElevation",flags).Invoke(game,new object[]{0f});
+                foreach(var structure in new[]{RoadStructure.Tunnel,RoadStructure.Elevated,RoadStructure.Ground})
+                {
+                    type.GetMethod("SetUndergroundView",flags).Invoke(game,new object[]{structure==RoadStructure.Tunnel});
+                    var edge=c.roads.edges.First(e=>e.structure==structure && Math.Abs(c.roads.Node(e.a).y-c.roads.Node(e.b).y)<1);
+                    var a=c.roads.Node(edge.a);var b=c.roads.Node(edge.b);var point=new Vector3((a.x+b.x)/2,(a.y+b.y)/2+.09f,(a.z+b.z)/2);
+                    var camera=(Camera)type.GetField("cam",flags).GetValue(game);
+                    var screen=camera.WorldToScreenPoint(point);var position=new Vector2(screen.x,screen.y);
+                    if((bool)type.GetMethod("OverUI",flags).Invoke(game,new object[]{position}))
+                    {File.WriteAllText(Path.Combine(output,"Failure.txt"),"Demolition input fixture is behind a panel: "+structure);yield break;}
+                    int other=c.roads.edges.Count(e=>e.structure!=structure);
+                    InputSystem.QueueStateEvent(mouse,new MouseState{position=position});yield return null;yield return null;
+                    InputSystem.QueueStateEvent(mouse,new MouseState{position=position}.WithButton(MouseButton.Left));yield return null;yield return null;
+                    InputSystem.QueueStateEvent(mouse,new MouseState{position=position});yield return null;yield return null;
+                    if(c.roads.edges.Any(e=>e.id==edge.id) || c.roads.edges.Count(e=>e.structure!=structure)!=other)
+                    {File.WriteAllText(Path.Combine(output,"Failure.txt"),"Actual visible-road demolition failed or removed another level: "+structure+"; "+type.GetField("notice",flags).GetValue(game));yield break;}
+                }
+                if(!JsonUtility.FromJson<CitySaveData>(JsonUtility.ToJson(c.ToSaveData())).ToCity().Valid())
+                {File.WriteAllText(Path.Combine(output,"Failure.txt"),"Native demolition save invalid");yield break;}
+                File.WriteAllText(Path.Combine(output,"DemolitionInput.txt"),"PASS: actual oblique-camera mouse clicks remove tunnel, elevated and surface roads with construction elevation at zero; other levels preserved and native JSON remains valid");
             }
             finally{InputSystem.RemoveDevice(keys);type.GetField("city",flags).SetValue(game,originalCity);type.GetField("traffic",flags).SetValue(game,originalTraffic);type.GetMethod("ResetRoad",flags).Invoke(game,null);type.GetMethod("SetRoadElevation",flags).Invoke(game,new object[]{0f});}
         }

@@ -802,6 +802,7 @@ namespace HarborCity
                 if(ZoningTool(selected)) ZoningToolPanel();
                 else if(selected==LandUse.Power || selected==LandUse.Water) UtilityToolPanel();
                 else if(selected==LandUse.Park) ServiceToolPanel();
+                else if(selected==LandUse.Bulldoze) BulldozeToolPanel();
                 else if (trip == null)
                     GUI.Label(new Rect(40,180,278,180),"按 0 或 Esc 退出建造。点击住宅查看住户，点击工厂或商业查看经营，点击车辆查看路线。\n\n白色：通勤   蓝色：购物\n橙色：配送 / 进出口\n\n黄色线显示所选车辆的剩余路线。",small);
                 else

@@ -61,6 +61,7 @@ namespace HarborCity
         {
             bool build=selected>=LandUse.Power && selected<=LandUse.Park;
             ResetBuildingPreview();
+            if(selected==LandUse.Bulldoze && undergroundView)return;
             if(blocked || (!build && selected!=LandUse.Bulldoze) || !landscape.Raycast(ray,out var hit)) return;
             int existing=-1;
             if(selected==LandUse.Bulldoze)

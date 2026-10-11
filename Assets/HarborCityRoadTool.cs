@@ -71,16 +71,23 @@ namespace HarborCity
             if(roadView!=null)roadView.underground=value;
             RefreshRoadView();
         }
+        void BulldozeToolPanel()
+        {
+            GUI.Label(new Rect(40,177,278,25),"拆除道路 / 建筑",label);
+            if(GUI.Button(new Rect(40,210,134,30),undergroundView?"地表视图":"● 地表视图",button))SetUndergroundView(false);
+            if(GUI.Button(new Rect(182,210,136,30),undergroundView?"● 地下视图":"地下视图",button))SetUndergroundView(true);
+            GUI.Label(new Rect(40,254,278,112),"点击红色预览的路段拆除。\n地下视图只选取隧道，不拆地表建筑。\n地表视图可拆地面路和高架。\n无需把道路高度调到同一深度。\n每次拆除 ¥40；西侧连接路保留。",small);
+        }
         bool HandleRoadInput(Mouse mouse,Ray ray,bool blocked)
         {
             if(selected!=LandUse.Road && selected!=LandUse.Bulldoze) { ResetRoad(); return false; }
             roadPreview.positionCount=0;
-            if(blocked || !landscape.Raycast(ray,out var hit)) return selected==LandUse.Road;
+            if(blocked)return selected==LandUse.Road;
             if(selected==LandUse.Bulldoze)
             {
                 ResetRoad();
-                var picked=city.roads.Pick(hit.x,hit.z,level:landscape.Height(hit.x,hit.z)+roadElevation);
-                if(picked==null) return false;
+                var picked=city.roads.PickVisibleRay(ray.origin.x,ray.origin.y,ray.origin.z,ray.direction.x,ray.direction.y,ray.direction.z,undergroundView);
+                if(picked==null)return undergroundView;
                 var run=city.roads.Run(picked.id); var points=new List<Vector3>();
                 var runEdges=city.roads.edges.FindAll(e=>run.Contains(e.id));
                 var degree=new Dictionary<int,int>();
@@ -97,7 +104,7 @@ namespace HarborCity
                     current=edge.a==current?edge.b:edge.a; runEdges.Remove(edge);
                     points.Add(CityRoadView.Point(city.roads.Node(current))+Vector3.up*.2f);
                 }
-                roadPreview.sharedMaterial=Mat(palette[8]); roadPreview.startWidth=roadPreview.endWidth=CityRoads.Width;
+                roadPreview.sharedMaterial=Mat(palette[8]); roadPreview.startWidth=roadPreview.endWidth=CityRoadTypes.Width(picked.kind);
                 roadPreview.positionCount=points.Count; roadPreview.SetPositions(points.ToArray());
                 if(mouse.leftButton.wasPressedThisFrame)
                 {
@@ -113,6 +120,7 @@ namespace HarborCity
                 }
                 return true;
             }
+            if(!landscape.Raycast(ray,out var hit))return true;
             if(roadOperation==3)
             {
                 ResetRoad();int node=city.roads.PickJunction(hit.x,hit.z,landscape.Height(hit.x,hit.z)+roadElevation);if(node<0)return true;

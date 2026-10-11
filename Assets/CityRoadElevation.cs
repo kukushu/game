@@ -4,6 +4,30 @@ namespace HarborCity
     public enum RoadStructure { Ground, Elevated, Tunnel }
     public sealed partial class CityRoads
     {
+        // Intersect each actual sloping deck; oblique terrain hits miss tunnels/bridges.
+        public RoadEdge PickVisibleRay(float ox,float oy,float oz,float dx,float dy,float dz,bool underground)
+        {
+            RoadEdge best=null;double nearest=double.PositiveInfinity;
+            foreach(var edge in edges)
+            {
+                if((edge.structure==RoadStructure.Tunnel)!=underground)continue;
+                var a=Node(edge.a);var b=Node(edge.b);
+                double vx=b.x-a.x,vz=b.z-a.z,length2=vx*vx+vz*vz;
+                if(length2<.000001)continue;
+                double slope=(b.y-a.y)/length2;
+                double denominator=dy-slope*(dx*vx+dz*vz);
+                if(Math.Abs(denominator)<.000001)continue;
+                double t=(a.y+.09-oy+slope*((ox-a.x)*vx+(oz-a.z)*vz))/denominator;
+                if(t<0 || t>=nearest)continue;
+                double x=ox+t*dx,z=oz+t*dz;
+                double progress=Math.Clamp(((x-a.x)*vx+(z-a.z)*vz)/length2,0,1);
+                double ex=x-a.x-progress*vx,ez=z-a.z-progress*vz;
+                double radius=CityRoadTypes.Width(edge.kind)/2+.2;
+                if(ex*ex+ez*ez>radius*radius)continue;
+                best=edge;nearest=t;
+            }
+            return best;
+        }
         // Prototype world scale, not verified original-game metre values.
         public const float VerticalClearance=3;
         public static float StructureMultiplier(RoadStructure structure)=>structure==RoadStructure.Tunnel?4:structure==RoadStructure.Elevated?2.5f:1;
