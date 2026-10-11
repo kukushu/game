@@ -52,6 +52,9 @@ namespace HarborCity
         [NonSerialized] HashSet<int> connected;
         [NonSerialized] HashSet<long> vehicleConnections;
         [NonSerialized] Dictionary<long,RoadEdge> roadLookup;
+        [NonSerialized] Dictionary<long,int> structureLookup;
+        [NonSerialized] Dictionary<(int from,int to,bool walking),int[]> singlePaths;
+        [NonSerialized] int pathRevision=-1;
 
         public static float Length(RoadNode a, RoadNode b) => (float)Math.Sqrt((a.x-b.x)*(a.x-b.x)+(a.z-b.z)*(a.z-b.z));
         public static float SpatialLength(RoadNode a,RoadNode b)=>(float)Math.Sqrt(Length(a,b)*Length(a,b)+(a.y-b.y)*(a.y-b.y));
@@ -62,7 +65,11 @@ namespace HarborCity
             float dx=b.x-a.x, dz=b.z-a.z, d=dx*dx+dz*dz;
             return d < .0001f ? 0 : Math.Clamp(((p.x-a.x)*dx+(p.z-a.z)*dz)/d,0,1);
         }
-        public static float Distance(RoadNode p, RoadNode a, RoadNode b) => Length(p,Lerp(a,b,Projection(p,a,b)));
+        public static float Distance(RoadNode p, RoadNode a, RoadNode b)
+        {
+            float t=Projection(p,a,b),dx=p.x-(a.x+(b.x-a.x)*t),dz=p.z-(a.z+(b.z-a.z)*t);
+            return (float)Math.Sqrt(dx*dx+dz*dz);
+        }
 
         void Cache()
         {
@@ -71,7 +78,8 @@ namespace HarborCity
             foreach (var n in nodes) { lookup[n.id]=n; adjacency[n.id]=new List<int>(); }
             vehicleConnections=new HashSet<long>();
             roadLookup=new Dictionary<long,RoadEdge>();
-            foreach (var e in edges) { adjacency[e.a].Add(e.b); adjacency[e.b].Add(e.a);long ab=((long)e.a<<32)|(uint)e.b,ba=((long)e.b<<32)|(uint)e.a;roadLookup[ab]=roadLookup[ba]=e;vehicleConnections.Add(ab);if(!e.oneWay)vehicleConnections.Add(ba); }
+            structureLookup=new Dictionary<long,int>();
+            foreach (var e in edges) { adjacency[e.a].Add(e.b); adjacency[e.b].Add(e.a);long ab=((long)e.a<<32)|(uint)e.b,ba=((long)e.b<<32)|(uint)e.a;roadLookup[ab]=roadLookup[ba]=e;structureLookup.TryGetValue(ab,out int mask);structureLookup[ab]=structureLookup[ba]=mask|(1<<(int)e.structure);vehicleConnections.Add(ab);if(!e.oneWay)vehicleConnections.Add(ba); }
             connected = new HashSet<int>(); var queue = new Queue<int>();
             if (lookup.ContainsKey(Entrance)) { connected.Add(Entrance); queue.Enqueue(Entrance); }
             while (queue.Count > 0)
@@ -368,6 +376,21 @@ namespace HarborCity
         }
         public void Remove(List<int> ids) { edges.RemoveAll(e=>ids.Contains(e.id)); Changed();foreach(var n in nodes)n.stopFrom.RemoveAll(from=>!Linked(n.id,from)); }
         public List<int> FindPath(List<int> starts,List<int> goals,bool walking=false)
+        {
+            // Waiting departures/returns repeatedly ask for the same physical
+            // route. Cache only topology-derived single-endpoint results.
+            // Every caller receives its own mutable list, never the cached array.
+            if(starts.Count!=1 || goals.Count!=1)return CalculatePath(starts,goals,walking);
+            if(singlePaths==null)singlePaths=new Dictionary<(int,int,bool),int[]>();
+            if(pathRevision!=revision){singlePaths.Clear();pathRevision=revision;}
+            var key=(starts[0],goals[0],walking);
+            if(singlePaths.TryGetValue(key,out var cached))return new List<int>(cached);
+            var path=CalculatePath(starts,goals,walking);
+            // Bound memory in expanding cities; eviction cannot change routing.
+            if(singlePaths.Count>=512)singlePaths.Clear();
+            singlePaths[key]=path.ToArray();return path;
+        }
+        List<int> CalculatePath(List<int> starts,List<int> goals,bool walking)
         {
             var path=new List<int>(); if(starts.Count==0 || goals.Count==0) return path;
             var distance=new Dictionary<int,float>(); var previous=new Dictionary<int,int>();

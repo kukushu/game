@@ -96,8 +96,12 @@ namespace HarborCity
             }
             return delta>.3f?RoadStructure.Elevated:delta<-.3f?RoadStructure.Tunnel:RoadStructure.Ground;
         }
-        public bool Underground(int a,int b)=>edges.Exists(e=>(e.a==a && e.b==b || e.b==a && e.a==b) && e.structure==RoadStructure.Tunnel);
-        public bool Ground(int a,int b)=>edges.Exists(e=>(e.a==a && e.b==b || e.b==a && e.a==b) && e.structure==RoadStructure.Ground);
+        public bool Underground(int a,int b)=>HasStructure(a,b,RoadStructure.Tunnel);
+        public bool Ground(int a,int b)=>HasStructure(a,b,RoadStructure.Ground);
+        bool HasStructure(int a,int b,RoadStructure structure)
+        {
+            Cache();return structureLookup.TryGetValue(((long)a<<32)|(uint)b,out int mask) && (mask&(1<<(int)structure))!=0;
+        }
         static int ProfileCost(RoadNode a,RoadNode b,Func<float,float,float> height,RoadKind kind,bool engineered)
         {
             float length=Length(a,b);if(!engineered)return CityRoadTypes.ConstructionCost(length,kind);

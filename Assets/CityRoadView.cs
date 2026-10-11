@@ -13,10 +13,11 @@ namespace HarborCity
         {
             var na=roads.Node(a); var nb=roads.Node(b);
             if(na==null || nb==null) return landscape.Height(p.x,p.z);
-            float t=CityRoads.Projection(new RoadNode{x=p.x,z=p.z},na,nb);
-            var center=CityRoads.Lerp(na,nb,t);
+            float dx=nb.x-na.x,dz=nb.z-na.z,length2=dx*dx+dz*dz;
+            float t=length2<.0001f?0:Mathf.Clamp01(((p.x-na.x)*dx+(p.z-na.z)*dz)/length2);
+            float centerX=na.x+dx*t,centerZ=na.z+dz*t,centerY=na.y+(nb.y-na.y)*t;
             // Preserve the road's longitudinal profile and the terrain's cross slope.
-            return center.y+(roads.Ground(a,b)?landscape.Height(p.x,p.z)-landscape.Height(center.x,center.z):0);
+            return centerY+(roads.Ground(a,b)?landscape.Height(p.x,p.z)-landscape.Height(centerX,centerZ):0);
         }
         public void Rebuild(CityModel city,CityLandscape landscape,Material asphalt,Material shoulder,Material paint)
         {

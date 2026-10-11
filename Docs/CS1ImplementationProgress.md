@@ -1,3 +1,12 @@
+## 2026-10-11 持续运行卡顿：重复计算、分配与明确采样
+
+- 用户确认正常运行、不操作也卡，真实 Profiler 一帧 CPU 30.32 ms、Update 22.91 ms、Self 19.32 ms、分配 1.1 MB、GC.Collect 3.04 ms。没有把最近自动桥隧直接认定为原因，也没有把没有标记的 Self 当作具体子系统耗时。
+- 本批修改保持出行/交通规则和格式 34：将车辆临时几何与投影移出图实体；道路结构按节点对缓存；跟车几何每段计算一次；按道路 revision 缓存最多 512 个单端点路径，每次返回独立列表；复用展示集合/Renderer，名称、材质和激活状态仅在变化时写入。详细范围与差异见 [性能诊断](PerformanceDiagnostics.md)。
+- 增加 City.Simulation、City.Traffic.Movement/Services/ResidentsAndIndustry/Dispatch、City.VehicleViews、City.AnalysisSnapshot、City.RoadInput 等 Profiler 标记。工具 MeasurePerformance.ps1 只读取保存城市副本，不覆盖用户现城或存档，不加入 UI 和新玩法。
+- 新增 32 项缓存失效/方向/步行/存档/返回值隔离/零分配几何检查，全量回归通过 Temp/PerformanceFinalChecks.log。用相同输入对照 91f5426：第 85 日保存城市含 174 建筑、364 图边、120 出行；固定步均值 20.817→15.607 ms、分配 1,260,423→500,233 B，兼容位置/朝向采样分配 162,624→13,440 B；同段模拟前后最终 JSON 的 SHA256 相同。具体时长不是 FPS 保证。
+- 独立 Unity 构建 Temp/PerformanceFinalBuild.log 成功；Temp/PerformanceFinalPlayer/Result.txt、LongRun.txt 和桥隧、道路输入、真实货运、路口、行人及市政回归通过，无 Failure.txt。长期运行到第 26 日人口 36、就业 24、消费 258、垃圾守恒误差 0。ProblemGUIUnverified.txt 保留原有问题图标 GUI 人工验证的限制；这些是隔离场景正确性验证，不等同于当前用户城市帧率验收。
+- 已知未完成：分析快照仍约 1 MB/次（0.25 秒刷新），服务/交通尚有尖峰，全城几何/碰撞规模增长仍需进一步测量。本批没有减少真实出行、设置显示上限或降低模拟精度。真实用户城市更新后的完整 Profiler 多帧对照尚未获得，不宣称卡顿已全部消除。
+
 ## 2026-10-11 自动跨地形：跨河桥面、低岸缓坡与穿山隧道
 
 - 用户截图中两岸相近高度仍报最大坡度 36.8%。地面方案逐点使用地形高度，河床下陷或山坡凸起会计入道路坡度；之前已有手动桥隧，但地面模式不会自动尝试合理纵断面。

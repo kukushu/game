@@ -46,6 +46,12 @@ namespace HarborCity
     // Actual resident and freight trips, separate from Unity rendering.
     public sealed partial class CityTraffic
     {
+#if UNITY_5_3_OR_NEWER
+        static readonly Unity.Profiling.ProfilerMarker movementSample=new Unity.Profiling.ProfilerMarker("City.Traffic.Movement");
+        static readonly Unity.Profiling.ProfilerMarker servicesSample=new Unity.Profiling.ProfilerMarker("City.Traffic.Services");
+        static readonly Unity.Profiling.ProfilerMarker residentsSample=new Unity.Profiling.ProfilerMarker("City.Traffic.ResidentsAndIndustry");
+        static readonly Unity.Profiling.ProfilerMarker dispatchSample=new Unity.Profiling.ProfilerMarker("City.Traffic.Dispatch");
+#endif
         public const int Capacity = 48;
         public const int TaskCapacity = 100048;
         public const int Outside = -1;
@@ -187,19 +193,35 @@ namespace HarborCity
         void Simulate()
         {
             State.clock += Step;
+#if UNITY_5_3_OR_NEWER
+            using(movementSample.Auto())
+#endif
+            {
             ReleaseJunctions();
             foreach (var t in State.trips.ToArray()){AdvanceLaneChange(t);AdvanceStopWait(t);Move(t);}
+            }
+#if UNITY_5_3_OR_NEWER
+            using(servicesSample.Auto())
+#endif
+            {
             AdvanceHealthcare(Step*1440/city.society.settings.secondsPerDay);
             AdvanceSchools(Step*1440/city.society.settings.secondsPerDay);
             city.AdvanceFires(Step*1440/city.society.settings.secondsPerDay);
             city.AdvancePolice(Step*1440/city.society.settings.secondsPerDay);
             city.AdvanceWasteProcessing(Step);
             city.ObserveAnalysisTraffic();
+            }
+#if UNITY_5_3_OR_NEWER
+            using(residentsSample.Auto())
+#endif
             AdvanceResidents();
             State.dispatchTimer += Step;
             if (State.dispatchTimer >= .6f)
             {
                 State.dispatchTimer -= .6f;
+#if UNITY_5_3_OR_NEWER
+                using(dispatchSample.Auto())
+#endif
                 Schedule();
             }
         }
@@ -382,19 +404,25 @@ namespace HarborCity
             float advance = remainingTime * velocity / movementUnits;
             float previous=t.progress;
             float proposed = Math.Min(1, t.progress + advance);
-            foreach (var other in State.trips)
+            if(!t.walking)
             {
-                if (t.walking || other.walking || other == t || other.status == TripStatus.Visiting) continue;
                 // Splitting a road can create edges shorter than one car's headway.
+                // Geometry depends on this car's route, not on each other car.
+                // Compute it once per nearby edge rather than once per pair.
                 float offset = -Behind(t);
                 for (int s = t.segment; s < t.route.Count-1 && offset < Gap + units; s++)
                 {
-                    if (other.Current == t.route[s] && other.Next == t.route[s+1] && (OccupiesLane(other,city.roads.TripLane(t,s)) || t.laneChangeRemaining>0 && OccupiesLane(other,t.laneChangeFrom)))
+                    int from=t.route[s],to=t.route[s+1],lane=city.roads.TripLane(t,s);
+                    foreach(var other in State.trips)
                     {
-                        float distance = offset + Behind(other);
-                        if (distance > .0001f) proposed = Math.Min(proposed,t.progress+(distance-Gap)/units);
+                        if(other.walking || other==t || other.status==TripStatus.Visiting)continue;
+                        if (other.Current == from && other.Next == to && (OccupiesLane(other,lane) || t.laneChangeRemaining>0 && OccupiesLane(other,t.laneChangeFrom)))
+                        {
+                            float distance = offset + Behind(other);
+                            if (distance > .0001f) proposed = Math.Min(proposed,t.progress+(distance-Gap)/units);
+                        }
                     }
-                    offset += Units(t.route[s],t.route[s+1]);
+                    offset += Units(from,to);
                 }
             }
             proposed=LimitCrossingAdvance(t,proposed,units);

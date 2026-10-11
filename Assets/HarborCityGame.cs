@@ -4,11 +4,19 @@ using System.IO;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
+using Unity.Profiling;
 
 namespace HarborCity
 {
     public sealed partial class HarborCityGame : MonoBehaviour
     {
+        static readonly ProfilerMarker simulationSample=new ProfilerMarker("City.Simulation");
+        static readonly ProfilerMarker roadInputSample=new ProfilerMarker("City.RoadInput");
+        static readonly ProfilerMarker problemSample=new ProfilerMarker("City.BuildingProblems");
+        static readonly ProfilerMarker serviceViewSample=new ProfilerMarker("City.ServiceViews");
+        static readonly ProfilerMarker observationSample=new ProfilerMarker("City.AnalysisSnapshot");
+        static readonly ProfilerMarker trafficViewSample=new ProfilerMarker("City.VehicleViews");
+        static readonly ProfilerMarker detailViewSample=new ProfilerMarker("City.DetailViews");
         const float MinZoom = 10f;
         const float MaxZoom = 230f;
         const float ZoomPerStep = .85f;
@@ -18,6 +26,13 @@ namespace HarborCity
         readonly Dictionary<Color, Material> materials = new Dictionary<Color, Material>();
         readonly List<Transform> cars = new List<Transform>();
         readonly Dictionary<int, Transform> trafficViews = new Dictionary<int, Transform>();
+        readonly HashSet<int> activeTrafficViewIds=new HashSet<int>();
+        readonly List<int> expiredTrafficViewIds=new List<int>();
+        readonly HashSet<Transform> assignedTrafficViews=new HashSet<Transform>();
+        readonly Queue<Transform> availableTrafficViews=new Queue<Transform>();
+        readonly Dictionary<Transform,Renderer> trafficRenderers=new Dictionary<Transform,Renderer>();
+        readonly Dictionary<Transform,(int id,bool returning,bool walking,bool pickup,TripPurpose purpose,CargoKind cargo)> trafficViewNames=new Dictionary<Transform,(int,bool,bool,bool,TripPurpose,CargoKind)>();
+        static readonly string[] tripPurposeNames={"通勤","配送商品","进口商品","出口商品","收集垃圾","转运垃圾","购物","就医","上学","消防响应","警察响应"};
         CityTraffic traffic;
         LineRenderer routeLine;
         int inspectedTrip = -1;
@@ -440,7 +455,7 @@ namespace HarborCity
                 buildBoundary.enabled=selected!=LandUse.Empty;
                 buildBoundary.startWidth=buildBoundary.endWidth=Mathf.Clamp(zoom*.006f,.24f,1.38f);
             }
-            if(city!=null)RefreshBuildingProblems();
+            using(problemSample.Auto())if(city!=null)RefreshBuildingProblems();
             var keyboard = Keyboard.current;
             var mouse = Mouse.current;
             if(keyboard!=null && keyboard.f3Key.wasPressedThisFrame) ToggleSimulationPanel();
@@ -489,7 +504,8 @@ namespace HarborCity
                 RotateWithMouse(mouse, mp, overUI);
                 if (!overUI) ZoomAtPointer(mp, mouse.scroll.ReadValue().y);
                 var ray = cam.ScreenPointToRay(mp);
-                bool roadHandled = HandleRoadInput(mouse,ray,overUI || draggingView || mouse.rightButton.isPressed);
+                bool roadHandled;
+                using(roadInputSample.Auto())roadHandled=HandleRoadInput(mouse,ray,overUI || draggingView || mouse.rightButton.isPressed);
                 bool zoneHandled = HandleZoningInput(mouse,ray,overUI || draggingView || mouse.rightButton.isPressed || roadHandled);
                 if (selected == LandUse.Empty && mouse.leftButton.wasPressedThisFrame && !overUI
                     && !draggingView && !mouse.rightButton.isPressed && !InspectBuilding(ray)) InspectTraffic(mp);
@@ -497,14 +513,17 @@ namespace HarborCity
                 HandleBuildingInput(mouse,ray,overUI || draggingView || mouse.rightButton.isPressed || roadHandled || zoneHandled || utilityHandled);
 
             }
-            AdvanceSociety(Time.deltaTime * speed);
-            RefreshDevelopmentView();RefreshWasteView();RefreshInfoViews();RefreshFireView();
-            UpdateObservation();
-            AnimateTraffic();
+            using(simulationSample.Auto())AdvanceSociety(Time.deltaTime * speed);
+            using(serviceViewSample.Auto()){RefreshDevelopmentView();RefreshWasteView();RefreshInfoViews();RefreshFireView();}
+            using(observationSample.Auto())UpdateObservation();
+            using(trafficViewSample.Auto())AnimateTraffic();
+            using(detailViewSample.Auto())
+            {
             UpdateCommuteView();
             UpdateResidentView();
             UpdateBusinessMarker();
             UpdateTrafficEndpointMarker();
+            }
         }
 
         void OnApplicationFocus(bool hasFocus)
@@ -590,14 +609,14 @@ namespace HarborCity
         void AnimateTraffic()
         {
             UpdateTrafficControlViews();
-            var activeIds = new HashSet<int>();
+            var activeIds = activeTrafficViewIds;activeIds.Clear();
             foreach(var trip in traffic.State.trips) if(trip.status!=TripStatus.Visiting || trip.purpose==TripPurpose.FireResponse || trip.purpose==TripPurpose.PoliceResponse || trip.purpose==TripPurpose.Deathcare) activeIds.Add(trip.id);
-            var expired = new List<int>();
+            var expired = expiredTrafficViewIds;expired.Clear();
             foreach (var pair in trafficViews)
                 if (!activeIds.Contains(pair.Key)) { pair.Value.gameObject.SetActive(false); expired.Add(pair.Key); }
             foreach (int id in expired) trafficViews.Remove(id);
-            var assigned = new HashSet<Transform>(trafficViews.Values);
-            var available = new Queue<Transform>();
+            var assigned = assignedTrafficViews;assigned.Clear();foreach(var value in trafficViews.Values)assigned.Add(value);
+            var available = availableTrafficViews;available.Clear();
             foreach(var model in cars) if(!assigned.Contains(model)) available.Enqueue(model);
             foreach (var trip in traffic.State.trips)
             {
@@ -613,7 +632,7 @@ namespace HarborCity
                     trafficViews[trip.id] = car;
                 }
                 bool visible=(undergroundView || !city.roads.Underground(trip.Current,trip.Next)) && city.roads.Active(trip.Current) && (trip.progress==0 || city.roads.Linked(trip.Current,trip.Next));
-                car.gameObject.SetActive(visible);
+                if(car.gameObject.activeSelf!=visible)car.gameObject.SetActive(visible);
                 if (!visible) continue;
                 bool freight = trip.residentId==0 && trip.purpose!=TripPurpose.Deathcare;
                 car.localScale = trip.walking?new Vector3(.17f,.55f,.17f):freight ? new Vector3(.65f,.5f,1.15f) : new Vector3(.5f,.35f,.85f);
@@ -624,8 +643,11 @@ namespace HarborCity
                 if(trip.purpose==TripPurpose.PoliceResponse && trip.id!=inspectedTrip)color=new Color(.22f,.45f,.9f);
                 if(trip.purpose==TripPurpose.Deathcare && trip.id!=inspectedTrip)color=new Color(.25f,.25f,.3f);
                 if(trip.purpose==TripPurpose.FireResponse && trip.id!=inspectedTrip)color=new Color(.92f,.25f,.18f);
-                car.GetComponent<Renderer>().sharedMaterial = Mat(color);
-                car.name = (trip.walking?"Pedestrian ":"Vehicle ") + trip.id + " " + Purpose(trip);
+                if(!trafficRenderers.TryGetValue(car,out var renderer))trafficRenderers[car]=renderer=car.GetComponent<Renderer>();
+                var material=Mat(color);if(renderer.sharedMaterial!=material)renderer.sharedMaterial=material;
+                var nameKey=(trip.id,trip.returning,trip.walking,trip.medicalPickup,trip.purpose,trip.cargoKind);
+                if(!trafficViewNames.TryGetValue(car,out var oldName) || !oldName.Equals(nameKey))
+                {trafficViewNames[car]=nameKey;car.name=(trip.walking?"Pedestrian ":"Vehicle ")+trip.id+" "+Purpose(trip);}
                 car.position = TrafficPoint(trip,trip.segment,trip.progress);
                 if (trip.Current != trip.Next)
                 {
@@ -658,7 +680,7 @@ namespace HarborCity
                 position.y=CityRoadView.SurfaceHeight(city.roads,landscape,position,a,b)+.32f;
                 return position;
             }
-            var lanePoint=CityVehicleGeometry.Position(city.roads,trip,segment,fraction);
+            var lanePoint=CityVehicleGeometry.PositionValue(city.roads,trip,segment,fraction);
             Vector3 point=new Vector3(lanePoint.x,lanePoint.y,lanePoint.z);
             point.y=CityRoadView.SurfaceHeight(city.roads,landscape,point,a,b)+.32f;
             return point;
@@ -680,7 +702,7 @@ namespace HarborCity
         string Purpose(TrafficTrip trip)
         {
             if(trip.purpose==TripPurpose.Deathcare)return trip.returning?"灵车运送遗体到墓地":"灵车接取遗体";
-            string[] purposes = { "通勤", "配送商品", "进口商品", "出口商品", "收集垃圾", "转运垃圾", "购物", "就医", "上学", "消防响应", "警察响应" };
+            var purposes=tripPurposeNames;
             if(trip.purpose==TripPurpose.School)return trip.returning?"放学步行返家":"步行上学";
             if(trip.purpose==TripPurpose.Healthcare)return trip.medicalPickup?"救护车接人":trip.returning?"就医后步行返家":trip.walking?"步行就诊":"救护车送医";
             if(trip.cargoKind==CargoKind.RawMaterial) return trip.returning?"进口原料 · 返程":"进口原料";
