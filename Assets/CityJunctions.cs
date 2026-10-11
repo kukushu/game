@@ -1,3 +1,6 @@
+#if UNITY_5_3_OR_NEWER && ENABLE_PROFILER && (UNITY_EDITOR || DEVELOPMENT_BUILD) && !CITY_TRAFFIC_PROFILING_DISABLED
+#define CITY_TRAFFIC_PROFILING
+#endif
 using System;
 using System.Collections.Generic;
 namespace HarborCity
@@ -5,6 +8,11 @@ namespace HarborCity
     // Provisional right-hand traffic geometry, not a claim about CS1 internals.
     public static class CityJunctions
     {
+#if CITY_TRAFFIC_PROFILING
+        static readonly Unity.Profiling.ProfilerMarker crossingRadiusSample=new Unity.Profiling.ProfilerMarker("City.Traffic.Junction.CrossingRadius");
+        static readonly Unity.Profiling.ProfilerMarker conflictPathSample=new Unity.Profiling.ProfilerMarker("City.Traffic.Junction.ConflictPath");
+        static readonly Unity.Profiling.ProfilerMarker conflictGeometrySample=new Unity.Profiling.ProfilerMarker("City.Traffic.Junction.ConflictGeometry");
+#endif
         const float Clearance=.46f;
         // Follow the right sidewalk around the node. Only arms between the
         // entry and exit on this angular arc are crossed. U-turns remain conservative.
@@ -46,6 +54,9 @@ namespace HarborCity
             =>Corner(roads,node,entry,exit);
         public static float CrossingRadius(CityRoads roads,int node)
         {
+#if CITY_TRAFFIC_PROFILING
+            using var diagnosticScope=crossingRadiusSample.Auto();
+#endif
             float width=CityRoads.Width;
             foreach(int arm in roads.Neighbors(node))width=Math.Max(width,roads.EdgeWidth(node,arm));
             // Covers sidewalk offset, corner interpolation and vehicle body;
@@ -119,6 +130,9 @@ namespace HarborCity
             =>Conflicts(roads,node,entryA,exitA,0,0,entryB,exitB,0,0);
         public static bool Conflicts(CityRoads roads,int node,int entryA,int exitA,int inLaneA,int outLaneA,int entryB,int exitB,int inLaneB,int outLaneB)
         {
+#if CITY_TRAFFIC_PROFILING
+            using var geometryScope=conflictGeometrySample.Auto();
+#endif
             if(entryA<0 || exitA<0 || entryB<0 || exitB<0)return true;
             if(entryA==entryB && inLaneA==inLaneB || exitA==exitB && outLaneA==outLaneB)return true;
             var a=Path(roads,node,entryA,exitA,inLaneA,outLaneA);var b=Path(roads,node,entryB,exitB,inLaneB,outLaneB);
@@ -129,6 +143,9 @@ namespace HarborCity
         }
         static List<RoadNode> Path(CityRoads r,int node,int entry,int exit,int inLane,int outLane)
         {
+#if CITY_TRAFFIC_PROFILING
+            using var diagnosticScope=conflictPathSample.Auto();
+#endif
             var n=r.Node(node);var a=r.Node(entry);var b=r.Node(exit);if(n==null || a==null || b==null)return null;
             float inLength=CityRoads.Length(a,n),outLength=CityRoads.Length(n,b);if(inLength<.01f || outLength<.01f)return null;
             var trip=new TrafficTrip{route=new List<int>{entry,node,exit},segment=1,lane=outLane,previousLane=inLane};
@@ -163,6 +180,10 @@ namespace HarborCity
         }
         void RestoreJunctions()
         {
+#if CITY_TRAFFIC_PROFILING
+            using var restoreSampleScope=restoreSample.Auto();
+#endif
+
             junctions.Clear();junctionRevision=city.roads.revision;
             // Existing departures physically own their movement until clear. Do not
             // resolve old overlaps by deleting cars or moving them during load.
@@ -191,6 +212,10 @@ namespace HarborCity
         }
         void ReleaseJunctions()
         {
+#if CITY_TRAFFIC_PROFILING
+            using var releaseSampleScope=releaseSample.Auto();
+#endif
+
             if(junctionRevision!=city.roads.revision){RestoreJunctions();return;}
             foreach(var pair in junctions)
                 pair.Value.RemoveAll(m=>{
@@ -200,6 +225,10 @@ namespace HarborCity
         }
         bool ExitClear(TrafficTrip t,int node)
         {
+#if CITY_TRAFFIC_PROFILING
+            using var exitSampleScope=exitSample.Auto();
+#endif
+
             int index=t.route.FindIndex(t.segment,n=>n==node);float offset=0;
             if(index<0)return false;
             for(int i=index;i<t.route.Count-1 && offset<Gap+.4f;i++)
@@ -212,6 +241,10 @@ namespace HarborCity
         }
         bool Reserve(int node,int id)
         {
+#if CITY_TRAFFIC_PROFILING
+            using var reserveSampleScope=reserveSample.Auto();
+#endif
+
             if(!IsJunction(node))return true;
             var t=State.trips.Find(p=>p.id==id);if(t==null)return false;
             if(!junctions.TryGetValue(node,out var owners))junctions[node]=owners=new List<JunctionMovement>();
@@ -239,6 +272,10 @@ namespace HarborCity
         }
         bool WalkingEntryClear(TrafficTrip t,JunctionMovement movement)
         {
+#if CITY_TRAFFIC_PROFILING
+            using var walkEntrySampleScope=walkEntrySample.Auto();
+#endif
+
             float radius=CityJunctions.CrossingRadius(city.roads,movement.node);
             foreach(var car in State.trips)
             {
@@ -254,6 +291,10 @@ namespace HarborCity
         }
         bool PendingWalker(int node,JunctionMovement car)
         {
+#if CITY_TRAFFIC_PROFILING
+            using var walkerSampleScope=walkerSample.Auto();
+#endif
+
             float radius=CityJunctions.CrossingRadius(city.roads,node);
             foreach(var walker in State.trips)
             {
@@ -267,6 +308,10 @@ namespace HarborCity
         }
         float LimitCrossingAdvance(TrafficTrip t,float proposed,float units)
         {
+#if CITY_TRAFFIC_PROFILING
+            using var crossingSampleScope=crossingSample.Auto();
+#endif
+
             // Look across short graph samples; a crossing is not necessarily Next.
             float maxRadius=((CityRoadTypes.Width(RoadKind.FourLane)/2+.2f)*4+.65f)/3;
             for(int index=t.segment+1;index<t.route.Count;index++)

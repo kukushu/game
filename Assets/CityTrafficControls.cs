@@ -1,3 +1,6 @@
+#if UNITY_5_3_OR_NEWER && ENABLE_PROFILER && (UNITY_EDITOR || DEVELOPMENT_BUILD) && !CITY_TRAFFIC_PROFILING_DISABLED
+#define CITY_TRAFFIC_PROFILING
+#endif
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -84,6 +87,10 @@ namespace HarborCity
         void ClearJunctionQueue(TrafficTrip t){t.junctionWaitNode=-1;t.junctionQueuedAt=0;t.junctionStopTime=0;t.junctionWaitReason=null;}
         bool ControlAllows(TrafficTrip t,JunctionMovement movement)
         {
+#if CITY_TRAFFIC_PROFILING
+            using var controlSampleScope=controlSample.Auto();
+#endif
+
             int node=movement.node;var roads=city.roads;
             if(t.junctionWaitNode!=node){ClearJunctionQueue(t);t.junctionWaitNode=node;t.junctionQueuedAt=State.clock;}
             if(t.walking)
@@ -131,6 +138,10 @@ namespace HarborCity
         }
         void AdvanceStopWait(TrafficTrip t)
         {
+#if CITY_TRAFFIC_PROFILING
+            using var stopSampleScope=stopSample.Auto();
+#endif
+
             if(!t.walking && t.status==TripStatus.Driving && t.junctionWaitNode==t.Next && !city.roads.HasSignals(t.Next) && city.roads.Node(t.Next)?.stopFrom.Contains(t.Current)==true && Ahead(t)<=.361f)
                 t.junctionStopTime=Math.Min(StopSeconds,t.junctionStopTime+Step);
         }

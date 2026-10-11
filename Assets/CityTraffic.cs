@@ -1,3 +1,6 @@
+#if UNITY_5_3_OR_NEWER && ENABLE_PROFILER && (UNITY_EDITOR || DEVELOPMENT_BUILD) && !CITY_TRAFFIC_PROFILING_DISABLED
+#define CITY_TRAFFIC_PROFILING
+#endif
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -51,6 +54,42 @@ namespace HarborCity
         static readonly Unity.Profiling.ProfilerMarker servicesSample=new Unity.Profiling.ProfilerMarker("City.Traffic.Services");
         static readonly Unity.Profiling.ProfilerMarker residentsSample=new Unity.Profiling.ProfilerMarker("City.Traffic.ResidentsAndIndustry");
         static readonly Unity.Profiling.ProfilerMarker dispatchSample=new Unity.Profiling.ProfilerMarker("City.Traffic.Dispatch");
+#endif
+
+#if CITY_TRAFFIC_PROFILING
+        // Static diagnostic markers: never instrument individual vehicle-pair/distance iterations.
+        static readonly Unity.Profiling.ProfilerMarker moveSample=new Unity.Profiling.ProfilerMarker("City.Traffic.Move");
+        static readonly Unity.Profiling.ProfilerMarker routeValidSample=new Unity.Profiling.ProfilerMarker("City.Traffic.Move.RouteValidation");
+        static readonly Unity.Profiling.ProfilerMarker arriveSample=new Unity.Profiling.ProfilerMarker("City.Traffic.Move.Arrive");
+        static readonly Unity.Profiling.ProfilerMarker waitSample=new Unity.Profiling.ProfilerMarker("City.Traffic.Move.Wait");
+        static readonly Unity.Profiling.ProfilerMarker laneAdvanceSample=new Unity.Profiling.ProfilerMarker("City.Traffic.Movement.AdvanceLaneChange");
+        static readonly Unity.Profiling.ProfilerMarker turnLaneSample=new Unity.Profiling.ProfilerMarker("City.Traffic.Lanes.TurnLane");
+        static readonly Unity.Profiling.ProfilerMarker headwaySample=new Unity.Profiling.ProfilerMarker("City.Traffic.Lanes.Headway");
+        static readonly Unity.Profiling.ProfilerMarker laneSpaceSample=new Unity.Profiling.ProfilerMarker("City.Traffic.Lanes.Space");
+        static readonly Unity.Profiling.ProfilerMarker chooseLaneSample=new Unity.Profiling.ProfilerMarker("City.Traffic.Move.ChooseLane");
+        static readonly Unity.Profiling.ProfilerMarker entrySample=new Unity.Profiling.ProfilerMarker("City.Traffic.Lanes.Entry");
+        static readonly Unity.Profiling.ProfilerMarker releaseSample=new Unity.Profiling.ProfilerMarker("City.Traffic.Movement.ReleaseJunctions");
+        static readonly Unity.Profiling.ProfilerMarker restoreSample=new Unity.Profiling.ProfilerMarker("City.Traffic.Junction.Restore");
+        static readonly Unity.Profiling.ProfilerMarker exitSample=new Unity.Profiling.ProfilerMarker("City.Traffic.Junction.ExitClear");
+        static readonly Unity.Profiling.ProfilerMarker reserveSample=new Unity.Profiling.ProfilerMarker("City.Traffic.Junction.Reserve");
+        static readonly Unity.Profiling.ProfilerMarker walkEntrySample=new Unity.Profiling.ProfilerMarker("City.Traffic.Junction.WalkingEntryClear");
+        static readonly Unity.Profiling.ProfilerMarker walkerSample=new Unity.Profiling.ProfilerMarker("City.Traffic.Junction.PendingWalker");
+        static readonly Unity.Profiling.ProfilerMarker crossingSample=new Unity.Profiling.ProfilerMarker("City.Traffic.Move.LimitCrossingAdvance");
+        static readonly Unity.Profiling.ProfilerMarker controlSample=new Unity.Profiling.ProfilerMarker("City.Traffic.Junction.ControlAllows");
+        static readonly Unity.Profiling.ProfilerMarker stopSample=new Unity.Profiling.ProfilerMarker("City.Traffic.Movement.AdvanceStopWait");
+        static readonly Unity.Profiling.ProfilerMarker highwaySample=new Unity.Profiling.ProfilerMarker("City.Traffic.Junction.HighwayGap");
+        static readonly Unity.Profiling.ProfilerMarker searchSample=new Unity.Profiling.ProfilerMarker("City.Traffic.Route.Search");
+        static readonly Unity.Profiling.ProfilerMarker snapshotSample=new Unity.Profiling.ProfilerMarker("City.Traffic.Movement.Snapshot");
+        static readonly Unity.Profiling.ProfilerMarker prepareSample=new Unity.Profiling.ProfilerMarker("City.Traffic.Move.Prepare");
+        static readonly Unity.Profiling.ProfilerMarker visitSample=new Unity.Profiling.ProfilerMarker("City.Traffic.Move.VisitAndReturn");
+        static readonly Unity.Profiling.ProfilerMarker replanSample=new Unity.Profiling.ProfilerMarker("City.Traffic.Move.Replan");
+        static readonly Unity.Profiling.ProfilerMarker edgeSample=new Unity.Profiling.ProfilerMarker("City.Traffic.Move.EdgeAdvance");
+        static readonly Unity.Profiling.ProfilerMarker followingSample=new Unity.Profiling.ProfilerMarker("City.Traffic.Move.Following");
+        static readonly Unity.Profiling.ProfilerMarker progressSample=new Unity.Profiling.ProfilerMarker("City.Traffic.Move.ProgressAndWait");
+        static readonly Unity.Profiling.ProfilerMarker transitionSample=new Unity.Profiling.ProfilerMarker("City.Traffic.Move.EdgeTransition");
+        static readonly Unity.Profiling.ProfilerMarker commitSample=new Unity.Profiling.ProfilerMarker("City.Traffic.Lanes.Commit");
+        static readonly Unity.Profiling.ProfilerCounterValue<int> fixedStepsCounter=new Unity.Profiling.ProfilerCounterValue<int>(Unity.Profiling.ProfilerCategory.Scripts,"City.Traffic.FixedSteps",Unity.Profiling.ProfilerMarkerDataUnit.Count,Unity.Profiling.ProfilerCounterOptions.FlushOnEndOfFrame | Unity.Profiling.ProfilerCounterOptions.ResetToZeroOnFlush);
+        static readonly Unity.Profiling.ProfilerCounterValue<int> activeTripsCounter=new Unity.Profiling.ProfilerCounterValue<int>(Unity.Profiling.ProfilerCategory.Scripts,"City.Traffic.ActiveTrips",Unity.Profiling.ProfilerMarkerDataUnit.Count,Unity.Profiling.ProfilerCounterOptions.FlushOnEndOfFrame);
 #endif
         public const int Capacity = 48;
         public const int TaskCapacity = 100048;
@@ -114,7 +153,13 @@ namespace HarborCity
         IEnumerable<int> Neighbors(int i)=>city.roads.Neighbors(i);
         List<int> Access(int endpoint)=>endpoint==Outside || Building(endpoint)?city.AccessBuilding(endpoint):new List<int>();
         public List<int> FindRoute(int origin,int destination,bool walking=false)=>Search(Access(origin),Access(destination),walking);
-        List<int> Search(List<int> starts,List<int> goals,bool walking=false)=>city.roads.FindPath(starts,goals,walking);
+        List<int> Search(List<int> starts,List<int> goals,bool walking=false)
+        {
+#if CITY_TRAFFIC_PROFILING
+            using var searchSampleScope=searchSample.Auto();
+#endif
+            return city.roads.FindPath(starts,goals,walking);
+        }
 
         public TrafficTrip Dispatch(int origin, int destination, TripPurpose purpose, int residentId=0,CargoKind cargoKind=CargoKind.Goods)
         {
@@ -185,9 +230,15 @@ namespace HarborCity
             while (remaining + .000001 >= FixedStepSeconds)
             {
                 remaining-=FixedStepSeconds;
+#if CITY_TRAFFIC_PROFILING
+                fixedStepsCounter.Value++;
+#endif
                 Simulate();
             }
             State.remainder=(float)Math.Max(0,remaining);
+#if CITY_TRAFFIC_PROFILING
+            activeTripsCounter.Value=State.trips.Count;
+#endif
         }
 
         void Simulate()
@@ -198,7 +249,12 @@ namespace HarborCity
 #endif
             {
             ReleaseJunctions();
-            foreach (var t in State.trips.ToArray()){AdvanceLaneChange(t);AdvanceStopWait(t);Move(t);}
+            TrafficTrip[] snapshot;
+#if CITY_TRAFFIC_PROFILING
+            using(snapshotSample.Auto())
+#endif
+                snapshot=State.trips.ToArray();
+            foreach (var t in snapshot){AdvanceLaneChange(t);AdvanceStopWait(t);Move(t);}
             }
 #if UNITY_5_3_OR_NEWER
             using(servicesSample.Auto())
@@ -266,12 +322,20 @@ namespace HarborCity
         }
         bool RouteValid(TrafficTrip t)
         {
+#if CITY_TRAFFIC_PROFILING
+            using var routeValidSampleScope=routeValidSample.Auto();
+#endif
+
             for (int i = t.segment; i < t.route.Count; i++) if (!Road(t.route[i])) return false;
             for (int i = t.segment; i < t.route.Count-1; i++) if (!city.roads.CanTravel(t.route[i],t.route[i+1],t.walking)) return false;
             return Access(t.destination).Contains(t.route[t.route.Count - 1]);
         }
         void Wait(TrafficTrip t)
         {
+#if CITY_TRAFFIC_PROFILING
+            using var waitSampleScope=waitSample.Auto();
+#endif
+
             t.status = TripStatus.Waiting; t.blocked += Step;
             if (t.blocked >= 120 && t.residentId==0 && t.cargoKind!=CargoKind.Waste && t.purpose!=TripPurpose.FireResponse && t.purpose!=TripPurpose.PoliceResponse && t.purpose!=TripPurpose.Deathcare) Fail(t);
         }
@@ -338,6 +402,14 @@ namespace HarborCity
 
         void Move(TrafficTrip t)
         {
+#if CITY_TRAFFIC_PROFILING
+            using var moveSampleScope=moveSample.Auto();
+#endif
+
+            {
+#if CITY_TRAFFIC_PROFILING
+            using var prepareSampleScope=prepareSample.Auto();
+#endif
             if(HoldFireEngine(t) || HoldPoliceCar(t) || HoldHearse(t))return;
             if(t.residentId>0 && !ValidateResidentTrip(t)) return;
             if(t.cargoKind==CargoKind.Waste && t.status==TripStatus.Driving && t.delay>0)
@@ -345,8 +417,13 @@ namespace HarborCity
             if(t.cargoKind==CargoKind.Waste)CollectAlongRoute(t);
             // Losing road access is temporary; only a demolished building invalidates an existing task.
             if (t.destination!=Outside && !Building(t.destination) || t.home!=Outside && !Building(t.home)) { Fail(t); return; }
+            }
             if (t.status == TripStatus.Visiting)
             {
+#if CITY_TRAFFIC_PROFILING
+            using var visitSampleScope=visitSample.Auto();
+#endif
+
                 t.delay = Math.Max(0, t.delay - Step);
                 if (t.delay > 0) return;
                 if (!t.returning)
@@ -362,6 +439,10 @@ namespace HarborCity
             }
             if (!RouteValid(t))
             {
+#if CITY_TRAFFIC_PROFILING
+            using var replanSampleScope=replanSample.Auto();
+#endif
+
                 // Finish an intact edge before replanning; don't teleport to a distant road.
                 if (!Road(t.Current) || (t.progress > 0 && (!Road(t.Next) || !city.roads.CanTravel(t.Current,t.Next,t.walking)))) { Wait(t); return; }
                 if (t.progress == 0)
@@ -395,6 +476,10 @@ namespace HarborCity
             TryChooseLane(t);
             while(remainingTime>.000001f)
             {
+#if CITY_TRAFFIC_PROFILING
+            using var edgeSampleScope=edgeSample.Auto();
+#endif
+
             if(!Road(t.Next) || !city.roads.CanTravel(t.Current,t.Next,t.walking))return;
             float units = Units(t.Current,t.Next);
             float movementUnits=t.walking?CityJunctions.WalkingLength(city.roads,t,t.segment)/3:units;
@@ -406,6 +491,9 @@ namespace HarborCity
             float proposed = Math.Min(1, t.progress + advance);
             if(!t.walking)
             {
+#if CITY_TRAFFIC_PROFILING
+            using var followingSampleScope=followingSample.Auto();
+#endif
                 // Splitting a road can create edges shorter than one car's headway.
                 // Geometry depends on this car's route, not on each other car.
                 // Compute it once per nearby edge rather than once per pair.
@@ -435,9 +523,18 @@ namespace HarborCity
             // A split edge can leave progress one float below 1. Do not classify
             // the final representable increment as blocked: it must reach the next
             // segment and release its junction reservation.
+            {
+#if CITY_TRAFFIC_PROFILING
+            using var progressSampleScope=progressSample.Auto();
+#endif
             if (proposed <= t.progress) { t.blocked += Step; if (t.blocked >= 120 && t.residentId==0 && t.cargoKind!=CargoKind.Waste && t.purpose!=TripPurpose.FireResponse && t.purpose!=TripPurpose.PoliceResponse && t.purpose!=TripPurpose.Deathcare) Fail(t); return; }
             t.progress = proposed; t.blocked = 0;
             if(t.progress<1)return;
+            }
+            {
+#if CITY_TRAFFIC_PROFILING
+            using var transitionSampleScope=transitionSample.Auto();
+#endif
             remainingTime-=Math.Max(0,(1-previous)*movementUnits/velocity);
             int outgoingLane=city.roads.TripLane(t,t.segment+1);t.previousLane=t.lane;t.lane=outgoingLane;
             t.segment++;t.progress=0;
@@ -445,10 +542,15 @@ namespace HarborCity
             if(t.segment==t.route.Count-1){Arrive(t);return;}
             if(t.cargoKind==CargoKind.Waste){CollectAlongRoute(t);if(t.delay>0)return;}
             }
+            }
         }
 
         void Arrive(TrafficTrip t)
         {
+#if CITY_TRAFFIC_PROFILING
+            using var arriveSampleScope=arriveSample.Auto();
+#endif
+
             if(t.purpose==TripPurpose.FireResponse){ArriveFire(t);return;}
             if(t.purpose==TripPurpose.PoliceResponse){ArrivePolice(t);return;}
             if(t.purpose==TripPurpose.Deathcare){ArriveHearse(t);return;}

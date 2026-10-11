@@ -1,3 +1,6 @@
+#if UNITY_5_3_OR_NEWER && ENABLE_PROFILER && (UNITY_EDITOR || DEVELOPMENT_BUILD) && !CITY_TRAFFIC_PROFILING_DISABLED
+#define CITY_TRAFFIC_PROFILING
+#endif
 using System;
 using System.Collections.Generic;
 namespace HarborCity
@@ -64,6 +67,10 @@ namespace HarborCity
         static bool OccupiesLane(TrafficTrip t,int lane)=>t.lane==lane || t.laneChangeRemaining>0 && t.laneChangeFrom==lane;
         void AdvanceLaneChange(TrafficTrip t)
         {
+#if CITY_TRAFFIC_PROFILING
+            using var laneAdvanceSampleScope=laneAdvanceSample.Auto();
+#endif
+
             bool changing=t.laneChangeRemaining>0;
             t.laneChangeRemaining=Math.Max(0,t.laneChangeRemaining-Step);t.laneChangeCooldown=Math.Max(0,t.laneChangeCooldown-Step);
             if(changing && t.laneChangeRemaining==0 && t.segment>0
@@ -75,6 +82,10 @@ namespace HarborCity
         // lane 1, whereas four-lane roads number their rightmost lane 1.
         int TurnLane(List<int> route,int segment,int fallback)
         {
+#if CITY_TRAFFIC_PROFILING
+            using var turnLaneSampleScope=turnLaneSample.Auto();
+#endif
+
             if(segment<0 || segment+1>=route.Count || city.roads.LaneCount(route[segment],route[segment+1])<2)return fallback;
             int count=city.roads.LaneCount(route[segment],route[segment+1]);
             float speed=480f*city.roads.SpeedFactor(route[segment],route[segment+1])/city.society.settings.secondsPerDay;
@@ -103,6 +114,10 @@ namespace HarborCity
         }
         float LaneHeadway(TrafficTrip t,int lane)
         {
+#if CITY_TRAFFIC_PROFILING
+            using var headwaySampleScope=headwaySample.Auto();
+#endif
+
             float best=4,offset=-Behind(t);
             for(int s=t.segment;s<t.route.Count-1 && offset<4;s++)
             {
@@ -116,6 +131,10 @@ namespace HarborCity
         }
         bool LaneSpace(TrafficTrip t,int lane)
         {
+#if CITY_TRAFFIC_PROFILING
+            using var laneSpaceSampleScope=laneSpaceSample.Auto();
+#endif
+
             float speed=480f*city.roads.SpeedFactor(t.Current,t.Next)/city.society.settings.secondsPerDay;
             float clearance=Gap+.2f+speed*.2f;
             int first=t.segment;
@@ -135,6 +154,10 @@ namespace HarborCity
         }
         void TryChooseLane(TrafficTrip t)
         {
+#if CITY_TRAFFIC_PROFILING
+            using var chooseLaneSampleScope=chooseLaneSample.Auto();
+#endif
+
             if(t.walking || t.laneChangeRemaining>0 || t.laneChangeCooldown>0 || city.roads.LaneCount(t.Current,t.Next)<2)return;
             float speed=480f*city.roads.SpeedFactor(t.Current,t.Next)/city.society.settings.secondsPerDay;
             // Never modify a reserved movement or sweep through a crosswalk.
@@ -153,11 +176,20 @@ namespace HarborCity
                     if(lane!=t.lane && LaneHeadway(t,lane)>=best && LaneSpace(t,lane)){best=LaneHeadway(t,lane);target=lane;}
                 if(target<0)return;
             }
+            {
+#if CITY_TRAFFIC_PROFILING
+            using var commitSampleScope=commitSample.Auto();
+#endif
             t.laneChangeFrom=t.lane;t.lane=target;t.laneChangeRemaining=LaneChangeSeconds;t.laneChangeCooldown=LaneChangeRest;
             city.Trace("trip.lane_changed",forTurn?"提前选择转弯车道":"前方受阻，安全换道",t,trip:t.id);
+            }
         }
         int EntryLane(List<int> route,TrafficTrip self)
         {
+#if CITY_TRAFFIC_PROFILING
+            using var entrySampleScope=entrySample.Auto();
+#endif
+
             if(self?.walking==true)return 0;
             int count=route.Count<2?1:Math.Max(1,city.roads.LaneCount(route[0],route[1]));
             for(int lane=0;lane<count;lane++)

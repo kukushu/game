@@ -1,5 +1,7 @@
 # 运行卡顿诊断
 
+最新交通移动细分诊断见 [TrafficProfiling.md](TrafficProfiling.md)：包含原城市 3× 的原生 Hierarchy 数据、每帧实际步数/任务数、各节点 Total/Self/Calls/GC 及验证边界。以下保留此前批次的证据，不作为最新交通性能结论。
+
 ## 2026-10-11 本批证据
 
 用户确认不操作也卡。用户真实 Unity Profiler 的一帧为 CPU 30.32 ms、HarborCityGame.Update 22.91 ms、Self 19.32 ms、GC Alloc 1.1 MB、GC.Collect 3.04 ms。单帧不能代表平均帧率；Self 包括尚无独立采样标记的普通 C# 子调用，不等于 Update 中某一行独占这些时间。当前证据证明模拟/展示主循环和分配需要优化，尚不足以排除渲染或编辑器的额外开销。

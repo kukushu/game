@@ -1,3 +1,6 @@
+#if UNITY_5_3_OR_NEWER && ENABLE_PROFILER && (UNITY_EDITOR || DEVELOPMENT_BUILD) && !CITY_TRAFFIC_PROFILING_DISABLED
+#define CITY_TRAFFIC_PROFILING
+#endif
 using System;
 using System.Linq;
 
@@ -27,6 +30,10 @@ namespace HarborCity
         // Provisional gap acceptance, derived from physical approaches/lanes. Explicit lights retain control.
         bool HighwayGapAllows(TrafficTrip t,JunctionMovement merge)
         {
+#if CITY_TRAFFIC_PROFILING
+            using var highwaySampleScope=highwaySample.Auto();
+#endif
+
             var roads=city.roads;
             if(roads.HasSignals(merge.node) || roads.HighwayMergeLane(merge.entry,merge.node,merge.exit)<0)return true;
             foreach(var other in State.trips)
