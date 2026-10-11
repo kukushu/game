@@ -43,6 +43,23 @@ namespace HarborCity
                 const BindingFlags flags=BindingFlags.Instance|BindingFlags.NonPublic;var type=typeof(HarborCityGame);
                 var city=(CityModel)type.GetField("city",flags).GetValue(game);var land=(CityLandscape)type.GetField("landscape",flags).GetValue(game);
                 CheckMapExpansion(land,output);
+                {
+                    Func<float,float,float> lowRiver=(x,z)=>Math.Abs(x)<10?-2:1;
+                    var bankCity=CityModel.Create();bankCity.money=200000;bankCity.development.enabled=false;bankCity.SetEntranceHeight(lowRiver);
+                    var bankSpan=bankCity.roads.PlanTerrainSpan(bankCity,bankCity.roads.Node(CityRoads.Entrance),new RoadNode{x=32,z=1.5f,y=1},lowRiver,kind:RoadKind.FourLane);
+                    if(!bankCity.CommitRoad(bankSpan) || bankSpan.grade>.35f || !bankCity.roads.nodes.Any(n=>n.y>=1.5f))throw new InvalidOperationException("Native low-bank automatic bridge approach");
+                    int Put(float x,LandUse use)=>bankCity.PlaceBuilding(bankCity.RoadsidePreview(x,8,use,HousingKind.Apartment,out _),use,lowRiver,out _);
+                    int factory=Put(-24,LandUse.Industrial),shop=Put(24,LandUse.Commercial);
+                    if(factory<0 || shop<0)throw new InvalidOperationException("Native low-bank building fixture");
+                    bankCity.Inventory(factory).Stock=8;bankCity.society.settings.applicantsPerDay=0;bankCity.traffic.dispatchTimer=-10000;
+                    var bankTraffic=new CityTraffic(bankCity);var trip=bankTraffic.Dispatch(factory,shop,TripPurpose.Delivery);
+                    if(trip==null)throw new InvalidOperationException("Native low-bank bridge freight dispatch");
+                    bankTraffic.Advance(2);bankCity.traffic.dispatchTimer=0;
+                    var twin=JsonUtility.FromJson<CitySaveData>(JsonUtility.ToJson(bankCity.ToSaveData())).ToCity();var twinTraffic=new CityTraffic(twin);
+                    bankCity.traffic.dispatchTimer=twin.traffic.dispatchTimer=-10000;bankTraffic.Advance(40);twinTraffic.Advance(40);bankCity.traffic.dispatchTimer=twin.traffic.dispatchTimer=0;
+                    if(bankCity.traffic.delivered!=8 || bankCity.traffic.failed!=0 || bankCity.traffic.trips.Contains(trip) || !bankCity.Valid() || JsonUtility.ToJson(bankCity.ToSaveData())!=JsonUtility.ToJson(twin.ToSaveData()))throw new InvalidOperationException("Native low-bank bridge delivery/save/return");
+                    File.WriteAllText(Path.Combine(output,"TerrainSpanApproaches.txt"),"PASS: low-bank automatic bridge with actual graded approaches, four-lane road, real freight delivery/return and deterministic native in-flight save");
+                }
                 var end=new RoadNode{x=28,z=1.5f,y=land.Height(28,1.5f)};var road=city.roads.Plan(city,city.roads.Node(CityRoads.Entrance),end,land.Height);
                 if(!city.CommitRoad(road)) throw new InvalidOperationException(road.error??"Road failed");
                 var cells=city.ZoningCells(land.Height);city.PaintZones(System.Linq.Enumerable.Where(cells,c=>c.pose.x<-22),LandUse.Residential);
@@ -391,6 +408,7 @@ namespace HarborCity
             {
                 var elevationGame=FindAnyObjectByType<HarborCityGame>();var elevationMouse=Mouse.current;
                 yield return CheckElevationInput(elevationGame,elevationMouse);
+                yield return CheckTerrainSpanInput(elevationGame,elevationMouse);
                 if(File.Exists(Path.Combine(output,"Failure.txt")))ok=false;
             }
             if(ok)
@@ -496,6 +514,44 @@ namespace HarborCity
                 File.WriteAllText(Path.Combine(output,"ElevatedTraffic.txt"),"PASS: real bridge/tunnel delivery, actual vehicle height, normal/underground visibility, native JSON and cargo arrival/return");
             }
             finally{type.GetField("city",flags).SetValue(game,originalCity);type.GetField("traffic",flags).SetValue(game,originalTraffic);type.GetMethod("SetUndergroundView",flags).Invoke(game,new object[]{false});type.GetMethod("AnimateTraffic",flags).Invoke(game,null);}
+        }
+        IEnumerator CheckTerrainSpanInput(HarborCityGame game,Mouse mouse)
+        {
+            const BindingFlags flags=BindingFlags.Instance|BindingFlags.NonPublic;var type=typeof(HarborCityGame);
+            var original=type.GetField("city",flags).GetValue(game);var originalTraffic=type.GetField("traffic",flags).GetValue(game);
+            var land=(CityLandscape)type.GetField("landscape",flags).GetValue(game);
+            var c=CityModel.Create();c.money=200000;c.development.enabled=false;c.SetEntranceHeight(land.Height);
+            RoadPlan chosen=null;
+            foreach(float z in new[]{0f,20f,-20f,40f,-40f,60f,-60f})
+            {
+                for(float x=60;x<=90 && chosen==null;x+=5)
+                for(float end=115;end<=150 && chosen==null;end+=5)
+                {
+                    float a=land.Height(x,z),b=land.Height(end,z);
+                    if(a<1.7f || b<1.7f || Math.Abs(a-b)/(end-x)>.2f)continue;
+                    bool water=false;for(float p=x;p<end;p+=1)if(land.Height(p,z)<=.15f){water=true;break;}
+                    if(!water)continue;
+                    var plan=c.roads.PlanTerrainSpan(c,new RoadNode{x=x,z=z,y=a},new RoadNode{x=end,z=z,y=b},land.Height,kind:RoadKind.FourLane);
+                    if(plan.Valid && plan.automaticSpan)chosen=plan;
+                }
+                if(chosen!=null)break;
+            }
+            if(chosen==null){File.WriteAllText(Path.Combine(output,"Failure.txt"),"No automatic bridge fixture across actual map inlet");yield break;}
+            try
+            {
+                type.GetField("city",flags).SetValue(game,c);type.GetField("traffic",flags).SetValue(game,new CityTraffic(c));
+                type.GetField("selected",flags).SetValue(game,LandUse.Road);type.GetField("roadMode",flags).SetValue(game,0);type.GetField("roadOperation",flags).SetValue(game,0);type.GetField("roadKind",flags).SetValue(game,RoadKind.FourLane);type.GetField("roadOneWay",flags).SetValue(game,false);
+                type.GetMethod("ResetRoad",flags).Invoke(game,null);type.GetMethod("SetRoadElevation",flags).Invoke(game,new object[]{0f});
+                type.GetField("focus",flags).SetValue(game,new Vector3((chosen.start.x+chosen.end.x)/2,0,chosen.start.z));type.GetField("zoom",flags).SetValue(game,90f);type.GetMethod("UpdateCamera",flags).Invoke(game,null);
+                yield return ClickWorld(game,mouse,new Vector2(chosen.start.x,chosen.start.z));
+                yield return ClickWorld(game,mouse,new Vector2(chosen.end.x,chosen.end.z));
+                if(!c.roads.edges.Any(e=>e.structure==RoadStructure.Elevated) || c.money!=200000-chosen.cost || !c.roads.FindPath(new System.Collections.Generic.List<int>{c.roads.edges.First().a},new System.Collections.Generic.List<int>{c.roads.edges.Last().b}).Any() || !JsonUtility.FromJson<CitySaveData>(JsonUtility.ToJson(c.ToSaveData())).ToCity().Valid())
+                {File.WriteAllText(Path.Combine(output,"Failure.txt"),"Ground-mode actual mouse automatic bridge failed: "+type.GetField("notice",flags).GetValue(game));yield break;}
+                File.WriteAllText(Path.Combine(output,"TerrainSpanInput.txt"),"PASS: actual map inlet, ground-mode mouse clicks build continuous four-lane automatic bridge; priced structure, real route and native save valid; from="+chosen.start.x+","+chosen.start.z+" to="+chosen.end.x+","+chosen.end.z);
+                File.WriteAllText(Path.Combine(output,"TerrainSpanInputCity.json"),JsonUtility.ToJson(c.ToSaveData(),true));
+            }
+            finally
+            {type.GetField("city",flags).SetValue(game,original);type.GetField("traffic",flags).SetValue(game,originalTraffic);type.GetMethod("ResetRoad",flags).Invoke(game,null);type.GetMethod("Rebuild",flags).Invoke(game,null);}
         }
         IEnumerator CheckElevationInput(HarborCityGame game,Mouse mouse)
         {

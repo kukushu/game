@@ -158,14 +158,14 @@ namespace HarborCity
             var control=curveControl??(roadMode==2 && previousCurveControl!=null?CityRoads.ContinuationControl(roadStart,previousCurveControl,end):null);
             var pointer=new Vector2(end.x,end.z);
             if(roadPlan==null || Vector2.Distance(pointer,plannedPointer)>.05f || roadPlan.revision!=city.roads.revision || mouse.leftButton.wasPressedThisFrame)
-            { roadPlan=roadMode>0 && control!=null?city.roads.PlanCurve(city,roadStart,control,end,landscape.Height,roadOneWay,roadKind,Engineered(roadStart,end)):city.roads.Plan(city,roadStart,end,landscape.Height,roadOneWay,roadKind,Engineered(roadStart,end)); plannedPointer=pointer; }
+            { roadPlan=city.roads.PlanTerrainSpan(city,roadStart,end,landscape.Height,roadOneWay,roadKind,Engineered(roadStart,end),roadMode>0?control:null); plannedPointer=pointer; }
             roadPreview.sharedMaterial=Mat(roadPlan.Valid ? palette[2] : palette[8]); roadPreview.startWidth=roadPreview.endWidth=CityRoadTypes.Width(roadKind);
             var preview=new List<Vector3>();
             for(int k=1;k<roadPlan.points.Count;k++)
             {
                 var a=roadPlan.points[k-1]; var b=roadPlan.points[k]; int steps=Mathf.Max(1,Mathf.CeilToInt(CityRoads.Length(a,b)/.5f));
                 for(int i=k==1?0:1;i<=steps;i++)
-                {var p=CityRoads.Lerp(a,b,(float)i/steps); preview.Add(new Vector3(p.x,(Engineered(roadStart,end)?p.y:landscape.Height(p.x,p.z))+.22f,p.z));}
+                {var p=CityRoads.Lerp(a,b,(float)i/steps); preview.Add(new Vector3(p.x,(roadPlan.engineered?p.y:landscape.Height(p.x,p.z))+.22f,p.z));}
             }
             roadPreview.positionCount=preview.Count; roadPreview.SetPositions(preview.ToArray());
             if(mouse.leftButton.wasPressedThisFrame)
@@ -213,7 +213,7 @@ namespace HarborCity
             int highway=GUI.Toolbar(new Rect(40,310,278,28),CityRoadTypes.LimitedAccess(roadKind)?(int)roadKind-3:-1,new[]{"三车道高速","单车道匝道"},button);
             if(highway>=0 && highway+3!=(int)roadKind){ResetRoad();roadKind=(RoadKind)(highway+3);roadOneWay=true;roadUpgradePreview=null;}
             string details=roadStart==null ? (roadMode>0?"起点 → 方向点 → 终点。":"点击起点，再点击终点。")+"\n端点与已有道路会自动吸附。" : roadPlan==null ? (curveControl!=null?"移动鼠标选择终点，再点击确认。":previousCurveControl!=null?"下一段延续末端方向，点击终点。":"移动鼠标选择下一点。")
-                : "长度 "+roadPlan.length.ToString("F1")+" 单位   费用 ¥ "+roadPlan.cost+"\n最大坡度 "+(roadPlan.grade*100).ToString("F1")+"%\n"+(roadPlan.Valid ? "可以建设 · 交叉处自动形成路口" : roadPlan.error);
+                : "长度 "+roadPlan.length.ToString("F1")+" 单位   费用 ¥ "+roadPlan.cost+"\n最大坡度 "+(roadPlan.grade*100).ToString("F1")+"%\n"+(roadPlan.Valid ? roadPlan.automaticSpan?"自动桥隧 · 按两端高度连接":"可以建设 · 同高度交叉处形成路口" : roadPlan.error);
             if(roadOperation>0)details=roadOperation==2?"左键点击单行路段，反转整个路口间路段。\n有车辆占用时暂不能修改。":"左键点击路段，改为所选类型。\n"+(roadUpgradePreview??"移到道路上预览费用。");
             if(roadOperation==3)details="信号：点路口；停车牌：点驶入道路。\n停车牌关信号；恢复默认保留牌。\n"+(roadUpgradePreview??"移到路口查看状态。");
             else if(roadOneWay)details+="\n单行方向：起点 → 终点。";

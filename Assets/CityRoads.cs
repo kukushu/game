@@ -33,6 +33,7 @@ namespace HarborCity
         public string error;
         public float length, grade;
         public int cost, stroke, revision;
+        public bool engineered,terrainBlocked,automaticSpan;
         public readonly List<RoadNode> points = new List<RoadNode>();
         public readonly List<RoadSplit> splits = new List<RoadSplit>();
         public bool Valid => error == null && network != null;
@@ -146,7 +147,7 @@ namespace HarborCity
             => PlanSegment(city,from,to,height,1.5f,oneWay,kind,engineered);
         RoadPlan PlanSegment(CityModel city,RoadNode from,RoadNode to,Func<float,float,float> height,float minimum,bool oneWay=false,RoadKind kind=RoadKind.Standard,bool engineered=false)
         {
-            var plan=new RoadPlan { start=from.Copy(),end=to.Copy(),revision=revision,stroke=nextStroke };
+            var plan=new RoadPlan { start=from.Copy(),end=to.Copy(),revision=revision,stroke=nextStroke,engineered=engineered };
             plan.points.Add(from.Copy()); plan.points.Add(to.Copy());
             plan.length=Length(from,to); plan.cost=ProfileCost(from,to,height,kind,engineered);
             if(!CityRoadTypes.Valid(kind,oneWay)){plan.error=CityRoadTypes.DirectionError;return plan;}
@@ -166,8 +167,8 @@ namespace HarborCity
                 if(i>0) plan.grade=Math.Max(plan.grade,Math.Abs(y-previous)/(plan.length/samples));
                 previous=y;
                 float left=height(p.x+rx*width/2,p.z+rz*width/2),right=height(p.x-rx*width/2,p.z-rz*width/2);
-                if(!engineered && Math.Min(y,Math.Min(left,right))<=.15f || engineered && terrain<=.15f && y<1.5f && y>terrain-2) { plan.error="跨水道路需抬高桥面，水下隧道需足够覆土"; return plan; }
-                if(!engineered && Math.Abs(left-right)>.95f || plan.grade>.35f) { plan.error="坡度过大，请沿缓坡绕行"; return plan; }
+                if(!engineered && Math.Min(y,Math.Min(left,right))<=.15f || engineered && terrain<=.15f && y<1.5f && y>terrain-2) { plan.terrainBlocked=true;plan.error="跨水道路需抬高桥面，水下隧道需足够覆土"; return plan; }
+                if(!engineered && Math.Abs(left-right)>.95f || plan.grade>.35f) { plan.terrainBlocked=true;plan.error="坡度过大，请沿缓坡绕行"; return plan; }
             }
             if((CityRoadTypes.LimitedAccess(kind) || width>Width || edges.Exists(e=>CityRoadTypes.Width(e.kind)>Width)) && !city.RoadWidthClear(from,to,kind,height,null,out string widthError,engineered)){plan.error=widthError;return plan;}
             var copy=Copy(); var crossings=new List<RoadNode>{from.Copy(),to.Copy()};
@@ -241,7 +242,7 @@ namespace HarborCity
         // straight roads. The whole stroke is previewed on copies and committed once.
         public RoadPlan PlanCurve(CityModel city,RoadNode from,RoadNode control,RoadNode to,Func<float,float,float> height,bool oneWay=false,RoadKind kind=RoadKind.Standard,bool engineered=false)
         {
-            var result=new RoadPlan {start=from.Copy(),end=to.Copy(),revision=revision,stroke=nextStroke};
+            var result=new RoadPlan {start=from.Copy(),end=to.Copy(),revision=revision,stroke=nextStroke,engineered=engineered};
             if(!CityRoadTypes.Valid(kind,oneWay)){result.error=CityRoadTypes.DirectionError;return result;}
             var dense=new List<RoadNode>(); var distances=new List<float>(); float total=0;
             int samples=Math.Max(16,(int)Math.Ceiling((Length(from,control)+Length(control,to))/.35f));
@@ -302,7 +303,7 @@ namespace HarborCity
                 copy.nextStroke=result.stroke;
                 var part=copy.PlanSegment(city,result.points[i-1],result.points[i],height,.4f,oneWay,kind,engineered);
                 result.grade=Math.Max(result.grade,part.grade);
-                if(part.error!=null) {result.error=part.error; return result;}
+                if(part.error!=null) {result.terrainBlocked=part.terrainBlocked;result.error=part.error; return result;}
                 result.splits.AddRange(part.splits); copy=part.network;
             }
             copy.nextStroke=result.stroke+1; result.network=copy;
