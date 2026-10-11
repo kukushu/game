@@ -80,6 +80,7 @@ namespace HarborCity
                 CheckLaneChoice(game,output);
                 CheckVehicleTurns(game,output);
                 CheckHighways(game,output);
+                CheckHighwayMerging(output);
                 CheckTrafficControls(game,output);
                 CheckPedestrians(game,output);
                 CheckPedestrians(game,output,true);
@@ -739,6 +740,61 @@ namespace HarborCity
             var legacy=c.ToSaveData();legacy.format=33;legacy.map=null;
             if(legacy.ToCity().GetBuilding(shop).x!=c.GetBuilding(shop).x)throw new InvalidOperationException("Legacy map migration moved entities");
             File.WriteAllText(Path.Combine(output,"MapExpansion.txt"),"PASS: 480 terrain/336 build area; 625 old terrain interpolated heights within 2 mm; "+rays+" expanded native collider picks; real terrain road, stable-ID shop, zoning, pipes/power; loaded import delivered/returned; native format34 deterministic continuation and format33 migration");
+        }
+
+        static CityModel HighwayMergeFixture(out int factory,out int shop)
+        {
+            Func<float,float,float> flat=(x,z)=>1;var c=CityModel.Create();c.money=1000000;c.development.enabled=false;c.SetEntranceHeight(flat);
+            void Road(float ax,float az,float bx,float bz,RoadKind kind)
+            {
+                var p=c.roads.Plan(c,c.roads.Snap(ax,az,flat),c.roads.Snap(bx,bz,flat),flat,CityRoadTypes.LimitedAccess(kind),kind);
+                if(!c.CommitRoad(p))throw new InvalidOperationException("Native merge fixture: "+p.error);
+            }
+            Road(-52.5f,1.5f,-45,1.5f,RoadKind.Standard);Road(-45,1.5f,40,1.5f,RoadKind.Highway);
+            Road(40,1.5f,40,25,RoadKind.Ramp);Road(40,25,-45,25,RoadKind.Standard);Road(-45,25,-45,1.5f,RoadKind.Ramp);
+            Road(-45,1.5f,-45,-25,RoadKind.Standard);Road(-45,-25,40,-25,RoadKind.Standard);Road(-10,-25,0,1.5f,RoadKind.Ramp);
+            int Build(float x,float z,LandUse use)
+            {var p=c.RoadsidePreview(x,z,use,HousingKind.Apartment,out string error);int id=c.PlaceBuilding(p,use,flat,out error);if(id<0)throw new InvalidOperationException(error);return id;}
+            factory=Build(-12,-31,LandUse.Industrial);shop=Build(30,31,LandUse.Commercial);return c;
+        }
+        static void CheckHighwayMerging(string output)
+        {
+            for(int order=0;order<3;order++)
+            {
+                var c=HighwayMergeFixture(out int factory,out int shop);c.Inventory(factory).Stock=8;int node=c.roads.nodes.First(n=>Math.Abs(n.x)<.75f && Math.Abs(n.z-1.5f)<.01f).id;
+                var sim=new CityTraffic(c);var main=sim.Dispatch(CityTraffic.Outside,shop,TripPurpose.Import);var ramp=sim.Dispatch(factory,shop,TripPurpose.Delivery);
+                foreach(var t in new[]{main,ramp})
+                {
+                    if(t==null || !t.route.Contains(node))throw new InvalidOperationException("Native merge route");
+                    t.segment=t.route.IndexOf(node)-1;t.progress=1-.34f/(c.roads.EdgeLength(t.Current,t.Next)/3);t.lane=t.previousLane=t.laneChangeFrom=t==main?2:0;
+                    t.junctionWaitNode=node;t.junctionQueuedAt=t==main?9:1;
+                }
+                c.traffic.clock=10;if(order==1)c.traffic.trips.Reverse();
+                if(order==2)c.roads.ToggleStop(node,main.route[main.route.IndexOf(node)-1],out _);
+                sim=new CityTraffic(c);sim.Advance(.1f);
+                if(order==2?ramp.segment<ramp.route.IndexOf(node) || main.Next!=node || main.blocked<=0
+                    :main.segment<main.route.IndexOf(node) || ramp.Next!=node || ramp.blocked<=0)throw new InvalidOperationException("Native highway mainline/stop priority");
+                var saved=JsonUtility.FromJson<CitySaveData>(JsonUtility.ToJson(c.ToSaveData())).ToCity();var resumed=new CityTraffic(saved);
+                sim.Advance(100);resumed.Advance(100);
+                if(c.Goods(shop)!=16 || c.traffic.trips.Count!=0 || c.traffic.failed!=0 || c.traffic.lostGoods!=0 || !c.Valid()
+                    || JsonUtility.ToJson(c.ToSaveData())!=JsonUtility.ToJson(saved.ToSaveData()))throw new InvalidOperationException("Native merge freight/save continuation");
+            }
+            {
+                var c=HighwayMergeFixture(out int factory,out int shop);Func<float,float,float> flat=(x,z)=>1;
+                int Build(float x,float z,LandUse use)
+                {var p=c.RoadsidePreview(x,z,use,HousingKind.Apartment,out string error);int id=c.PlaceBuilding(p,use,flat,out error);if(id<0)throw new InvalidOperationException(error);return id;}
+                var factories=new[]{factory,Build(-30,-31,LandUse.Industrial),Build(10,-31,LandUse.Industrial)};foreach(int id in factories)c.Inventory(id).Stock=24;
+                var shops=new[]{shop,Build(-35,31,LandUse.Commercial),Build(-20,31,LandUse.Commercial),Build(-5,31,LandUse.Commercial),Build(10,31,LandUse.Commercial)};
+                var sim=new CityTraffic(c);int imports=0,deliveries=0;
+                for(int i=0;i<6000;i++)
+                {
+                    if(imports<12 && sim.Dispatch(CityTraffic.Outside,shops[imports%5],TripPurpose.Import)!=null)imports++;
+                    if(deliveries<8 && sim.Dispatch(factories[deliveries/3],shops[(12+deliveries)%5],TripPurpose.Delivery)!=null)deliveries++;
+                    sim.Advance(.05f);
+                }
+                if(imports!=12 || deliveries!=8 || shops.Sum(c.Goods)!=160 || c.traffic.trips.Count!=0 || c.traffic.failed!=0 || c.traffic.lostGoods!=0 || !c.Valid())throw new InvalidOperationException("Native twenty-vehicle merge flow");
+            }
+            File.WriteAllText(Path.Combine(output,"HighwayMerging.txt"),"PASS: actual loaded mainline/ramp vehicles honor physical priority in either list order; native yielding JSON resumes identically; twenty naturally dispatched cargos deliver 160 goods and physically return without loss/deadlock. This does not claim original-game algorithm or heavy-city saturation parity.");
         }
 
         static void CheckHighways(HarborCityGame game,string output)

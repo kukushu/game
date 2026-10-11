@@ -39,7 +39,8 @@ namespace HarborCity
             for(int s=t.segment+1;s<=segment;s++)
             {
                 int oldCount=Math.Max(1,LaneCount(t.route[s-1],t.route[s]));int count=Math.Max(1,LaneCount(t.route[s],t.route[s+1]));
-                lane=oldCount==1 && count>1?t.id%count:Math.Min(lane,count-1);
+                int merge=HighwayMergeLane(t.route[s-1],t.route[s],t.route[s+1]);
+                lane=merge>=0?merge:oldCount==1 && count>1?t.id%count:Math.Min(lane,count-1);
             }
             return lane;
         }
@@ -81,12 +82,17 @@ namespace HarborCity
             for(int s=segment;s+2<route.Count && distance<=lookahead;s++)
             {
                 distance+=Units(route[s],route[s+1]);int node=route[s+1];
-                if(city.roads.Neighbors(node).Count<3)continue;
+                bool highwayExit=city.roads.Kind(route[s],node)==RoadKind.Highway && city.roads.Kind(node,route[s+2])==RoadKind.Ramp;
+                if(city.roads.Neighbors(node).Count<3 && !highwayExit)continue;
                 var a=city.roads.Node(route[s]);var n=city.roads.Node(node);var b=city.roads.Node(route[s+2]);
                 float ix=n.x-a.x,iz=n.z-a.z,ox=b.x-n.x,oz=b.z-n.z;
                 float norm=(float)Math.Sqrt((ix*ix+iz*iz)*(ox*ox+oz*oz));
                 float turn=norm>.001f?(ix*oz-iz*ox)/norm:0;
-                if(Math.Abs(turn)<.3f)return fallback;
+                if(Math.Abs(turn)<.3f && !highwayExit)
+                {
+                    if(city.roads.HighwayThrough(route[s],node,route[s+2]))continue;
+                    return fallback;
+                }
                 int desired=0;
                 for(int lane=1;lane<count;lane++)
                     if(turn<0?city.roads.LaneOffset(route[segment],route[segment+1],lane)>city.roads.LaneOffset(route[segment],route[segment+1],desired)

@@ -103,6 +103,7 @@ namespace HarborCity
                 if(t.junctionStopTime<StopSeconds){t.junctionWaitReason="停车牌：停车";return false;}
             }
             bool stopped=!roads.HasSignals(node) && roads.Node(node).stopFrom.Contains(movement.entry);
+            if(!HighwayGapAllows(t,movement))return false;
             // Protect a walker actually waiting at the crossing, not somebody
             // far away or at a red phase. Physical owners are checked by Reserve.
             int junctionIndex=t.route.IndexOf(node);
@@ -119,6 +120,10 @@ namespace HarborCity
                 // may have to clear that queue first. Physical owners still rule.
                 if(!ExitClear(other,node) || otherStop && other.junctionStopTime<StopSeconds)continue;
                 if(stopped && !otherStop){t.junctionWaitReason="停车牌：让行";return false;}
+                // Unsigned ramps do not claim arrival-order priority over the highway mainline.
+                // Vehicles already inside the junction remain protected by its physical reservation.
+                if(!roads.HasSignals(node) && !stopped && roads.HighwayThrough(movement.entry,node,movement.exit)
+                    && roads.HighwayMergeLane(next.entry,node,next.exit)>=0)continue;
                 if(stopped==otherStop && other.junctionWaitNode==node && (other.junctionQueuedAt<t.junctionQueuedAt || other.junctionQueuedAt==t.junctionQueuedAt && other.id<t.id))
                 {t.junctionWaitReason="等待先到的冲突车辆";return false;}
             }

@@ -195,7 +195,8 @@ namespace HarborCity
         }
         bool ExitClear(TrafficTrip t,int node)
         {
-            int index=t.Current==node?t.segment:t.segment+1;float offset=0;
+            int index=t.route.FindIndex(t.segment,n=>n==node);float offset=0;
+            if(index<0)return false;
             for(int i=index;i<t.route.Count-1 && offset<Gap+.4f;i++)
             {
                 foreach(var other in State.trips)

@@ -8,9 +8,9 @@ public static class HighwayChecks
     static void Check(bool ok,string why){if(!ok)throw new Exception("Highway: "+why);checks++;}
     static void Road(CityModel c,RoadNode a,RoadNode b,RoadKind kind)
     {var plan=c.roads.Plan(c,a,b,TestCity.Flat,CityRoadTypes.LimitedAccess(kind),kind);Check(plan.Valid && c.CommitRoad(plan),"Build "+kind+": "+plan.error);}
-    public static CityModel Loop()
+    public static CityModel Loop(bool south=false)
     {
-        var c=TestCity.Empty();var a=TestCity.P(-45,1.5f);var b=TestCity.P(40,1.5f);var d=TestCity.P(40,25);var e=TestCity.P(-45,25);
+        var c=TestCity.Empty();var a=TestCity.P(-45,1.5f);var b=TestCity.P(40,1.5f);var d=TestCity.P(40,south?-25:25);var e=TestCity.P(-45,south?-25:25);
         Road(c,c.roads.Node(CityRoads.Entrance),a,RoadKind.Standard);Road(c,a,b,RoadKind.Highway);
         Road(c,b,d,RoadKind.Ramp);Road(c,d,e,RoadKind.Standard);Road(c,e,a,RoadKind.Ramp);return c;
     }
@@ -47,7 +47,7 @@ public static class HighwayChecks
         for(int i=0;i<1600;i++){sim.Advance(.05f);resumed.Advance(.05f);}
         Check(shops.All(id=>c.Goods(id)>=8) && trips.All(t=>!c.traffic.trips.Any(p=>p.id==t.id)) && c.traffic.failed==0 && c.traffic.lostGoods==0 && c.Valid(),"Imports use off-ramp, deliver to real shops, return via on-ramp and finish");
         Check(TestCity.Snapshot(c)==TestCity.Snapshot(saved),"Third lane and merge save resumes identically");
-        c=Loop();int shop=TestCity.Build(c,25,31,LandUse.Commercial);sim=new CityTraffic(c);
+        c=Loop(true);int shop=TestCity.Build(c,25,-31,LandUse.Commercial);sim=new CityTraffic(c);
         var changing=sim.Dispatch(CityTraffic.Outside,shop,TripPurpose.Import);Place(c,changing,-30,1);
         var leader=sim.Dispatch(CityTraffic.Outside,shop,TripPurpose.Import);Place(c,leader,-28,1);
         sim=new CityTraffic(c);sim.Advance(.05f);
