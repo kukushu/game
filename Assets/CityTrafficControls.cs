@@ -40,6 +40,19 @@ namespace HarborCity
             if(!groups[group].Contains(from) || part>=SignalGreenSeconds+SignalAmberSeconds)return SignalAspect.Red;
             return part<SignalGreenSeconds?SignalAspect.Green:SignalAspect.Amber;
         }
+        // Walking is bidirectional even on a one-way road. Map its approach to
+        // the parallel vehicle phase rather than requiring a legal incoming lane.
+        // This is a provisional node-level crossing, not CS1's sidewalk lane graph.
+        public SignalAspect PedestrianSignal(int node,int from,float clock)
+        {
+            if(!HasSignals(node))return SignalAspect.Green;
+            var n=Node(node);var a=Node(from);if(n==null || a==null || !Linked(node,from))return SignalAspect.Red;
+            var approaches=SignalGroups(node).SelectMany(g=>g).ToList();
+            if(approaches.Count==0)return SignalAspect.Green;
+            if(approaches.Contains(from))return Signal(node,from,clock);
+            int parallel=approaches.OrderByDescending(p=>Math.Abs((Node(p).x-n.x)*(a.x-n.x)+(Node(p).z-n.z)*(a.z-n.z))/(Length(Node(p),n)*Length(a,n))).ThenBy(p=>p).First();
+            return Signal(node,parallel,clock);
+        }
         public int PickJunction(float x,float z)
         {
             var p=new RoadNode{x=x,z=z};var n=nodes.Where(n=>Neighbors(n.id).Count>=3 && Length(n,p)<4.5f).OrderBy(n=>Length(n,p)).FirstOrDefault();return n?.id??-1;
@@ -73,6 +86,12 @@ namespace HarborCity
         {
             int node=movement.node;var roads=city.roads;
             if(t.junctionWaitNode!=node){ClearJunctionQueue(t);t.junctionWaitNode=node;t.junctionQueuedAt=State.clock;}
+            if(t.walking)
+            {
+                if(roads.PedestrianSignal(node,movement.entry,State.clock)!=SignalAspect.Green)
+                {t.junctionWaitReason="等待行人通行信号";return false;}
+                return true;
+            }
             if(roads.HasSignals(node))
             {
                 if(roads.Signal(node,movement.entry,State.clock)!=SignalAspect.Green){t.junctionWaitReason="等待信号灯";return false;}
@@ -82,6 +101,11 @@ namespace HarborCity
                 if(t.junctionStopTime<StopSeconds){t.junctionWaitReason="停车牌：停车";return false;}
             }
             bool stopped=!roads.HasSignals(node) && roads.Node(node).stopFrom.Contains(movement.entry);
+            // Protect a walker actually waiting at the crossing, not somebody
+            // far away or at a red phase. Physical owners are checked by Reserve.
+            if(State.trips.Exists(other=>other.walking && other.status==TripStatus.Driving && other.Next==node && Ahead(other)<=.361f
+                && other.segment+2<other.route.Count && roads.PedestrianSignal(node,other.Current,State.clock)==SignalAspect.Green))
+            {t.junctionWaitReason="让行等待过街的行人";return false;}
             foreach(var other in State.trips)
             {
                 if(other==t || other.walking || other.status!=TripStatus.Driving || other.Next!=node || Ahead(other)>.7f)continue;

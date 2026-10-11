@@ -42,22 +42,40 @@ namespace HarborCity
     }
     public sealed partial class CityTraffic
     {
-        sealed class JunctionMovement {public int trip,node,entry,exit,entryLane,exitLane;}
+        sealed class JunctionMovement {public int trip,node,entry,exit,entryLane,exitLane;public bool walking;}
         readonly Dictionary<int,List<JunctionMovement>> junctions=new Dictionary<int,List<JunctionMovement>>();
         int junctionRevision=-1;
         JunctionMovement Movement(TrafficTrip t,int node)
         {
             int index=t.Current==node?t.segment:t.Next==node?t.segment+1:-1;
-            return new JunctionMovement{trip=t.id,node=node,entry=index>0?t.route[index-1]:-1,exit=index>=0 && index+1<t.route.Count?t.route[index+1]:-1,entryLane=city.roads.TripLane(t,index-1),exitLane=city.roads.TripLane(t,index)};
+            return new JunctionMovement{trip=t.id,node=node,entry=index>0?t.route[index-1]:-1,exit=index>=0 && index+1<t.route.Count?t.route[index+1]:-1,entryLane=city.roads.TripLane(t,index-1),exitLane=city.roads.TripLane(t,index),walking=t.walking};
         }
         void RestoreJunctions()
         {
             junctions.Clear();junctionRevision=city.roads.revision;
             // Existing departures physically own their movement until clear. Do not
             // resolve old overlaps by deleting cars or moving them during load.
-            foreach(var t in State.trips)if(!t.walking && t.status==TripStatus.Driving && Behind(t)<.4f && IsJunction(t.Current))
+            foreach(var t in State.trips)if(t.status==TripStatus.Driving && Behind(t)<.4f && IsJunction(t.Current))
             {if(!junctions.TryGetValue(t.Current,out var owners))junctions[t.Current]=owners=new List<JunctionMovement>();owners.Add(Movement(t,t.Current));}
-            foreach(var t in State.trips)if(!t.walking && t.status==TripStatus.Driving && Ahead(t)<=.35f)Reserve(t.Next,t.id);
+            // Tiny sampling spans must not release a pedestrian still physically
+            // inside the crossing merely because its Current node changed.
+            foreach(var t in State.trips)if(t.walking && t.status==TripStatus.Driving)
+                for(int index=t.segment-1;index>=0;index--)
+                {
+                    int node=t.route[index];if(WalkingDistanceFrom(t,index)>=.4f)break;
+                    if(!IsJunction(node))continue;
+                    if(!junctions.TryGetValue(node,out var owners))junctions[node]=owners=new List<JunctionMovement>();
+                    owners.Add(new JunctionMovement{trip=t.id,node=node,entry=index>0?t.route[index-1]:-1,exit=t.route[index+1],walking=true});
+                }
+            foreach(var t in State.trips)if(t.status==TripStatus.Driving && Ahead(t)<=.35f)Reserve(t.Next,t.id);
+        }
+        float WalkingDistanceFrom(TrafficTrip t,int index)
+        {float distance=Behind(t);for(int i=index;i<t.segment && distance<.4f;i++)distance+=Units(t.route[i],t.route[i+1]);return distance;}
+        bool StillOccupies(TrafficTrip t,int node)
+        {
+            if(t.Next==node && Ahead(t)<=.36f)return true;
+            if(!t.walking)return t.Current==node && Behind(t)<.4f;
+            int index=t.route.IndexOf(node);return index>=0 && index<=t.segment && WalkingDistanceFrom(t,index)<.4f;
         }
         void ReleaseJunctions()
         {
@@ -65,7 +83,7 @@ namespace HarborCity
             foreach(var pair in junctions)
                 pair.Value.RemoveAll(m=>{
                     var t=State.trips.Find(p=>p.id==m.trip);
-                    return t==null || t.status!=TripStatus.Driving || !(t.Next==pair.Key && Ahead(t)<=.36f || t.Current==pair.Key && Behind(t)<.4f);
+                    return t==null || t.status!=TripStatus.Driving || !StillOccupies(t,pair.Key);
                 });
         }
         bool ExitClear(TrafficTrip t,int node)
@@ -86,10 +104,20 @@ namespace HarborCity
             if(!junctions.TryGetValue(node,out var owners))junctions[node]=owners=new List<JunctionMovement>();
             if(owners.Exists(m=>m.trip==id))return true;
             var movement=Movement(t,node);
+            // Reaching a destination's access node does not imply crossing it.
+            if(t.walking && movement.exit<0)return true;
             t.junctionWaitReason=null;
             if(!ControlAllows(t,movement))return false;
-            if(!ExitClear(t,node)){t.junctionWaitReason="出口队列没有空间";return false;}
+            if(!t.walking && !ExitClear(t,node)){t.junctionWaitReason="出口队列没有空间";return false;}
             foreach(var owner in owners)
+                // Until sidewalk-side routing is implemented, crossing walkers
+                // conservatively exclude cars throughout this node. Walkers can
+                // cross together; existing car/car lane geometry remains intact.
+                if(movement.walking || owner.walking)
+                {
+                    if(movement.walking!=owner.walking){t.junctionWaitReason=t.walking?"等待路口内车辆驶离":"等待过街行人走完";return false;}
+                }
+                else
                 if(CityJunctions.Conflicts(city.roads,node,movement.entry,movement.exit,movement.entryLane,movement.exitLane,owner.entry,owner.exit,owner.entryLane,owner.exitLane)){t.junctionWaitReason="等待路口内冲突车辆驶离";return false;}
             owners.Add(movement);return true;
         }

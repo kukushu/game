@@ -794,7 +794,7 @@ namespace HarborCity
                     if(!trip.walking && trip.Current!=trip.Next && city.roads.LaneCount(trip.Current,trip.Next)>0 && trip.status!=TripStatus.Visiting)
                         status+=" · 车道 "+(trip.lane+1)+"/"+city.roads.LaneCount(trip.Current,trip.Next);
                     if(trip.blocked>.1f && !string.IsNullOrEmpty(trip.junctionWaitReason))status+=" · "+trip.junctionWaitReason;
-                    GUI.Label(new Rect(40,180,278,158),"车辆 #" + trip.id + "  " + Purpose(trip) + "\n从：" + EndpointName(trip.origin)
+                    GUI.Label(new Rect(40,180,278,158),(trip.walking?"行人 #":"车辆 #") + trip.id + "  " + Purpose(trip) + "\n从：" + EndpointName(trip.origin)
                         + "\n到：" + EndpointName(trip.destination) + "\n状态：" + status + "\n剩余路段：" + (trip.route.Count - 1 - trip.segment)
                         + (trip.blocked>.1f?"\n连续等待："+trip.blocked.ToString("F1")+" 秒":"")
                         + (trip.residentId>0?"\n乘员：居民 #"+trip.residentId+" / 家庭 #"+trip.householdId:"")

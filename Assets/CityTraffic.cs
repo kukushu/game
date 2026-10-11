@@ -379,7 +379,7 @@ namespace HarborCity
             // A car leaving an intersection must be allowed to clear it. Trying
             // to reacquire its departure lock can create a circular wait when
             // downstream traffic backs up into another nearby intersection.
-            if (!t.walking && (1-proposed)*units <= .35f && !Reserve(t.Next, t.id)) proposed = Math.Min(proposed, Math.Max(0,1-.36f/units));
+            if ((1-proposed)*units <= .35f && !Reserve(t.Next, t.id)) proposed = Math.Min(proposed, Math.Max(0,1-.36f/units));
             // A split edge can leave progress one float below 1. Do not classify
             // the final representable increment as blocked: it must reach the next
             // segment and release its junction reservation.

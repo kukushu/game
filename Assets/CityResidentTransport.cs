@@ -36,6 +36,8 @@ namespace HarborCity
                 if(trip.purpose==TripPurpose.Healthcare)
                 {a.state=trip.status==TripStatus.Waiting?"就医道路中断，等待恢复":trip.returning?"就医后步行回家":trip.walking?"步行就诊":"乘救护车前往诊所";a.reason=(trip.walking?"实际步行任务 #":"实际救护车 #")+trip.id+"；健康 "+p.health.ToString("F0")+" / 100";}
                 if(trip.purpose==TripPurpose.School){a.state=trip.status==TripStatus.Waiting?"上学道路中断，等待恢复":trip.returning?"放学步行回家":"步行上学";a.reason="实际步行任务 #"+trip.id+"；今日实际学习 "+p.schoolMinutesToday.ToString("F0")+" 分钟";}
+                if(trip.walking && trip.blocked>.1f && !string.IsNullOrEmpty(trip.junctionWaitReason))
+                {a.state="步行等待过街";a.reason+="；"+trip.junctionWaitReason;}
                 a.progress=(trip.segment+trip.progress)/Math.Max(1,trip.route.Count-1);
                 if(trip.purpose==TripPurpose.Shopping && trip.status==TripStatus.Visiting && GetBuilding(p.location)!=null)
                 {var shop=GetBuilding(p.location);a.travelling=false;a.building=shop.id;a.located=true;a.x=shop.x;a.z=shop.z;}
