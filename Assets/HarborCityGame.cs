@@ -64,7 +64,12 @@ namespace HarborCity
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Launch()
         {
+#if CITY_TRAFFIC_BENCHMARK
+            // Dedicated empty-scene player must not also auto-launch a second city.
+            return;
+#else
             if (FindAnyObjectByType<HarborCityGame>() == null) new GameObject("Harbor City").AddComponent<HarborCityGame>();
+#endif
         }
 
 

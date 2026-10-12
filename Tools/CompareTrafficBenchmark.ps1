@@ -18,6 +18,8 @@ function Modules([string]$directory){
     $frames=@{};foreach($frame in (Import-Csv (Join-Path $directory 'frames.csv'))){$frames[$frame.ordinal]=$frame}
     $groups=@{};$covered=@{}
     foreach($row in (Import-Csv (Join-Path $directory 'modules.csv'))){
+        if($row.path -like '*HarborCityGame.Update()*'){throw "Unexpected second city running in benchmark: $directory"}
+        if($row.path -notlike '*CityTrafficBenchmark.Update()*'){continue}
         $frame=$frames[$row.ordinal];if($null -eq $frame -or [int]$frame.steps -eq 0){continue}
         $name=($row.path -split '/')[-1]
         if($name -eq 'City.Traffic.Movement'){
@@ -52,4 +54,15 @@ foreach($mode in @('fixed','1x','3x')){
 }
 $report | Export-Csv (Join-Path $After 'paired-summary.csv') -NoTypeInformation
 $report | Format-List
+foreach($directory in @($Before,$After)){
+    $live=@()
+    foreach($mode in @('1x','3x')){
+        $measured=@(Import-Csv (Join-Path $directory 'frames.csv') | Where-Object { $_.mode -eq $mode -and [int]$_.partial -eq 0 })
+        $wall=($measured | Measure-Object unscaled_delta -Sum).Sum
+        $requested=($measured | Measure-Object requested_seconds -Sum).Sum
+        $stepCount=($measured | Measure-Object steps -Sum).Sum
+        $live += [pscustomobject]@{mode=$mode;frames=$measured.Count;wall_seconds=$wall;requested_sim_seconds=$requested;steps=$stepCount;observed_sim_seconds_per_wall_second=($stepCount*.05/$wall);mean_frame_advance_ms=($measured | Measure-Object advance_ms -Average).Average;mean_steps_per_frame=($stepCount/$measured.Count)}
+    }
+    $live | Export-Csv (Join-Path $directory 'live-summary.csv') -NoTypeInformation
+}
 Write-Output 'PASS: identical inputs/configuration, 2700 paired step task counts, nine final native states, all movement frame Calls match actual steps.'
