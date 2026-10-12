@@ -64,7 +64,6 @@ namespace HarborCity
                 CityTrafficBenchmarkProbe.Milliseconds=new double[Samples+20];CityTrafficBenchmarkProbe.Bytes=new long[Samples+20];CityTrafficBenchmarkProbe.Tasks=new int[Samples+20];
                 long allocationBefore=GC.GetAllocatedBytesForCurrentThread();var allocationCheck=new byte[4096];GC.KeepAlive(allocationCheck);
                 CityTrafficBenchmarkProbe.AllocationSupported=GC.GetAllocatedBytesForCurrentThread()>allocationBefore;
-                UnityEngine.Profiling.Profiler.logFile=Path.Combine(directory,"traffic.raw");UnityEngine.Profiling.Profiler.enableBinaryLog=true;UnityEngine.Profiling.Profiler.enabled=true;
                 File.WriteAllText(Path.Combine(directory,"configuration.txt"),"version="+codeVersion+"\nsave_sha256="+Hash(source)+"\nunity="+Application.unityVersion+"\ncpu="+SystemInfo.processorType+"\nos="+SystemInfo.operatingSystem+"\nsteps="+Samples+"\nwarmup="+Warmup+"\nrepeats="+Repeats+"\ntarget_fps=60\nmaximum_delta=0.33333334\nDedicated empty-scene Development Player, no city rendering/UI, fine Profiler markers enabled. Live modes use actual Time.deltaTime; fixed mode requests one 0.05s step per Update. Not full game FPS.\n");
                 NextRun();
             }
@@ -73,7 +72,12 @@ namespace HarborCity
         void NextRun()
         {
             CityTrafficBenchmarkProbe.Recording=false;
+            // The last measured frame has finished before Update calls NextRun.
+            // Bound the native history import: one recording per run, same protocol on both sides.
+            UnityEngine.Profiling.Profiler.enabled=false;UnityEngine.Profiling.Profiler.enableBinaryLog=false;
             if(++run>=Repeats*3){Finish();return;}
+            UnityEngine.Profiling.Profiler.logFile=Path.Combine(directory,"traffic-run-"+run+".raw");
+            UnityEngine.Profiling.Profiler.enableBinaryLog=true;UnityEngine.Profiling.Profiler.enabled=true;
             mode=run%3==0?"fixed":run%3==1?"1x":"3x";
             city=JsonUtility.FromJson<CitySaveData>(source).ToCity();if(city==null || !city.Valid())throw new Exception("Invalid fixed save");
             city.analysis=new CityDailyAnalysis(city);traffic=new CityTraffic(city);

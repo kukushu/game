@@ -25,11 +25,13 @@
 
 可用Stage=Build/Run/Export拆开执行。Run要求对应目录有构建好的Player，且不允许覆盖已有summary.csv。保留baseline的Player，未来配对可再运行相同旧二进制，不依赖当前源码。输入可通过SavePath明确选择；两侧必须相同hash。
 
-输出：steps.csv逐步数据；frames.csv实际delta/unscaledDelta/maximumDelta/请求时间/步数/耗时/任务/partial；summary.csv每轮统计和状态hash；traffic.raw原生录制；modules.csv按Benchmark.Frame计数器映射的主线程子模块路径；state-N.json最终比较副本；build/player/export日志与PASS/FAIL。
+输出：steps.csv逐步数据；frames.csv实际delta/unscaledDelta/maximumDelta/请求时间/步数/耗时/任务/partial；summary.csv每轮统计和状态hash；traffic-run-0.raw至traffic-run-8.raw原生录制；modules.csv按Benchmark.Frame计数器映射的主线程子模块路径；state-N.json最终比较副本；build/player/export日志与PASS/FAIL。旧协议的单文件traffic.raw仍可读取，但不能混用两个协议的数据做本轮配对。
 
 本机Unity原生Player的GetAllocatedBytesForCurrentThread未报告分配，而Profiler明确记录有GC。工具通过已知分配探测此API，若不支持，步骤CSV与原始summary的托管GC字段记为-1，不能理解为0B。GC验收取原生Profiler中互不重叠的Movement、Services、ResidentsAndIndustry和Dispatch之和除以实际步数。初次baseline目录是采集试验，托管GC为0不可用；正式配对使用v2-radius-disabled与v2-radius-cache目录。
 
 导入前显式扩大历史帧容量，比较脚本要求所有有步骤的Ordinal都被Profiler覆盖且Movement Calls=实际步数；任何缺帧或计数错位直接失败，不输出成功结论。build-source.txt保存构建时各C#文件SHA256，build-options.txt保存编译开关，不只依赖HEAD描述带工作树的构建。
+
+2026-10-12 CityFlow研究批次修正：单个数GB录制即使设置10000帧容量，Unity仍可能因内存压力主动丢弃早期帧。因此改为每轮单独录制、每次导入前清空原生历史；每轮最后一个测量帧结束后才关闭文件，跨文件Ordinal继续递增。导出工具现在额外核对所有frames.csv中的Ordinal且拒绝重复/缺失，不能发布部分表格。新协议两侧均重新构建和采集；cityflow-following-scan/index的单文件试验缺帧，不能作为收益依据。拆分不改变40步预热、300测量步、车辆顺序、实际deltaTime调度或分配计数协议。
 
 半径缓存的同代码控制组使用：
 
