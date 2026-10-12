@@ -1,3 +1,12 @@
+## 2026-10-12 整步瓶颈归因与共享道路键原型（默认未启用）
+
+- 细分ChooseLane前后窗口、IsJunction、DistanceTo、TripLane、MovementInfo/NodeIndex及路线节点/连接/入口检查，诊断可关闭。采样开关原生配对额外约5%，普通构建默认不执行新scope，不能拿诊断44.44ms当正常基线。见 [整步计划](TrafficWholeStepPlan.md)。
+- 确认DistanceTo仅0.62ms、IsJunction约21.34ms、路线连接检查5.70ms；共享打包long道路键在当前2640键中只有74个默认哈希、最大1254键同哈希，导致多个消费者一起退化。没有依据直接重排车辆或迁移ECS。
+- 控制比较器原型，不改64位相等性/键/交通行为：fixed完整步42.711→7.449ms，1x42.633→10.199ms、3x43.097→7.520ms；3x实际1.159→2.9997。GC不变，2700步任务/9个原生状态/既有Calls一致。属于无渲染Player研究结果，**正常游戏尚未启用原型**，不计玩法复刻进度。
+- 两种比较器全量模型、10000键专项、340步完整状态、原型+诊断的普通场景Player建造/真实交通/存读/26日运行通过。首次研究构建窗口配置未对齐，一条匝道鼠标检查失败，修正为既有1440×900后V2全套通过；初次失败保留，未放宽断言。
+- 整体顺序调整：先正式化共享道路查询修正并做实城/规模/冷启动验收，再按约7–10ms新预算定位服务、居民/生产与真实全局邻域查询。路线成功缓存的generation/入口/方向/segment失效设计已记录但未实施；不将旧5.7ms重复承诺为缓存收益。任何多阶段/并行语义变更仍需确认。
+- 轻量证据归档Docs/Benchmarks/2026-10-12-WholeStep；完整路径与raw在Logs/TrafficBenchmark/whole-step-attribution-*、road-key-plan-*。
+
 ## 2026-10-12 CityFlow源码对照与局部跟车查询
 
 - 固定CityFlow源码commit81ee0f4，实际阅读Road/Lane/Drivable/Segment、Engine阶段与线程池/屏障、Vehicle当前状态/Buffer、换道shadow及Router，记录函数源码链接和不能直接迁移的规则；见 [源码对照](CityFlowTrafficDesign.md)。没有引入CityFlow代码或改变现有更新顺序。

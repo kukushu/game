@@ -1,0 +1,1 @@
+PASS: simultaneous opposite real freight, native JSON in-junction save, both cargo deliveries and returns without task loss

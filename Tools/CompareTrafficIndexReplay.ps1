@@ -1,13 +1,16 @@
-param([string]$UnityData='C:/Program Files/Unity/Hub/Editor/6000.6.3f1/Editor/Data')
+param([string]$UnityData='C:/Program Files/Unity/Hub/Editor/6000.6.3f1/Editor/Data',[switch]$RoadKeyHashPrototype)
 $ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot -Parent
 $mono=Join-Path $UnityData 'MonoBleedingEdge/bin/mono.exe';$compiler=Join-Path $UnityData 'MonoBleedingEdge/lib/mono/4.5/csc.exe'
 $sources=Get-ChildItem -LiteralPath (Join-Path $root 'Assets') -Filter 'City*.cs' | Where-Object {$_.Name -notin @('CityLandscape.cs','CityRoadView.cs')} | ForEach-Object FullName
 $hashFiles=@()
 foreach($mode in @('scan','index')){
-    $directory=Join-Path $root "Temp/TrafficIndexReplay/$mode";New-Item -ItemType Directory -Path $directory -Force | Out-Null
+    $suite=if($RoadKeyHashPrototype){'TrafficRoadKeyReplay'}else{'TrafficIndexReplay'}
+    $directory=Join-Path $root "Temp/$suite/$mode";New-Item -ItemType Directory -Path $directory -Force | Out-Null
     $model=Join-Path $directory 'Model.dll';$probe=Join-Path $directory 'Probe.exe'
-    $flags=@('/nologo','/langversion:latest','/target:library',"/out:$model");if($mode -eq 'scan'){$flags+='/define:CITY_TRAFFIC_EDGE_INDEX_DISABLED'}
+    $flags=@('/nologo','/langversion:latest','/target:library',"/out:$model")
+    if($RoadKeyHashPrototype){if($mode -eq 'index'){$flags+='/define:CITY_ROAD_KEY_HASH_PROTOTYPE'}}
+    elseif($mode -eq 'scan'){$flags+='/define:CITY_TRAFFIC_EDGE_INDEX_DISABLED'}
     & $mono $compiler $flags $sources;if($LASTEXITCODE -ne 0){throw 'Model compilation failed'}
     & $mono $compiler /nologo /langversion:latest /r:System.Web.Extensions.dll "/r:$model" "/out:$probe" (Join-Path $PSScriptRoot 'Diagnostics/TrafficIndexReplayProbe.cs')
     if($LASTEXITCODE -ne 0){throw 'Replay compilation failed'}

@@ -1,0 +1,6 @@
+﻿fixed-city,default,keys=2640,distinct_hashes=74,max_same_hash=1254,mean_same_hash_success_probes=396.43787878787879
+fixed-city,mixed,keys=2640,distinct_hashes=2640,max_same_hash=1,mean_same_hash_success_probes=1
+consecutive-1000,default,keys=2000,distinct_hashes=10,max_same_hash=1000,mean_same_hash_success_probes=333.896
+consecutive-1000,mixed,keys=2000,distinct_hashes=2000,max_same_hash=1,mean_same_hash_success_probes=1
+consecutive-10000,default,keys=20000,distinct_hashes=14,max_same_hash=10000,mean_same_hash_success_probes=3333.8566
+consecutive-10000,mixed,keys=20000,distinct_hashes=20000,max_same_hash=1,mean_same_hash_success_probes=1

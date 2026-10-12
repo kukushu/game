@@ -1,0 +1,1 @@
+PASS: native electricity demand=161 / capacity=160; powered=22 / buildings=23; water=160; sewage=160; stable native save reload. No GUI claim.

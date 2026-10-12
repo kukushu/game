@@ -1,0 +1,51 @@
+screen=(859.61, 541.61, 137.81); blocked=False
+current=ValidationMouse; left=True; start=True; edges=1
+screen=(1018.62, 464.29, 131.15); blocked=False
+current=ValidationMouse; left=True; start=True; edges=2
+world=(28.00, 1.50); screen=(1022.12, 301.20); blocked=False
+world=(28.00, 20.00); screen=(1114.03, 419.52); blocked=False
+world=(28.00, 12.00); screen=(1074.28, 367.11); blocked=False
+world=(28.00, 12.00); screen=(1074.28, 367.11); blocked=False
+world=(28.00, 12.00); screen=(1074.28, 367.11); blocked=False
+world=(28.00, 12.00); screen=(1074.28, 367.11); blocked=False
+world=(0.00, -20.00); screen=(692.69, 276.78); blocked=False
+world=(20.00, -20.00); screen=(851.70, 198.20); blocked=False
+world=(10.00, -20.00); screen=(772.20, 237.33); blocked=False
+world=(10.00, -20.00); screen=(772.20, 237.33); blocked=False
+world=(0.00, -20.00); screen=(592.32, 371.82); blocked=False
+world=(20.00, -20.00); screen=(709.74, 313.78); blocked=False
+world=(20.00, -20.00); screen=(709.74, 313.78); blocked=False
+world=(20.00, 15.00); screen=(838.15, 475.65); blocked=False
+world=(10.00, -20.00); screen=(651.03, 342.68); blocked=False
+world=(10.00, -20.00); screen=(651.03, 342.68); blocked=False
+world=(115.00, 1.50); screen=(495.00, 464.63); blocked=False
+world=(156.00, 1.50); screen=(956.25, 465.72); blocked=False
+world=(116.00, 0.00); screen=(506.25, 449.96); blocked=False
+world=(154.00, 0.00); screen=(933.75, 450.94); blocked=False
+world=(30.35, 8.10); screen=(1073.59, 333.34); blocked=False
+world=(28.00, 20.00); screen=(1114.03, 419.52); blocked=False
+world=(20.00, 20.00); screen=(1050.42, 448.76); blocked=False
+world=(10.00, 16.00); screen=(951.04, 462.04); blocked=False
+world=(-8.00, 8.00); screen=(768.19, 482.44); blocked=False
+world=(0.00, 1.50); screen=(799.50, 410.66); blocked=False
+world=(0.00, 1.50); screen=(799.50, 410.66); blocked=False
+world=(-2.00, 1.50); screen=(783.60, 418.68); blocked=False
+world=(-2.00, 1.50); screen=(783.60, 418.68); blocked=False
+world=(0.00, 1.50); screen=(799.50, 410.66); blocked=False
+world=(0.00, 1.50); screen=(799.50, 410.66); blocked=False
+world=(0.00, 18.00); screen=(881.48, 513.29); blocked=False
+world=(0.00, -22.00); screen=(682.76, 264.08); blocked=False
+world=(0.00, -10.00); screen=(742.37, 339.54); blocked=False
+world=(0.00, -10.00); screen=(742.37, 339.54); blocked=False
+world=(0.00, 1.50); screen=(799.50, 410.66); blocked=False
+world=(6.00, -20.00); screen=(627.55, 354.27); blocked=False
+world=(6.00, 2.00); screen=(708.26, 455.70); blocked=False
+world=(6.00, 14.00); screen=(752.28, 510.65); blocked=False
+world=(6.00, 36.00); screen=(832.99, 615.36); blocked=False
+world=(22.00, -20.00); screen=(721.48, 308.05); blocked=False
+world=(22.00, 2.00); screen=(802.20, 409.77); blocked=False
+world=(22.00, 14.00); screen=(846.22, 465.23); blocked=False
+world=(-10.00, 14.00); screen=(658.34, 556.79); blocked=False
+world=(-44.50, 1.50); screen=(720.00, 450.00); blocked=False
+world=(60.00, 20.00); screen=(603.39, 515.09); blocked=False
+world=(115.00, 20.00); screen=(836.61, 396.63); blocked=False

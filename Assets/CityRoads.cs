@@ -76,9 +76,15 @@ namespace HarborCity
             if (lookup != null) return;
             lookup = new Dictionary<int,RoadNode>(); adjacency = new Dictionary<int,List<int>>();
             foreach (var n in nodes) { lookup[n.id]=n; adjacency[n.id]=new List<int>(); }
+#if CITY_ROAD_KEY_HASH_PROTOTYPE
+            vehicleConnections=new HashSet<long>(CityRoadKeyExperiment.Instance);
+            roadLookup=new Dictionary<long,RoadEdge>(CityRoadKeyExperiment.Instance);
+            structureLookup=new Dictionary<long,int>(CityRoadKeyExperiment.Instance);
+#else
             vehicleConnections=new HashSet<long>();
             roadLookup=new Dictionary<long,RoadEdge>();
             structureLookup=new Dictionary<long,int>();
+#endif
             foreach (var e in edges) { adjacency[e.a].Add(e.b); adjacency[e.b].Add(e.a);long ab=((long)e.a<<32)|(uint)e.b,ba=((long)e.b<<32)|(uint)e.a;roadLookup[ab]=roadLookup[ba]=e;structureLookup.TryGetValue(ab,out int mask);structureLookup[ab]=structureLookup[ba]=mask|(1<<(int)e.structure);vehicleConnections.Add(ab);if(!e.oneWay)vehicleConnections.Add(ba); }
             connected = new HashSet<int>(); var queue = new Queue<int>();
             if (lookup.ContainsKey(Entrance)) { connected.Add(Entrance); queue.Enqueue(Entrance); }
@@ -95,7 +101,13 @@ namespace HarborCity
         public bool Linked(int a,int b) => Neighbors(a).Contains(b);
         public bool CanTravel(int a,int b,bool walking=false){Cache();return walking?roadLookup.TryGetValue(((long)a<<32)|(uint)b,out var e) && CityRoadTypes.Frontage(e.kind):vehicleConnections.Contains(((long)a<<32)|(uint)b);}
         public RoadKind Kind(int a,int b){Cache();return roadLookup.TryGetValue(((long)a<<32)|(uint)b,out var e)?e.kind:RoadKind.Standard;}
-        public float EdgeLength(int a,int b) => Math.Max(.1f,SpatialLength(Node(a),Node(b)));
+        public float EdgeLength(int a,int b)
+        {
+#if UNITY_5_3_OR_NEWER && ENABLE_PROFILER && CITY_TRAFFIC_ATTRIBUTION && !CITY_TRAFFIC_PROFILING_DISABLED
+            CityTrafficAttribution.Current.edgeLengths++;
+#endif
+            return Math.Max(.1f,SpatialLength(Node(a),Node(b)));
+        }
         public float SpeedFactor(int a,int b){Cache();return roadLookup.TryGetValue(((long)a<<32)|(uint)b,out var e)?CityRoadTypes.SpeedFactor(e.kind):1;}
         public float TravelCost(int a,int b,bool walking=false)=>EdgeLength(a,b)/(walking?1:SpeedFactor(a,b));
         public bool Connected(int id) { Cache(); return connected.Contains(id) && Active(id); }

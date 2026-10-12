@@ -246,6 +246,9 @@ namespace HarborCity
 #if UNITY_5_3_OR_NEWER && CITY_TRAFFIC_BENCHMARK
             using var benchmarkStep=new CityTrafficBenchmarkProbe.Scope(State.trips.Count);
 #endif
+#if CITY_TRAFFIC_PROFILING && CITY_TRAFFIC_ATTRIBUTION
+            CityTrafficAttribution.Begin(city.roads);
+#endif
             State.clock += Step;
 #if UNITY_5_3_OR_NEWER
             using(movementSample.Auto())
@@ -333,6 +336,10 @@ namespace HarborCity
 
         bool IsJunction(int node)
         {
+#if CITY_TRAFFIC_PROFILING && CITY_TRAFFIC_ATTRIBUTION
+            using var diagnosticScope=CityTrafficAttribution.junction.Auto();
+            CityTrafficAttribution.NoteJunction(node);
+#endif
             int count = 0;
             foreach (int n in Neighbors(node)) if (Road(n)) count++;
             if(count>2)return true;
@@ -346,8 +353,34 @@ namespace HarborCity
             using var routeValidSampleScope=routeValidSample.Auto();
 #endif
 
-            for (int i = t.segment; i < t.route.Count; i++) if (!Road(t.route[i])) return false;
-            for (int i = t.segment; i < t.route.Count-1; i++) if (!city.roads.CanTravel(t.route[i],t.route[i+1],t.walking)) return false;
+            {
+#if CITY_TRAFFIC_PROFILING && CITY_TRAFFIC_ATTRIBUTION
+            using var diagnosticScope=CityTrafficAttribution.validNodes.Auto();
+#endif
+            for (int i = t.segment; i < t.route.Count; i++)
+            {
+#if CITY_TRAFFIC_PROFILING && CITY_TRAFFIC_ATTRIBUTION
+                CityTrafficAttribution.Current.validationNodes++;
+#endif
+                if (!Road(t.route[i])) return false;
+            }
+            }
+            {
+#if CITY_TRAFFIC_PROFILING && CITY_TRAFFIC_ATTRIBUTION
+            using var diagnosticScope=CityTrafficAttribution.validEdges.Auto();
+#endif
+            for (int i = t.segment; i < t.route.Count-1; i++)
+            {
+#if CITY_TRAFFIC_PROFILING && CITY_TRAFFIC_ATTRIBUTION
+                CityTrafficAttribution.Current.validationEdges++;
+#endif
+                if (!city.roads.CanTravel(t.route[i],t.route[i+1],t.walking)) return false;
+            }
+            }
+#if CITY_TRAFFIC_PROFILING && CITY_TRAFFIC_ATTRIBUTION
+            using var accessDiagnosticScope=CityTrafficAttribution.validAccess.Auto();
+            CityTrafficAttribution.Current.validationAccess++;
+#endif
             return Access(t.destination).Contains(t.route[t.route.Count - 1]);
         }
         void Wait(TrafficTrip t)

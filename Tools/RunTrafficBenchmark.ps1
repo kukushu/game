@@ -3,6 +3,8 @@ param(
     [ValidateSet('All','Build','Run','Export')][string]$Stage='All',
     [switch]$DisableRadiusCache,
     [switch]$DisableEdgeIndex,
+    [switch]$DetailedAttribution,
+    [switch]$RoadKeyHashPrototype,
     [string]$SavePath,
     [string]$UnityEditor='C:/Program Files/Unity/Hub/Editor/6000.6.3f1/Editor/Unity.exe'
 )
@@ -26,9 +28,11 @@ if($Stage -in @('All','Build')){
     $env:HARBOR_BENCHMARK_PLAYER=$player
     $env:HARBOR_BENCHMARK_DISABLE_RADIUS_CACHE=if($DisableRadiusCache){'1'}else{'0'}
     $env:HARBOR_BENCHMARK_DISABLE_EDGE_INDEX=if($DisableEdgeIndex){'1'}else{'0'}
+    $env:HARBOR_BENCHMARK_ATTRIBUTION=if($DetailedAttribution){'1'}else{'0'}
+    $env:HARBOR_BENCHMARK_ROAD_KEY_PROTOTYPE=if($RoadKeyHashPrototype){'1'}else{'0'}
     $sourceHashes=Get-ChildItem -LiteralPath (Join-Path $project 'Assets') -Filter '*.cs' -Recurse | Sort-Object FullName | ForEach-Object {($_.FullName.Substring($project.Length+1))+':'+(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash}
     [IO.File]::WriteAllLines((Join-Path $output 'build-source.txt'),$sourceHashes)
-    [IO.File]::WriteAllText((Join-Path $output 'build-options.txt'),"CITY_TRAFFIC_BENCHMARK=1`nCITY_JUNCTION_RADIUS_CACHE_DISABLED="+$env:HARBOR_BENCHMARK_DISABLE_RADIUS_CACHE+"`nCITY_TRAFFIC_EDGE_INDEX_DISABLED="+$env:HARBOR_BENCHMARK_DISABLE_EDGE_INDEX)
+    [IO.File]::WriteAllText((Join-Path $output 'build-options.txt'),"CITY_TRAFFIC_BENCHMARK=1`nCITY_JUNCTION_RADIUS_CACHE_DISABLED="+$env:HARBOR_BENCHMARK_DISABLE_RADIUS_CACHE+"`nCITY_TRAFFIC_EDGE_INDEX_DISABLED="+$env:HARBOR_BENCHMARK_DISABLE_EDGE_INDEX+"`nCITY_TRAFFIC_ATTRIBUTION="+$env:HARBOR_BENCHMARK_ATTRIBUTION+"`nCITY_ROAD_KEY_HASH_PROTOTYPE="+$env:HARBOR_BENCHMARK_ROAD_KEY_PROTOTYPE)
     UnityJob 'HarborCity.CityTrafficBenchmarkBuild.Build' (Join-Path $output 'build.log')
 }
 if($Stage -in @('All','Run')){

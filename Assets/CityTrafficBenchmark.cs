@@ -19,6 +19,9 @@ namespace HarborCity
         public static double[] Milliseconds;
         public static long[] Bytes;
         public static int[] Tasks;
+#if CITY_TRAFFIC_ATTRIBUTION
+        internal static CityTrafficAttribution.Work[] Work;
+#endif
         public struct Scope : IDisposable
         {
             readonly long start,allocated;
@@ -32,6 +35,9 @@ namespace HarborCity
                 int i=Count++;
                 Milliseconds[i]=(Stopwatch.GetTimestamp()-start)*1000.0/Stopwatch.Frequency;
                 Bytes[i]=AllocationSupported?GC.GetAllocatedBytesForCurrentThread()-allocated:-1;Tasks[i]=tasks;
+#if CITY_TRAFFIC_ATTRIBUTION
+                Work[i]=CityTrafficAttribution.Current;
+#endif
             }
         }
     }
@@ -47,6 +53,9 @@ namespace HarborCity
         readonly StringBuilder steps=new StringBuilder("run,mode,step,ms,gc_bytes,tasks\n");
         readonly StringBuilder frames=new StringBuilder("ordinal,run,mode,delta,unscaled_delta,maximum_delta,requested_seconds,steps,advance_ms,tasks,partial\n");
         readonly StringBuilder summaries=new StringBuilder("run,mode,mean_ms,p95_ms,p99_ms,gc_bytes_per_step,min_tasks,max_tasks,state_sha256\n");
+#if CITY_TRAFFIC_ATTRIBUTION
+        readonly StringBuilder attribution=new StringBuilder("run,mode,step,"+CityTrafficAttribution.Work.Header+"\n");
+#endif
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void StartBenchmark()
         {
@@ -62,6 +71,9 @@ namespace HarborCity
                 source=File.ReadAllText(Arg("-harbor-traffic-benchmark"));directory=Arg("-benchmark-output");codeVersion=Arg("-benchmark-version");
                 Directory.CreateDirectory(directory);QualitySettings.vSyncCount=0;Application.targetFrameRate=60;Application.runInBackground=true;Time.timeScale=1;Time.maximumDeltaTime=.33333334f;
                 CityTrafficBenchmarkProbe.Milliseconds=new double[Samples+20];CityTrafficBenchmarkProbe.Bytes=new long[Samples+20];CityTrafficBenchmarkProbe.Tasks=new int[Samples+20];
+#if CITY_TRAFFIC_ATTRIBUTION
+                CityTrafficBenchmarkProbe.Work=new CityTrafficAttribution.Work[Samples+20];
+#endif
                 long allocationBefore=GC.GetAllocatedBytesForCurrentThread();var allocationCheck=new byte[4096];GC.KeepAlive(allocationCheck);
                 CityTrafficBenchmarkProbe.AllocationSupported=GC.GetAllocatedBytesForCurrentThread()>allocationBefore;
                 File.WriteAllText(Path.Combine(directory,"configuration.txt"),"version="+codeVersion+"\nsave_sha256="+Hash(source)+"\nunity="+Application.unityVersion+"\ncpu="+SystemInfo.processorType+"\nos="+SystemInfo.operatingSystem+"\nsteps="+Samples+"\nwarmup="+Warmup+"\nrepeats="+Repeats+"\ntarget_fps=60\nmaximum_delta=0.33333334\nDedicated empty-scene Development Player, no city rendering/UI, fine Profiler markers enabled. Live modes use actual Time.deltaTime; fixed mode requests one 0.05s step per Update. Not full game FPS.\n");
@@ -113,6 +125,9 @@ namespace HarborCity
             {
                 sum+=CityTrafficBenchmarkProbe.Milliseconds[i];bytes+=CityTrafficBenchmarkProbe.Bytes[i];int tasks=CityTrafficBenchmarkProbe.Tasks[i];min=Math.Min(min,tasks);max=Math.Max(max,tasks);
                 steps.Append(run).Append(',').Append(mode).Append(',').Append(i).Append(',').Append(N(CityTrafficBenchmarkProbe.Milliseconds[i])).Append(',').Append(CityTrafficBenchmarkProbe.Bytes[i]).Append(',').Append(tasks).AppendLine();
+#if CITY_TRAFFIC_ATTRIBUTION
+                attribution.Append(run).Append(',').Append(mode).Append(',').Append(i).Append(',');CityTrafficBenchmarkProbe.Work[i].Append(attribution);attribution.AppendLine();
+#endif
             }
             // Frame grouping changes only the fractional accumulator. Preserve it separately, normalize only the comparison copy.
             var save=city.ToSaveData();var copy=JsonUtility.FromJson<CitySaveData>(JsonUtility.ToJson(save));copy.traffic.remainder=0;
@@ -124,6 +139,9 @@ namespace HarborCity
         {
             traffic=null;UnityEngine.Profiling.Profiler.enabled=false;UnityEngine.Profiling.Profiler.enableBinaryLog=false;
             File.WriteAllText(Path.Combine(directory,"steps.csv"),steps.ToString());File.WriteAllText(Path.Combine(directory,"frames.csv"),frames.ToString());File.WriteAllText(Path.Combine(directory,"summary.csv"),summaries.ToString());
+#if CITY_TRAFFIC_ATTRIBUTION
+            File.WriteAllText(Path.Combine(directory,"attribution.csv"),attribution.ToString());
+#endif
             File.WriteAllText(Path.Combine(directory,"PASS.txt"),"9 runs completed, detached save, 40 warmup + 300 measured steps each; accumulator excluded only from state comparison.\n");Application.Quit(0);
         }
         void Failure(Exception e){CityTrafficBenchmarkProbe.Recording=false;UnityEngine.Profiling.Profiler.enabled=false;UnityEngine.Debug.LogException(e);if(directory!=null)File.WriteAllText(Path.Combine(directory,"FAIL.txt"),e.ToString());traffic=null;Application.Quit(1);}

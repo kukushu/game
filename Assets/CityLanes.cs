@@ -35,12 +35,19 @@ namespace HarborCity
         // merge, and distribute a one-to-two lane entry deterministically.
         public int TripLane(TrafficTrip t,int segment)
         {
+#if CITY_TRAFFIC_PROFILING && CITY_TRAFFIC_ATTRIBUTION
+            using var diagnosticScope=CityTrafficAttribution.tripLane.Auto();
+            CityTrafficAttribution.Current.tripLaneCalls++;
+#endif
             if(t.walking || segment<0 || segment>=t.route.Count-1)return 0;
             if(segment==t.segment-1)return t.previousLane;
             if(segment<t.segment)return Math.Min(t.previousLane,Math.Max(0,LaneCount(t.route[segment],t.route[segment+1])-1));
             int lane=t.lane;
             for(int s=t.segment+1;s<=segment;s++)
             {
+#if CITY_TRAFFIC_PROFILING && CITY_TRAFFIC_ATTRIBUTION
+                CityTrafficAttribution.Current.tripLaneEdges++;
+#endif
                 int oldCount=Math.Max(1,LaneCount(t.route[s-1],t.route[s]));int count=Math.Max(1,LaneCount(t.route[s],t.route[s+1]));
                 int merge=HighwayMergeLane(t.route[s-1],t.route[s],t.route[s+1]);
                 lane=merge>=0?merge:oldCount==1 && count>1?t.id%count:Math.Min(lane,count-1);
@@ -158,13 +165,28 @@ namespace HarborCity
             using var chooseLaneSampleScope=chooseLaneSample.Auto();
 #endif
 
+            {
+#if CITY_TRAFFIC_PROFILING && CITY_TRAFFIC_ATTRIBUTION
+            using var diagnosticScope=CityTrafficAttribution.laneEligibility.Auto();
+#endif
             if(t.walking || t.laneChangeRemaining>0 || t.laneChangeCooldown>0 || city.roads.LaneCount(t.Current,t.Next)<2)return;
+            }
             float speed=480f*city.roads.SpeedFactor(t.Current,t.Next)/city.society.settings.secondsPerDay;
             // Never modify a reserved movement or sweep through a crosswalk.
+            {
+#if CITY_TRAFFIC_PROFILING && CITY_TRAFFIC_ATTRIBUTION
+            using var diagnosticScope=CityTrafficAttribution.laneLookBack.Auto();
+#endif
             for(int i=t.segment;i>=0;i--)
             {float d=-DistanceTo(t,i);if(d>4)break;if(IsJunction(t.route[i]) && d<CityJunctions.CrossingRadius(city.roads,t.route[i])+.2f)return;}
+            }
+            {
+#if CITY_TRAFFIC_PROFILING && CITY_TRAFFIC_ATTRIBUTION
+            using var diagnosticScope=CityTrafficAttribution.laneLookAhead.Auto();
+#endif
             for(int i=t.segment+1;i<t.route.Count;i++)
             {float d=DistanceTo(t,i);if(d>4+speed*LaneChangeSeconds)break;if(IsJunction(t.route[i]) && d<CityJunctions.CrossingRadius(city.roads,t.route[i])+speed*LaneChangeSeconds+.2f)return;}
+            }
             int desired=TurnLane(t.route,t.segment,-1),target=-1,count=city.roads.LaneCount(t.Current,t.Next);
             if(desired==t.lane)return;
             bool forTurn=desired>=0;

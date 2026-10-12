@@ -1,0 +1,44 @@
+
+mode                              : fixed
+before_mean_ms                    : 42.7114354444445
+after_mean_ms                     : 7.44854177777778
+reduction_mean_ms                 : 82.5607786292591
+before_p95_ms                     : 56.4698666666667
+after_p95_ms                      : 10.3731333333333
+reduction_p95_ms                  : 81.6306750030695
+before_p99_ms                     : 104.034566666667
+after_p99_ms                      : 13.7143
+reduction_p99_ms                  : 86.8175545499781
+before_profiler_gc_bytes_per_step : 807955.08
+after_profiler_gc_bytes_per_step  : 807955.08
+reduction_profiler_gc             : 0
+
+mode                              : 1x
+before_mean_ms                    : 42.6326873333333
+after_mean_ms                     : 10.1993237777778
+reduction_mean_ms                 : 76.076282271319
+before_p95_ms                     : 54.6459666666667
+after_p95_ms                      : 15.0792333333333
+reduction_p95_ms                  : 72.4055877255961
+before_p99_ms                     : 104.284933333333
+after_p99_ms                      : 17.8616
+reduction_p99_ms                  : 82.8723100940117
+before_profiler_gc_bytes_per_step : 807954.673333333
+after_profiler_gc_bytes_per_step  : 807954.673333333
+reduction_profiler_gc             : 0
+
+mode                              : 3x
+before_mean_ms                    : 43.0969542222222
+after_mean_ms                     : 7.51959766666666
+reduction_mean_ms                 : 82.5519046476159
+before_p95_ms                     : 56.1274333333333
+after_p95_ms                      : 10.4691666666667
+reduction_p95_ms                  : 81.3475050524907
+before_p99_ms                     : 104.856666666667
+after_p99_ms                      : 13.7798666666667
+reduction_p99_ms                  : 86.8583781034428
+before_profiler_gc_bytes_per_step : 807954.673333333
+after_profiler_gc_bytes_per_step  : 807954.673333333
+reduction_profiler_gc             : 0
+
+PASS: identical inputs/configuration, 2700 paired step task counts, nine final native states, all movement frame Calls match actual steps.

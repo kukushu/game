@@ -199,11 +199,18 @@ namespace HarborCity
         int junctionRevision=-1;
         int RouteNodeIndex(TrafficTrip t,int node)
         {
+#if CITY_TRAFFIC_PROFILING && CITY_TRAFFIC_ATTRIBUTION
+            using var diagnosticScope=CityTrafficAttribution.routeNodeIndex.Auto();
+#endif
             int index=t.route.FindIndex(t.segment,n=>n==node);
             return index>=0?index:t.route.LastIndexOf(node,t.segment);
         }
         JunctionMovement Movement(TrafficTrip t,int node)
         {
+#if CITY_TRAFFIC_PROFILING && CITY_TRAFFIC_ATTRIBUTION
+            using var diagnosticScope=CityTrafficAttribution.movement.Auto();
+            CityTrafficAttribution.Current.movementRecords++;
+#endif
             int index=RouteNodeIndex(t,node);
             return new JunctionMovement{trip=t.id,node=node,entry=index>0?t.route[index-1]:-1,exit=index>=0 && index+1<t.route.Count?t.route[index+1]:-1,entryLane=city.roads.TripLane(t,index-1),exitLane=city.roads.TripLane(t,index),walking=t.walking};
         }
@@ -231,6 +238,11 @@ namespace HarborCity
         }
         float DistanceTo(TrafficTrip t,int index)
         {
+#if CITY_TRAFFIC_PROFILING && CITY_TRAFFIC_ATTRIBUTION
+            using var diagnosticScope=CityTrafficAttribution.distance.Auto();
+            CityTrafficAttribution.Current.distanceCalls++;
+            CityTrafficAttribution.Current.distanceEdges+=index>t.segment?index-t.segment-1:t.segment-index;
+#endif
             if(index>t.segment){float ahead=Ahead(t);for(int i=t.segment+1;i<index;i++)ahead+=Units(t.route[i],t.route[i+1]);return ahead;}
             float behind=Behind(t);for(int i=index;i<t.segment;i++)behind+=Units(t.route[i],t.route[i+1]);return -behind;
         }
@@ -296,6 +308,9 @@ namespace HarborCity
         }
         bool MixedConflicts(JunctionMovement a,JunctionMovement b)
         {
+#if CITY_TRAFFIC_PROFILING && CITY_TRAFFIC_ATTRIBUTION
+            using var diagnosticScope=CityTrafficAttribution.mixed.Auto();
+#endif
             var walk=a.walking?a:b;var car=a.walking?b:a;
             return CityJunctions.PedestrianConflicts(city.roads,a.node,walk.entry,walk.exit,car.entry,car.exit);
         }
@@ -350,6 +365,10 @@ namespace HarborCity
                 float radius=CityJunctions.CrossingRadius(city.roads,node);
                 if(distance-(proposed-t.progress)*units>radius+.01f)continue;
                 var movement=Movement(t,node);bool allowed;
+                {
+#if CITY_TRAFFIC_PROFILING && CITY_TRAFFIC_ATTRIBUTION
+                using var diagnosticScope=CityTrafficAttribution.crossingGate.Auto();
+#endif
                 if(t.walking)allowed=movement.exit<0 || Reserve(node,t.id);
                 else
                 {
@@ -358,6 +377,7 @@ namespace HarborCity
                     if(distance<radius-.02f)continue;
                     allowed=!(junctions.TryGetValue(node,out var owners) && owners.Exists(m=>m.walking && MixedConflicts(movement,m))) && !PendingWalker(node,movement);
                     if(!allowed)t.junctionWaitReason="让行横道上的行人";
+                }
                 }
                 if(!allowed)proposed=Math.Min(proposed,t.progress+Math.Max(0,distance-radius-.01f)/units);
             }
