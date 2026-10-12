@@ -243,6 +243,9 @@ namespace HarborCity
 
         void Simulate()
         {
+#if UNITY_5_3_OR_NEWER && CITY_TRAFFIC_BENCHMARK
+            using var benchmarkStep=new CityTrafficBenchmarkProbe.Scope(State.trips.Count);
+#endif
             State.clock += Step;
 #if UNITY_5_3_OR_NEWER
             using(movementSample.Auto())

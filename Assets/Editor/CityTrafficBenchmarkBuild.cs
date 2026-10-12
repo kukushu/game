@@ -1,0 +1,53 @@
+using System;
+using System.Globalization;
+using System.IO;
+using System.Text;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEditor.Profiling;
+using UnityEditorInternal;
+using UnityEngine;
+
+namespace HarborCity
+{
+    public static class CityTrafficBenchmarkBuild
+    {
+        // Invoke in an isolated project, never replace the user's open scene.
+        public static void Build()
+        {
+            EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
+            Directory.CreateDirectory("Assets/Benchmark");EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene(),"Assets/Benchmark/Traffic.unity");
+            string output=Environment.GetEnvironmentVariable("HARBOR_BENCHMARK_PLAYER");
+            var report=BuildPipeline.BuildPlayer(new BuildPlayerOptions{scenes=new[]{"Assets/Benchmark/Traffic.unity"},locationPathName=output,target=BuildTarget.StandaloneWindows64,options=BuildOptions.Development,extraScriptingDefines=new[]{"CITY_TRAFFIC_BENCHMARK"}});
+            if(report.summary.result!=UnityEditor.Build.Reporting.BuildResult.Succeeded)throw new Exception("Benchmark player build failed");
+        }
+        public static void Export()
+        {
+            string directory=Environment.GetEnvironmentVariable("HARBOR_BENCHMARK_RESULTS");
+            if(!ProfilerDriver.LoadProfile(Path.Combine(directory,"traffic.raw"),false))throw new Exception("Cannot read benchmark recording");
+            var rows=new StringBuilder("ordinal,profiler_frame,path,total_ms,self_ms,calls,gc_bytes\n");
+            for(int frame=ProfilerDriver.firstFrameIndex;frame<=ProfilerDriver.lastFrameIndex;frame++)
+            {
+                using(var raw=ProfilerDriver.GetRawFrameDataView(frame,0))
+                using(var data=ProfilerDriver.GetHierarchyFrameDataView(frame,0,HierarchyFrameDataView.ViewModes.MergeSamplesWithTheSameName,HierarchyFrameDataView.columnDontSort,false))
+                {
+                    if(!raw.valid || !data.valid)continue;int marker=raw.GetMarkerId("City.Benchmark.Frame");if(marker<0)continue;
+                    long ordinal=raw.GetCounterValueAsLong(marker);if(ordinal<=0)continue;
+                    Visit(data,data.GetRootItemID(),"",ordinal,frame,rows);
+                }
+            }
+            File.WriteAllText(Path.Combine(directory,"modules.csv"),rows.ToString());
+        }
+        static void Visit(HierarchyFrameDataView data,int id,string parent,long ordinal,int frame,StringBuilder rows)
+        {
+            string name=data.GetItemName(id),path=parent.Length==0?name:parent+"/"+name;
+            if(name.StartsWith("City.Traffic.",StringComparison.Ordinal))
+            {
+                rows.Append(ordinal).Append(',').Append(frame).Append(',').Append('"').Append(path.Replace("\"","\"\"")).Append('"');
+                foreach(int column in new[]{HierarchyFrameDataView.columnTotalTime,HierarchyFrameDataView.columnSelfTime,HierarchyFrameDataView.columnCalls,HierarchyFrameDataView.columnGcMemory})rows.Append(',').Append(data.GetItemColumnDataAsDouble(id,column).ToString("R",CultureInfo.InvariantCulture));
+                rows.AppendLine();
+            }
+            var children=new System.Collections.Generic.List<int>();data.GetItemChildren(id,children);foreach(int child in children)Visit(data,child,path,ordinal,frame,rows);
+        }
+    }
+}
