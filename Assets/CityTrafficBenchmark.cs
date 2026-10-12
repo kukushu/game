@@ -14,6 +14,7 @@ namespace HarborCity
     public static class CityTrafficBenchmarkProbe
     {
         public static bool Recording;
+        public static bool AllocationSupported;
         public static int Count;
         public static double[] Milliseconds;
         public static long[] Bytes;
@@ -24,13 +25,13 @@ namespace HarborCity
             readonly int tasks;
             readonly bool record;
             public Scope(int tasks)
-            {this.tasks=tasks;record=Recording;allocated=record?GC.GetAllocatedBytesForCurrentThread():0;start=record?Stopwatch.GetTimestamp():0;}
+            {this.tasks=tasks;record=Recording;allocated=record && AllocationSupported?GC.GetAllocatedBytesForCurrentThread():0;start=record?Stopwatch.GetTimestamp():0;}
             public void Dispose()
             {
                 if(!record)return;
                 int i=Count++;
                 Milliseconds[i]=(Stopwatch.GetTimestamp()-start)*1000.0/Stopwatch.Frequency;
-                Bytes[i]=GC.GetAllocatedBytesForCurrentThread()-allocated;Tasks[i]=tasks;
+                Bytes[i]=AllocationSupported?GC.GetAllocatedBytesForCurrentThread()-allocated:-1;Tasks[i]=tasks;
             }
         }
     }
@@ -61,6 +62,8 @@ namespace HarborCity
                 source=File.ReadAllText(Arg("-harbor-traffic-benchmark"));directory=Arg("-benchmark-output");codeVersion=Arg("-benchmark-version");
                 Directory.CreateDirectory(directory);QualitySettings.vSyncCount=0;Application.targetFrameRate=60;Application.runInBackground=true;Time.timeScale=1;Time.maximumDeltaTime=.33333334f;
                 CityTrafficBenchmarkProbe.Milliseconds=new double[Samples+20];CityTrafficBenchmarkProbe.Bytes=new long[Samples+20];CityTrafficBenchmarkProbe.Tasks=new int[Samples+20];
+                long allocationBefore=GC.GetAllocatedBytesForCurrentThread();var allocationCheck=new byte[4096];GC.KeepAlive(allocationCheck);
+                CityTrafficBenchmarkProbe.AllocationSupported=GC.GetAllocatedBytesForCurrentThread()>allocationBefore;
                 UnityEngine.Profiling.Profiler.logFile=Path.Combine(directory,"traffic.raw");UnityEngine.Profiling.Profiler.enableBinaryLog=true;UnityEngine.Profiling.Profiler.enabled=true;
                 File.WriteAllText(Path.Combine(directory,"configuration.txt"),"version="+codeVersion+"\nsave_sha256="+Hash(source)+"\nunity="+Application.unityVersion+"\ncpu="+SystemInfo.processorType+"\nos="+SystemInfo.operatingSystem+"\nsteps="+Samples+"\nwarmup="+Warmup+"\nrepeats="+Repeats+"\ntarget_fps=60\nmaximum_delta=0.33333334\nDedicated empty-scene Development Player, no city rendering/UI, fine Profiler markers enabled. Live modes use actual Time.deltaTime; fixed mode requests one 0.05s step per Update. Not full game FPS.\n");
                 NextRun();
@@ -111,7 +114,7 @@ namespace HarborCity
             var save=city.ToSaveData();var copy=JsonUtility.FromJson<CitySaveData>(JsonUtility.ToJson(save));copy.traffic.remainder=0;
             string json=JsonUtility.ToJson(copy);
             File.WriteAllText(Path.Combine(directory,"state-"+run+".json"),json);
-            summaries.Append(run).Append(',').Append(mode).Append(',').Append(N(sum/Samples)).Append(',').Append(N(sorted[(int)Math.Ceiling(.95*Samples)-1])).Append(',').Append(N(sorted[(int)Math.Ceiling(.99*Samples)-1])).Append(',').Append(N((double)bytes/Samples)).Append(',').Append(min).Append(',').Append(max).Append(',').Append(Hash(json)).AppendLine();
+            summaries.Append(run).Append(',').Append(mode).Append(',').Append(N(sum/Samples)).Append(',').Append(N(sorted[(int)Math.Ceiling(.95*Samples)-1])).Append(',').Append(N(sorted[(int)Math.Ceiling(.99*Samples)-1])).Append(',').Append(CityTrafficBenchmarkProbe.AllocationSupported?N((double)bytes/Samples):"-1").Append(',').Append(min).Append(',').Append(max).Append(',').Append(Hash(json)).AppendLine();
         }
         void Finish()
         {

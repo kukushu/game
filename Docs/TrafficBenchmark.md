@@ -27,6 +27,20 @@
 
 输出：steps.csv逐步数据；frames.csv实际delta/unscaledDelta/maximumDelta/请求时间/步数/耗时/任务/partial；summary.csv每轮统计和状态hash；traffic.raw原生录制；modules.csv按Benchmark.Frame计数器映射的主线程子模块路径；state-N.json最终比较副本；build/player/export日志与PASS/FAIL。
 
+本机Unity原生Player的GetAllocatedBytesForCurrentThread未报告分配，而Profiler明确记录有GC。工具通过已知分配探测此API，若不支持，步骤CSV与原始summary的托管GC字段记为-1，不能理解为0B。GC验收取原生Profiler中互不重叠的Movement、Services、ResidentsAndIndustry和Dispatch之和除以实际步数。初次baseline目录是采集试验，托管GC为0不可用；正式配对使用radius-disabled与radius-cache目录。
+
+导入前显式扩大历史帧容量，比较脚本要求所有有步骤的Ordinal都被Profiler覆盖且Movement Calls=实际步数；任何缺帧或计数错位直接失败，不输出成功结论。build-source.txt保存构建时各C#文件SHA256，build-options.txt保存编译开关，不只依赖HEAD描述带工作树的构建。
+
+半径缓存的同代码控制组使用：
+
+```powershell
+./Tools/RunTrafficBenchmark.ps1 -OutputDirectory Logs/TrafficBenchmark/radius-disabled -DisableRadiusCache
+./Tools/RunTrafficBenchmark.ps1 -OutputDirectory Logs/TrafficBenchmark/radius-cache
+./Tools/CompareTrafficBenchmark.ps1 -Before Logs/TrafficBenchmark/radius-disabled -After Logs/TrafficBenchmark/radius-cache
+```
+
+控制组只编译掉半径缓存，执行保留的原CalculateCrossingRadius算法；运动、等待、精度和其他采样均相同。配对汇总中的P95/P99为三轮各自分位数的平均，不是将900步合并后的分位数；逐步原数据可另算合并分布。
+
 计时/分配探针和Profiler有开销，专用空场景也少于完整游戏负载。先用相同诊断配置配对；需要发布版容量结论时另测关闭细分的构建和真实游戏。启动、预热、序列化、空闲帧不纳入模块配对；Ordinal>0不代表一定有交通步，需与frames.csv连接后筛steps>0。
 
 ## 验收
