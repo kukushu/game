@@ -1,5 +1,7 @@
 # 交通移动性能采样（诊断，不改变规则）
 
+2026-10-12：算法核实、较新原始录制分析、外部资料与分阶段实施/回退原则统一维护于 [TrafficPerformanceResearch.md](TrafficPerformanceResearch.md)。本文继续保留标记树和此前批次的原始证据，不覆盖旧数据。
+
 本批保留 City.Simulation / City.Traffic.Movement 及其相邻服务、居民、调度标记。固定步长、追帧次数、所有车辆、换道/跟车/预约/任务/经济和存档格式保持原样。
 
 ## 如何展开 Hierarchy
