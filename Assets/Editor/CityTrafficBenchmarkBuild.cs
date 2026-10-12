@@ -32,6 +32,7 @@ namespace HarborCity
             history.Invoke(null,new object[]{10000});
             if(!ProfilerDriver.LoadProfile(Path.Combine(directory,"traffic.raw"),false))throw new Exception("Cannot read benchmark recording");
             var rows=new StringBuilder("ordinal,profiler_frame,path,total_ms,self_ms,calls,gc_bytes\n");
+            var clocks=new StringBuilder("ordinal,profiler_frame,wall_ms,source\n");
             for(int frame=ProfilerDriver.firstFrameIndex;frame<=ProfilerDriver.lastFrameIndex;frame++)
             {
                 using(var raw=ProfilerDriver.GetRawFrameDataView(frame,0))
@@ -39,10 +40,15 @@ namespace HarborCity
                 {
                     if(!raw.valid || !data.valid)continue;int marker=raw.GetMarkerId("City.Benchmark.Frame");if(marker<0)continue;
                     long ordinal=raw.GetCounterValueAsLong(marker);if(ordinal<=0)continue;
+                    double wall=raw.frameTimeMs;string clockSource="profiler-duration";
+                    using(var next=ProfilerDriver.GetRawFrameDataView(frame+1,0))
+                        if(next.valid && next.frameStartTimeNs>=raw.frameStartTimeNs){wall=(next.frameStartTimeNs-raw.frameStartTimeNs)/1000000.0;clockSource="next-frame-start";}
+                    clocks.Append(ordinal).Append(',').Append(frame).Append(',').Append(wall.ToString("R",CultureInfo.InvariantCulture)).Append(',').Append(clockSource).AppendLine();
                     Visit(data,data.GetRootItemID(),"",ordinal,frame,rows);
                 }
             }
             File.WriteAllText(Path.Combine(directory,"modules.csv"),rows.ToString());
+            File.WriteAllText(Path.Combine(directory,"profiler-frames.csv"),clocks.ToString());
         }
         static void Visit(HierarchyFrameDataView data,int id,string parent,long ordinal,int frame,StringBuilder rows)
         {

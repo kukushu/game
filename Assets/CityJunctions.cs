@@ -10,6 +10,7 @@ namespace HarborCity
     {
 #if CITY_TRAFFIC_PROFILING
         static readonly Unity.Profiling.ProfilerMarker crossingRadiusSample=new Unity.Profiling.ProfilerMarker("City.Traffic.Junction.CrossingRadius");
+        static readonly Unity.Profiling.ProfilerMarker crossingRadiusComputeSample=new Unity.Profiling.ProfilerMarker("City.Traffic.Junction.CrossingRadius.Compute");
         static readonly Unity.Profiling.ProfilerMarker conflictPathSample=new Unity.Profiling.ProfilerMarker("City.Traffic.Junction.ConflictPath");
         static readonly Unity.Profiling.ProfilerMarker conflictGeometrySample=new Unity.Profiling.ProfilerMarker("City.Traffic.Junction.ConflictGeometry");
 #endif
@@ -56,6 +57,29 @@ namespace HarborCity
         {
 #if CITY_TRAFFIC_PROFILING
             using var diagnosticScope=crossingRadiusSample.Auto();
+#endif
+#if CITY_JUNCTION_RADIUS_CACHE_DISABLED
+            return CalculateCrossingRadius(roads,node);
+#else
+            // Geometry is derived from this graph only. Any Changed() invalidates it;
+            // no dynamic signal, pedestrian or reservation state is stored here.
+            if(roads.junctionRadiusRevision!=roads.revision || roads.junctionRadii==null)
+            {
+                if(roads.junctionRadii==null)roads.junctionRadii=new Dictionary<int,float>();
+                else roads.junctionRadii.Clear();
+                roads.junctionRadiusRevision=roads.revision;
+            }
+            if(roads.junctionRadii.TryGetValue(node,out float cached))return cached;
+            float result=CalculateCrossingRadius(roads,node);
+            // Do not retain arbitrary missing IDs; valid graphs cap the node count.
+            if(roads.Node(node)!=null)roads.junctionRadii[node]=result;
+            return result;
+#endif
+        }
+        internal static float CalculateCrossingRadius(CityRoads roads,int node)
+        {
+#if CITY_TRAFFIC_PROFILING
+            using var diagnosticScope=crossingRadiusComputeSample.Auto();
 #endif
             float width=CityRoads.Width;
             foreach(int arm in roads.Neighbors(node))width=Math.Max(width,roads.EdgeWidth(node,arm));
@@ -162,6 +186,11 @@ namespace HarborCity
             if(ac*ad<0 && ca*cb<0)return 0;
             return Math.Min(Math.Min(CityRoads.Distance(a,c,d),CityRoads.Distance(b,c,d)),Math.Min(CityRoads.Distance(c,a,b),CityRoads.Distance(d,a,b)));
         }
+    }
+    public sealed partial class CityRoads
+    {
+        [NonSerialized] internal Dictionary<int,float> junctionRadii;
+        [NonSerialized] internal int junctionRadiusRevision=-1;
     }
     public sealed partial class CityTraffic
     {

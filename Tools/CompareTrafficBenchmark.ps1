@@ -1,4 +1,5 @@
-param([Parameter(Mandatory=$true)][string]$Before,[Parameter(Mandatory=$true)][string]$After)
+param([Parameter(Mandatory=$true)][string]$Before,[Parameter(Mandatory=$true)][string]$After,
+    [string[]]$ExpectedChangedMarkers=@('City.Traffic.Junction.CrossingRadius.Compute'))
 $ErrorActionPreference='Stop'
 $a=@(Import-Csv (Join-Path $Before 'summary.csv'));$b=@(Import-Csv (Join-Path $After 'summary.csv'))
 if($a.Count -ne 9 -or $b.Count -ne 9){throw 'Expected nine complete runs on each side'}
@@ -35,6 +36,10 @@ function Modules([string]$directory){
     return $groups
 }
 $aModules=Modules $Before;$bModules=Modules $After
+foreach($key in $aModules.Keys){
+    if($aModules[$key].node -ne 'City.Traffic.Movement' -and $ExpectedChangedMarkers -contains $aModules[$key].node){continue}
+    if(-not $bModules.ContainsKey($key) -or $aModules[$key].calls -ne $bModules[$key].calls){throw "Simulation module Calls changed: $key"}
+}
 $report=@()
 foreach($mode in @('fixed','1x','3x')){
     $aa=@($a | Where-Object mode -eq $mode);$bb=@($b | Where-Object mode -eq $mode)
@@ -56,9 +61,10 @@ $report | Export-Csv (Join-Path $After 'paired-summary.csv') -NoTypeInformation
 $report | Format-List
 foreach($directory in @($Before,$After)){
     $live=@()
+    $clocks=@{};foreach($clock in (Import-Csv (Join-Path $directory 'profiler-frames.csv'))){$clocks[$clock.ordinal]=[double]$clock.wall_ms/1000}
     foreach($mode in @('1x','3x')){
-        $measured=@(Import-Csv (Join-Path $directory 'frames.csv') | Where-Object { $_.mode -eq $mode -and [int]$_.partial -eq 0 })
-        $wall=($measured | Measure-Object unscaled_delta -Sum).Sum
+        $measured=@(Import-Csv (Join-Path $directory 'frames.csv') | Where-Object { $_.mode -eq $mode })
+        $wall=0.0;foreach($frame in $measured){if(-not $clocks.ContainsKey($frame.ordinal)){throw 'Missing native frame clock'};$wall+=$clocks[$frame.ordinal]}
         $requested=($measured | Measure-Object requested_seconds -Sum).Sum
         $stepCount=($measured | Measure-Object steps -Sum).Sum
         $live += [pscustomobject]@{mode=$mode;frames=$measured.Count;wall_seconds=$wall;requested_sim_seconds=$requested;steps=$stepCount;observed_sim_seconds_per_wall_second=($stepCount*.05/$wall);mean_frame_advance_ms=($measured | Measure-Object advance_ms -Average).Average;mean_steps_per_frame=($stepCount/$measured.Count)}

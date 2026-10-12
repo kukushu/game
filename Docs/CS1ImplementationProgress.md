@@ -1,3 +1,9 @@
+## 2026-10-12 固定存档基准与首轮路口半径缓存
+
+- 基准固定第128日存档、Unity6000.6.3f1/i5-14600KF、空场景Development Player，fixed/1x/3x各3轮、40步预热+300步测量。修正托管GC计数不可用、Profiler帧历史不足及默认启动第二个城市的问题；保留原始试验，正式V2数据严格校验来源/Calls/状态，见 [基准协议](TrafficBenchmark.md)。
+- 本轮仅缓存CrossingRadius最终float：道路实例隔离、revision失效、读档重建，原Calculate算法保持，Corner及通行路径/冲突判定未改变。完整步均值fixed 50.597→43.562ms、1x 50.837→43.567ms、3x 50.759→43.546ms；GC约1.027→0.808MB/步。主要模块Calls及2700个步序任务数、9个原生最终状态一致，详见 [首轮结果](TrafficRadiusCache.md)。
+- 573专项检查、最终全量模型回归、普通Unity Player构建及26日原生运行通过；车辆/换道/行人/预约/道路修改/货运/保存读取继续工作。基准不代表真实窗口FPS或Release性能。3x实际仅约1.147模拟秒/真实秒，仍未达目标；下一批继续定位大Self与静态路径/冲突、路线验证/局部查询，不扩大玩法或无关架构。
+
 ## 2026-10-12 交通扩展性研究（未修改运行模型）
 
 - 阅读最新本地代码、既有研究材料和一代开发团队、Unity/SUMO、CityFlow/OSMTrafficSim关键源码，区分已确认问题、已有优化与待验证假设；见 [交通性能研究](TrafficPerformanceResearch.md)。
