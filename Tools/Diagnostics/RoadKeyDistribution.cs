@@ -18,7 +18,7 @@ public static class RoadKeyDistribution
     {
         foreach(bool mixed in new[]{false,true})
         {
-            var groups=keys.GroupBy(k=>(mixed?CityRoadKeyExperiment.Instance.GetHashCode(k):k.GetHashCode())&int.MaxValue).Select(g=>g.Count()).ToArray();
+            var groups=keys.GroupBy(k=>(mixed?CityRoadKeyComparer.Instance.GetHashCode(k):k.GetHashCode())&int.MaxValue).Select(g=>g.Count()).ToArray();
             // Equality probes from identical hashes alone; modulo-bucket collisions can only add work.
             double comparisons=groups.Sum(n=>n*(n+1.0)/2)/keys.Count;
             Console.WriteLine(label+","+(mixed?"mixed":"default")+",keys="+keys.Count+",distinct_hashes="+groups.Length+",max_same_hash="+groups.Max()+",mean_same_hash_success_probes="+comparisons.ToString("R",System.Globalization.CultureInfo.InvariantCulture));

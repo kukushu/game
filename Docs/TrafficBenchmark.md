@@ -54,3 +54,7 @@
 墙钟统计来自profiler-frames.csv中原生帧开始时间差（末尾无下一帧时用原生frameTime），不是把Time.unscaledDeltaTime直接当作当前帧耗时；后者对应前一帧，短样本端点会偏差。live-summary包含最后截断帧，确保每模式每侧900步相同；正常帧时延分析另排除partial。存档携带的初始remainder保留，因此请求秒数可能略少于实际300步的15秒。
 
 CompareTrafficBenchmark默认只允许CrossingRadius.Compute调用数改变，其余主要采样节点要求Calls一致。未来其他优化可通过ExpectedChangedMarkers明确列出预期减少的计算节点，但Movement步数检查不可跳过；任务数和最终状态检查始终保留。
+
+## 正式道路哈希与完整窗口协议
+
+道路哈希已默认开启，控制组使用 -LegacyRoadKeyHash；旧 -RoadKeyHashPrototype 不再需要。普通 Editor/Player 同样默认生效。完整画面另使用 RunFullWindowPerformance.ps1 与 CompareFullWindowPerformance.ps1，Release/Development 分组配对，观察/激活窗口后 START.txt 开始。仅做正常游戏渲染/实际deltaTime的有限测试终点截断，不跳其他步骤。原生交通GC约807955 B/步未变化；完整窗口GC首版采样Reset后未重启产生错误零值；已修复并重跑开发构建配对，测量外已知分配验证成功才采用数据，失败标记-1。详细协议和本批结果见 [RoadHashProduction.md](RoadHashProduction.md)。

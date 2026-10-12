@@ -1,0 +1,1 @@
+PASS: actual repeated school lessons, local recreation and supplied service improve stable housing; home=5; level=2; units=2; landValue=45.1

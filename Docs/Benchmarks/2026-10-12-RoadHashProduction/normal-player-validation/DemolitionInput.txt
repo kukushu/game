@@ -1,0 +1,1 @@
+PASS: actual oblique-camera mouse clicks remove tunnel, elevated and surface roads with construction elevation at zero; other levels preserved and native JSON remains valid

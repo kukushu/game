@@ -1,0 +1,11 @@
+full normal game Update + terrain/buildings/vehicles/render/UI
+unity=6000.6.3f1
+save_sha256=46DF3C9F9A9800808334C30BF1A5DA1A463106DD11DA8CEA780CC78582B115BE
+resolution=1440x900
+steps=300
+warmup=40
+repeats=3
+target_fps=60
+vsync=0
+maximum_delta=0.33333334
+gc_recorder_valid=False

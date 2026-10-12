@@ -1,5 +1,7 @@
 # CityFlow 源码对照与 HarborCity 交通改造路线
 
+最新实施更新：共享道路查询层的哈希聚集修正已经 [正式默认启用](RoadHashProduction.md)，普通Editor/Player均生效；真实渲染3×约58.63FPS/实际2.998倍，完整步约7.69ms。没有改变CityFlow对照中指出的逐车即时提交语义；继续在新成本下研究局部查询和规模，不能直接套用多阶段并行。
+
 2026-10-12。HarborCity审阅基线为49d936e；已阅读[交通研究](TrafficPerformanceResearch.md)、[基准协议](TrafficBenchmark.md)、[半径缓存结果](TrafficRadiusCache.md)及当前交通代码。CityFlow完整源码只读克隆于本机Temp/Research/CityFlow，不嵌入产品，不编译或移植其引擎。
 
 CityFlow固定版本：`81ee0f47659ca66177a71f81676691c58ee89184`。以下链接固定到该版本，位置来自本地实际源码，而非README或旧网页缓存。事实与设计解释分开；没有运行CityFlow自身性能基准，也不声称已完成其全引擎竞态审计。

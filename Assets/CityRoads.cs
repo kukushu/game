@@ -76,10 +76,10 @@ namespace HarborCity
             if (lookup != null) return;
             lookup = new Dictionary<int,RoadNode>(); adjacency = new Dictionary<int,List<int>>();
             foreach (var n in nodes) { lookup[n.id]=n; adjacency[n.id]=new List<int>(); }
-#if CITY_ROAD_KEY_HASH_PROTOTYPE
-            vehicleConnections=new HashSet<long>(CityRoadKeyExperiment.Instance);
-            roadLookup=new Dictionary<long,RoadEdge>(CityRoadKeyExperiment.Instance);
-            structureLookup=new Dictionary<long,int>(CityRoadKeyExperiment.Instance);
+#if !CITY_ROAD_KEY_HASH_DISABLED
+            vehicleConnections=new HashSet<long>(CityRoadKeyComparer.Instance);
+            roadLookup=new Dictionary<long,RoadEdge>(CityRoadKeyComparer.Instance);
+            structureLookup=new Dictionary<long,int>(CityRoadKeyComparer.Instance);
 #else
             vehicleConnections=new HashSet<long>();
             roadLookup=new Dictionary<long,RoadEdge>();

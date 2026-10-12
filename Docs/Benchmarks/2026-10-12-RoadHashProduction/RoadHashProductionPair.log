@@ -1,0 +1,44 @@
+
+mode                              : fixed
+before_mean_ms                    : 42.8471341111111
+after_mean_ms                     : 7.69079400000001
+reduction_mean_ms                 : 82.0506221488321
+before_p95_ms                     : 54.6039333333333
+after_p95_ms                      : 10.9374333333333
+reduction_p95_ms                  : 79.9695137957095
+before_p99_ms                     : 102.8416
+after_p99_ms                      : 14.3375333333333
+reduction_p99_ms                  : 86.0586247847823
+before_profiler_gc_bytes_per_step : 807955.08
+after_profiler_gc_bytes_per_step  : 807955.08
+reduction_profiler_gc             : 0
+
+mode                              : 1x
+before_mean_ms                    : 43.2456207777778
+after_mean_ms                     : 8.20593144444445
+reduction_mean_ms                 : 81.0248267989688
+before_p95_ms                     : 55.4492
+after_p95_ms                      : 11.7673
+reduction_p95_ms                  : 78.7782330493497
+before_p99_ms                     : 103.6379
+after_p99_ms                      : 14.8909
+reduction_p99_ms                  : 85.6318007215507
+before_profiler_gc_bytes_per_step : 807954.673333333
+after_profiler_gc_bytes_per_step  : 807954.673333333
+reduction_profiler_gc             : 0
+
+mode                              : 3x
+before_mean_ms                    : 42.5925785555556
+after_mean_ms                     : 7.89626666666667
+reduction_mean_ms                 : 81.4609330206031
+before_p95_ms                     : 54.6615666666667
+after_p95_ms                      : 10.9232666666667
+reduction_p95_ms                  : 80.016550324512
+before_p99_ms                     : 102.147133333333
+after_p99_ms                      : 14.8585666666667
+reduction_p99_ms                  : 85.4537604905865
+before_profiler_gc_bytes_per_step : 807954.673333333
+after_profiler_gc_bytes_per_step  : 807954.673333333
+reduction_profiler_gc             : 0
+
+PASS: identical inputs/configuration, 2700 paired step task counts, nine final native states, all movement frame Calls match actual steps.

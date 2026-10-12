@@ -1,10 +1,12 @@
 using System.Collections.Generic;
 namespace HarborCity
 {
-    // Research control only: not used by normal builds. Equality preserves all 64 bits.
-    internal sealed class CityRoadKeyExperiment : IEqualityComparer<long>
+    // Default for derived road lookups in Editor and every Player build.
+    // Packed adjacent IDs collide under Int64's XOR hash; equality still uses all 64 bits.
+    internal sealed class CityRoadKeyComparer : IEqualityComparer<long>
     {
-        internal static readonly CityRoadKeyExperiment Instance=new CityRoadKeyExperiment();
+        internal static readonly CityRoadKeyComparer Instance=new CityRoadKeyComparer();
+        CityRoadKeyComparer() {}
         public bool Equals(long x,long y)=>x==y;
         public int GetHashCode(long key)
         {

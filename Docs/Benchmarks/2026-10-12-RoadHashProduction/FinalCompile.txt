@@ -1,0 +1,1 @@
+PASS: final Unity Editor script compilation in isolated project, Unity 6000.6.3f1. Includes final recorder validity guard; no compiler errors. Full log: Temp/RoadHashFinalEditorCompile.log. Ordinary native game and both paired rendered builds passed separately as recorded.

@@ -1,5 +1,7 @@
 # 交通模拟性能研究与分阶段改造方案
 
+最新实施更新：道路键混合哈希已从原型转为 [产品默认实现与验收](RoadHashProduction.md)。普通Editor/Release/Development启用，旧比较器保留编译回退；完整步下降82.05%，完整渲染发布3×约58.63FPS/实际2.998倍。以下原型默认关闭条目是历史研究时点。本批不改规则/车辆顺序，剩余GC与大城市规模仍待处理。
+
 更新：2026-10-12。代码核实基线：`f81e775`，本地工作树；项目仓库 https://github.com/kukushu/game 。本轮仅研究、读取既有录制与保存文档，不修改交通运行规则、时间调度、依赖包或存档。
 
 本文长期维护算法、证据和决策；[TrafficProfiling.md](TrafficProfiling.md) 保存标记树与历史采样；[PerformanceDiagnostics.md](PerformanceDiagnostics.md) 保存此前优化对照。文中“建议”不表示已经实现，性能目标不是性能保证。

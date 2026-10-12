@@ -189,7 +189,13 @@ namespace HarborCity
                 GUILayout.Space(6);
             }
         }
-        void AdvanceSociety(float seconds) {traffic.Advance(seconds);}
+        void AdvanceSociety(float seconds)
+        {
+#if UNITY_EDITOR || CITY_TRAFFIC_WINDOW_MEASUREMENT
+            seconds=CityTrafficWindowProbe.Clamp(traffic,seconds);
+#endif
+            traffic.Advance(seconds);
+        }
         void DrawHousing(ResidentialBuilding b,Transform parent)
         {
             bool villa=b.housing==HousingKind.Villa;

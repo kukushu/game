@@ -1,4 +1,4 @@
-param([string]$UnityData = 'C:/Program Files/Unity/Hub/Editor/6000.6.3f1/Editor/Data',[switch]$RoadKeyHashPrototype)
+param([string]$UnityData = 'C:/Program Files/Unity/Hub/Editor/6000.6.3f1/Editor/Data',[switch]$RoadKeyHashPrototype,[switch]$LegacyRoadKeyHash)
 $ErrorActionPreference = 'Stop'
 $projectPath = Split-Path $PSScriptRoot -Parent
 $monoPath = Join-Path $UnityData 'MonoBleedingEdge/bin/mono.exe'
@@ -9,7 +9,8 @@ $outputPath = Join-Path $tempPath 'CityModelChecks.exe'
 $modelSources = Get-ChildItem -LiteralPath (Join-Path $projectPath 'Assets') -Filter 'City*.cs' | Where-Object { $_.Name -notin @('CityLandscape.cs','CityRoadView.cs') } | ForEach-Object FullName
 $checkSources = Get-ChildItem -LiteralPath $PSScriptRoot -Filter '*.cs' | ForEach-Object FullName
 $flags=@('/nologo','/langversion:latest','/r:System.Web.Extensions.dll',"/out:$outputPath")
-if($RoadKeyHashPrototype){$flags+='/define:CITY_ROAD_KEY_HASH_PROTOTYPE'}
+if($RoadKeyHashPrototype){Write-Warning 'RoadKeyHashPrototype is obsolete: the optimization is now the default.'}
+if($LegacyRoadKeyHash){$flags+='/define:CITY_ROAD_KEY_HASH_DISABLED'}
 & $monoPath $compilerPath $flags $modelSources $checkSources
 if ($LASTEXITCODE -ne 0) { throw 'Simulation checks failed to compile.' }
 & $monoPath $outputPath

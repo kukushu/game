@@ -22,7 +22,7 @@ namespace HarborCity
             if(Environment.GetEnvironmentVariable("HARBOR_BENCHMARK_DISABLE_RADIUS_CACHE")=="1")defines.Add("CITY_JUNCTION_RADIUS_CACHE_DISABLED");
             if(Environment.GetEnvironmentVariable("HARBOR_BENCHMARK_DISABLE_EDGE_INDEX")=="1")defines.Add("CITY_TRAFFIC_EDGE_INDEX_DISABLED");
             if(Environment.GetEnvironmentVariable("HARBOR_BENCHMARK_ATTRIBUTION")=="1")defines.Add("CITY_TRAFFIC_ATTRIBUTION");
-            if(Environment.GetEnvironmentVariable("HARBOR_BENCHMARK_ROAD_KEY_PROTOTYPE")=="1")defines.Add("CITY_ROAD_KEY_HASH_PROTOTYPE");
+            if(Environment.GetEnvironmentVariable("HARBOR_BENCHMARK_LEGACY_ROAD_HASH")=="1")defines.Add("CITY_ROAD_KEY_HASH_DISABLED");
             var report=BuildPipeline.BuildPlayer(new BuildPlayerOptions{scenes=new[]{"Assets/Benchmark/Traffic.unity"},locationPathName=output,target=BuildTarget.StandaloneWindows64,options=BuildOptions.Development,extraScriptingDefines=defines.ToArray()});
             if(report.summary.result!=UnityEditor.Build.Reporting.BuildResult.Succeeded)throw new Exception("Benchmark player build failed");
         }
@@ -32,8 +32,19 @@ namespace HarborCity
             // Match the existing validation build's camera/input fixture resolution.
             PlayerSettings.SetScriptingBackend(UnityEditor.Build.NamedBuildTarget.Standalone,UnityEditor.ScriptingImplementation.Mono2x);
             PlayerSettings.defaultScreenWidth=1440;PlayerSettings.defaultScreenHeight=900;PlayerSettings.fullScreenMode=FullScreenMode.Windowed;
-            var report=BuildPipeline.BuildPlayer(new BuildPlayerOptions{scenes=new[]{"Assets/Scenes/SampleScene.unity"},locationPathName=Environment.GetEnvironmentVariable("HARBOR_TRAFFIC_VALIDATION_PLAYER"),target=BuildTarget.StandaloneWindows64,options=BuildOptions.Development,extraScriptingDefines=new[]{"CITY_TRAFFIC_ATTRIBUTION","CITY_ROAD_KEY_HASH_PROTOTYPE"}});
+            var report=BuildPipeline.BuildPlayer(new BuildPlayerOptions{scenes=new[]{"Assets/Scenes/SampleScene.unity"},locationPathName=Environment.GetEnvironmentVariable("HARBOR_TRAFFIC_VALIDATION_PLAYER"),target=BuildTarget.StandaloneWindows64,options=BuildOptions.Development,extraScriptingDefines=new[]{"CITY_TRAFFIC_ATTRIBUTION"}});
             if(report.summary.result!=UnityEditor.Build.Reporting.BuildResult.Succeeded)throw new Exception("Research validation build failed");
+        }
+        public static void BuildFullWindowPlayer()
+        {
+            if(!Application.isBatchMode)throw new Exception("Full-window build requires isolated project");
+            PlayerSettings.SetScriptingBackend(UnityEditor.Build.NamedBuildTarget.Standalone,ScriptingImplementation.Mono2x);
+            PlayerSettings.defaultScreenWidth=1440;PlayerSettings.defaultScreenHeight=900;PlayerSettings.fullScreenMode=FullScreenMode.Windowed;PlayerSettings.productName="HarborCity Performance Verification";
+            var defines=new System.Collections.Generic.List<string>{"CITY_TRAFFIC_WINDOW_MEASUREMENT"};
+            if(Environment.GetEnvironmentVariable("HARBOR_BENCHMARK_LEGACY_ROAD_HASH")=="1")defines.Add("CITY_ROAD_KEY_HASH_DISABLED");
+            var options=Environment.GetEnvironmentVariable("HARBOR_FULL_WINDOW_DEVELOPMENT")=="1"?BuildOptions.Development:BuildOptions.None;
+            var report=BuildPipeline.BuildPlayer(new BuildPlayerOptions{scenes=new[]{"Assets/Scenes/SampleScene.unity"},locationPathName=Environment.GetEnvironmentVariable("HARBOR_FULL_WINDOW_PLAYER"),target=BuildTarget.StandaloneWindows64,options=options,extraScriptingDefines=defines.ToArray()});
+            if(report.summary.result!=UnityEditor.Build.Reporting.BuildResult.Succeeded)throw new Exception("Full-window build failed");
         }
         public static void Export()
         {
