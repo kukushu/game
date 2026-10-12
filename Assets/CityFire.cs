@@ -93,7 +93,7 @@ namespace HarborCity
         }
         void ArriveFire(TrafficTrip t)
         {
-            if(t.returning){State.completed++;State.trips.Remove(t);return;}
+            if(t.returning){State.completed++;RemoveTrip(t);return;}
             if(city.GetBuilding(t.destination)?.burning!=true){RedirectFromCurrent(t,t.home);return;}
             t.status=TripStatus.Visiting;t.delay=0;t.blocked=0;city.Trace("fire.arrived","消防车实际到场，开始处置",t,building:t.destination,trip:t.id);
         }

@@ -35,11 +35,11 @@ namespace HarborCity
         void ArriveShopping(TrafficTrip trip)
         {
             var family=TripFamily(trip);var person=family?.people.Find(p=>p.id==trip.residentId);
-            if(family==null || person==null){State.lostGoods+=trip.cargo;State.trips.Remove(trip);return;}
+            if(family==null || person==null){State.lostGoods+=trip.cargo;RemoveTrip(trip);return;}
             person.location=trip.destination;person.accessNode=trip.Current;person.atWork=false;
             if(trip.returning)
             {
-                State.consumedGoods+=trip.cargo;trip.cargo=0;person.tripId=0;State.completed++;State.trips.Remove(trip);
+                State.consumedGoods+=trip.cargo;trip.cargo=0;person.tripId=0;State.completed++;RemoveTrip(trip);
                 city.Trace("shopping.home","居民将已购商品实际带回家消费",trip,household:family.id,citizen:person.id,trip:trip.id);return;
             }
             var shop=city.GetBuilding(trip.destination) as CommercialBuilding;

@@ -117,7 +117,7 @@ namespace HarborCity
         {
             var h=TripFamily(trip);var p=h?.people.Find(r=>r.id==trip.residentId);
             if(h==null || !h.resident || p==null)
-            {if(p!=null){p.tripId=0;city.ReleaseSchoolPlace(p);p.atSchool=p.schoolReturning=false;}State.trips.Remove(trip);return false;}
+            {if(p!=null){p.tripId=0;city.ReleaseSchoolPlace(p);p.atSchool=p.schoolReturning=false;}RemoveTrip(trip);return false;}
             if(!trip.returning && (!city.SchoolMatches(p) || p.sick || !city.HasBasicServices(p.schoolId)))
             {RedirectFromCurrent(trip,h.home);p.schoolReturning=true;}
             if(trip.returning && trip.destination!=h.home)RedirectFromCurrent(trip,h.home);
@@ -129,7 +129,7 @@ namespace HarborCity
             if(p!=null)
             {p.tripId=0;p.location=trip.destination;p.accessNode=trip.Current;p.atWork=false;p.atSchool=!trip.returning;p.schoolReturning=false;if(!trip.returning)p.schoolArrivedDay=city.day;}
             city.Trace("education.arrived",trip.returning?"儿童实际回家":"儿童实际到校；现在才可以累计学习",trip,household:trip.householdId,citizen:trip.residentId,building:trip.destination,trip:trip.id);
-            State.completed++;State.trips.Remove(trip);
+            State.completed++;RemoveTrip(trip);
         }
         void AdvanceSchools(float minutes)
         {

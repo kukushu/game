@@ -60,7 +60,7 @@ namespace HarborCity
         {
             var h=TripFamily(trip);var person=h?.people.Find(p=>p.id==trip.residentId);
             if(h==null || !h.resident || person==null)
-            {if(person!=null){person.tripId=0;person.medicalStage=MedicalStage.None;person.medicalClinicId=-1;person.treatmentMinutes=0;}State.trips.Remove(trip);return false;}
+            {if(person!=null){person.tripId=0;person.medicalStage=MedicalStage.None;person.medicalClinicId=-1;person.treatmentMinutes=0;}RemoveTrip(trip);return false;}
             int destination=trip.returning || trip.medicalPickup?h.home:trip.clinicId;
             if(trip.destination!=destination)
             {bool returning=trip.returning;RedirectFromCurrent(trip,destination);trip.returning=returning;}
@@ -68,7 +68,7 @@ namespace HarborCity
         }
         void ArriveHealthcare(TrafficTrip trip)
         {
-            var h=TripFamily(trip);var person=h?.people.Find(p=>p.id==trip.residentId);if(person==null){State.trips.Remove(trip);return;}
+            var h=TripFamily(trip);var person=h?.people.Find(p=>p.id==trip.residentId);if(person==null){RemoveTrip(trip);return;}
             if(trip.medicalPickup)
             {
                 person.location=h.home;person.accessNode=trip.Current;trip.medicalPickup=false;
@@ -80,7 +80,7 @@ namespace HarborCity
             {person.medicalStage=MedicalStage.None;person.medicalClinicId=-1;person.treatmentMinutes=0;}
             else person.medicalStage=MedicalStage.Treatment;
             city.Trace(trip.returning?"healthcare.home":"healthcare.admitted",trip.returning?"居民就医后实际回家":"居民实际到达诊所，开始占用治疗位置",trip,household:h.id,citizen:person.id,building:trip.destination,trip:trip.id);
-            State.completed++;State.trips.Remove(trip);
+            State.completed++;RemoveTrip(trip);
         }
         void AdvanceHealthcare(float minutes)
         {

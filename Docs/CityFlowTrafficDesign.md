@@ -8,8 +8,8 @@ CityFlow固定版本：`81ee0f47659ca66177a71f81676691c58ee89184`。以下链接
 
 | 类型/函数与源码位置 | 源码事实 | 对HarborCity的启发/限制 |
 | --- | --- | --- |
-| [roadnet.h：Segment，约25行](https://github.com/cityflow-project/CityFlow/blob/81ee0f47659ca66177a71f81676691c58ee89184/src/roadnet/roadnet.h#L25) | 保存Lane归属、起止距离、索引，以及车道车辆链表的迭代器列表；它不是另复制一套车辆 | 用空间/车道局部候选代替全城扫描；不必照搬C++迭代器和链表 |
-| [Road / Drivable / Lane，roadnet.h约158/217/274行](https://github.com/cityflow-project/CityFlow/blob/81ee0f47659ca66177a71f81676691c58ee89184/src/roadnet/roadnet.h#L158) | Road包含车道、几何与待寻路车辆；Drivable统一Lane和LaneLink的长度/限速/几何/车辆链表；Lane另有分段、下游LaneLinks及waitingBuffer | Harbor已有RoadLane标识和道路索引，应复用，不新建重复Road真相；先给交通实例增加派生局部集合 |
+| [roadnet.h：Segment，27行](https://github.com/cityflow-project/CityFlow/blob/81ee0f47659ca66177a71f81676691c58ee89184/src/roadnet/roadnet.h#L27) | 保存Lane归属、起止距离、索引，以及车道车辆链表的迭代器列表；它不是另复制一套车辆 | 用空间/车道局部候选代替全城扫描；不必照搬C++迭代器和链表 |
+| [Road / Drivable / Lane，roadnet.h 173/233/293行](https://github.com/cityflow-project/CityFlow/blob/81ee0f47659ca66177a71f81676691c58ee89184/src/roadnet/roadnet.h#L173) | Road包含车道、几何与待寻路车辆；Drivable统一Lane和LaneLink的长度/限速/几何/车辆链表；Lane另有分段、下游LaneLinks及waitingBuffer | Harbor已有RoadLane标识和道路索引，应复用，不新建重复Road真相；先给交通实例增加派生局部集合 |
 | [RoadLink / LaneLink / Cross，roadnet.h](https://github.com/cityflow-project/CityFlow/blob/81ee0f47659ca66177a71f81676691c58ee89184/src/roadnet/roadnet.h) | RoadLink组织道路间转向；LaneLink是独立可行驶路口连接，具有入/出Lane、车辆集合和Cross列表；Cross保存两连接的静态交点距离/安全范围与动态通知车辆 | 可研究movement连接几何和冲突复用，但当前按节点预约的语义不能直接变成LaneLink模型 |
 | [Lane::available / canEnter，roadnet.cpp 428/437行](https://github.com/cityflow-project/CityFlow/blob/81ee0f47659ca66177a71f81676691c58ee89184/src/roadnet/roadnet.cpp#L428) | 只读车辆链表尾部判断入口空间；可进入和可生成并非同一条件 | 不需要为入口检查整个城市；但其车长/速度阈值和Harbor现有Gap、入口保守规则不同 |
 | [Lane::initSegments，863行](https://github.com/cityflow-project/CityFlow/blob/81ee0f47659ca66177a71f81676691c58ee89184/src/roadnet/roadnet.cpp#L863) | 沿已按距离降序排列的车辆链表，从高编号分段向低编号分段一次分配迭代器；写vehicle.segmentIndex | 单车道分段准备约O(n+s)，不是每车再扫描全城；Segment数量不等于车辆数 |
@@ -37,7 +37,7 @@ Flow.nextStep
 | 阶段及源码位置 | 实际做什么 | 依赖/工程解释 |
 | --- | --- | --- |
 | [threadPlanRoute，272；planRoute，450](https://github.com/cityflow-project/CityFlow/blob/81ee0f47659ca66177a71f81676691c58ee89184/src/engine/engine.cpp#L272) | 按分配的Road处理planRouteBuffer，主协调线程将有效车加入Lane waitingBuffer，失败路由另处理 | 规划完成后才能判断合法起始车道；不是运动每步都重新Dijkstra |
-| [handleWaiting，501](https://github.com/cityflow-project/CityFlow/blob/81ee0f47659ca66177a71f81676691c58ee89184/src/engine/engine.cpp#L501) | 每条Lane检查队首一个候选，空间允许才变running并入车道 | 不等价于Harbor每次Dispatch按现有入口规则尝试发车 |
+| [handleWaiting，502](https://github.com/cityflow-project/CityFlow/blob/81ee0f47659ca66177a71f81676691c58ee89184/src/engine/engine.cpp#L502) | 每条Lane检查队首一个候选，空间允许才变running并入车道 | 不等价于Harbor每次Dispatch按现有入口规则尝试发车 |
 | [threadInitSegments / threadPlanLaneChange，392/374；scheduleLaneChange，792](https://github.com/cityflow-project/CityFlow/blob/81ee0f47659ca66177a71f81676691c58ee89184/src/engine/engine.cpp#L374) | 车道建立分段，各车辆形成意向，局部缓冲加锁合并；主线程按urgency顺序更新目标邻居、发信号、重新验隙并插shadow | 并行意向不直接并行修改目标车道集合；优先排序会改变Harbor现有先处理者优先关系 |
 | [threadNotifyCross，317](https://github.com/cityflow-project/CityFlow/blob/81ee0f47659ca66177a71f81676691c58ee89184/src/engine/engine.cpp#L317) | 按路口清通知；看出口尾车、LaneLink内车辆和合法入向首车，给沿路交点通知相关车 | 静态Cross+动态局部通知；不是永远缓存路口是否可通行 |
 | [vehicleControl，188；threadGetAction，402](https://github.com/cityflow-project/CityFlow/blob/81ee0f47659ca66177a71f81676691c58ee89184/src/engine/engine.cpp#L188) | 计算速度、梯形位移、换道横移及Buffer；跨Drivable请求进入线程局部buffer并合并 | 主要读当前控制状态，写自身下一状态，避免其他车看到半提交结果 |
@@ -64,7 +64,7 @@ Flow.nextStep
 
 [router.h](https://github.com/cityflow-project/CityFlow/blob/81ee0f47659ca66177a71f81676691c58ee89184/src/vehicle/router.h)拥有Road序列、anchorPoints、当前Road迭代器和planned Drivable队列。[Router::getNextDrivable，router.cpp39/49行](https://github.com/cityflow-project/CityFlow/blob/81ee0f47659ca66177a71f81676691c58ee89184/src/vehicle/router.cpp#L39)复用planned连接，Lane→LaneLink→目标Lane，选择还能接下一Road的合法连接；[update，78行](https://github.com/cityflow-project/CityFlow/blob/81ee0f47659ca66177a71f81676691c58ee89184/src/vehicle/router.cpp#L78)推进当前路段并消费计划前缀。selectLaneIndex优先小车道差，初始选择可使用随机数。
 
-[dijkstra / updateShortestPath / setRoute，160/218/237行附近](https://github.com/cityflow-project/CityFlow/blob/81ee0f47659ca66177a71f81676691c58ee89184/src/vehicle/router.cpp#L160)基于Road连接寻路；setRoute支持重新设锚点，并有失败恢复。默认RouterType是LENGTH；DURATION分支存在但DYNAMIC仍是TODO。不能据此宣称当前默认每车动态按拥堵重寻路。Harbor已有单起终点路径缓存，需解决的是重复有效性检查及目的地/入口变动失效，不是重写Dijkstra。
+[dijkstra / updateShortestPath / setRoute，160/228/245行](https://github.com/cityflow-project/CityFlow/blob/81ee0f47659ca66177a71f81676691c58ee89184/src/vehicle/router.cpp#L160)基于Road连接寻路；setRoute支持重新设锚点，并有失败恢复。默认RouterType是LENGTH；DURATION分支存在但DYNAMIC仍是TODO。不能据此宣称当前默认每车动态按拥堵重寻路。Harbor已有单起终点路径缓存，需解决的是重复有效性检查及目的地/入口变动失效，不是重写Dijkstra。
 
 [Intersection::initCrosses，roadnet.cpp515行](https://github.com/cityflow-project/CityFlow/blob/81ee0f47659ca66177a71f81676691c58ee89184/src/roadnet/roadnet.cpp#L515)在加载时为LaneLink对求交点，建立距离与安全范围并沿连接排序；[Cross::canPass，603行](https://github.com/cityflow-project/CityFlow/blob/81ee0f47659ca66177a71f81676691c58ee89184/src/roadnet/roadnet.cpp#L603)再用通知车辆、预计到达、转向优先、进入时间等动态判断，含blocker环检查。它不是仅靠一张永久可通行布尔表，也不等同Harbor预约+停车牌/信号/行人的先到规则。
 
@@ -86,6 +86,8 @@ CityFlow没有本项目同样的居民/家庭/岗位、货物库存守恒、医�
 
 ## 6. 分阶段实施路线与验证
 
+以下列出结构依赖方向；实际优先级按每批最新Profiler重排。本轮配对后先继续归因最大的ChooseLane/LimitCrossingAdvance Self及RouteValidation，不因为已有桶就立即推广所有局部查询。
+
 1. **有向边局部跟车索引（本轮）**：固定步Movement开始时O(N+B)重建复用桶，桶引用原trip；仍逐车Move，跨边后立即刷新成员，增删任务同步；查询外层/车道/距离算法不动。先不排序或拆成Lane，避免引入其他语义。Following的Min归约对候选顺序无关，不能把这一性质推广到路口先后判定。
 2. **车道邻居/入口查询**：逐个替换Headway、Space、EntryLane、ExitClear；增加节点incoming与双车道成员，明确跨短边窗口。先用扫描oracle比较每次结果再配对基准。有序车道/Segment只有在维护成本实测更划算时引入。
 3. **路口局部集合与静态连接**：按节点/入向维护车/行人邻域，保留完整信号、先到、出口和物理预约。再单独缓存静态movement路径/冲突，控制配对表内存与改路冷启动。
@@ -96,4 +98,6 @@ CityFlow没有本项目同样的居民/家庭/岗位、货物库存守恒、医�
 
 扩展性验证分清：增加独立路段而保持局部密度的车流，和同一局部桶拥堵。首版候选代价约O(N+B+ΣkK)，不是所有场景O(N)，集中到同一边仍可接近原最坏情况。100/1000/3000任务的候选量与oracle测试只证明查询缩减和一致性，不等于3000辆完整城市实时模拟达标。
 
-本轮索引不作为实体真相、不进存档，不改变渲染或经济。控制编译符号可回退全扫描；Movement外的查询/修改继续以State.trips为准，下一步重建接纳最新状态。移除同步只集中原Remove调用，不改变任务失败、工资、服务或库存逻辑。具体实现与配对数据在完成后追加。
+本轮索引不作为实体真相、不进存档，不改变渲染或经济。控制编译符号可回退全扫描；Movement外的查询/修改继续以State.trips为准，下一步重建接纳最新状态。移除同步只集中原Remove调用，不改变任务失败、工资、服务或库存逻辑。
+
+已完成第一批及原生配对，见 [局部跟车实现与实测](TrafficFollowingIndex.md)：Following 3.166→2.441ms/步，完整步43.479→42.550ms（约2.14%），索引维护约0.064ms/步，GC基本不变。2700步任务/9个原生状态/既有Calls一致，340步完整状态重放、4112专项和全量模型及26日原生运行通过。3x实际仍仅约1.173模拟秒/真实秒；不宣称已解决卡顿或支持3000辆实时城市。

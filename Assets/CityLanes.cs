@@ -208,6 +208,12 @@ namespace HarborCity
         }
         void InitializeLane(TrafficTrip trip)
         {trip.lane=trip.walking?0:Math.Max(0,EntryLane(trip.route,trip));trip.previousLane=0;trip.laneChangeFrom=trip.lane;trip.laneChangeRemaining=trip.laneChangeCooldown=0;ClearJunctionQueue(trip);}
-        void AddTrip(TrafficTrip trip){InitializeLane(trip);State.trips.Add(trip);}
+        void AddTrip(TrafficTrip trip)
+        {
+            InitializeLane(trip);State.trips.Add(trip);
+#if !CITY_TRAFFIC_EDGE_INDEX_DISABLED
+            followingIndex.Add(trip);
+#endif
+        }
     }
 }

@@ -86,7 +86,7 @@ namespace HarborCity
         }
         void ArrivePolice(TrafficTrip t)
         {
-            if(t.returning){State.completed++;State.trips.Remove(t);return;}
+            if(t.returning){State.completed++;RemoveTrip(t);return;}
             var b=city.GetBuilding(t.destination);
             if(b==null || b.crime<=0 || b.burning || b.burned){RedirectFromCurrent(t,t.home);return;}
             t.status=TripStatus.Visiting;t.delay=t.blocked=0;city.Trace("police.arrived","警车实际到达目标建筑",t,building:t.destination,trip:t.id);

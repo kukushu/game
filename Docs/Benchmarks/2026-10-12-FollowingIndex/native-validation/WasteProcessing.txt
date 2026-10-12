@@ -1,0 +1,1 @@
+PASS: physical inventory processed at actual game-day rate, native progress/cumulative disposal JSON and conserved waste

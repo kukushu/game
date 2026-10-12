@@ -84,7 +84,7 @@ namespace HarborCity
                 if(trip.purpose==TripPurpose.GarbageTransfer && !trip.returning)city.waste.transferred+=amount;
                 city.Trace("garbage.unloaded","实际抵达垃圾处理场后卸载",new CityLogDetail{amount=amount,count=target.stored},building:target.id,trip:trip.id);trip.cargo=0;
             }
-            if(trip.returning){State.trips.Remove(trip);return;}
+            if(trip.returning){RemoveTrip(trip);return;}
             State.completed++;trip.status=TripStatus.Visiting;trip.delay=2;trip.blocked=0;
         }
     }

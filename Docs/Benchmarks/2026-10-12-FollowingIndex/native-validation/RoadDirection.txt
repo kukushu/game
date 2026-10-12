@@ -1,0 +1,1 @@
+PASS: directed loop, real freight detour/delivery/return and native JSON continuation

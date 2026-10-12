@@ -78,7 +78,7 @@ namespace HarborCity
             if(t.purpose==TripPurpose.Healthcare)return ValidateHealthcareTrip(t);
             var h=TripFamily(t); var p=h?.people.Find(person=>person.id==t.residentId);
             if(h==null || p==null || !h.resident)
-            {city.Trace("trip.cancelled","居民或家庭不再居住本城",t,household:t.householdId,citizen:t.residentId,trip:t.id); if(p!=null) {p.tripId=0; p.atWork=false;} State.lostGoods+=t.cargo;t.cargo=0;State.trips.Remove(t); return false;}
+            {city.Trace("trip.cancelled","居民或家庭不再居住本城",t,household:t.householdId,citizen:t.residentId,trip:t.id); if(p!=null) {p.tripId=0; p.atWork=false;} State.lostGoods+=t.cargo;t.cargo=0;RemoveTrip(t); return false;}
             if(!Endpoint(t.destination) || (!t.returning && (p.sick || city.GetBuilding(t.destination)?.burning==true || (t.purpose==TripPurpose.Shopping?!(city.GetBuilding(t.destination) is CommercialBuilding) || city.GetBuilding(t.destination).abandoned:city.Workplace(p)!=t.destination || !city.JobFunded(city.ResidentJob(p))))) || (t.returning && t.destination!=h.home))
             {
                 // A removed workplace sends the resident home via the surviving route graph.
@@ -111,7 +111,7 @@ namespace HarborCity
             }
             city.Trace(t.returning?"trip.finished":"trip.arrived",t.returning?"居民实际到家":"居民实际到岗",t,household:t.householdId,citizen:t.residentId,trip:t.id);
             if(p!=null && !t.returning) city.Trace("citizen.attendance","开始实际出勤；记录通勤和迟到",p,household:h.id,citizen:p.id,job:p.jobId,building:p.location,trip:t.id);
-            State.completed++; State.trips.Remove(t);
+            State.completed++; RemoveTrip(t);
         }
         void AdvanceResidents()
         {

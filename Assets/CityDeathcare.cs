@@ -137,7 +137,7 @@ namespace HarborCity
             else
             {
                 body.stage=CorpseStage.Buried;body.tripId=0;p.location=t.home;p.accessNode=t.Current;
-                State.completed++;State.trips.Remove(t);city.Trace("deathcare.buried","实际送达墓地，具体死者占用一个位置",body,citizen:p.id,building:t.home,trip:t.id);
+                State.completed++;RemoveTrip(t);city.Trace("deathcare.buried","实际送达墓地，具体死者占用一个位置",body,citizen:p.id,building:t.home,trip:t.id);
             }
         }
     }

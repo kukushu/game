@@ -1,0 +1,44 @@
+
+mode                              : fixed
+before_mean_ms                    : 43.478967
+after_mean_ms                     : 42.5497854444444
+reduction_mean_ms                 : 2.13708286941489
+before_p95_ms                     : 57.5432666666667
+after_p95_ms                      : 54.4708333333333
+reduction_p95_ms                  : 5.33934465544186
+before_p99_ms                     : 103.893366666667
+after_p99_ms                      : 103.818666666667
+reduction_p99_ms                  : 0.0719006442823976
+before_profiler_gc_bytes_per_step : 807796.586666667
+after_profiler_gc_bytes_per_step  : 807955.08
+reduction_profiler_gc             : -0.0196204509835017
+
+mode                              : 1x
+before_mean_ms                    : 43.585665
+after_mean_ms                     : 42.5616393333333
+reduction_mean_ms                 : 2.34945518593478
+before_p95_ms                     : 56.3911666666667
+after_p95_ms                      : 53.1326
+reduction_p95_ms                  : 5.77850549879266
+before_p99_ms                     : 104.685033333333
+after_p99_ms                      : 102.725466666667
+reduction_p99_ms                  : 1.87186898095273
+before_profiler_gc_bytes_per_step : 807796.18
+after_profiler_gc_bytes_per_step  : 807954.673333333
+reduction_profiler_gc             : -0.0196204608609728
+
+mode                              : 3x
+before_mean_ms                    : 43.5105317777778
+after_mean_ms                     : 42.5912324444444
+reduction_mean_ms                 : 2.11282026620247
+before_p95_ms                     : 58.5581
+after_p95_ms                      : 54.3910333333333
+reduction_p95_ms                  : 7.116123417028
+before_p99_ms                     : 104.670733333333
+after_p99_ms                      : 103.790666666667
+reduction_p99_ms                  : 0.840795357632599
+before_profiler_gc_bytes_per_step : 807796.18
+after_profiler_gc_bytes_per_step  : 807954.673333333
+reduction_profiler_gc             : -0.0196204608609728
+
+PASS: identical inputs/configuration, 2700 paired step task counts, nine final native states, all movement frame Calls match actual steps.

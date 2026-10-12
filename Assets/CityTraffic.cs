@@ -251,13 +251,30 @@ namespace HarborCity
             using(movementSample.Auto())
 #endif
             {
+#if !CITY_TRAFFIC_EDGE_INDEX_DISABLED
+            followingIndex.Begin(State.trips,city.roads);
+            try
+            {
+#endif
             ReleaseJunctions();
             TrafficTrip[] snapshot;
 #if CITY_TRAFFIC_PROFILING
             using(snapshotSample.Auto())
 #endif
                 snapshot=State.trips.ToArray();
-            foreach (var t in snapshot){AdvanceLaneChange(t);AdvanceStopWait(t);Move(t);}
+            foreach (var t in snapshot)
+            {
+                AdvanceLaneChange(t);AdvanceStopWait(t);
+#if !CITY_TRAFFIC_EDGE_INDEX_DISABLED
+                try {Move(t);} finally {followingIndex.Refresh(t);}
+#else
+                Move(t);
+#endif
+            }
+#if !CITY_TRAFFIC_EDGE_INDEX_DISABLED
+            }
+            finally {followingIndex.End();}
+#endif
             }
 #if UNITY_5_3_OR_NEWER
             using(servicesSample.Auto())
@@ -365,7 +382,7 @@ namespace HarborCity
                 }
                 var p=h?.people.Find(c=>c.id==t.residentId);
                 if(h==null || h.home==id)
-                {if(p!=null) {p.tripId=0;p.atWork=false;p.location=-1;} State.lostGoods+=t.cargo;t.cargo=0;State.trips.Remove(t);continue;}
+                {if(p!=null) {p.tripId=0;p.atWork=false;p.location=-1;} State.lostGoods+=t.cargo;t.cargo=0;RemoveTrip(t);continue;}
                 if(t.origin==id) t.origin=Outside;
                 t.home=h.home;RedirectFromCurrent(t,h.home);
                 if(t.purpose==TripPurpose.School && p!=null)p.schoolReturning=true;
@@ -400,7 +417,7 @@ namespace HarborCity
                 city.Trace("cargo.failed","运输失败；退回或明确记为损失",new CityLogDetail {origin=t.origin,destination=t.destination,amount=restored,count=lost,reason=t.cargoKind.ToString()},trip:t.id,level:"warning");
             }
             if(t.residentId>0){var person=TripFamily(t)?.people.Find(p=>p.id==t.residentId);if(person!=null)person.tripId=0;}
-            State.failed++; State.trips.Remove(t);
+            State.failed++; RemoveTrip(t);
         }
 
         void Move(TrafficTrip t)
@@ -504,7 +521,7 @@ namespace HarborCity
                 for (int s = t.segment; s < t.route.Count-1 && offset < Gap + units; s++)
                 {
                     int from=t.route[s],to=t.route[s+1],lane=city.roads.TripLane(t,s);
-                    foreach(var other in State.trips)
+                    foreach(var other in FollowingCandidates(from,to))
                     {
                         if(other.walking || other==t || other.status==TripStatus.Visiting)continue;
                         if (other.Current == from && other.Next == to && (OccupiesLane(other,lane) || t.laneChangeRemaining>0 && OccupiesLane(other,t.laneChangeFrom)))
@@ -559,7 +576,7 @@ namespace HarborCity
             if(t.purpose==TripPurpose.Deathcare){ArriveHearse(t);return;}
             if(t.residentId>0) { ArriveResident(t); return; }
             if(t.cargoKind==CargoKind.Waste){ArriveWaste(t);return;}
-            if (t.returning) {city.Trace("trip.finished","返程完成",t,trip:t.id); State.trips.Remove(t); return; }
+            if (t.returning) {city.Trace("trip.finished","返程完成",t,trip:t.id); RemoveTrip(t); return; }
             city.Trace("trip.arrived","抵达目的地，交付货物或开始停留",t,trip:t.id);
             if (t.cargo > 0)
             {

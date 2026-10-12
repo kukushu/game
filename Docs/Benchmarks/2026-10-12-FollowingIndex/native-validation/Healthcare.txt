@@ -1,0 +1,1 @@
+PASS: real clinic, ambulance pickup and delivery, native patient save, treatment and walking home; citizen=10; health=80.0

@@ -1,0 +1,1 @@
+PASS: native three separate highway vehicle Transforms; real imports use off-ramp, deliver to ordinary-street shops, return via on-ramp; format 33 JSON resumes identically. No GUI or exact original-game claim.

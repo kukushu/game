@@ -1,3 +1,12 @@
+## 2026-10-12 CityFlow源码对照与局部跟车查询
+
+- 固定CityFlow源码commit81ee0f4，实际阅读Road/Lane/Drivable/Segment、Engine阶段与线程池/屏障、Vehicle当前状态/Buffer、换道shadow及Router，记录函数源码链接和不能直接迁移的规则；见 [源码对照](CityFlowTrafficDesign.md)。没有引入CityFlow代码或改变现有更新顺序。
+- 单问题首批仅将Move.Following的State.trips全表候选替换为复用有向边桶，步开始准备、逐车移动后立即同步、任务增删维护；原距离窗口、短边/车道双占用与Min算法保留，索引不写入存档，保留编译控制组。
+- 原生同代码/同存档每侧2700步：fixed完整步43.479→42.550ms，Following3.166→2.441ms，维护0.064ms/步，GC807797→807955B/步基本不变；3x实际1.148→1.173模拟秒/真实秒，仍有严重倍速不足。P99尖峰未解决，不宣称完成容量目标。见 [配对结果](TrafficFollowingIndex.md)。
+- 4112索引/oracle/生命周期检查及全量模型通过；340步完整状态相等、9原生最终状态及任务/主要Calls一致；普通Unity Player建造、真实换道动画/读档、行人/路口/运输/道路改变、26日长期运行通过。隐藏Player的GUI限制保留，不声称用户实城人工验收。
+- 原生录制改为每轮单独文件，逐轮导入并校验全部Ordinal，修复数GB单文件导入时内存压力丢帧；缺帧试验不计收益。轻量证据归档Docs/Benchmarks/2026-10-12-FollowingIndex。
+- 下一批先定位ChooseLane与LimitCrossingAdvance的大Self，以及RouteValidation重复验证；再按实测逐项扩展局部车道/路口查询。多阶段、重新排序和并行仅作为后续待确认方案，复刻玩法路线不变。
+
 ## 2026-10-12 固定存档基准与首轮路口半径缓存
 
 - 基准固定第128日存档、Unity6000.6.3f1/i5-14600KF、空场景Development Player，fixed/1x/3x各3轮、40步预热+300步测量。修正托管GC计数不可用、Profiler帧历史不足及默认启动第二个城市的问题；保留原始试验，正式V2数据严格校验来源/Calls/状态，见 [基准协议](TrafficBenchmark.md)。
