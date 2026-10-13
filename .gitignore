@@ -5,6 +5,10 @@
 [Ll]ogs/
 UserSettings/
 
+# Large Unity Profiler recordings remain local
+/ProfilerCaptures/*.data
+/ProfilerCaptures/*.raw
+
 # Visual Studio / Rider / VS Code generated
 *.csproj
 *.sln
