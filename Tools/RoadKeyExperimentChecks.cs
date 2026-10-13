@@ -44,6 +44,8 @@ public static class RoadKeyExperimentChecks
         roads.edges.Add(first);first.kind=RoadKind.FourLane;first.oneWay=false;roads.Changed();Check(roads.CanTravel(to,from) && roads.LaneCount(from,to)==2,"Rebuild/widen updates lookup");
         var json=new JavaScriptSerializer{MaxJsonLength=int.MaxValue};var loaded=json.Deserialize<CityRoads>(json.Serialize(roads));
         Check(loaded.Valid() && loaded.CanTravel(from,to) && loaded.Kind(from,to)==RoadKind.FourLane,"Sparse large road save restores and rebuilds lookups");
+        // Legacy caches remain for construction; new traffic queries need not create them.
+        loaded.Node(from);
         var cache=typeof(CityRoads).GetField("roadLookup",System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(loaded) as Dictionary<long,RoadEdge>;
 #if CITY_ROAD_KEY_HASH_DISABLED
         Check(cache.Comparer.Equals(EqualityComparer<long>.Default),"Explicit fallback uses original comparer");

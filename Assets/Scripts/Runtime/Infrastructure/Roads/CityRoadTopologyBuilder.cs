@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 namespace HarborCity
 {
-    // Independent conversion layer, never called from traffic/rendering/construction hot paths.
+    // Built once per graph revision; never rebuilt per vehicle or query.
     internal static class CityRoadTopologyBuilder
     {
 #if UNITY_5_3_OR_NEWER && ENABLE_PROFILER

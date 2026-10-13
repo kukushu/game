@@ -33,6 +33,24 @@ namespace HarborCity
         internal readonly int Index;
         internal LogicalSpanReference(LogicalRoad road,int index){Road=road;Index=index;}
     }
+    // Directed view into a geometry span, not a second mutable RoadEdge.
+    public readonly struct RoadTraversal
+    {
+        public readonly LogicalRoad Road;
+        public readonly LogicalRoadSpan Span;
+        public readonly RoadCenterSample From,To;
+        public readonly bool VehicleAllowed;
+        public bool OneWay=>!Road.ForwardAllowed || !Road.ReverseAllowed;
+        public int LaneCount=>VehicleAllowed?Road.Lanes:0;
+        internal RoadTraversal(LogicalSpanReference reference,int from)
+        {
+            Road=reference.Road;Span=Road.Geometry.Spans[reference.Index];
+            bool forward=Span.From==from;
+            From=Road.Geometry.Samples[reference.Index+(forward?0:1)];
+            To=Road.Geometry.Samples[reference.Index+(forward?1:0)];
+            VehicleAllowed=forward?Road.ForwardAllowed:Road.ReverseAllowed;
+        }
+    }
     // A read-only revision snapshot. Only CityRoads is authoritative and serializable.
     public sealed class CityRoadTopology
     {
@@ -83,6 +101,24 @@ namespace HarborCity
             if(!directedSpans.TryGetValue(Key(from,to),out var r))return false;
             return walking?CityRoadTypes.Frontage(r.Road.Kind):r.Road.Geometry.Spans[r.Index].From==from?r.Road.ForwardAllowed:r.Road.ReverseAllowed;
         }
+        public bool TryGetTraversal(int from,int to,out RoadTraversal traversal)
+        {
+            if(directedSpans.TryGetValue(Key(from,to),out var reference))
+            {traversal=new RoadTraversal(reference,from);return true;}
+            traversal=default;return false;
+        }
+        // Hot traffic queries do not copy the full geometry view.
+        public RoadKind KindBetween(int from,int to)=>directedSpans.TryGetValue(Key(from,to),out var r)?r.Road.Kind:RoadKind.Standard;
+        public bool TryGetLength(int from,int to,out float length)
+        {if(directedSpans.TryGetValue(Key(from,to),out var r)){length=r.Road.Geometry.Spans[r.Index].Length;return true;}length=0;return false;}
+        public int LaneCountBetween(int from,int to)
+        {
+            if(!directedSpans.TryGetValue(Key(from,to),out var r))return 0;
+            bool forward=r.Road.Geometry.Spans[r.Index].From==from;
+            return (forward?r.Road.ForwardAllowed:r.Road.ReverseAllowed)?r.Road.Lanes:0;
+        }
+        public float LaneOffsetBetween(int from,int to,int lane)
+        {return directedSpans.TryGetValue(Key(from,to),out var r)?CityRoadTypes.LaneOffset(r.Road.Kind,!r.Road.ForwardAllowed || !r.Road.ReverseAllowed,lane):.55f;}
         // Geometry mapping is valid even for temporarily stranded/illegal-direction trips.
         // Call CanTravel separately; mapping must not silently discard those vehicles.
         public bool TryMapLegacy(int from,int to,float progress,out LogicalRoadPosition position)

@@ -24,7 +24,11 @@ public static class LogicalRoadChecks
             foreach(bool reverse in new[]{false,true})
             {
                 int a=reverse?e.b:e.a,b=reverse?e.a:e.b;
-                Check(t.CanTravel(a,b)==r.CanTravel(a,b) && t.CanTravel(a,b,true)==r.CanTravel(a,b,true),"Driving/walking direction oracle");
+                bool allowed=!reverse || !e.oneWay;
+                Check(t.CanTravel(a,b)==allowed && r.CanTravel(a,b)==allowed && t.CanTravel(a,b,true)==CityRoadTypes.Frontage(e.kind) && r.CanTravel(a,b,true)==CityRoadTypes.Frontage(e.kind),"Independent driving/walking edge oracle");
+                Check(t.TryGetTraversal(a,b,out var traversal) && traversal.From.NodeId==a && traversal.To.NodeId==b && traversal.Span.EdgeId==e.id && traversal.VehicleAllowed==allowed,"Directed shared geometry");
+                Check(r.Kind(a,b)==e.kind && r.EdgeLength(a,b)==Math.Max(.1f,CityRoads.SpatialLength(r.Node(a),r.Node(b))) && r.SpeedFactor(a,b)==CityRoadTypes.SpeedFactor(e.kind) && r.EdgeWidth(a,b)==CityRoadTypes.Width(e.kind),"Independent metadata/length oracle");
+                Check(r.LaneCount(a,b)==(allowed?CityRoadTypes.Lanes(e.kind,e.oneWay):0) && Math.Abs(r.LaneOffset(a,b,1)-CityRoadTypes.LaneOffset(e.kind,e.oneWay,1))<.000001f,"Independent lane oracle "+a+"->"+b+" kind="+e.kind+" oneWay="+e.oneWay+" allowed="+allowed+" count="+r.LaneCount(a,b)+" offset="+r.LaneOffset(a,b,1)+" road="+traversal.OneWay);
                 foreach(float f in new[]{0f,.17f,.5f,.999f,1f})
                 {
                     Check(t.TryMapLegacy(a,b,f,out var p) && t.TryToLegacy(p,out int from,out int to,out float progress) && from==a && to==b && Math.Abs(progress-f)<.000001f,"Position roundtrip both directions");
@@ -35,7 +39,7 @@ public static class LogicalRoadChecks
         }
         foreach(var road in t.Roads)
         {
-            double length=road.Geometry.Spans.Sum(s=>(double)r.EdgeLength(s.From,s.To));Check(Math.Abs(length-road.Geometry.Length)<.000001,"3D cumulative length oracle");
+            double length=road.Geometry.Spans.Sum(s=>(double)CityRoads.SpatialLength(r.Node(s.From),r.Node(s.To)));Check(Math.Abs(length-road.Geometry.Length)<.000001,"3D cumulative length oracle");
             foreach(var p in road.Geometry.Samples)Check(p.X==r.Node(p.NodeId).x && p.Y==r.Node(p.NodeId).y && p.Z==r.Node(p.NodeId).z,"All original curve/height samples retained");
         }
         if(reachability)

@@ -103,16 +103,34 @@ namespace HarborCity
         public List<int> Neighbors(int id) { Cache(); return adjacency.TryGetValue(id,out var n) ? n : new List<int>(); }
         public bool Active(int id) => Node(id) != null && Neighbors(id).Count > 0;
         public bool Linked(int a,int b) => Neighbors(a).Contains(b);
-        public bool CanTravel(int a,int b,bool walking=false){Cache();return walking?roadLookup.TryGetValue(((long)a<<32)|(uint)b,out var e) && CityRoadTypes.Frontage(e.kind):vehicleConnections.Contains(((long)a<<32)|(uint)b);}
-        public RoadKind Kind(int a,int b){Cache();return roadLookup.TryGetValue(((long)a<<32)|(uint)b,out var e)?e.kind:RoadKind.Standard;}
+        public bool CanTravel(int a,int b,bool walking=false)
+        {
+#if CITY_ROAD_TOPOLOGY_QUERIES_DISABLED || CITY_ROAD_KEY_HASH_DISABLED
+            Cache();return walking?roadLookup.TryGetValue(((long)a<<32)|(uint)b,out var e) && CityRoadTypes.Frontage(e.kind):vehicleConnections.Contains(((long)a<<32)|(uint)b);
+#else
+            return GetLogicalTopology().CanTravel(a,b,walking);
+#endif
+        }
+        public RoadKind Kind(int a,int b)
+        {
+#if CITY_ROAD_TOPOLOGY_QUERIES_DISABLED || CITY_ROAD_KEY_HASH_DISABLED
+            Cache();return roadLookup.TryGetValue(((long)a<<32)|(uint)b,out var e)?e.kind:RoadKind.Standard;
+#else
+            return GetLogicalTopology().KindBetween(a,b);
+#endif
+        }
         public float EdgeLength(int a,int b)
         {
 #if UNITY_5_3_OR_NEWER && ENABLE_PROFILER && CITY_TRAFFIC_ATTRIBUTION && !CITY_TRAFFIC_PROFILING_DISABLED
             CityTrafficAttribution.Current.edgeLengths++;
 #endif
+#if !CITY_ROAD_TOPOLOGY_QUERIES_DISABLED && !CITY_ROAD_KEY_HASH_DISABLED
+            if(GetLogicalTopology().TryGetLength(a,b,out float length))return Math.Max(.1f,length);
+#endif
+            // Existing callers also measure pairs that are not directly connected.
             return Math.Max(.1f,SpatialLength(Node(a),Node(b)));
         }
-        public float SpeedFactor(int a,int b){Cache();return roadLookup.TryGetValue(((long)a<<32)|(uint)b,out var e)?CityRoadTypes.SpeedFactor(e.kind):1;}
+        public float SpeedFactor(int a,int b)=>CityRoadTypes.SpeedFactor(Kind(a,b));
         public float TravelCost(int a,int b,bool walking=false)=>EdgeLength(a,b)/(walking?1:SpeedFactor(a,b));
         public bool Connected(int id) { Cache(); return connected.Contains(id) && Active(id); }
 

@@ -15,15 +15,23 @@ namespace HarborCity
     {
         public int LaneCount(int from,int to)
         {
+#if CITY_ROAD_TOPOLOGY_QUERIES_DISABLED || CITY_ROAD_KEY_HASH_DISABLED
             Cache();if(!CanTravel(from,to) || !roadLookup.TryGetValue(((long)from<<32)|(uint)to,out var e))return 0;
             return CityRoadTypes.Lanes(e.kind,e.oneWay);
+#else
+            return GetLogicalTopology().LaneCountBetween(from,to);
+#endif
         }
         public float EdgeWidth(int from,int to)
-        {Cache();return roadLookup.TryGetValue(((long)from<<32)|(uint)to,out var e)?CityRoadTypes.Width(e.kind):Width;}
+        {return CityRoadTypes.Width(Kind(from,to));}
         public float LaneOffset(int from,int to,int lane)
         {
+#if CITY_ROAD_TOPOLOGY_QUERIES_DISABLED || CITY_ROAD_KEY_HASH_DISABLED
             Cache();if(!roadLookup.TryGetValue(((long)from<<32)|(uint)to,out var e))return .55f;
             return CityRoadTypes.LaneOffset(e.kind,e.oneWay,lane);
+#else
+            return GetLogicalTopology().LaneOffsetBetween(from,to,lane);
+#endif
         }
         public IEnumerable<RoadLane> Lanes(int from,int to)
         {
