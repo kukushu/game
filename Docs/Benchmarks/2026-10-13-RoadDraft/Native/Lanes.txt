@@ -1,0 +1,1 @@
+PASS: two simultaneous real exports, separate lane vehicle transforms, native lane JSON, one-lane merge and both return trips without lost tasks/cargo

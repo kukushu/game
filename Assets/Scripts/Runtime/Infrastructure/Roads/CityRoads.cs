@@ -187,8 +187,9 @@ namespace HarborCity
 
         public RoadPlan Plan(CityModel city,RoadNode from,RoadNode to,Func<float,float,float> height,bool oneWay=false,RoadKind kind=RoadKind.Standard,bool engineered=false)
             => PlanSegment(city,from,to,height,1.5f,oneWay,kind,engineered);
-        RoadPlan PlanSegment(CityModel city,RoadNode from,RoadNode to,Func<float,float,float> height,float minimum,bool oneWay=false,RoadKind kind=RoadKind.Standard,bool engineered=false)
+        RoadPlan PlanSegment(CityModel city,RoadNode from,RoadNode to,Func<float,float,float> height,float minimum,bool oneWay=false,RoadKind kind=RoadKind.Standard,bool engineered=false,bool ownedDraft=false)
         {
+            if(ownedDraft && ReferenceEquals(this,city.roads))throw new InvalidOperationException("A construction draft must not modify the live road graph");
             var plan=new RoadPlan { start=from.Copy(),end=to.Copy(),revision=revision,stroke=nextStroke,engineered=engineered };
             plan.points.Add(from.Copy()); plan.points.Add(to.Copy());
             plan.length=Length(from,to); plan.cost=ProfileCost(from,to,height,kind,engineered);
@@ -213,9 +214,12 @@ namespace HarborCity
                 if(!engineered && Math.Abs(left-right)>.95f || plan.grade>.35f) { plan.terrainBlocked=true;plan.error="坡度过大，请沿缓坡绕行"; return plan; }
             }
             if((CityRoadTypes.LimitedAccess(kind) || width>Width || edges.Exists(e=>CityRoadTypes.Width(e.kind)>Width)) && !city.RoadWidthClear(from,to,kind,height,null,out string widthError,engineered)){plan.error=widthError;return plan;}
-            var copy=Copy(); var crossings=new List<RoadNode>{from.Copy(),to.Copy()};
+            // Curve owns its one private copy. Snapshot the read iteration because
+            // crossing splits mutate that copy; live previews still clone normally.
+            var copy=ownedDraft?this:Copy(); var crossings=new List<RoadNode>{from.Copy(),to.Copy()};
+            var existingEdges=ownedDraft?new List<RoadEdge>(edges):edges;
             float dx=to.x-from.x,dz=to.z-from.z;
-            foreach(var e in edges)
+            foreach(var e in existingEdges)
             {
                 var a=Node(e.a); var b=Node(e.b); if(Separated(from,to,a,b))continue; float ex=b.x-a.x,ez=b.z-a.z;
                 float cross=Cross(dx,dz,ex,ez);
@@ -343,7 +347,11 @@ namespace HarborCity
             {
                 // One stroke ID across all spans keeps undo and demolition coherent.
                 copy.nextStroke=result.stroke;
+#if CITY_ROAD_PLAN_COPY_PER_SEGMENT
                 var part=copy.PlanSegment(city,result.points[i-1],result.points[i],height,.4f,oneWay,kind,engineered);
+#else
+                var part=copy.PlanSegment(city,result.points[i-1],result.points[i],height,.4f,oneWay,kind,engineered,ownedDraft:true);
+#endif
                 result.grade=Math.Max(result.grade,part.grade);
                 if(part.error!=null) {result.terrainBlocked=part.terrainBlocked;result.error=part.error; return result;}
                 result.splits.AddRange(part.splits); copy=part.network;

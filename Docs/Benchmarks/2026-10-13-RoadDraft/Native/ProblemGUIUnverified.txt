@@ -1,0 +1,1 @@
+Hidden player produced no IMGUI hit rectangles. Visuals, hover and button input require the separate interactive Unity check.

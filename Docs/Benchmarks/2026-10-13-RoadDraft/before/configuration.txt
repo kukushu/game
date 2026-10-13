@@ -1,0 +1,7 @@
+Pure Mono algorithm/construction diagnostic; not Unity frame/FPS or native GC.
+source=C:\Users\16934\Documents\unity_game\test\Tools\Benchmarks\traffic-city.json
+allocation_control_passed=True
+JIT_warmup=5
+build_repeats=40
+preview_repeats=12 paired (fresh identical city each)
+Memory uses GC.GetTotalMemory delta, approximate; not a native heap capture.

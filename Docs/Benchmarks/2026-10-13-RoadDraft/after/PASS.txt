@@ -1,0 +1,1 @@
+Read-only conversion, hot roundtrips and paired valid construction previews; city serialization unchanged.
