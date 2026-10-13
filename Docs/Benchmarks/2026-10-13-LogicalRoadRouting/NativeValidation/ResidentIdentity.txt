@@ -1,0 +1,1 @@
+PASS: real city residents, independent unique IDs, persisted next identity, unused reservation never reused, unchanged family/job/transport associations; nextCitizenId=41

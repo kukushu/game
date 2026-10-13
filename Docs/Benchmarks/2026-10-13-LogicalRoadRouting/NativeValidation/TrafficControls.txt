@@ -1,0 +1,1 @@
+PASS: native actual cargo red waits/green crossing, retained queued arrival in JSON, red/green signal and stop marker renderers, saved phase continuation, actual stopping duration retained on load, deliveries and complete return trips without failure

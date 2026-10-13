@@ -434,6 +434,14 @@ namespace HarborCity
         }
         List<int> CalculatePath(List<int> starts,List<int> goals,bool walking)
         {
+#if CITY_ROAD_ROUTING_LEGACY || CITY_ROAD_KEY_HASH_DISABLED
+            return CalculateLegacyPath(starts,goals,walking);
+#else
+            return CityLogicalRoadRouter.Search(this,starts,goals,walking) ?? CityLogicalRoadRouter.Fallback(this,starts,goals,walking);
+#endif
+        }
+        internal List<int> CalculateLegacyPath(List<int> starts,List<int> goals,bool walking)
+        {
             var path=new List<int>(); if(starts.Count==0 || goals.Count==0) return path;
             var distance=new Dictionary<int,float>(); var previous=new Dictionary<int,int>();
             var open=new SortedSet<(float cost,int id)>();
@@ -462,7 +470,9 @@ namespace HarborCity
             foreach(var e in edges) if(e==null || e.id<1 || e.id>=nextEdge || !edgeIds.Add(e.id) || !ids.Contains(e.a) || !ids.Contains(e.b)
                 || e.a==e.b || e.stroke<0 || e.stroke>=nextStroke || !CityRoadTypes.Valid(e.kind,e.oneWay) || !Enum.IsDefined(typeof(RoadStructure),e.structure) || !pairs.Add(Math.Min(e.a,e.b)+":"+Math.Max(e.a,e.b))) return false;
             lookup=null;
-            foreach(var e in edges) if(EdgeLength(e.a,e.b)<.39f) return false;
+            // Validate raw geometry before asking the derived builder to accept it.
+            // Malformed zero-length saved edges must return false, not throw in conversion.
+            foreach(var e in edges) if(Math.Max(.1f,SpatialLength(Node(e.a),Node(e.b)))<.39f) return false;
             foreach(var n in nodes)if(!Enum.IsDefined(typeof(JunctionControl),n.control) || n.stopFrom==null || new HashSet<int>(n.stopFrom).Count!=n.stopFrom.Count || n.stopFrom.Exists(from=>!Linked(from,n.id)))return false;
             return ids.Contains(Entrance);
         }

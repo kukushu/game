@@ -1,0 +1,3 @@
+fixture,queries,mean_ms,p95_ms,p99_ms,mean_gc_bytes,logical_fallbacks,nodes,edges,roads
+fixed_city,256,0.27591328124999992,0.5335,0.5587,98156.5625,0,2029,1320,39
+600_sample_corridor,256,0.11952695312499996,0.2134,0.321,50289.1875,0,600,599,1

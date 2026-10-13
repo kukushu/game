@@ -1,5 +1,7 @@
 # 逻辑道路第一阶段：实现与验收
 
+后续状态：以下为第一阶段当时的结果；第二、第三阶段已开始接入正常游戏，最新情况见 [迁移记录](RoadTopologyMigration.md)。“正常游戏尚未调用”只适用于本阶段原始提交。
+
 2026-10-13，起点262adb0。设计先保存于 [RoadTopologyArchitecture.md](RoadTopologyArchitecture.md)，按该设计只完成独立派生表示；第二、第三阶段尚未开始。
 
 ## 已实现

@@ -1,0 +1,1 @@
+PASS: full 336-square bounds visible at widest zoom/lowest pitch; real world-input road and pipe on x115-156 land; 768 boundary vertices aligned to terrain/bounds; hidden in selection mode

@@ -1,0 +1,1 @@
+PASS: actual bulldozer mouse click removes player-built entrance stroke, charges 40, preserves other roads and stable outside point; native save valid

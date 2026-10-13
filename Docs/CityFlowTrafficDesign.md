@@ -1,5 +1,7 @@
 # CityFlow 源码对照与 HarborCity 交通改造路线
 
+2026-10-13 用户授权后的后续迁移：正常游戏静态查询和共享路面几何已读逻辑快照；搜索队列使用Road边界/内部起终点，保留原逐样本float成本与等价路线回退，输出兼容旧节点route。没有采用CityFlow并行/多阶段提交，没有更改车辆/路口规则；车辆游标和持久道路身份尚未迁移。四批实现与证据见 [RoadTopologyMigration](RoadTopologyMigration.md)，冷搜索约53%的降低不等于整步降低，最新完整步约7.23ms。
+
 2026-10-13 RoadNet/Road/Drivable所有权与几何/拓扑分离已进一步核对并实施 [道路表示第一阶段](RoadTopologyArchitecture.md)，独立只读派生层，不迁移CityFlow指针或二维几何，不切换更新顺序/路口/车道。源图仍唯一持久真相，第二/三阶段待确认，结果见 [RoadTopologyStage1](RoadTopologyStage1.md)。
 
 最新实施更新：共享道路查询层的哈希聚集修正已经 [正式默认启用](RoadHashProduction.md)，普通Editor/Player均生效；真实渲染3×约58.63FPS/实际2.998倍，完整步约7.69ms。没有改变CityFlow对照中指出的逐车即时提交语义；继续在新成本下研究局部查询和规模，不能直接套用多阶段并行。

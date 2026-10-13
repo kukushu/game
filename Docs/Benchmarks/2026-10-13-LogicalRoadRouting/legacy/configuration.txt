@@ -1,0 +1,1 @@
+Pure Mono cold route algorithm diagnostic, no singlePaths cache, snapshot prewarmed; 30 warmup, 256 measured same seeded endpoint pairs. Timing excludes endpoint generation, signatures and fallback census; GC excludes timer construction. Corridor is a synthetic graph, not a city FPS forecast.

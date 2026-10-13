@@ -1,0 +1,1 @@
+Human closed Windows security popup before measurement; game reobserved/activated. Mouse clicked window-relative (55,67), non-interactive header, before START.
