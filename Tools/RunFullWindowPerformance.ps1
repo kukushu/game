@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$OutputDirectory,[ValidateSet('Build','Run')][string]$Stage='Build',[switch]$LegacyRoadKeyHash,[switch]$DevelopmentBuild,[string]$UnityEditor='C:/Program Files/Unity/Hub/Editor/6000.6.3f1/Editor/Unity.exe')
+param([Parameter(Mandatory=$true)][string]$OutputDirectory,[ValidateSet('Build','Run')][string]$Stage='Build',[switch]$LegacyRoadKeyHash,[switch]$DevelopmentBuild,[switch]$LegacyTopologyQueries,[switch]$LegacyRoadGeometry,[string]$UnityEditor='C:/Program Files/Unity/Hub/Editor/6000.6.3f1/Editor/Unity.exe')
 . (Join-Path $PSScriptRoot 'ProjectLayout.ps1')
 $ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot -Parent;$output=[IO.Path]::GetFullPath($OutputDirectory);$project=Join-Path $root 'Temp/TrafficBenchmarkProject'
@@ -8,8 +8,11 @@ if($Stage -eq 'Build'){
     Sync-CityWorkspaceProject $root $project
     $env:HARBOR_FULL_WINDOW_PLAYER=$player;$env:HARBOR_BENCHMARK_LEGACY_ROAD_HASH=if($LegacyRoadKeyHash){'1'}else{'0'}
     $env:HARBOR_FULL_WINDOW_DEVELOPMENT=if($DevelopmentBuild){'1'}else{'0'}
+    $env:HARBOR_FULL_WINDOW_LEGACY_TOPOLOGY=if($LegacyTopologyQueries){'1'}else{'0'}
+    $env:HARBOR_FULL_WINDOW_LEGACY_GEOMETRY=if($LegacyRoadGeometry){'1'}else{'0'}
     $hashes=Get-ChildItem -LiteralPath (Join-Path $project 'Assets') -Filter '*.cs' -Recurse | Sort-Object FullName | ForEach-Object {($_.FullName.Substring($project.Length+1))+':'+(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash}
     [IO.File]::WriteAllLines((Join-Path $output 'build-source.txt'),$hashes);[IO.File]::WriteAllText((Join-Path $output 'build-options.txt'),"CITY_TRAFFIC_WINDOW_MEASUREMENT=1`nCITY_ROAD_KEY_HASH_DISABLED="+$env:HARBOR_BENCHMARK_LEGACY_ROAD_HASH+"`nDevelopmentBuild="+$env:HARBOR_FULL_WINDOW_DEVELOPMENT+"`n")
+    [IO.File]::AppendAllText((Join-Path $output 'build-options.txt'),"CITY_ROAD_TOPOLOGY_QUERIES_DISABLED="+$env:HARBOR_FULL_WINDOW_LEGACY_TOPOLOGY+"`nCITY_ROAD_RENDER_LEGACY="+$env:HARBOR_FULL_WINDOW_LEGACY_GEOMETRY+"`n")
     $p=Start-Process -FilePath $UnityEditor -ArgumentList '-batchmode','-quit','-projectPath',('"'+$project+'"'),'-executeMethod','HarborCity.CityTrafficBenchmarkBuild.BuildFullWindowPlayer','-logFile',('"'+(Join-Path $output 'build.log')+'"') -WindowStyle Hidden -PassThru;$p.WaitForExit();if($p.ExitCode -ne 0){throw 'Full-window build failed'}
 }else{
     if(Test-Path (Join-Path $output 'summary.csv')){throw 'Use a fresh output directory'}

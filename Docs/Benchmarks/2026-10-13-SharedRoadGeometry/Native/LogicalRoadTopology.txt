@@ -1,0 +1,1 @@
+PASS: shared and legacy geometry produce identical active game-owned mesh vertices/triangles; projected cross slope/endpoints exact; smoothed vehicles/JSON unchanged; native load same partition. roads=2; edges=33; scene_mesh_sha256=C7A3F7B26F03C4597B8F2C298C2437F4407A47EA135F4B2039C2CB3F1A8F076A. Legacy traffic topology, rendering segmentation/visual rules remain.

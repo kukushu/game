@@ -1,0 +1,1 @@
+Computer-use observed game window; mouse clicked window-relative (55,67) in non-interactive header before START.

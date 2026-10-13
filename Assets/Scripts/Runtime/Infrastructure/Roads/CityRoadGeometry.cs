@@ -2,6 +2,12 @@ using System;
 using System.Collections.Generic;
 namespace HarborCity
 {
+    public readonly struct RoadSurfaceProjection
+    {
+        public readonly float X,Y,Z;
+        public readonly bool Ground;
+        internal RoadSurfaceProjection(float x,float y,float z,bool ground){X=x;Y=y;Z=z;Ground=ground;}
+    }
     // Values copied from the authoritative graph; these are not editable RoadNodes.
     public readonly struct RoadCenterSample
     {
@@ -41,6 +47,13 @@ namespace HarborCity
             int i=SpanAt(distance);var a=samples[i];var b=samples[i+1];
             float t=(float)((distance-a.Distance)/spans[i].Length);
             return new RoadCenterSample(a.X+(b.X-a.X)*t,a.Y+(b.Y-a.Y)*t,a.Z+(b.Z-a.Z)*t,distance);
+        }
+        internal RoadSurfaceProjection ProjectSpan(int index,bool forward,float x,float z)
+        {
+            var a=samples[index+(forward?0:1)];var b=samples[index+(forward?1:0)];
+            float dx=b.X-a.X,dz=b.Z-a.Z,length2=dx*dx+dz*dz;
+            float t=length2<.0001f?0:Math.Clamp(((x-a.X)*dx+(z-a.Z)*dz)/length2,0,1);
+            return new RoadSurfaceProjection(a.X+dx*t,a.Y+(b.Y-a.Y)*t,a.Z+dz*t,spans[index].Structure==RoadStructure.Ground);
         }
     }
     public readonly struct LogicalRoadPosition

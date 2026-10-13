@@ -8,8 +8,20 @@ namespace HarborCity
         readonly List<Mesh> meshes = new List<Mesh>();
         Transform content;
         public bool underground;
+        // Explicit native validation only. Normal gameplay always uses shared geometry.
+#if CITY_ROAD_RENDER_LEGACY
+        internal static bool LegacyGeometryForValidation=true;
+#else
+        internal static bool LegacyGeometryForValidation;
+#endif
         public static Vector3 Point(RoadNode n) => new Vector3(n.x,n.y,n.z);
         public static float SurfaceHeight(CityRoads roads,CityLandscape landscape,Vector3 p,int a,int b)
+        {
+            if(!LegacyGeometryForValidation && roads.GetLogicalTopology().TryProjectCenter(a,b,p.x,p.z,out var center))
+                return center.Y+(center.Ground?landscape.Height(p.x,p.z)-landscape.Height(center.X,center.Z):0);
+            return LegacySurfaceHeight(roads,landscape,p,a,b);
+        }
+        internal static float LegacySurfaceHeight(CityRoads roads,CityLandscape landscape,Vector3 p,int a,int b)
         {
             var na=roads.Node(a); var nb=roads.Node(b);
             if(na==null || nb==null) return landscape.Height(p.x,p.z);
@@ -31,7 +43,10 @@ namespace HarborCity
             if(entry!=null && !city.roads.Active(entry.id)) Disk(markings,entry,.6f,.10f,landscape);
             foreach(var edge in city.roads.edges)
             {
-                Vector3 a=Point(city.roads.Node(edge.a)),b=Point(city.roads.Node(edge.b));
+                Vector3 a,b;
+                if(!LegacyGeometryForValidation && city.roads.GetLogicalTopology().TryGetTraversal(edge.a,edge.b,out var geometry))
+                {a=new Vector3(geometry.From.X,geometry.From.Y,geometry.From.Z);b=new Vector3(geometry.To.X,geometry.To.Y,geometry.To.Z);}
+                else{a=Point(city.roads.Node(edge.a));b=Point(city.roads.Node(edge.b));}
                 if(edge.structure==RoadStructure.Tunnel && !underground)
                 {
                     foreach(int node in new[]{edge.a,edge.b})if(city.roads.Neighbors(node).Exists(other=>!city.roads.Underground(node,other)))

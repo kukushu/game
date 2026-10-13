@@ -1,0 +1,1 @@
+PASS: actual loaded mainline/ramp vehicles honor physical priority in either list order; native yielding JSON resumes identically; twenty naturally dispatched cargos deliver 160 goods and physically return without loss/deadlock. This does not claim original-game algorithm or heavy-city saturation parity.

@@ -41,6 +41,8 @@ namespace HarborCity
             PlayerSettings.SetScriptingBackend(UnityEditor.Build.NamedBuildTarget.Standalone,ScriptingImplementation.Mono2x);
             PlayerSettings.defaultScreenWidth=1440;PlayerSettings.defaultScreenHeight=900;PlayerSettings.fullScreenMode=FullScreenMode.Windowed;PlayerSettings.productName="HarborCity Performance Verification";
             var defines=new System.Collections.Generic.List<string>{"CITY_TRAFFIC_WINDOW_MEASUREMENT"};
+            if(Environment.GetEnvironmentVariable("HARBOR_FULL_WINDOW_LEGACY_TOPOLOGY")=="1")defines.Add("CITY_ROAD_TOPOLOGY_QUERIES_DISABLED");
+            if(Environment.GetEnvironmentVariable("HARBOR_FULL_WINDOW_LEGACY_GEOMETRY")=="1")defines.Add("CITY_ROAD_RENDER_LEGACY");
             if(Environment.GetEnvironmentVariable("HARBOR_BENCHMARK_LEGACY_ROAD_HASH")=="1")defines.Add("CITY_ROAD_KEY_HASH_DISABLED");
             var options=Environment.GetEnvironmentVariable("HARBOR_FULL_WINDOW_DEVELOPMENT")=="1"?BuildOptions.Development:BuildOptions.None;
             var report=BuildPipeline.BuildPlayer(new BuildPlayerOptions{scenes=new[]{"Assets/Scenes/SampleScene.unity"},locationPathName=Environment.GetEnvironmentVariable("HARBOR_FULL_WINDOW_PLAYER"),target=BuildTarget.StandaloneWindows64,options=options,extraScriptingDefines=defines.ToArray()});

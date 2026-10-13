@@ -119,6 +119,12 @@ namespace HarborCity
         }
         public float LaneOffsetBetween(int from,int to,int lane)
         {return directedSpans.TryGetValue(Key(from,to),out var r)?CityRoadTypes.LaneOffset(r.Road.Kind,!r.Road.ForwardAllowed || !r.Road.ReverseAllowed,lane):.55f;}
+        public bool TryProjectCenter(int from,int to,float x,float z,out RoadSurfaceProjection projection)
+        {
+            if(directedSpans.TryGetValue(Key(from,to),out var r))
+            {projection=r.Road.Geometry.ProjectSpan(r.Index,r.Road.Geometry.Spans[r.Index].From==from,x,z);return true;}
+            projection=default;return false;
+        }
         // Geometry mapping is valid even for temporarily stranded/illegal-direction trips.
         // Call CanTravel separately; mapping must not silently discard those vehicles.
         public bool TryMapLegacy(int from,int to,float progress,out LogicalRoadPosition position)

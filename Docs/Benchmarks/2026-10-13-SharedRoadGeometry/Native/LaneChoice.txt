@@ -1,0 +1,1 @@
+PASS: real blocked export safely changes lane; actual vehicle Transform follows continuous lateral movement; native in-progress lane JSON resumes identically; both exports and physical returns complete without lost cargo. No GUI or original-game equivalence claim.

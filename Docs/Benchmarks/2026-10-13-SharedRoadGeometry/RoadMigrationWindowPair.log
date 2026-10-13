@@ -1,0 +1,22 @@
+
+mode                      : 1x
+before_fps                : 59.3185246846577
+after_fps                 : 59.3525532192436
+before_simulation_rate    : 1.0005000022692
+after_simulation_rate     : 1.00032404127488
+before_p95_frame_ms       : 17.1994
+after_p95_frame_ms        : 17.1727333333333
+before_gc_bytes_per_frame : 553960.895533845
+after_gc_bytes_per_frame  : 554707.982664633
+
+mode                      : 3x
+before_fps                : 57.4485274298124
+after_fps                 : 57.176889171203
+before_simulation_rate    : 2.99905394133249
+after_simulation_rate     : 2.99181074933025
+before_p95_frame_ms       : 23.3611
+after_p95_frame_ms        : 23.9472666666667
+before_gc_bytes_per_frame : 1156498.12024132
+after_gc_bytes_per_frame  : 1168539.35098641
+
+PASS: full rendered game, six paired 300-step states, source differences restricted to declared files, same configuration, complete frame step counts, all samples focused.
