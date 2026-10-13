@@ -1,0 +1,1 @@
+PASS: native TrafficPoint used by vehicles and selected routes follows the shared four-lane right-turn geometry without folding inward, including graph-node transitions. This is geometry verification, not a GUI or original-game equivalence claim.

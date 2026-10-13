@@ -1,0 +1,1 @@
+PASS: outage, actual household/job release, native abandoned-state save, seven-day minimum and real migration recovery

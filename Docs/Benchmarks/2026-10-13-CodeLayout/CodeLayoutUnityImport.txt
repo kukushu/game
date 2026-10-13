@@ -1,0 +1,1 @@
+PASS: 90 unchanged scripts/GUID mappings; scene has no missing scripts; 3 behaviours; runtime MonoScript types resolve.

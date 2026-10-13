@@ -1,0 +1,1 @@
+PASS: native logical road mapping/centreline surface, smoothed vehicle coordinates, game-owned road/terrain mesh hash and JSON unchanged; native load derives same partition. roads=2; edges=33; scene_mesh_sha256=CCBE958DF25D0DDAC67650ECB4C4C6889C1813B551A279305891BF71B99B81DC. Not a new renderer or lane geometry equivalence claim.

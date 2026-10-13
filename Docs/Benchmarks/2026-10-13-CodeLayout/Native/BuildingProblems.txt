@@ -1,0 +1,1 @@
+PASS: native multiple problem states, severity/countdown/tooltip text and actual camera/selection/marker navigation cycling. Hidden-window GUI, button click and real mouse hover are verified separately in interactive Unity, not inferred from these checks.

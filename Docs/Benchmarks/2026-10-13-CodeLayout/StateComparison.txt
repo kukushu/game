@@ -1,0 +1,1 @@
+PASS: directory move before/after 340 complete city state signatures match exactly; 40 warmup + 300 measured fixed steps. Runtime source bytes and all 90 script GUIDs unchanged. No new FPS benchmark claimed.

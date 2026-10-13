@@ -1,11 +1,11 @@
 param([Parameter(Mandatory=$true)][string]$OutputDirectory,[ValidateSet('Build','Run')][string]$Stage='Build',[switch]$LegacyRoadKeyHash,[switch]$DevelopmentBuild,[string]$UnityEditor='C:/Program Files/Unity/Hub/Editor/6000.6.3f1/Editor/Unity.exe')
+. (Join-Path $PSScriptRoot 'ProjectLayout.ps1')
 $ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot -Parent;$output=[IO.Path]::GetFullPath($OutputDirectory);$project=Join-Path $root 'Temp/TrafficBenchmarkProject'
 New-Item -ItemType Directory -Path $output -Force | Out-Null
 $player=Join-Path $output 'Player/HarborCityFullWindow.exe'
 if($Stage -eq 'Build'){
-    foreach($old in @('Assets/CityRoadKeyExperiment.cs','Assets/CityRoadKeyExperiment.cs.meta')){$oldPath=Join-Path $project $old;if((Test-Path -LiteralPath $oldPath) -and -not(Test-Path -LiteralPath (Join-Path $root $old))){Remove-Item -LiteralPath $oldPath}}
-    foreach($folder in @('Assets','Packages','ProjectSettings')){& robocopy (Join-Path $root $folder) (Join-Path $project $folder) /E /NFL /NDL /NJH /NJS /NP | Out-Null;if($LASTEXITCODE -ge 8){throw 'Copy failed'}}
+    Sync-CityWorkspaceProject $root $project
     $env:HARBOR_FULL_WINDOW_PLAYER=$player;$env:HARBOR_BENCHMARK_LEGACY_ROAD_HASH=if($LegacyRoadKeyHash){'1'}else{'0'}
     $env:HARBOR_FULL_WINDOW_DEVELOPMENT=if($DevelopmentBuild){'1'}else{'0'}
     $hashes=Get-ChildItem -LiteralPath (Join-Path $project 'Assets') -Filter '*.cs' -Recurse | Sort-Object FullName | ForEach-Object {($_.FullName.Substring($project.Length+1))+':'+(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash}

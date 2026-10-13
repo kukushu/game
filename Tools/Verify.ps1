@@ -1,4 +1,5 @@
 param([string]$UnityData = 'C:/Program Files/Unity/Hub/Editor/6000.6.3f1/Editor/Data',[switch]$RoadKeyHashPrototype,[switch]$LegacyRoadKeyHash)
+. (Join-Path $PSScriptRoot 'ProjectLayout.ps1')
 $ErrorActionPreference = 'Stop'
 $projectPath = Split-Path $PSScriptRoot -Parent
 $monoPath = Join-Path $UnityData 'MonoBleedingEdge/bin/mono.exe'
@@ -6,7 +7,7 @@ $compilerPath = Join-Path $UnityData 'MonoBleedingEdge/lib/mono/4.5/csc.exe'
 $tempPath = Join-Path $projectPath 'Temp'
 New-Item -ItemType Directory -Path $tempPath -Force | Out-Null
 $outputPath = Join-Path $tempPath 'CityModelChecks.exe'
-$modelSources = Get-ChildItem -LiteralPath (Join-Path $projectPath 'Assets') -Filter 'City*.cs' | Where-Object { $_.Name -notin @('CityLandscape.cs','CityRoadView.cs') } | ForEach-Object FullName
+$modelSources = Get-CityModelSources $projectPath
 $checkSources = Get-ChildItem -LiteralPath $PSScriptRoot -Filter '*.cs' | ForEach-Object FullName
 $flags=@('/nologo','/langversion:latest','/r:System.Web.Extensions.dll',"/out:$outputPath")
 if($RoadKeyHashPrototype){Write-Warning 'RoadKeyHashPrototype is obsolete: the optimization is now the default.'}

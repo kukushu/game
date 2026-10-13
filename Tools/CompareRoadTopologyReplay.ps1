@@ -1,6 +1,7 @@
+. (Join-Path $PSScriptRoot 'ProjectLayout.ps1')
 $ErrorActionPreference='Stop';$root=Split-Path $PSScriptRoot -Parent;$data='C:/Program Files/Unity/Hub/Editor/6000.6.3f1/Editor/Data';$mono=Join-Path $data 'MonoBleedingEdge/bin/mono.exe';$compiler=Join-Path $data 'MonoBleedingEdge/lib/mono/4.5/csc.exe'
 $directory=Join-Path $root 'Temp/RoadTopologyReplay';New-Item -ItemType Directory -Path $directory -Force | Out-Null
-$sources=Get-ChildItem -LiteralPath (Join-Path $root 'Assets') -Filter 'City*.cs' | Where-Object {$_.Name -notin @('CityLandscape.cs','CityRoadView.cs')} | ForEach-Object FullName
+$sources = Get-CityModelSources $root
 $model=Join-Path $directory 'Model.dll';$probe=Join-Path $directory 'Probe.exe'
 & $mono $compiler /nologo /langversion:latest /target:library "/out:$model" $sources;if($LASTEXITCODE -ne 0){throw 'Model compile failed'}
 & $mono $compiler /nologo /langversion:latest /r:System.Web.Extensions.dll "/r:$model" "/out:$probe" (Join-Path $PSScriptRoot 'Diagnostics/TrafficIndexReplayProbe.cs');if($LASTEXITCODE -ne 0){throw 'Probe compile failed'}

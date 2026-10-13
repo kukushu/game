@@ -9,6 +9,7 @@ param(
     [string]$SavePath,
     [string]$UnityEditor='C:/Program Files/Unity/Hub/Editor/6000.6.3f1/Editor/Unity.exe'
 )
+. (Join-Path $PSScriptRoot 'ProjectLayout.ps1')
 $ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot -Parent
 if(-not $SavePath){$SavePath=Join-Path $PSScriptRoot 'Benchmarks/traffic-city.json'}
@@ -22,14 +23,7 @@ function UnityJob([string]$method,[string]$log){
     $process.WaitForExit();if($process.ExitCode -ne 0){throw "Unity failed: $log"}
 }
 if($Stage -in @('All','Build')){
-    foreach($old in @('Assets/CityRoadKeyExperiment.cs','Assets/CityRoadKeyExperiment.cs.meta')){
-        $oldPath=Join-Path $project $old
-        if((Test-Path -LiteralPath $oldPath) -and -not(Test-Path -LiteralPath (Join-Path $root $old))){Remove-Item -LiteralPath $oldPath}
-    }
-    foreach($folder in @('Assets','Packages','ProjectSettings')){
-        & robocopy (Join-Path $root $folder) (Join-Path $project $folder) /E /NFL /NDL /NJH /NJS /NP | Out-Null
-        if($LASTEXITCODE -ge 8){throw "Copy failed: $folder"}
-    }
+    Sync-CityWorkspaceProject $root $project
     $env:HARBOR_BENCHMARK_PLAYER=$player
     $env:HARBOR_BENCHMARK_DISABLE_RADIUS_CACHE=if($DisableRadiusCache){'1'}else{'0'}
     $env:HARBOR_BENCHMARK_DISABLE_EDGE_INDEX=if($DisableEdgeIndex){'1'}else{'0'}
