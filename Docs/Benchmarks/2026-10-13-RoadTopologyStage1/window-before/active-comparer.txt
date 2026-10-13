@@ -1,0 +1,3 @@
+optimized=True
+development=True
+comparer=HarborCity.CityRoadKeyComparer

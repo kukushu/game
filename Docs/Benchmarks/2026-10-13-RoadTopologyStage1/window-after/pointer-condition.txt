@@ -1,0 +1,1 @@
+Mouse placed in noninteractive Harbor title header by computer-use before START; no map hover, no construction preview. Leave focused and do not move cursor during capture.

@@ -1,0 +1,1 @@
+Discarded: first after capture security modal; after-v2 map hover adds allocation from old Snap; before-v3 2692 unfocused frames (strict validator rejected). Full raw preserved in Logs/FullWindowPerformance. Final pairing uses initial before (all 3525 frames focused) and after-v3 (all 3526 focused); no bad frames removed.
