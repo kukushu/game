@@ -17,6 +17,13 @@ public static class TrafficIndexReplayProbe
         using(var hashes=new StreamWriter(args[1]))using(var sha=SHA256.Create())
             for(int step=0;step<340;step++)
             {
+                if(args.Length>2 && args[2]=="topology")
+                {
+                    var topology=city.roads.GetLogicalTopology();
+                    foreach(var t in city.traffic.trips)if(t.Current!=t.Next && city.roads.Linked(t.Current,t.Next))
+                        if(!topology.TryMapLegacy(t.Current,t.Next,t.progress,out var p) || !topology.TryToLegacy(p,out int from,out int to,out float progress) || from!=t.Current || to!=t.Next || Math.Abs(progress-t.progress)>.000001f)
+                            throw new Exception("Topology trip roundtrip failed");
+                }
                 traffic.Advance(.05f);
                 string state=json.Serialize(city.ToSaveData());
                 hashes.WriteLine(step+","+city.traffic.trips.Count+","+BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(state))).Replace("-",""));

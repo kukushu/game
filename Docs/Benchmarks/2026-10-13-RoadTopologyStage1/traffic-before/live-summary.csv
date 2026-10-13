@@ -1,0 +1,3 @@
+"mode","frames","wall_seconds","requested_sim_seconds","steps","observed_sim_seconds_per_wall_second","mean_frame_advance_ms","mean_steps_per_frame"
+"1x","2696","44.97005809999999","44.94756459221244","900","1.00066581857496","3.3413622403560863","0.33382789317507416"
+"3x","900","15.001678","44.947564992681144","900","2.999664437538254","7.572036444444436","1"

@@ -1,0 +1,2 @@
+legacy_nodes,legacy_edges,logical_roads,mean_build_ms,p95_build_ms,mean_build_gc_bytes,retained_snapshot_bytes_approx,hot_queries,hot_total_ms,hot_gc_bytes
+2029,1320,39,1.1139775000000003,2.6470000000000002,1424386.8,804728,200000,21.4407,0

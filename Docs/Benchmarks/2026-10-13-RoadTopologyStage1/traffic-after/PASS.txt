@@ -1,0 +1,1 @@
+9 runs completed, detached save, 40 warmup + 300 measured steps each; accumulator excluded only from state comparison.

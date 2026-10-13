@@ -55,6 +55,10 @@ namespace HarborCity
         [NonSerialized] Dictionary<long,int> structureLookup;
         [NonSerialized] Dictionary<(int from,int to,bool walking),int[]> singlePaths;
         [NonSerialized] int pathRevision=-1;
+        [NonSerialized] CityRoadTopology logicalTopology;
+
+        // Method rather than a serializable property: the old graph is the only saved truth.
+        public CityRoadTopology GetLogicalTopology()=>logicalTopology ?? (logicalTopology=CityRoadTopologyBuilder.Build(this));
 
         public static float Length(RoadNode a, RoadNode b) => (float)Math.Sqrt((a.x-b.x)*(a.x-b.x)+(a.z-b.z)*(a.z-b.z));
         public static float SpatialLength(RoadNode a,RoadNode b)=>(float)Math.Sqrt(Length(a,b)*Length(a,b)+(a.y-b.y)*(a.y-b.y));
@@ -94,7 +98,7 @@ namespace HarborCity
                 foreach (int next in adjacency[n]) if (connected.Add(next)) queue.Enqueue(next);
             }
         }
-        public void Changed() { revision++; lookup=null; adjacency=null; connected=null; }
+        public void Changed() { revision++; lookup=null; adjacency=null; connected=null; logicalTopology=null; }
         public RoadNode Node(int id) { Cache(); return lookup.TryGetValue(id,out var n) ? n : null; }
         public List<int> Neighbors(int id) { Cache(); return adjacency.TryGetValue(id,out var n) ? n : new List<int>(); }
         public bool Active(int id) => Node(id) != null && Neighbors(id).Count > 0;

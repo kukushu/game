@@ -1,0 +1,1 @@
+PASS: real pupil red wait outside width-based crossing boundary, parallel freight passes alongside walker, crossing freight yields to actual crossing, actual sidewalk render and all four crosswalk stripe meshes, native JSON during crossing, both cargo deliveries/returns and actual school attendance/walk home

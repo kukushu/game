@@ -1,0 +1,11 @@
+version=262adb0e43bae775a3bb202febf0276c4f1fd149
+save_sha256=46DF3C9F9A9800808334C30BF1A5DA1A463106DD11DA8CEA780CC78582B115BE
+unity=6000.6.3f1
+cpu=Intel(R) Core(TM) i5-14600KF
+os=Windows 11  (10.0.26200)
+steps=300
+warmup=40
+repeats=3
+target_fps=60
+maximum_delta=0.33333334
+Dedicated empty-scene Development Player, no city rendering/UI, fine Profiler markers enabled. Live modes use actual Time.deltaTime; fixed mode requests one 0.05s step per Update. Not full game FPS.

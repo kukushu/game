@@ -1,0 +1,1 @@
+PASS: 480 terrain/336 build area; 625 old terrain interpolated heights within 2 mm; 6 expanded native collider picks; real terrain road, stable-ID shop, zoning, pipes/power; loaded import delivered/returned; native format34 deterministic continuation and format33 migration

@@ -1,0 +1,61 @@
+﻿
+﻿PASS: 40604 logical-road mapping/geometry/topology/edit/save/oracle checks
+PASS: 10000 key cases + 2272 edge-ID/direction/dynamic/save/large-network/default-comparer checks
+Candidate-only scale: N=100, full=10000, local=1000 (not a full-city FPS benchmark)
+Candidate-only scale: N=1000, full=1000000, local=10000 (not a full-city FPS benchmark)
+Candidate-only scale: N=3000, full=9000000, local=30000 (not a full-city FPS benchmark)
+PASS: 4112 directed traffic index/oracle/lifecycle checks
+PASS: 573 junction radius cache/oracle/invalidation checks
+PASS: 32 performance cache/geometry/invalidation checks
+PASS: 73 automatic terrain-span checks
+PASS: 14 route replanning checks
+PASS: 22 real highway priority/physical-side/parallel-gap/save checks
+PASS: 12 expanded map checks
+PASS: 98 highway/ramp/direction/frontage/three-lane freight/save/elevation checks
+PASS: 42 entity architecture/save/demolition checks
+PASS: 63 elevation/bridge/tunnel checks
+PASS: 42 free-road/curve checks
+PASS: 19 directed roads/walking/curve/split/real freight/save checks
+PASS: 15 junction conflicts/concurrent real freight/yielding/save checks
+PASS: 23 road materials/fees/upgrades/fast routing/actual freight/save checks
+PASS: 14 actual lanes/parallel exports/merge/headway/split/save checks
+PASS: 35 wide-road construction/paid upgrade/zoning/real freight/collision/save checks
+PASS: 23 traffic signals/real red waits/stop signs/yield/split/demolition/save checks
+PASS: 92 actual pedestrian/signal/yield/school/one-way/save checks
+PASS: 23 road zoning/occupancy/save checks
+PASS: 28 zoning growth/migration/tax/save checks
+PASS: 9 independent utility network checks
+PASS: 25 utility coverage/capacity/connection/save checks
+PASS: 9 outage/abandonment/recovery/entity-save checks
+PASS: 31 real garbage/processing/transfer/capacity/save checks
+PASS: 46 building placement checks
+PASS: 9 household checks, 365-day conservation/capacity run
+Turn geometry checks passed: 134
+PASS: 27 real turn planning/safe changes/dual occupancy/split/cargo/save checks
+PASS: 3 derived building problem/multiple causes/severity/recovery checks
+PASS: 8 sewage capacity/connection/power/diagnostic/save checks
+PASS: 7 traffic lifecycle checks
+PASS: 52 resident transport checks
+PASS: 15 actual shopping/inventory/resident/save/demolition checks
+PASS: 11 service budget/capacity/fleet/expense/save checks
+PASS: 9 entity-driven map indicator checks
+PASS: 13 personal health, attendance and save checks
+PASS: 26 clinic/patient/ambulance/walking/treatment/restart checks
+PASS: 30 school/enrollment/actual study/walking/demolition/budget/save checks
+PASS: 19 individual aging/adulthood/retirement/school departure/real return/save checks
+PASS: 26 fire/physical response/ruins/fleet/budget/road/save checks
+PASS: 20 police/real response/crime/fleet/budget/road/health/save checks
+PASS: 16 on-scene service/actual junction/entrance/reapproach/save checks
+PASS: 19 land value/education/upgrade/housing/jobs/industry/save checks
+PASS: 10 normal city/long simulation/expansion/restart checks; population=81, jobs=60, consumed=423
+PASS: 15 citizen/job relationship checks
+PASS: 24 industry checks
+PASS: 16 real staged education/high-school/university/qualification/attendance/supply/save checks
+PASS: 11 independent resident identity/large families/counter/save/contract checks
+PASS: 25 living residents/real corpses/finite hearses/arrival/capacity/road/save checks
+PASS: 25 loan cash/ledger/repayment/save/migration checks
+PASS: 54 factory finance checks
+PASS: 32 deterministic city analysis checks
+PASS: 38 runtime observability/dashboard checks
+PASS: 33 dashboard chart/visual semantics checks
+PASS: 12 structured log checks

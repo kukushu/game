@@ -1,0 +1,1 @@
+PASS: three actual loans, treasury ledger, native JSON continuation, early repayment and format-23 migration; original city unchanged

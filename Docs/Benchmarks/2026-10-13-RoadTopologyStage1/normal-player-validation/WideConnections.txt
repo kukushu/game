@@ -1,0 +1,1 @@
+PASS: actual world-input four-lane T connection, separate south stub joined to form four-arm crossroads, native JSON, default signals, real cross-junction cargo delivery and return without task loss

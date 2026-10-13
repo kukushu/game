@@ -1,0 +1,1 @@
+PASS: low-bank automatic bridge with actual graded approaches, four-lane road, real freight delivery/return and deterministic native in-flight save

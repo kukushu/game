@@ -146,6 +146,7 @@ namespace HarborCity
                 type.GetField("speed",flags).SetValue(game,0f);type.GetField("selected",flags).SetValue(game,LandUse.Residential);
                 type.GetField("focus",flags).SetValue(game,new Vector3(-10,0,1.5f));type.GetField("zoom",flags).SetValue(game,48f);
                 type.GetMethod("Rebuild",flags).Invoke(game,null);type.GetMethod("RefreshDevelopmentView",flags).Invoke(game,null);
+                HarborCityRoadTopologyValidation.Run(game,city,land,output);
                 type.GetMethod("RefreshZoningOverlay",flags).Invoke(game,null);type.GetMethod("UpdateCamera",flags).Invoke(game,null);
             }
             catch(Exception ex) {ok=false;Directory.CreateDirectory(output);File.WriteAllText(Path.Combine(output,"Failure.txt"),ex.ToString());}
