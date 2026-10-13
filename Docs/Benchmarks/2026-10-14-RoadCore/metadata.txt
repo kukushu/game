@@ -1,0 +1,13 @@
+UTC 2026-10-13T17:38:31.8753944Z
+Baseline 110c4ea; branch codex/road-core-20261014
+Windows; Intel i5-14600KF; RTX 3090; Unity 6000.6.3f1 Mono; Development 1440x900 vSync=0 targetFPS=60
+Model: 50 warmup + 300 measured .05s steps; separate 1000/3000 active vehicles; traffic only
+Window: 3s warmup + 6s measured; GC Allocated In Frame; eight scenarios; monotonic wall clock; no dropped steps
+Cold edits: twelve identical reconstructed fixtures; load and safety assertion outside timer; split and all task migration inside timer
+Not equivalent-paired with old full city; full-city integration/memory/pause/preview study pending
+Validated Player input SHA256 below (isolated build source); final host source differs only EOF whitespace
+C12D2F2A618B25B7BC2FA72C4D47B1B2D7F8C07516D5BC14C0BEBD2672AC72FF Assets/Scripts/Runtime/Infrastructure/Roads/CityRoadCoreNetwork.cs
+25E08E47E5D8EA45DC3D0E4F3761130CD4840EAF28F9C1E48609F8973C5EDAA8 Assets/Scripts/Runtime/Traffic/CityRoadCoreWorld.cs
+7499DCBF83F56D3D91B0EF8D9C073D4FFAB8C42231A77D5783E420D8C2D0481A Assets/Scripts/Runtime/Infrastructure/Roads/CityRoadCoreSave.cs
+C052244AFF425F8FCF68D1080FA4464747219FFC7F96C01B54A83CD972DFD0D6 Assets/Scripts/Runtime/Presentation/Game/HarborCityRoadCoreGame.cs
+1A4E5180F2947F716D6E0965D515AD12E637D7F1B4304A8DD3176AC5A05B8D53 Assets/Scripts/Diagnostics/Runtime/CityRoadCoreFixtures.cs

@@ -61,18 +61,6 @@ namespace HarborCity
         string validationSavePath;
         string SavePath => string.IsNullOrEmpty(validationSavePath)?Path.Combine(Application.persistentDataPath, "harbor-city.json"):validationSavePath;
 
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-        static void Launch()
-        {
-#if CITY_TRAFFIC_BENCHMARK
-            // Dedicated empty-scene player must not also auto-launch a second city.
-            return;
-#else
-            if (FindAnyObjectByType<HarborCityGame>() == null) new GameObject("Harbor City").AddComponent<HarborCityGame>();
-#endif
-        }
-
-
         void Start()
         {
             // 1. 创建城市的数据模型
