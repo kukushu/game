@@ -31,7 +31,7 @@ namespace HarborCity
         bool hasStart;Point startPoint;bool building,oneWay,wide;int origin,destination;float speed=1;
         long previousTick;int lastSteps;
         string notice="原工厂劳动→生产→新交通实车运输→原商店库存/支付。居民实际通勤已接入；市政、分区、信号灯和行人尚未接回。";
-        string SavePath=>Path.Combine(Application.persistentDataPath,session==null?"harbor-road-core-v8.hcrc":"harbor-city-core-v5.hcity");
+        string SavePath=>Path.Combine(Application.persistentDataPath,session==null?"harbor-road-core-v9.hcrc":"harbor-city-core-v6.hcity");
         static Vector3 V(Point p)=>new Vector3((float)p.x,(float)p.y,(float)p.z);
         void Start()
         {
@@ -96,6 +96,9 @@ namespace HarborCity
             GUILayout.Label("HarborCity 原工业/商业接入新交通（完整城市仍在迁移）");GUILayout.Label(notice);
             GUILayout.Label("活动车辆 "+world.ActiveCount+" · 交付 "+world.Delivered+" · 道路 "+world.Network.RoadCount+" · 拓扑节点 "+world.Network.JunctionCount+" · 模拟秒 "+world.Clock.ToString("F1"));
             GUILayout.BeginHorizontal();if(GUILayout.Button(building?"结束修路":"修路")){building=!building;hasStart=false;}oneWay=GUILayout.Toggle(oneWay,"单行");wide=GUILayout.Toggle(wide,"每方向两车道");if(GUILayout.Button("发货 A → B"))notice=world.Dispatch(origin,destination,1,session==null?5:FactoryState.SalePrice)==null?"暂无可用入口/库存/路线":"已发车，库存已扣；到达后才付款";if(GUILayout.Button("1×"))speed=1;if(GUILayout.Button("3×"))speed=3;if(GUILayout.Button("暂停"))speed=0;
+            GUILayout.EndHorizontal();GUILayout.BeginHorizontal();
+            if(GUILayout.Button("升级第一路")){try{var settings=world.Network.Settings(1);if(!world.PlanUpgradeRoad(1,wide?2:1,12,settings.direction).TryCommit())throw new InvalidOperationException("城市已变化，请重试");RenderRoads();notice="已升级真实车道/速度与引用";}catch(Exception e){notice=e.Message;}}
+            if(GUILayout.Button("第一路改为/反向单行")){try{var settings=world.Network.Settings(1);var direction=settings.direction==RoadDirection.Forward?RoadDirection.Backward:RoadDirection.Forward;if(!world.PlanUpgradeRoad(1,settings.lanes,settings.speed,direction).TryCommit())throw new InvalidOperationException("城市已变化，请重试");RenderRoads();notice="已改变通行方向；物理道路起终身份不变";}catch(Exception e){notice=e.Message;}}
             if(GUILayout.Button("拆分第一路中点")){try{world.SplitRoad(1,1);RenderRoads();notice="已拆分并迁移活动车辆";}catch(Exception e){notice=e.Message;}}
             if(GUILayout.Button("拆除第一路")){try{world.RemoveRoad(1);RenderRoads();notice="受影响运输保留为中断，不传送、不丢货";}catch(Exception e){notice=e.Message;}}
             if(GUILayout.Button("保存"))Save();if(GUILayout.Button("读取"))Load();GUILayout.EndHorizontal();
@@ -148,7 +151,7 @@ namespace HarborCity
             {
                 int branch=world.AddJunction(new Point(0,0,25));world.AddRoad(2,branch,new[]{world.JunctionPosition(2),world.JunctionPosition(branch)});if(session.City.Citizens.Any(p=>p.atWork))throw new Exception("Default residents started onsite");for(int wait=0;wait<100&&!world.Vehicles.Any(v=>v.purpose==TransportPurpose.Freight);wait++)session.Advance(.05);var actor=world.Vehicles.First(v=>v.purpose==TransportPurpose.Freight);if(world.RoutePreparations!=2)throw new Exception("Repeated actual departures reran route preparation");if(!world.TryChangeLane(actor.id,1))throw new Exception("Actual industry truck could not start lane change");Point first=world.Position(actor);session.Advance(.5);if(Point.Distance(first,world.Position(actor))<1)throw new Exception("Truck did not physically move");
                 Point beforeEdit=world.Position(actor);world.SplitRoadAt(1,12.75);world.SplitRoadAt(2,20.25);var widePlan=world.PlanConnectedRoad(new[]{new Point(-35,0,30),new Point(35,0,30)},lanes:2);if(!widePlan.TryCommit())throw new Exception("Wide road transaction failed");RenderRoads();if(Point.Distance(beforeEdit,world.Position(actor))>1e-8)throw new Exception("Access edit moved truck");
-                var restored=CityCoreSave.Read(CityCoreSave.Write(session));for(int i=0;i<300;i++){session.Advance(.05);restored.Advance(.05);session.Validate();}
+                Point beforeUpgrade=world.Position(actor);if(!world.PlanUpgradeRoad(1,3,14,RoadDirection.Both).TryCommit()||Point.Distance(beforeUpgrade,world.Position(actor))>1e-7)throw new Exception("Actual road upgrade moved freight");RenderRoads();var restored=CityCoreSave.Read(CityCoreSave.Write(session));for(int i=0;i<300;i++){session.Advance(.05);restored.Advance(.05);session.Validate();}
                 if(Convert.ToBase64String(CityCoreSave.Write(session))!=Convert.ToBase64String(CityCoreSave.Write(restored)))throw new Exception("Integrated save differs");
                 if(session.City.Factory(1).sold==0||session.City.Factory(1).sold!=world.Delivered||session.City.Goods(2)!=world.Delivered||session.City.roads.edges.Count!=0||session.City.traffic.trips.Count!=0)throw new Exception("Business loop/legacy engine invariant failed");
                 var repair=CityCoreIndustrySession.Create();repair.Advance(.05);var commuter=repair.Transport.Vehicles.First();Point strandedAt=repair.Transport.Position(commuter);repair.Transport.RemoveRoad(1);repair.Transport.AddRoad(1,2,new[]{repair.Transport.JunctionPosition(1),new Point(-18,0,0),repair.Transport.JunctionPosition(2)},lanes:2);repair.Advance(.05);if(commuter.status!=VehicleStatus.Active||Point.Distance(strandedAt,repair.Transport.Position(commuter))>.7)throw new Exception("Native repaired commute failed / jumped");repair.Advance(6);repair.Validate();
