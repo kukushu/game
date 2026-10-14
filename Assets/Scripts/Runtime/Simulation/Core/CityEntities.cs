@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using HarborCity.RoadCore;
 
@@ -20,6 +20,7 @@ namespace HarborCity
         readonly List<IndustrialBuilding> factories=new List<IndustrialBuilding>();
         readonly List<CommercialBuilding> shops=new List<CommercialBuilding>();
         readonly List<CityBuilding> retired=new List<CityBuilding>();
+        public IReadOnlyList<CityBuilding> Buildings {get;}
         public IReadOnlyList<CityBuilding> RetiredBuildings {get;}
         public IReadOnlyList<CityMember> Members {get;}
         public IReadOnlyList<IndustrialBuilding> Factories {get;}
@@ -36,7 +37,7 @@ namespace HarborCity
             Employment=employment??new EmploymentRules(new EmploymentDefinition());
             Production=production??new ProductionRules(new ProductionDefinition());
             if(archived!=null)retired.AddRange(archived);RetiredBuildings=retired.AsReadOnly();
-            this.city=city;this.transport=transport;Members=members.AsReadOnly();Factories=factories.AsReadOnly();Shops=shops.AsReadOnly();
+            this.city=city;this.transport=transport;Buildings=city.buildings.AsReadOnly();Members=members.AsReadOnly();Factories=factories.AsReadOnly();Shops=shops.AsReadOnly();
             foreach(var b in city.buildings){buildings.Add(b.id,b);IndexType(b);transport.SetEndpointAvailable(b.id,Available(b));}
             foreach(var c in city.trade.connections){if(buildings.ContainsKey(c.id))throw new ArgumentException("Endpoint identity collision");connections.Add(c.id,c);transport.SetEndpointAvailable(c.id,c.active);}
             foreach(var h in city.society.families){families.Add(h.id,h);foreach(var p in h.people){var m=new CityMember(h,p);people.Add(p.id,m);members.Add(m);}}

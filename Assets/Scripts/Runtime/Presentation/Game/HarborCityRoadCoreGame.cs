@@ -34,7 +34,7 @@ namespace HarborCity
         readonly Dictionary<int,Transform> cars=new Dictionary<int,Transform>();
         readonly HashSet<int> visibleIds=new HashSet<int>();readonly List<int> expiredIds=new List<int>();
         readonly List<GameObject> roads=new List<GameObject>();
-        readonly List<GameObject> buildings=new List<GameObject>();
+        HarborCityBuildingViews buildingViews;
         bool hasStart;Point startPoint;bool building,oneWay,wide;int origin,destination;float speed=1;
         long previousTick;int lastSteps;
         string notice="原工厂劳动→生产→新交通实车运输→原商店库存/支付。居民实际通勤已接入；市政、分区、信号灯和行人尚未接回。";
@@ -76,7 +76,12 @@ namespace HarborCity
         void Update()
         {
             if(world==null)return;long now=System.Diagnostics.Stopwatch.GetTimestamp();double seconds=(now-previousTick)/(double)System.Diagnostics.Stopwatch.Frequency*speed;using(simulationSample.Auto())lastSteps=session==null?world.Advance(seconds):session.Advance(seconds);previousTick=now;
-            if(session!=null&&session.City.development.enabled&&(shownBuildings!=session.Entities.BuildingRevision||shownZones!=session.City.zoning.revision||shownNetwork!=world.NetworkGeneration)){RenderBuildings();RenderZones();shownBuildings=session.Entities.BuildingRevision;shownZones=session.City.zoning.revision;shownNetwork=world.NetworkGeneration;}
+            if(session!=null&&session.City.development.enabled)
+            {
+                bool changed=shownBuildings!=session.Entities.BuildingRevision;
+                if(changed){RenderBuildings();shownBuildings=session.Entities.BuildingRevision;}
+                if(changed||shownZones!=session.City.zoning.revision||shownNetwork!=world.NetworkGeneration){RenderZones();shownZones=session.City.zoning.revision;shownNetwork=world.NetworkGeneration;}
+            }
             using(viewsSample.Auto())
             {
             visibleIds.Clear();foreach(var v in world.Vehicles)
@@ -143,8 +148,8 @@ namespace HarborCity
         }
         void RenderBuildings()
         {
-            foreach(var go in buildings)Destroy(go);buildings.Clear();if(session==null)return;
-            foreach(var building in session.City.buildings){var go=GameObject.CreatePrimitive(PrimitiveType.Cube);go.name=building.Use+" #"+building.id;go.transform.position=new Vector3(building.x,building.groundY+1.5f,building.z);go.transform.rotation=Quaternion.Euler(0,building.yaw,0);go.transform.localScale=new Vector3(building.width,3,building.depth);go.GetComponent<Renderer>().sharedMaterial=roadMaterial;buildings.Add(go);}
+            if(buildingViews==null)buildingViews=new HarborCityBuildingViews(roadMaterial);
+            buildingViews.Sync(session?.Entities.Buildings);
         }
         void RenderZones()
         {
@@ -306,10 +311,10 @@ namespace HarborCity
             byte[] sample;
             try
             {
-                session.Validate();clone.Validate();if(Convert.ToBase64String(CityCoreSave.Write(session))!=Convert.ToBase64String(CityCoreSave.Write(clone)))throw new Exception("Native trade continuation mismatch");
+                session.Validate();clone.Validate();RenderBuildings();int created=buildingViews.Created;var bindings=session.Entities.Buildings.Select(b=>buildingViews.Instance(b.id)).ToArray();var beforeViews=CityCoreSave.Write(session);var viewTimer=new System.Diagnostics.Stopwatch();long viewAllocation=GC.GetAllocatedBytesForCurrentThread();viewTimer.Start();for(int i=0;i<20;i++)RenderBuildings();viewTimer.Stop();viewAllocation=GC.GetAllocatedBytesForCurrentThread()-viewAllocation;File.WriteAllText(Path.Combine(path,"building-views.csv"),"buildings,sync_calls,created_before,created_after,sync_mean_ms,total_allocated_bytes\n"+string.Join(",",buildingViews.Count,20,created,buildingViews.Created,(viewTimer.Elapsed.TotalMilliseconds/20).ToString("F6",System.Globalization.CultureInfo.InvariantCulture),viewAllocation));if(buildingViews.Created!=created||!bindings.SequenceEqual(session.Entities.Buildings.Select(b=>buildingViews.Instance(b.id)))||!beforeViews.SequenceEqual(CityCoreSave.Write(session)))throw new Exception("Read-only building views rebuilt objects or changed simulation");if(Convert.ToBase64String(CityCoreSave.Write(session))!=Convert.ToBase64String(CityCoreSave.Write(clone)))throw new Exception("Native trade continuation mismatch");
                 int produced=session.Entities.Factories.Sum(f=>f.factory.produced),goods=session.Entities.Factories.Sum(f=>f.Stock)+session.Entities.Shops.Sum(s=>s.Stock)+world.Tasks.Where(t=>t.Shipment?.kind==CargoKind.Goods).Sum(t=>t.Cargo)+session.City.trade.goodsExported+session.City.consumption.ConsumedGoods+session.City.Citizens.Sum(p=>p.carriedGoods);
                 if(session.City.population<=0||session.City.Employed<=0||produced<=0||produced!=goods||session.City.consumption.ConsumedGoods<=0)throw new Exception("Native multi-day labour/import/export conservation failed");
-                sample=CityCoreSave.Write(session);File.WriteAllText(Path.Combine(path,"TradeResult.txt"),"PASS actual original Unity terrain; empty city production construction commands, reachable grid, utilities, private growth, real people/jobs/commuting, paid material trucks and actual wholesale deliveries. Multi-day inventory/market escrow, immutable asset profile and in-flight save continuation. Actual shopping vehicles, paid employer wages, finite commercial accounts, carried home goods and consumption verified. Fiscal/garbage remain pending.\n");
+                sample=CityCoreSave.Write(session);File.WriteAllText(Path.Combine(path,"TradeResult.txt"),"PASS actual original Unity terrain; empty city production construction commands, reachable grid, utilities, private growth, real people/jobs/commuting, paid material trucks and actual wholesale deliveries. Multi-day inventory/market escrow, immutable asset profile and in-flight save continuation. Actual shopping vehicles, paid employer wages, finite commercial accounts, carried home goods and consumption verified. Stable-ID building views retain objects and leave simulation save unchanged. Fiscal/garbage remain pending.\n");
             }
             catch(Exception e){File.WriteAllText(Path.Combine(path,"TradeResult.txt"),"FAIL final "+e);Application.Quit(1);yield break;}
             QualitySettings.vSyncCount=0;Application.targetFrameRate=60;
@@ -326,6 +331,6 @@ namespace HarborCity
             }
             speed=0;session.Validate();yield return new WaitForEndOfFrame();ScreenCapture.CaptureScreenshot(Path.Combine(path,"Trade.png"));yield return null;Application.Quit(0);
         }
-        void OnDestroy(){foreach(var go in roads){if(go!=null){var filter=go.GetComponent<MeshFilter>();if(filter!=null)Destroy(filter.sharedMesh);Destroy(go);}}foreach(var go in zones)if(go!=null)Destroy(go);if(zoneMaterials!=null)foreach(var m in zoneMaterials)Destroy(m);if(roadMaterial!=null)Destroy(roadMaterial);if(carMaterial!=null)Destroy(carMaterial);}
+        void OnDestroy(){buildingViews?.Dispose();foreach(var go in roads){if(go!=null){var filter=go.GetComponent<MeshFilter>();if(filter!=null)Destroy(filter.sharedMesh);Destroy(go);}}foreach(var go in zones)if(go!=null)Destroy(go);if(zoneMaterials!=null)foreach(var m in zoneMaterials)Destroy(m);if(roadMaterial!=null)Destroy(roadMaterial);if(carMaterial!=null)Destroy(carMaterial);}
     }
 }
