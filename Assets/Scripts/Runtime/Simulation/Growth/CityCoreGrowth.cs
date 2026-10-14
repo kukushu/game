@@ -6,8 +6,9 @@ namespace HarborCity
     public sealed class CityCoreGrowth
     {
         readonly CityModel city;readonly CityEntities entities;readonly World world;
+        readonly ProductionRules production;readonly RetailRules retail;
         public CityCoreZoning Zoning {get;}
-        public CityCoreGrowth(CityModel city,CityEntities entities,World world){this.city=city;this.entities=entities;this.world=world;Zoning=new CityCoreZoning(city,entities,world);if(city.development.enabled)RefreshStatistics();}
+        public CityCoreGrowth(CityModel city,CityEntities entities,World world,ProductionRules production=null,RetailRules retail=null){this.city=city;this.entities=entities;this.world=world;this.production=production??new ProductionRules(new ProductionDefinition());this.retail=retail??new RetailRules(new RetailDefinition());Zoning=new CityCoreZoning(city,entities,world);if(city.development.enabled)RefreshStatistics();}
         void RefreshStatistics(){city.population=entities.Members.Count(m=>m.Family.resident&&!m.Person.dead);city.jobs=city.society.jobEntities.Count;}
         // Called by the city at the healthy step boundary, before actor/business
         // phases. Public structure edits remain forbidden inside physics.
@@ -26,7 +27,8 @@ namespace HarborCity
                 var lot=project.building.ToBuilding();var cells=Zoning.Cells();if(!Zoning.CanPlace(lot,true,project.id)||project.cells.Any(key=>!cells.Any(c=>c.key==key&&c.use==lot.Use))){city.development.projects.Remove(project);city.development.revision++;continue;}
                 var access=Zoning.Entrance(lot);if(!access.HasValue){city.development.projects.Remove(project);city.development.revision++;continue;}lot.id=city.nextBuildingId;
                 if(lot is ResidentialBuilding home){home.housing=HousingKind.Villa;home.housingUnits=1;home.askingRent=0;}
-                if(lot is IndustrialBuilding factory){factory.factory.capital=FactoryState.StartingCash;factory.factory.cash=FactoryState.StartingCash;}
+                if(lot is IndustrialBuilding factory){factory.factory.capital=production.InitialFactoryCash;factory.factory.cash=production.InitialFactoryCash;}
+                if(lot is CommercialBuilding shop){shop.Account.Capital=retail.InitialShopCash;shop.Account.Cash=retail.InitialShopCash;}
                 world.CheckNewAccess(lot.id,access.Value.drivable,access.Value.distance);entities.AddBuilding(lot);world.RegisterAccess(lot.id,access.Value.drivable,access.Value.distance);city.development.projects.Remove(project);city.development.revision++;
             }
             if(time.Start<city.development.nextGrowth)return;city.development.nextGrowth=(float)(time.Start+6);

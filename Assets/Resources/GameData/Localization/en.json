@@ -32,6 +32,18 @@
     {
       "key": "ui.stage.current",
       "text": "Construction, private growth, utilities, migration, employment and paid external freight are active. Consumption, waste and finance are still being restored."
+    },
+    {
+      "key": "building.close_wait_transport",
+      "text": "Transport still references this building. Wait for trips to finish before demolition."
+    },
+    {
+      "key": "building.close_wait_residents",
+      "text": "People are still present. Wait for them to leave before demolition."
+    },
+    {
+      "key": "ui.retail.summary",
+      "text": "Consumed {0} items · Retail payments ¥{1}"
     }
   ]
 }

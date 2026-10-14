@@ -25,7 +25,7 @@ public static class IndustryChecks
         var c=Create(out var sim,out var p,out int id); var f=c.Factory(id); f.raw=8;
         sim.Advance(3); Check(c.Inventory(id).Stock==0 && f.productiveMinutes==0,"Jobs and raw stock cannot produce without actual attendance");
         f.raw=0; Arrive(c,p,id); sim.Advance(5);
-        Check(f.attendanceMinutes>0 && f.productiveMinutes==0 && f.produced==0 && p.factoryWageCredit>0,"Idle attendance uses finite employer cash but cannot create goods or bank productive labour");
+        Check(f.attendanceMinutes>0 && f.productiveMinutes==0 && f.produced==0 && p.wageCredit>0,"Idle attendance uses finite employer cash but cannot create goods or bank productive labour");
         f.raw=2; sim.Advance(2);
         Check(f.processing && f.progress>0 && f.produced==0 && f.raw==1,"Starting a batch reserves exactly one real raw unit");
         sim.Advance(3.1f);

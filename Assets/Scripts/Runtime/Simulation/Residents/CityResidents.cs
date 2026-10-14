@@ -21,8 +21,10 @@ namespace HarborCity
         public int education,schoolId=-1,schoolDepartureDay=-1,schoolArrivedDay=-1;
         public bool atSchool,schoolReturning;
         public float studyMinutes,schoolMinutesToday,highSchoolStudyMinutes,universityStudyMinutes;
-        public double factoryWageCredit;
-        public int totalFactoryWagesPaid;
+        public double wageCredit;
+        public int carriedGoods;
+        public double visitUntil;
+        public int wagesPaid;
         public float earnedWages, workedMinutes, lastCommute=-1, lastDelay, retryAt, requestedAt=-1;
         public int accessNode=-1;
     }

@@ -67,6 +67,7 @@ namespace HarborCity
         public int stock,customers,retailSold,retailSoldToday;
         public int retailDay=-1;
         public double wholesaleCosts;
+        public CityShopAccount Account {get;internal set;}=new CityShopAccount();
         public int Stock {get=>stock; set=>stock=value;}
     }
     [Serializable] public sealed class IndustrialBuilding : CityBuilding, IGoodsBuilding

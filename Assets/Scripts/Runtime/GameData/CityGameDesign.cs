@@ -5,7 +5,7 @@ namespace HarborCity
     [Serializable]
     public sealed class EconomyDefinition
     {
-        public double rawUnitPrice=8,goodsWholesalePrice=45,retailUnitPrice=60;
+        public double rawUnitPrice=8,goodsWholesalePrice=45;
         public double outsideOpeningCash=100000;
         public int freightBatch=8,rawReorderTarget=24,exportThreshold=16,maxGateTrucks=4;
         public double tradeIntervalSeconds=1;
@@ -14,9 +14,12 @@ namespace HarborCity
     [Serializable]
     public sealed class GameDesignData
     {
-        public int schemaVersion=1,contentVersion=1;
+        public int schemaVersion=2,contentVersion=2;
         public string profile="core-economy";
         public EconomyDefinition economy=new EconomyDefinition();
+        public EmploymentDefinition employment=new EmploymentDefinition();
+        public RetailDefinition retail=new RetailDefinition();
+        public ProductionDefinition production=new ProductionDefinition();
     }
 
     // Authoring DTOs never become mutable live rules. The running city owns this
@@ -26,7 +29,6 @@ namespace HarborCity
     {
         public double RawUnitPrice {get;}
         public double GoodsWholesalePrice {get;}
-        public double RetailUnitPrice {get;}
         public double OutsideOpeningCash {get;}
         public int FreightBatch {get;}
         public int RawReorderTarget {get;}
@@ -35,14 +37,14 @@ namespace HarborCity
         public long TradeIntervalTicks {get;}
         internal EconomyRules(EconomyDefinition definition)
         {
-            if(definition==null||!Positive(definition.rawUnitPrice)||!Positive(definition.goodsWholesalePrice)||!Positive(definition.retailUnitPrice)||!Positive(definition.outsideOpeningCash)||definition.freightBatch<1||definition.freightBatch>FactoryState.RawCapacity||definition.rawReorderTarget<1||definition.rawReorderTarget>FactoryState.RawCapacity||definition.exportThreshold<definition.freightBatch||definition.exportThreshold>FactoryState.GoodsCapacity||definition.maxGateTrucks<1||definition.maxGateTrucks>10000||!Positive(definition.tradeIntervalSeconds)||definition.tradeIntervalSeconds>3600)
+            if(definition==null||!Positive(definition.rawUnitPrice)||!Positive(definition.goodsWholesalePrice)||!Positive(definition.outsideOpeningCash)||definition.freightBatch<1||definition.freightBatch>FactoryState.RawCapacity||definition.rawReorderTarget<1||definition.rawReorderTarget>FactoryState.RawCapacity||definition.exportThreshold<definition.freightBatch||definition.exportThreshold>FactoryState.GoodsCapacity||definition.maxGateTrucks<1||definition.maxGateTrucks>10000||!Positive(definition.tradeIntervalSeconds)||definition.tradeIntervalSeconds>3600)
                 throw new ArgumentException("Invalid economy design data");
-            RawUnitPrice=definition.rawUnitPrice;GoodsWholesalePrice=definition.goodsWholesalePrice;RetailUnitPrice=definition.retailUnitPrice;OutsideOpeningCash=definition.outsideOpeningCash;
+            RawUnitPrice=definition.rawUnitPrice;GoodsWholesalePrice=definition.goodsWholesalePrice;OutsideOpeningCash=definition.outsideOpeningCash;
             FreightBatch=definition.freightBatch;RawReorderTarget=definition.rawReorderTarget;ExportThreshold=definition.exportThreshold;MaxGateTrucks=definition.maxGateTrucks;
             TradeIntervalTicks=Math.Max(1,(long)Math.Ceiling(definition.tradeIntervalSeconds/RoadCore.SimulationClock.StepSeconds-1e-9));
         }
         static bool Positive(double n)=>n>0&&!double.IsNaN(n)&&!double.IsInfinity(n);
-        internal EconomyDefinition Snapshot()=>new EconomyDefinition{rawUnitPrice=RawUnitPrice,goodsWholesalePrice=GoodsWholesalePrice,retailUnitPrice=RetailUnitPrice,outsideOpeningCash=OutsideOpeningCash,freightBatch=FreightBatch,rawReorderTarget=RawReorderTarget,exportThreshold=ExportThreshold,maxGateTrucks=MaxGateTrucks,tradeIntervalSeconds=TradeIntervalTicks*RoadCore.SimulationClock.StepSeconds};
+        internal EconomyDefinition Snapshot()=>new EconomyDefinition{rawUnitPrice=RawUnitPrice,goodsWholesalePrice=GoodsWholesalePrice,outsideOpeningCash=OutsideOpeningCash,freightBatch=FreightBatch,rawReorderTarget=RawReorderTarget,exportThreshold=ExportThreshold,maxGateTrucks=MaxGateTrucks,tradeIntervalSeconds=TradeIntervalTicks*RoadCore.SimulationClock.StepSeconds};
     }
 
     public sealed class CityGameDesign
@@ -50,12 +52,16 @@ namespace HarborCity
         readonly int contentVersion;
         readonly string profile;
         public EconomyRules Economy {get;}
+        public EmploymentRules Employment {get;}
+        public RetailRules Retail {get;}
+        public ProductionRules Production {get;}
         public CityGameDesign(GameDesignData definition)
         {
-            if(definition==null||definition.schemaVersion!=1||definition.contentVersion<1||string.IsNullOrWhiteSpace(definition.profile))throw new ArgumentException("Unsupported design profile");
+            if(definition==null||definition.schemaVersion!=2||definition.contentVersion<1||string.IsNullOrWhiteSpace(definition.profile))throw new ArgumentException("Unsupported design profile");
             contentVersion=definition.contentVersion;profile=definition.profile;Economy=new EconomyRules(definition.economy);
+            Employment=new EmploymentRules(definition.employment);Retail=new RetailRules(definition.retail);Production=new ProductionRules(definition.production);
         }
-        public GameDesignData Snapshot()=>new GameDesignData{schemaVersion=1,contentVersion=contentVersion,profile=profile,economy=Economy.Snapshot()};
+        public GameDesignData Snapshot()=>new GameDesignData{schemaVersion=2,contentVersion=contentVersion,profile=profile,economy=Economy.Snapshot(),employment=Employment.Snapshot(),retail=Retail.Snapshot(),production=Production.Snapshot()};
     }
 
     public sealed class CityRuleException:InvalidOperationException

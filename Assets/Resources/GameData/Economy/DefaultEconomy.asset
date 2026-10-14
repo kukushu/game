@@ -13,16 +13,38 @@ MonoBehaviour:
   m_Name: DefaultEconomy
   m_EditorClassIdentifier:
   definition:
-    schemaVersion: 1
-    contentVersion: 1
+    schemaVersion: 2
+    contentVersion: 2
     profile: core-economy
     economy:
       rawUnitPrice: 8
       goodsWholesalePrice: 45
-      retailUnitPrice: 60
       outsideOpeningCash: 100000
       freightBatch: 8
       rawReorderTarget: 24
       exportThreshold: 16
       maxGateTrucks: 4
       tradeIntervalSeconds: 1
+    employment:
+      baseWage: 95
+      wageStep: 12
+      wageVariants: 5
+      industrialBonus: 20
+      slotsPerLevel: 4
+      shiftStartMinute: 480
+      commercialShiftStartMinute: 660
+      shiftMinutes: 480
+      staggerMinutes: 30
+      staggerGroups: 3
+    retail:
+      unitPrice: 60
+      itemsPerVisit: 3
+      shoppingStartMinute: 1020
+      initialShopCash: 2000
+      shoppingIntervalSeconds: 1
+      visitSeconds: 2
+      initialSearchRadius: 64
+    production:
+      initialFactoryCash: 1200
+      unitProcessingCost: 2
+      labourMinutesPerItem: 60

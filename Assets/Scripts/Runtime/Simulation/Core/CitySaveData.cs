@@ -22,7 +22,7 @@ namespace HarborCity
         public float heavyTraffic;
         public List<int> interestedFamilies;
     }
-    [Serializable] public sealed class CommercialSaveData {public int customers,retailSold,retailDay,retailSoldToday;public double wholesaleCosts;}
+    [Serializable] public sealed class CommercialSaveData {public int customers,retailSold,retailDay,retailSoldToday;public double wholesaleCosts;public ShopAccountData account=new ShopAccountData();}
     [Serializable] public sealed class LandfillSaveData {public int stored;public bool emptying;public float processingRemainder;}
     [Serializable] public sealed class BuildingSaveData
     {
@@ -43,7 +43,7 @@ namespace HarborCity
             if(b is ResidentialBuilding r) d.residential=new[] {new ResidentialSaveData {housing=r.housing,housingUnits=r.housingUnits,askingRent=r.askingRent,vacantDays=r.vacantDays,applications=r.applications,heavyTraffic=r.heavyTraffic,interestedFamilies=r.interestedFamilies}};
             if(b is IndustrialBuilding f) d.industrial=new[] {f.factory};
             if(b is IGoodsBuilding goods) d.stock=goods.Stock;
-            if(b is CommercialBuilding shop)d.commercial=new[]{new CommercialSaveData{customers=shop.customers,retailSold=shop.retailSold,retailDay=shop.retailDay,retailSoldToday=shop.retailSoldToday,wholesaleCosts=shop.wholesaleCosts}};
+            if(b is CommercialBuilding shop)d.commercial=new[]{new CommercialSaveData{customers=shop.customers,retailSold=shop.retailSold,retailDay=shop.retailDay,retailSoldToday=shop.retailSoldToday,wholesaleCosts=shop.wholesaleCosts,account=shop.Account.Snapshot()}};
             if(b is LandfillBuilding dump)d.landfill=new[]{new LandfillSaveData{stored=dump.stored,emptying=dump.emptying,processingRemainder=dump.processingRemainder}};
             return d;
         }
@@ -60,7 +60,7 @@ namespace HarborCity
             if(b is ResidentialBuilding r) {var data=residential[0];r.housing=data.housing;r.housingUnits=data.housingUnits;r.askingRent=data.askingRent;r.vacantDays=data.vacantDays;r.applications=data.applications;r.heavyTraffic=data.heavyTraffic;r.interestedFamilies=data.interestedFamilies;}
             if(b is IndustrialBuilding f) f.factory=industrial[0];
             if(b is IGoodsBuilding goods) goods.Stock=stock;
-            if(b is CommercialBuilding shop){shop.customers=commercial[0].customers;shop.retailSold=commercial[0].retailSold;shop.retailDay=commercial[0].retailDay;shop.retailSoldToday=commercial[0].retailSoldToday;shop.wholesaleCosts=commercial[0].wholesaleCosts;}
+            if(b is CommercialBuilding shop){shop.customers=commercial[0].customers;shop.retailSold=commercial[0].retailSold;shop.retailDay=commercial[0].retailDay;shop.retailSoldToday=commercial[0].retailSoldToday;shop.wholesaleCosts=commercial[0].wholesaleCosts;shop.Account=new CityShopAccount(commercial[0].account??new ShopAccountData());}
             if(b is LandfillBuilding dump){dump.stored=landfill[0].stored;dump.emptying=landfill[0].emptying;dump.processingRemainder=landfill[0].processingRemainder;}
             return b;
         }

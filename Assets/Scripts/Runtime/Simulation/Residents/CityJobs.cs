@@ -39,7 +39,7 @@ namespace HarborCity
         public float AverageCommute => Citizens.Where(p=>ResidentJob(p)!=null && p.lastCommute>=0 && p.observedWork==Workplace(p)
             && society.families.Any(h=>h.id==p.householdId && h.home==p.observedHome))
             .Select(p=>p.lastCommute).DefaultIfEmpty(0).Average();
-        int BuildingJobSlots(int id) => GetBuilding(id)!=null && !GetBuilding(id).abandoned && (GetBuilding(id) is CommercialBuilding || GetBuilding(id) is IndustrialBuilding)?GetBuilding(id).level*4:0;
+        int BuildingJobSlots(int id) => GetBuilding(id)!=null && !GetBuilding(id).abandoned && (GetBuilding(id) is CommercialBuilding || GetBuilding(id) is IndustrialBuilding)?GetBuilding(id).level*(entities?.Employment.SlotsPerLevel??4):0;
         public void ReleaseJob(CityResident p)
         {
             var job=ResidentJob(p); if(job!=null) job.occupiedCitizenId=-1;
@@ -80,7 +80,7 @@ namespace HarborCity
                 counts.TryGetValue(i,out int existing);
                 for(int n=existing;n<BuildingJobSlots(i);n++)
                 {
-                    var job=new CityJob {id=society.nextJobId++,buildingId=i,wage=95+(i%5)*12+(UseOf(i)==LandUse.Industrial?20:0),requiredSkill=UseOf(i)==LandUse.Industrial?1:0};
+                    var job=new CityJob {id=society.nextJobId++,buildingId=i,wage=entities==null?95+(i%5)*12+(UseOf(i)==LandUse.Industrial?20:0):entities.Employment.Wage(i,UseOf(i)==LandUse.Industrial),requiredSkill=UseOf(i)==LandUse.Industrial?1:0};
                     society.jobEntities.Add(job); Trace("job.created","建筑提供岗位",job,job:job.id,building:i);
                 }
             }

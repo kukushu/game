@@ -112,9 +112,13 @@ namespace HarborCity.RoadCore
         public bool CanReach(RoadAccess source,RoadAccess target)
         {
             if(source==null||target==null||!source.valid||!target.valid||!Contains(source.lane)||!Contains(target.lane)||Get(source.lane).IsConnection||Get(target.lane).IsConnection)return false;
-            var a=Get(source.lane);var b=Get(target.lane);if(source.distance<a.StartDistance||source.distance>a.EndDistance||target.distance<b.StartDistance||target.distance>b.EndDistance)return false;
+            return CanReach(source.lane,source.distance,target.lane,target.distance);
+        }
+        public bool CanReach(long source,double sourceDistance,long target,double targetDistance)
+        {
+            if(!Contains(source)||!Contains(target))return false;var a=Get(source);var b=Get(target);if(a.IsConnection||b.IsConnection||sourceDistance<a.StartDistance||sourceDistance>a.EndDistance||targetDistance<b.StartDistance||targetDistance>b.EndDistance)return false;
             if(reachability==null)reachability=new LaneReachability(this);
-            return reachability.CanReach(source,target);
+            return reachability.CanReach(source,sourceDistance,target,targetDistance);
         }
         public IEnumerable<Drivable> Drivables=>drivables.Values;
         public int RoadCount=>data.roads.Count;

@@ -59,7 +59,7 @@ namespace HarborCity
             if(p.schoolReturning)
             {a.state="等待步行返家";a.destination=h.home;if(!a.located){var node=roads.Node(p.accessNode);a.located=node!=null;if(node!=null){a.x=node.x;a.z=node.z;}}}
             a.reason=!p.canWork?"家庭成员；暂未安排独立就业、上学或购物":
-                "今日实际在岗 "+p.workedMinutes.ToString("F1")+" / 480 分钟，待入账 ¥"+(p.earnedWages+p.factoryWageCredit).ToString("F1")+(development.enabled?"":"（工厂部分已从雇主现金扣除）")+
+                "今日实际在岗 "+p.workedMinutes.ToString("F1")+" / 480 分钟，待入账 ¥"+(p.earnedWages+p.wageCredit).ToString("F1")+(development.enabled?"":"（工厂部分已从雇主现金扣除）")+
                 (p.lastCommute>=0?"；最近上班耗时 "+p.lastCommute.ToString("F1")+" 分钟，迟到 "+p.lastDelay.ToString("F1")+" 分钟":"；尚无实际到岗记录");
             if(a.state=="等待出发" || a.state=="等待返程") a.reason+="；入口排队或道路不可达，尚未发车";
             a.reason+="；健康 "+p.health.ToString("F0")+" / 100"+(p.sick?"，患病期间不计工作与工资":"");
@@ -128,10 +128,10 @@ namespace HarborCity
                     if(city.CanAttendWork(p) && city.GetBuilding(work)?.burning!=true && p.atWork && p.tripId==0 && p.arrivedDay==city.day && work==p.location && city.ResidentJob(p)!=null)
                     {
                         float worked=Math.Max(0,Math.Min(minute+minutes,end)-Math.Max(minute,shift));
-                        double before=p.factoryWageCredit;
+                        double before=p.wageCredit;
                         p.workedMinutes+=worked; city.PayAttendance(p,worked);
                         // No unpaid productive labour: insufficient cash shortens this step's paid work.
-                        float paidWork=city.development.enabled || city.Factory(work)==null?worked:city.ResidentWage(p)==0?0:(float)((p.factoryWageCredit-before)*480/city.ResidentWage(p));
+                        float paidWork=city.development.enabled || city.Factory(work)==null?worked:city.ResidentWage(p)==0?0:(float)((p.wageCredit-before)*480/city.ResidentWage(p));
                         city.ProcessFactoryWork(p,Math.Min(worked,paidWork),worked);
                     }
                     if(p.tripId>0 || State.clock<p.retryAt) continue;

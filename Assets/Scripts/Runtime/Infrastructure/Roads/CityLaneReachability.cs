@@ -22,9 +22,11 @@ namespace HarborCity.RoadCore
             }
         }
         internal bool CanReach(RoadAccess source,RoadAccess target)
+        =>CanReach(source.lane,source.distance,target.lane,target.distance);
+        internal bool CanReach(long source,double sourceDistance,long target,double targetDistance)
         {
-            if(source.lane==target.lane&&target.distance>=source.distance)return true;
-            var set=Reachable(source.lane);return set!=null&&set.Contains(target.lane);
+            if(source==target&&targetDistance>=sourceDistance)return true;
+            var set=Reachable(source);return set!=null&&set.Contains(target);
         }
         internal bool HasCycle(long source){var set=Reachable(source);return set!=null&&set.Contains(source);}
         HashSet<long> Reachable(long source)

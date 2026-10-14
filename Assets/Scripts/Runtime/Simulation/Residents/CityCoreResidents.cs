@@ -14,32 +14,34 @@ namespace HarborCity
         readonly CityEntities entities;
         internal Func<int,int,int,bool,Vehicle> RequestCommute;
         public bool Enabled {get;}
-        public int PayrollDay {get;private set;}
-        public CityCoreResidents(CityModel city,World transport,CityEntities entities,bool enabled=true,int payrollDay=-1,double calendarOffset=50)
+        internal CityCoreConsumption Consumption;
+        public int CarriedGoods(int citizen)=>entities.Member(citizen)?.Person.carriedGoods??0;
+        public CityCoreResidents(CityModel city,World transport,CityEntities entities,bool enabled=true,double calendarOffset=50)
         {
-            this.city=city;this.transport=transport;this.entities=entities;this.calendarOffset=calendarOffset;Enabled=enabled;PayrollDay=payrollDay<0?city.day:payrollDay;
+            this.city=city;this.transport=transport;this.entities=entities;this.calendarOffset=calendarOffset;Enabled=enabled;
 
         }
         public bool Depart(TripTask v)
         {
             var member=entities.Member(v.citizenId);if(member==null)return false;var p=member.Person;var h=member.Family;
-            if(!h.resident||p.dead||p.tripId!=0||p.location!=v.origin||v.Cargo!=0||v.Price!=0)return false;
+            if(!h.resident||p.dead||p.tripId!=0||p.location!=v.origin||v.Price!=0)return false;
+            if(v.purpose!=TransportPurpose.Home&&v.Cargo!=0)return false;
             if(v.purpose==TransportPurpose.Work&&(p.atWork||v.origin!=h.home||v.destination!=city.Workplace(p)||!city.CanAttendWork(p)||!city.JobFunded(city.ResidentJob(p))))return false;
-            if(v.purpose==TransportPurpose.Home&&v.destination!=h.home)return false;
-            if(v.purpose!=TransportPurpose.Home&&v.purpose!=TransportPurpose.Work)return false;
-            p.tripId=v.id;p.location=-1;p.atWork=false;if(v.purpose==TransportPurpose.Work)p.departureDay=city.day;return true;
+            if(v.purpose==TransportPurpose.Home&&(v.destination!=h.home||v.Cargo!=p.carriedGoods))return false;
+            if(v.purpose==TransportPurpose.Shopping&&(Consumption==null||!Consumption.CanDepart(v,member)))return false;
+            if(v.purpose!=TransportPurpose.Home&&v.purpose!=TransportPurpose.Work&&v.purpose!=TransportPurpose.Shopping)return false;
+            p.tripId=v.id;p.location=-1;p.atWork=false;if(v.purpose==TransportPurpose.Work)p.departureDay=city.day;if(v.purpose==TransportPurpose.Home){p.carriedGoods=0;p.visitUntil=0;}if(v.purpose==TransportPurpose.Shopping)h.shoppingDay=city.day;return true;
         }
         public bool Arrive(TransportArrival v)
         {
             var member=entities.Member(v.citizenId);if(member==null)return false;var p=member.Person;var h=member.Family;
             if(p.dead||!h.resident||p.tripId!=v.taskId)return false;
+            if(v.purpose==TransportPurpose.Home&&v.destination!=h.home)return false;
             p.tripId=0;p.location=v.destination;p.atWork=v.purpose==TransportPurpose.Work&&city.Workplace(p)==v.destination&&city.CanAttendWork(p)&&city.JobFunded(city.ResidentJob(p));
-            if(p.atWork){double seconds=city.society.settings.secondsPerDay,absolute=calendarOffset+v.arrivedAt;p.arrivedDay=1+(int)Math.Floor(absolute/seconds);p.lastCommute=(float)Math.Max(0,(v.arrivedAt-v.departedAt)*1440/seconds);p.lastDelay=(float)Math.Max(0,(p.arrivedDay-p.departureDay)*1440+absolute%seconds*1440/seconds-(480+p.id%3*30));p.observedHome=h.home;p.observedWork=v.destination;p.observedRevision=transport.NetworkGeneration;}
+            if(v.purpose==TransportPurpose.Shopping)Consumption.BeginVisit(v,member);
+            if(v.purpose==TransportPurpose.Home)Consumption.ConsumeAtHome(v.cargo);
+            if(p.atWork){double seconds=city.society.settings.secondsPerDay,absolute=calendarOffset+v.arrivedAt;p.arrivedDay=1+(int)Math.Floor(absolute/seconds);p.lastCommute=(float)Math.Max(0,(v.arrivedAt-v.departedAt)*1440/seconds);p.lastDelay=(float)Math.Max(0,(p.arrivedDay-p.departureDay)*1440+absolute%seconds*1440/seconds-entities.Employment.ShiftStart(p.id,city.development.enabled&&city.GetBuilding(v.destination) is CommercialBuilding));p.observedHome=h.home;p.observedWork=v.destination;p.observedRevision=transport.NetworkGeneration;}
             return true;
-        }
-        internal void SettlePayroll()
-        {
-            if(Enabled&&city.day>PayrollDay){foreach(var family in city.society.families)family.wagePaid=0;foreach(var member in entities.Members){var p=member.Person;int paid=city.TransferFactoryPay(p);p.wagePaid=paid+(int)Math.Round(p.earnedWages);member.Family.savings+=p.wagePaid;member.Family.wagePaid+=p.wagePaid;p.earnedWages=0;p.workedMinutes=0;}PayrollDay=city.day;}
         }
         public void AdvanceRequests()
         {
@@ -51,7 +53,7 @@ namespace HarborCity
             float minute=city.ResidentMinute;
             foreach(var member in entities.Members)
             {
-                var p=member.Person;var h=member.Family;if(!h.resident||p.dead||p.tripId!=0||transport.Clock<p.retryAt)continue;float shift=480+p.id%3*30,end=shift+480;
+                var p=member.Person;var h=member.Family;if(!h.resident||p.dead||p.tripId!=0||transport.Clock<p.retryAt||transport.Clock<p.visitUntil)continue;float shift=entities.Employment.ShiftStart(p.id,city.development.enabled&&city.GetBuilding(city.Workplace(p)) is CommercialBuilding),end=shift+entities.Employment.ShiftMinutes;
                 bool returning=p.location!=h.home&&(!p.atWork||p.sick||city.Workplace(p)!=p.location||p.arrivedDay<city.day||minute>=end||!city.JobFunded(city.ResidentJob(p)));
                 bool eligible=!p.atWork&&p.location==h.home&&p.departureDay!=city.day&&city.CanAttendWork(p)&&city.JobFunded(city.ResidentJob(p));double estimate=eligible?transport.EstimateResidentSeconds(h.home,city.Workplace(p))*1440/city.society.settings.secondsPerDay:double.PositiveInfinity;
                 if(p.observedHome==h.home&&p.observedWork==city.Workplace(p)&&p.observedRevision==transport.NetworkGeneration)estimate=Math.Max(estimate,p.lastCommute);
@@ -67,7 +69,6 @@ namespace HarborCity
         }
         public void Validate()
         {
-            if(PayrollDay<1||PayrollDay>city.day)throw new InvalidOperationException("Invalid payroll settlement day");
             var owned=new HashSet<int>();foreach(var task in transport.Vehicles)if(task.Task.purpose!=TransportPurpose.Freight){var member=entities.Member(task.Task.citizenId);if(member==null||!owned.Add(task.Task.citizenId)||member.Person.tripId!=task.Task.id||member.Person.atWork||member.Person.location!=-1)throw new InvalidOperationException("Resident/vehicle ownership mismatch");}
             foreach(var member in entities.Members){var p=member.Person;if(p.tripId!=0){var task=transport.FindTaskVehicle(p.tripId);if(task==null||task.Task.citizenId!=p.id)throw new InvalidOperationException("Dangling resident trip");}}
         }

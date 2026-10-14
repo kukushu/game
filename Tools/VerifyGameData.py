@@ -24,8 +24,10 @@ asset = (folder / 'Economy/DefaultEconomy.asset').read_text(encoding='utf-8-sig'
 guid = re.search(r'guid: ([0-9a-f]{32})', asset).group(1)
 meta = (root / 'Assets/Scripts/Runtime/GameData/HarborCityEconomyAsset.cs.meta').read_text(encoding='utf-8-sig')
 assert 'guid: ' + guid in meta
-source = (root / 'Assets/Scripts/Runtime/GameData/CityGameDesign.cs').read_text(encoding='utf-8-sig')
-definition = source.split('public sealed class EconomyDefinition')[1].split('[Serializable]')[0]
-for name in re.findall(r'([A-Za-z]\w*)\s*=', definition):
-    assert re.search(r'^\s+' + re.escape(name) + r':', asset, re.M), f'Missing authored economy field: {name}'
+for filename, classes in [('CityGameDesign.cs', ['EconomyDefinition']), ('CityEmploymentDesign.cs', ['EmploymentDefinition']), ('CityRetailDesign.cs', ['RetailDefinition', 'ProductionDefinition'])]:
+    source = (root / 'Assets/Scripts/Runtime/GameData' / filename).read_text(encoding='utf-8-sig')
+    for cls in classes:
+        definition = source.split('public sealed class ' + cls)[1].split('}')[0]
+        for name in re.findall(r'([A-Za-z]\w*)\s*=', definition):
+            assert re.search(r'^\s+' + re.escape(name) + r':', asset, re.M), f'Missing authored field: {cls}.{name}'
 print(f'PASS typed asset binding; {len(languages)} languages, {len(languages["zh-CN"])} keys, {len(used)} current key uses')

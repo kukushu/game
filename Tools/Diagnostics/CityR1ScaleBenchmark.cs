@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using System.Globalization;
@@ -35,6 +35,21 @@ public static class CityR1ScaleBenchmark
         return v.Task.Cargo;
 #endif
     }
+    // Canonical shared facts across the explicit schema/name change. New empty
+    // retail accounts and derivable income ledgers are excluded only in this
+    // private-development-disabled workload; balances, wages, stock and people
+    // remain compared. The real retail workload has exact full-save tests.
+    static string Name(string n)=>n=="factoryWageCredit"?"wageCredit":n=="totalFactoryWagesPaid"?"wagesPaid":n;
+    static void Common(BinaryWriter w,Type type,object value)
+    {
+        if(!type.IsValueType){w.Write(value!=null);if(value==null)return;}
+        if(type==typeof(string)){w.Write((string)value);return;}if(type==typeof(int)){w.Write((int)value);return;}if(type==typeof(long)){w.Write((long)value);return;}if(type==typeof(float)){w.Write((float)value);return;}if(type==typeof(double)){w.Write((double)value);return;}if(type==typeof(bool)){w.Write((bool)value);return;}if(type.IsEnum){w.Write(Convert.ToInt32(value));return;}
+        if(value is System.Collections.IList list){w.Write(list.Count);var child=type.IsArray?type.GetElementType():type.GetGenericArguments()[0];foreach(var item in list)Common(w,child,item);return;}
+        var added=new[]{"account","carriedGoods","visitUntil","openingSavings","incomeReceived","retailPaid","retiredWagesPaid"};
+        var fields=type.GetFields(System.Reflection.BindingFlags.Public|System.Reflection.BindingFlags.Instance).Where(f=>!f.IsNotSerialized&&!added.Contains(f.Name)).OrderBy(f=>Name(f.Name),StringComparer.Ordinal).ToArray();w.Write(type.FullName);w.Write(fields.Length);foreach(var field in fields){w.Write(Name(field.Name));Common(w,field.FieldType,field.GetValue(value));}
+        foreach(var field in type.GetFields().Where(f=>f.Name=="carriedGoods"||f.Name=="retailPaid"||f.Name=="retiredWagesPaid"))if(Convert.ToDouble(field.GetValue(value))!=0)throw new Exception("Disabled common fixture acquired retail/retirement state");
+        var account=type.GetField("account");if(account!=null){var a=account.GetValue(value);foreach(var f in a.GetType().GetFields())if(Convert.ToDouble(f.GetValue(a))!=0)throw new Exception("Disabled fixture acquired commercial money");}
+    }
     static string SemanticDigest(CityCoreIndustrySession session)
     {
         using(var stream=new MemoryStream())using(var writer=new BinaryWriter(stream))
@@ -44,10 +59,10 @@ public static class CityR1ScaleBenchmark
             var business=session.SnapshotBusiness();if(business.development.enabled)throw new Exception("Shared legacy performance fixture must disable private development");
             var tradeField=typeof(CityCoreBusinessData).GetField("trade");if(tradeField!=null){var data=tradeField.GetValue(business);foreach(string name in new[]{"rawDispatched","rawDelivered","goodsExported"})if((int)data.GetType().GetField(name).GetValue(data)!=0)throw new Exception("Common fixture unexpectedly uses trade");}
             var put=typeof(CityCoreSave).GetMethod("Put",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic);
-            foreach(var field in typeof(CityCoreBusinessData).GetFields().Where(f=>!f.IsNotSerialized&&f.Name!="version"&&f.Name!="utilities"&&f.Name!="trade"&&f.Name!="design").OrderBy(f=>f.Name,StringComparer.Ordinal))
+            foreach(var field in typeof(CityCoreBusinessData).GetFields().Where(f=>!f.IsNotSerialized&&f.Name!="version"&&f.Name!="utilities"&&f.Name!="trade"&&f.Name!="design"&&f.Name!="consumption"&&f.Name!="retiredFactoryWages").OrderBy(f=>f.Name,StringComparer.Ordinal))
             {
-                if(field.Name!="development"){put.Invoke(null,new object[]{writer,field.FieldType,field.GetValue(business)});continue;}
-                writer.Write(true);foreach(var nested in typeof(CityDevelopmentState).GetFields().Where(f=>!f.IsNotSerialized&&f.Name!="nextEmployment").OrderBy(f=>f.Name,StringComparer.Ordinal))put.Invoke(null,new object[]{writer,nested.FieldType,nested.GetValue(business.development)});
+                if(field.Name!="development"){Common(writer,field.FieldType,field.GetValue(business));continue;}
+                writer.Write(true);foreach(var nested in typeof(CityDevelopmentState).GetFields().Where(f=>!f.IsNotSerialized&&f.Name!="nextEmployment").OrderBy(f=>f.Name,StringComparer.Ordinal))Common(writer,nested.FieldType,nested.GetValue(business.development));
             }
             var world=session.Transport;writer.Write(world.Clock);writer.Write(world.Delivered);writer.Write(world.Vehicles.Count);
             foreach(var v in world.Vehicles)

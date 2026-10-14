@@ -19,16 +19,23 @@ namespace HarborCity
         readonly List<CityMember> members=new List<CityMember>();
         readonly List<IndustrialBuilding> factories=new List<IndustrialBuilding>();
         readonly List<CommercialBuilding> shops=new List<CommercialBuilding>();
+        readonly List<CityBuilding> retired=new List<CityBuilding>();
+        public IReadOnlyList<CityBuilding> RetiredBuildings {get;}
         public IReadOnlyList<CityMember> Members {get;}
         public IReadOnlyList<IndustrialBuilding> Factories {get;}
         public IReadOnlyList<CommercialBuilding> Shops {get;}
         public int Revision {get;private set;}
         public int BuildingRevision {get;private set;}
         internal CitySimulation Simulation;
+        public EmploymentRules Employment {get;}
+        public ProductionRules Production {get;}
         internal void StructuralBoundary()
         {if(Simulation!=null&&(Simulation.IsStepping||Simulation.Fault!=null))throw new InvalidOperationException("Structural edits require a healthy city step boundary");}
-        internal CityEntities(CityModel city,World transport)
+        internal CityEntities(CityModel city,World transport,EmploymentRules employment=null,ProductionRules production=null,IEnumerable<CityBuilding> archived=null)
         {
+            Employment=employment??new EmploymentRules(new EmploymentDefinition());
+            Production=production??new ProductionRules(new ProductionDefinition());
+            if(archived!=null)retired.AddRange(archived);RetiredBuildings=retired.AsReadOnly();
             this.city=city;this.transport=transport;Members=members.AsReadOnly();Factories=factories.AsReadOnly();Shops=shops.AsReadOnly();
             foreach(var b in city.buildings){buildings.Add(b.id,b);IndexType(b);transport.SetEndpointAvailable(b.id,Available(b));}
             foreach(var c in city.trade.connections){if(buildings.ContainsKey(c.id))throw new ArgumentException("Endpoint identity collision");connections.Add(c.id,c);transport.SetEndpointAvailable(c.id,c.active);}
@@ -62,9 +69,9 @@ namespace HarborCity
         public void AddBuilding(CityBuilding b)
         {StructuralBoundary();if(b==null||b.id<city.nextBuildingId||b.id>=int.MaxValue||buildings.ContainsKey(b.id))throw new ArgumentException("Building ID must be new and monotonic");city.buildings.Add(b);buildings.Add(b.id,b);IndexType(b);city.nextBuildingId=b.id+1;transport.SetEndpointAvailable(b.id,Available(b));Revision++;BuildingRevision++;city.SyncJobs();}
         public void ReplaceBuilding(CityBuilding b)
-        {StructuralBoundary();var old=b==null?null:Building(b.id);if(old==null||b.Use!=old.Use||old is IndustrialBuilding)throw new ArgumentException("Replacement preserves identity/use; factory accounts need explicit retirement, not replacement");if(old is CommercialBuilding shop&&b is CommercialBuilding next&&(shop.Stock!=next.Stock||shop.wholesaleCosts!=next.wholesaleCosts))throw new ArgumentException("Replacement cannot discard inventory/finance");int at=city.buildings.IndexOf(old);city.buildings[at]=b;buildings[b.id]=b;UnindexType(old);IndexType(b);transport.SetEndpointAvailable(b.id,Available(b));Revision++;BuildingRevision++;city.SyncJobs();transport.RefreshEndpoints();}
+        {StructuralBoundary();var old=b==null?null:Building(b.id);if(old==null||b.Use!=old.Use||old is IndustrialBuilding)throw new ArgumentException("Replacement preserves identity/use; factory accounts need explicit retirement, not replacement");if(old is CommercialBuilding shop&&b is CommercialBuilding next){if(shop.Stock!=next.Stock||shop.wholesaleCosts!=next.wholesaleCosts)throw new ArgumentException("Replacement cannot discard inventory/finance");next.Account=shop.Account;}int at=city.buildings.IndexOf(old);city.buildings[at]=b;buildings[b.id]=b;UnindexType(old);IndexType(b);transport.SetEndpointAvailable(b.id,Available(b));Revision++;BuildingRevision++;city.SyncJobs();transport.RefreshEndpoints();}
         internal CityBuilding RemoveBuilding(int id)
-        {StructuralBoundary();var b=Building(id);if(b==null)throw new ArgumentException("Missing building");city.buildings.Remove(b);buildings.Remove(id);UnindexType(b);transport.SetEndpointAvailable(id,false);Revision++;BuildingRevision++;city.SyncJobs();transport.RefreshEndpoints();return b;}
+        {StructuralBoundary();var b=Building(id);if(b==null)throw new ArgumentException("Missing building");city.buildings.Remove(b);buildings.Remove(id);UnindexType(b);retired.Add(b);transport.SetEndpointAvailable(id,false);Revision++;BuildingRevision++;city.SyncJobs();transport.RefreshEndpoints();return b;}
         public void SetAvailability(int id,bool abandoned,bool burned)
         {StructuralBoundary();var b=Building(id);if(b==null)throw new ArgumentException("Missing building");b.abandoned=abandoned;b.burned=burned;transport.SetEndpointAvailable(id,Available(b));Revision++;BuildingRevision++;city.SyncJobs();transport.RefreshEndpoints();}
         public void AddFamily(Household h)
@@ -74,9 +81,10 @@ namespace HarborCity
         public void MoveResident(int citizen,int familyId)
         {StructuralBoundary();var m=Member(citizen);var h=Family(familyId);if(m==null||h==null||m.Person.tripId!=0)throw new InvalidOperationException("Cannot move absent/in-transit resident");if(m.Family==h)return;m.Family.people.Remove(m.Person);h.people.Add(m.Person);m.Family=h;m.Person.householdId=h.id;Revision++;}
         public void RemoveResident(int citizen)
-        {StructuralBoundary();var m=Member(citizen);if(m==null||m.Person.tripId!=0||m.Person.factoryWageCredit!=0||m.Person.earnedWages!=0)throw new InvalidOperationException("Cannot remove an in-transit resident or discard unclaimed wages");city.ReleaseJob(m.Person);m.Family.people.Remove(m.Person);members.Remove(m);people.Remove(citizen);Revision++;}
+        {StructuralBoundary();var m=Member(citizen);if(m==null||m.Person.tripId!=0||m.Person.carriedGoods!=0||m.Person.wageCredit!=0||m.Person.earnedWages!=0)throw new InvalidOperationException("Cannot remove an in-transit resident or discard unclaimed wages");city.ReleaseJob(m.Person);city.society.retiredWagesPaid+=m.Person.wagesPaid;m.Family.people.Remove(m.Person);if(m.Family.people.Count==0){m.Family.resident=false;m.Family.home=m.Family.unit=-1;}members.Remove(m);people.Remove(citizen);Revision++;}
         public void Validate()
         {
+            var archivedIds=new HashSet<int>();foreach(var b in retired)if(b.id<=0||b.id>=city.nextBuildingId||!archivedIds.Add(b.id)||Building(b.id)!=null||Connection(b.id)!=null||transport.EndpointExists(b.id))throw new InvalidOperationException("Invalid retired building identity");
             if(connections.Count!=city.trade.connections.Count)throw new InvalidOperationException("Outside lifecycle bypassed");
             foreach(var c in city.trade.connections)if(c.id<=0||c.id>=city.nextBuildingId||c.flow<OutsideFlow.Import||c.flow>OutsideFlow.Export||Building(c.id)!=null||!ReferenceEquals(Connection(c.id),c)||transport.EndpointExists(c.id)!=c.active||float.IsNaN(c.x)||float.IsNaN(c.y)||float.IsNaN(c.z)||float.IsInfinity(c.x)||float.IsInfinity(c.y)||float.IsInfinity(c.z))throw new InvalidOperationException("Invalid outside identity/availability");
             if(buildings.Count!=city.buildings.Count||jobs.Count!=city.society.jobEntities.Count||families.Count!=city.society.families.Count)throw new InvalidOperationException("Structural edit bypassed CityEntities");

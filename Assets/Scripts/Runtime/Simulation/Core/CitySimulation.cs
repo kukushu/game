@@ -16,6 +16,8 @@ namespace HarborCity
         public CityCorePopulation Population {get;}
         public CityCoreTrade Trade {get;}
         public CityGameDesign Design {get;}
+        public CityCorePayroll Payroll {get;}
+        public CityCoreConsumption Consumption {get;}
         public SimulationClockData ClockSnapshot=>clock.Snapshot();
         public long Tick=>clock.Tick;public double Seconds=>clock.Seconds;
         public double CalendarOffset {get;}
@@ -23,10 +25,10 @@ namespace HarborCity
         public bool IsApplyingBoundary {get;private set;}
         public Exception Fault {get;private set;}
 #if UNITY_5_3_OR_NEWER
-        static readonly ProfilerMarker stepSample=new ProfilerMarker("City.Simulation.Step"),growthSample=new ProfilerMarker("City.Simulation.GrowthBoundary"),utilitySample=new ProfilerMarker("City.Simulation.UtilitiesBoundary"),populationSample=new ProfilerMarker("City.Simulation.PopulationBoundary"),requestsSample=new ProfilerMarker("City.Simulation.ResidentRequests"),productionSample=new ProfilerMarker("City.Simulation.Production"),logisticsSample=new ProfilerMarker("City.Simulation.Logistics"),tradeSample=new ProfilerMarker("City.Simulation.ExternalTrade"),settleSample=new ProfilerMarker("City.Simulation.Settlement");
+        static readonly ProfilerMarker stepSample=new ProfilerMarker("City.Simulation.Step"),growthSample=new ProfilerMarker("City.Simulation.GrowthBoundary"),utilitySample=new ProfilerMarker("City.Simulation.UtilitiesBoundary"),populationSample=new ProfilerMarker("City.Simulation.PopulationBoundary"),requestsSample=new ProfilerMarker("City.Simulation.ResidentRequests"),productionSample=new ProfilerMarker("City.Simulation.Production"),consumptionSample=new ProfilerMarker("City.Simulation.Consumption"),payrollSample=new ProfilerMarker("City.Simulation.PayrollBoundary"),logisticsSample=new ProfilerMarker("City.Simulation.Logistics"),tradeSample=new ProfilerMarker("City.Simulation.ExternalTrade"),settleSample=new ProfilerMarker("City.Simulation.Settlement");
 #endif
-        internal CitySimulation(CityModel city,World transport,SimulationClock clock,CityEntities entities,CityCoreResidents residents,CityCoreIndustryBusiness business,double offset,long nextDispatch,GameDesignData design=null)
-        {if(double.IsNaN(offset)||double.IsInfinity(offset)||offset<0||city.society.settings.secondsPerDay<1)throw new ArgumentException("Invalid calendar");Design=new CityGameDesign(design??new GameDesignData());this.city=city;this.transport=transport;this.clock=clock;this.residents=residents;this.business=business;CalendarOffset=offset;bindings=new CityCoreRoadBindings(city,transport);production=new CityProductionSystem(city,entities);Logistics=new CityLogisticsSystem(entities,transport,this,nextDispatch);Growth=new CityCoreGrowth(city,entities,transport);Utilities=new CityCoreUtilities(city,entities,transport);Population=new CityCorePopulation(city,entities,transport,Utilities);residents.RequestCommute=RequestCommute;SyncCalendar(clock.Seconds);Trade=new CityCoreTrade(city,entities,transport,this);Utilities.Refresh();}
+        internal CitySimulation(CityModel city,World transport,SimulationClock clock,CityEntities entities,CityCoreResidents residents,CityCoreIndustryBusiness business,double offset,long nextDispatch,CityGameDesign design=null,int payrollDay=-1)
+        {if(double.IsNaN(offset)||double.IsInfinity(offset)||offset<0||city.society.settings.secondsPerDay<1)throw new ArgumentException("Invalid calendar");Design=design??new CityGameDesign(new GameDesignData());this.city=city;this.transport=transport;this.clock=clock;this.residents=residents;this.business=business;CalendarOffset=offset;bindings=new CityCoreRoadBindings(city,transport);Payroll=new CityCorePayroll(city,entities,Design.Employment,payrollDay);production=new CityProductionSystem(city,entities,Payroll,Design);Logistics=new CityLogisticsSystem(entities,transport,this,nextDispatch);Growth=new CityCoreGrowth(city,entities,transport,Design.Production,Design.Retail);Utilities=new CityCoreUtilities(city,entities,transport);Population=new CityCorePopulation(city,entities,transport,Utilities);Consumption=new CityCoreConsumption(city,entities,transport,this);residents.Consumption=Consumption;residents.RequestCommute=RequestCommute;SyncCalendar(clock.Seconds);Trade=new CityCoreTrade(city,entities,transport,this);Utilities.Refresh();}
         void SyncCalendar(double seconds)
         {double absolute=CalendarOffset+seconds,daySeconds=city.society.settings.secondsPerDay;city.day=1+(int)Math.Floor(absolute/daySeconds);city.society.dayElapsed=(float)(absolute%daySeconds);}
         public int Advance(double seconds)
@@ -52,7 +54,11 @@ namespace HarborCity
 #if UNITY_5_3_OR_NEWER
                     using(populationSample.Auto())
 #endif
-                    if(Growth.Zoning.Ready)Population.Step(clock.Context);IsApplyingBoundary=false;IsStepping=true;Step(clock.Context);clock.Commit(true);SyncCalendar(clock.Seconds);residents.SettlePayroll();steps++;}catch(Exception e){Fault=e;throw;}finally{IsStepping=false;IsApplyingBoundary=false;}}
+                    if(Growth.Zoning.Ready)Population.Step(clock.Context);IsApplyingBoundary=false;IsStepping=true;Step(clock.Context);clock.Commit(true);SyncCalendar(clock.Seconds);
+#if UNITY_5_3_OR_NEWER
+                    using(payrollSample.Auto())
+#endif
+                    Payroll.SettleDay();steps++;}catch(Exception e){Fault=e;throw;}finally{IsStepping=false;IsApplyingBoundary=false;}}
             }
             return steps;
         }
@@ -68,6 +74,10 @@ namespace HarborCity
                 using(productionSample.Auto())
 #endif
                 production.Step(time);
+#if UNITY_5_3_OR_NEWER
+                using(consumptionSample.Auto())
+#endif
+                Consumption.Step(time);
 #if UNITY_5_3_OR_NEWER
                 using(logisticsSample.Auto())
 #endif
@@ -92,7 +102,9 @@ namespace HarborCity
         public Vehicle RequestMaterial(int origin,int destination,int amount,CargoKind kind,double price)
         =>Dispatch(origin,destination,amount,price,TransportPurpose.Freight,0,kind);
         public Vehicle RequestCommute(int citizen,int origin,int destination,bool returning=false)
-        =>Dispatch(origin,destination,0,0,returning?TransportPurpose.Home:TransportPurpose.Work,citizen);
+        =>Dispatch(origin,destination,returning?residents.CarriedGoods(citizen):0,0,returning?TransportPurpose.Home:TransportPurpose.Work,citizen);
+        public Vehicle RequestShopping(int citizen,int origin,int destination)
+        =>Dispatch(origin,destination,0,0,TransportPurpose.Shopping,citizen);
         Vehicle Dispatch(int origin,int destination,int cargo,double price,TransportPurpose purpose,int citizen,CargoKind kind=CargoKind.Goods)
         {
 #if CITY_CORE_ATTRIBUTION

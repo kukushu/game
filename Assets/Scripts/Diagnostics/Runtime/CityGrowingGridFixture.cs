@@ -9,7 +9,7 @@ namespace HarborCity
     // real map profile in Unity; headless checks explicitly use flat terrain.
     public static class CityGrowingGridFixture
     {
-        public static CityCoreIndustrySession Create(Func<float,float,float> surface=null,GameDesignData design=null)
+        public static CityCoreIndustrySession Create(Func<float,float,float> surface=null,GameDesignData design=null,bool commerce=true)
         {
             surface=surface??((x,z)=>2);
             var session=CityCoreIndustrySession.CreateEmpty(design);
@@ -32,7 +32,7 @@ namespace HarborCity
             }
             foreach(var kind in new[]{UtilityKind.Electricity,UtilityKind.Water})
             {
-                Line(session,kind,-140,0,-50,0);Line(session,kind,-140,-25,-50,-25);Line(session,kind,-140,25,-50,25);
+                Line(session,kind,-165,0,-50,0);Line(session,kind,-140,-25,-50,-25);Line(session,kind,-140,25,-50,25);
                 foreach(float x in new[]{-135f,-95f,-55f})Line(session,kind,x,-30,x,30);
             }
             foreach(var facility in session.City.buildings.Where(b=>b.Use==LandUse.Water||b.Use==LandUse.Sewage))
@@ -43,7 +43,7 @@ namespace HarborCity
             }
             foreach(var use in new[]{LandUse.Residential,LandUse.Commercial,LandUse.Industrial})
             {
-                var selection=zoning.Cells().Where(c=>c.available&&(c.pose.z>3?(c.pose.x>=-95?LandUse.Residential:LandUse.Empty):c.pose.z<-3?(c.pose.x<-95?LandUse.Commercial:LandUse.Industrial):LandUse.Empty)==use).ToArray();
+                var selection=zoning.Cells().Where(c=>c.available&&(c.pose.z>3?(c.pose.x>=-95?LandUse.Residential:LandUse.Empty):c.pose.z<-3?(c.pose.x<-95?(commerce&&c.pose.x>=-135?LandUse.Commercial:LandUse.Empty):LandUse.Industrial):LandUse.Empty)==use).ToArray();
                 zoning.Paint(selection,use);
             }
             session.Simulation.Utilities.Refresh();session.Validate();return session;

@@ -14,6 +14,8 @@ namespace HarborCity
         public float noiseSensitivity, pollutionSensitivity, trafficSensitivity;
         public int wagePaid, rentPaid, livingPaid, travelPaid;
         public int evaluatedDay,shoppingDay=-1;
+        public int openingSavings,retailPaid;
+        public long incomeReceived;
         public string reason="等待住房和工作";
         public List<HouseholdOption> options=new List<HouseholdOption>();
         public List<CityResident> people=new List<CityResident>();
@@ -50,6 +52,7 @@ namespace HarborCity
         public float dayElapsed;
         public int nextJobId=1;
         public int nextCitizenId;
+        public long retiredWagesPaid;
         public List<CityJob> jobEntities=new List<CityJob>();
         public HouseholdSettings settings=new HouseholdSettings();
         public List<Household> families=new List<Household>();
@@ -266,7 +269,7 @@ namespace HarborCity
                 h.wagePaid=0;
                 foreach(var person in h.people)
                 {
-                    int factoryPay=TransferFactoryPay(person);r.factoryWages+=factoryPay;
+                    int factoryPay=TransferEmploymentPay(person);r.factoryWages+=factoryPay;
                     r.externalWages+=(int)Math.Round(person.earnedWages);
                     person.wagePaid=(int)Math.Round(person.earnedWages)+factoryPay; h.wagePaid+=person.wagePaid;
                     Trace("citizen.pay","日末个人实际出勤与入账",new CityLogDetail {minutes=person.workedMinutes,earned=person.earnedWages+factoryPay,amount=person.wagePaid,reason="工厂实付 "+factoryPay+"；其余为商业工资"},
@@ -352,7 +355,7 @@ namespace HarborCity
                             || person.observedWork < -1 || person.observedWork>=0 && GetBuilding(person.observedWork)==null) return false;
                         foreach(float value in new[]{person.health,person.earnedWages,person.workedMinutes,person.lastCommute,person.lastDelay,person.retryAt,person.requestedAt})
                             if(float.IsNaN(value) || float.IsInfinity(value)) return false;
-                        if(person.health<0 || person.health>100 || person.tripId<0 || person.earnedWages<0 || person.workedMinutes<0 || person.totalFactoryWagesPaid<0 || !FinanceNumber(person.factoryWageCredit)) return false;
+                        if(person.health<0 || person.health>100 || person.tripId<0 || person.earnedWages<0 || person.workedMinutes<0 || person.wagesPaid<0 || !FinanceNumber(person.wageCredit)) return false;
                         if(person.tripId>0 && (traffic==null || !traffic.trips.Exists(t=>t.id==person.tripId && t.residentId==person.id && t.householdId==h.id))) return false;
                     }
                 }

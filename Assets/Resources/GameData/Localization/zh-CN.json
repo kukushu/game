@@ -32,6 +32,18 @@
     {
       "key": "ui.stage.current",
       "text": "空地建设、分区生长、水电排污、迁入就业与有价对外货运已接入；消费、垃圾及财政继续恢复中。"
+    },
+    {
+      "key": "building.close_wait_transport",
+      "text": "该建筑还有在途运输，请等待运输完成后拆除。"
+    },
+    {
+      "key": "building.close_wait_residents",
+      "text": "该建筑仍有人在场，请等待人员离开后拆除。"
+    },
+    {
+      "key": "ui.retail.summary",
+      "text": "实际消费 {0} 件 · 零售付款 ¥{1}"
     }
   ]
 }

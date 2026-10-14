@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -38,7 +38,7 @@ namespace HarborCity
         bool hasStart;Point startPoint;bool building,oneWay,wide;int origin,destination;float speed=1;
         long previousTick;int lastSteps;
         string notice="原工厂劳动→生产→新交通实车运输→原商店库存/支付。居民实际通勤已接入；市政、分区、信号灯和行人尚未接回。";
-        string SavePath=>Path.Combine(Application.persistentDataPath,session==null?"harbor-road-core-v14.hcrc":"harbor-city-core-v13.hcity");
+        string SavePath=>Path.Combine(Application.persistentDataPath,session==null?"harbor-road-core-v15.hcrc":"harbor-city-core-v14.hcity");
         static Vector3 V(Point p)=>new Vector3((float)p.x,(float)p.y,(float)p.z);
         void Start()
         {
@@ -173,6 +173,7 @@ namespace HarborCity
             if(GUILayout.Button("拆分第一路中点")){try{world.SplitRoadAt(1,world.Network.Centreline(1).Length/2);RenderRoads();notice="已拆分并迁移活动车辆";}catch(Exception e){notice=e.Message;}}
             if(GUILayout.Button("拆除第一路")){try{if(session==null)world.RemoveRoad(1);else session.Construction.RemoveRoad(1);RenderRoads();notice="受影响运输保留为中断，不传送、不丢货";}catch(Exception e){notice=e.Message;}}
             if(GUILayout.Button("保存"))Save();if(GUILayout.Button("读取"))Load();GUILayout.EndHorizontal();
+            if(session!=null)GUILayout.Label(localization.Get("ui.retail.summary",session.City.consumption.ConsumedGoods,session.City.consumption.RetailPayments.ToString("F0")));
             foreach(var d in world.Depots)GUILayout.Label("仓库 #"+d.id+" 库存 "+d.stock+" / "+d.capacity+" 现金 "+d.cash.ToString("F0"));GUILayout.Label("WASD移动相机；点击两点修路，Esc取消。新存档："+SavePath);GUILayout.EndArea();
             if(session!=null&&!session.City.development.enabled){GUI.Box(new Rect(8,250,620,90),"");GUI.Label(new Rect(20,258,600,22),"工厂：原料 "+session.City.Factory(1)?.raw+" 成品 "+session.City.Goods(1)+" 累计生产 "+session.City.Factory(1)?.produced+" 销售 "+session.City.Factory(1)?.sold+" 现金 "+session.City.Factory(1)?.cash.ToString("F2"));GUI.Label(new Rect(20,285,600,22),"商店库存 "+session.City.Goods(2)+" · 原居民 "+session.City.Citizens.Count()+" · 工厂岗位 "+session.City.JobCapacity(1));}
         }
@@ -306,9 +307,9 @@ namespace HarborCity
             try
             {
                 session.Validate();clone.Validate();if(Convert.ToBase64String(CityCoreSave.Write(session))!=Convert.ToBase64String(CityCoreSave.Write(clone)))throw new Exception("Native trade continuation mismatch");
-                int produced=session.Entities.Factories.Sum(f=>f.factory.produced),goods=session.Entities.Factories.Sum(f=>f.Stock)+session.Entities.Shops.Sum(s=>s.Stock)+world.Tasks.Where(t=>t.Shipment?.kind==CargoKind.Goods).Sum(t=>t.Cargo)+session.City.trade.goodsExported;
-                if(session.City.population<=0||session.City.Employed<=0||produced<=0||session.City.trade.goodsExported<=0||produced!=goods)throw new Exception("Native multi-day labour/import/export conservation failed");
-                sample=CityCoreSave.Write(session);File.WriteAllText(Path.Combine(path,"TradeResult.txt"),"PASS actual original Unity terrain; empty city production construction commands, reachable grid, utilities, private growth, real people/jobs/commuting, paid material trucks and actual exported goods. Multi-day inventory/market escrow, immutable asset profile and in-flight save continuation. Consumer loop/fiscal/garbage remain pending.\n");
+                int produced=session.Entities.Factories.Sum(f=>f.factory.produced),goods=session.Entities.Factories.Sum(f=>f.Stock)+session.Entities.Shops.Sum(s=>s.Stock)+world.Tasks.Where(t=>t.Shipment?.kind==CargoKind.Goods).Sum(t=>t.Cargo)+session.City.trade.goodsExported+session.City.consumption.ConsumedGoods+session.City.Citizens.Sum(p=>p.carriedGoods);
+                if(session.City.population<=0||session.City.Employed<=0||produced<=0||produced!=goods||session.City.consumption.ConsumedGoods<=0)throw new Exception("Native multi-day labour/import/export conservation failed");
+                sample=CityCoreSave.Write(session);File.WriteAllText(Path.Combine(path,"TradeResult.txt"),"PASS actual original Unity terrain; empty city production construction commands, reachable grid, utilities, private growth, real people/jobs/commuting, paid material trucks and actual wholesale deliveries. Multi-day inventory/market escrow, immutable asset profile and in-flight save continuation. Actual shopping vehicles, paid employer wages, finite commercial accounts, carried home goods and consumption verified. Fiscal/garbage remain pending.\n");
             }
             catch(Exception e){File.WriteAllText(Path.Combine(path,"TradeResult.txt"),"FAIL final "+e);Application.Quit(1);yield break;}
             QualitySettings.vSyncCount=0;Application.targetFrameRate=60;

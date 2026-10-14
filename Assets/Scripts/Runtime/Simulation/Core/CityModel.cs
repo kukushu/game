@@ -11,6 +11,7 @@ namespace HarborCity
         public CityMapState map=new CityMapState();
         public int money=65000, day=1;
         public CityTradeState trade {get;internal set;}=new CityTradeState();
+        public CityConsumptionState consumption {get;internal set;}=new CityConsumptionState();
         public TrafficState traffic=new TrafficState();
         public CityRoads roads=new CityRoads();
         [NonSerialized] public int population,jobs,income,upkeep,power,water,demand,happiness=70;

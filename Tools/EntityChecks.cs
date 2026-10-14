@@ -46,11 +46,11 @@ public static class EntityChecks
 
         c=TestCity.Create();var sim=new CityTraffic(c);sim.Advance(45);
         Check(c.traffic.trips.All(t=>t.origin==-1 || c.GetBuilding(t.origin)!=null) && c.Citizens.Any(p=>p.lastCommute>0),"Real transport resolves sparse building IDs");
-        factory=c.buildings.OfType<IndustrialBuilding>().First();double paid=factory.factory.wageCosts,credit=c.society.families.SelectMany(h=>h.people).Sum(p=>p.factoryWageCredit);
+        factory=c.buildings.OfType<IndustrialBuilding>().First();double paid=factory.factory.wageCosts,credit=c.society.families.SelectMany(h=>h.people).Sum(p=>p.wageCredit);
         var factoryId=factory.id;c.money=100000;
         Check(c.DemolishBuilding(factoryId) && c.GetBuilding(factoryId)==null && !c.buildings.Any(b=>b.id==factoryId),"Demolition removes entity instead of leaving a slot");
         Check(c.society.jobEntities.All(j=>j.buildingId!=factoryId) && c.traffic.trips.All(t=>t.origin!=factoryId && t.destination!=factoryId && t.home!=factoryId),"Demolition cleans jobs and active trip references");
-        Check(c.retiredFactoryWages==paid && Math.Abs(credit-c.society.families.SelectMany(h=>h.people).Sum(p=>p.factoryWageCredit))<.0001,"Closing factory preserves paid resident credits and payroll audit");
+        Check(c.retiredFactoryWages==paid && Math.Abs(credit-c.society.families.SelectMany(h=>h.people).Sum(p=>p.wageCredit))<.0001,"Closing factory preserves paid resident credits and payroll audit");
         Check(c.Valid(),"Demolished factory state remains valid immediately");
         sim.Advance(90);Check(c.Valid(),"Workers and traffic continue after workplace demolition");
         var h0=c.society.families.First(h=>h.resident);id=h0.home;

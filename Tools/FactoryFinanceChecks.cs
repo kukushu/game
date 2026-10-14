@@ -27,7 +27,7 @@ public static class FactoryFinanceChecks
     static void Ledger(CityModel c)
     {
         Check(c.buildings.OfType<IndustrialBuilding>().All(b=>Math.Abs(b.factory.CashError)<.0001),"Every factory cash reconciles with capital, sales and actual costs");
-        Check(Math.Abs(c.retiredFactoryWages+c.buildings.OfType<IndustrialBuilding>().Sum(b=>b.factory.wageCosts)-c.society.families.SelectMany(h=>h.people).Sum(p=>p.factoryWageCredit+p.totalFactoryWagesPaid))<.0001,"Employer payroll equals resident credits plus transferred savings");
+        Check(Math.Abs(c.retiredFactoryWages+c.buildings.OfType<IndustrialBuilding>().Sum(b=>b.factory.wageCosts)-c.society.families.SelectMany(h=>h.people).Sum(p=>p.wageCredit+p.wagesPaid))<.0001,"Employer payroll equals resident credits plus transferred savings");
     }
     // JavaScriptSerializer emits doubles with fewer than round-trip digits. Compare
     // financial continuation to a micro-unit while keeping IDs, inventory and dates exact.
@@ -81,11 +81,11 @@ public static class FactoryFinanceChecks
 
         c=Create(out sim,out p,out id); f=c.Factory(id); Cash(f,1.25); AtWork(c,p,id);
         c.PayAttendance(p,480);
-        Check(f.cash==0 && f.wageCosts==1.25 && p.factoryWageCredit==1.25 && p.earnedWages==0,"Worker credit is limited to actual employer cash");
-        double credit=p.factoryWageCredit; c.PayAttendance(p,480);
-        Check(p.factoryWageCredit==credit && f.unpaidWages>0,"Cashless idle attendance cannot mint wages");
+        Check(f.cash==0 && f.wageCosts==1.25 && p.wageCredit==1.25 && p.earnedWages==0,"Worker credit is limited to actual employer cash");
+        double credit=p.wageCredit; c.PayAttendance(p,480);
+        Check(p.wageCredit==credit && f.unpaidWages>0,"Cashless idle attendance cannot mint wages");
         c.HouseholdTick();
-        Check(p.totalFactoryWagesPaid==1 && p.factoryWageCredit==.25 && c.society.history.Last().factoryWages==1,"Daily pay preserves fractional employer-funded credit"); Ledger(c);
+        Check(p.wagesPaid==1 && p.wageCredit==.25 && c.society.history.Last().factoryWages==1,"Daily pay preserves fractional employer-funded credit"); Ledger(c);
 
         c=Create(out sim,out p,out id); f=c.Factory(id); Cash(f,2); AtWork(c,p,id); sim.Advance(5);
         Check(f.cash==0 && f.produced==0 && f.wageCosts<=2 && (p.tripId>0 || !p.atWork),"Raw-starved employer spends only finite cash, then sends worker home");
@@ -93,8 +93,8 @@ public static class FactoryFinanceChecks
         Check(p.jobId==-1 && !p.atWork,"Cashless employer releases employment after actual return");
         var job=c.society.jobEntities.First(j=>j.buildingId==id);
         Check(!c.AssignJob(p,job.id) && c.ExpectedJobWage(job)==0,"Unfunded physical slots are not usable wage-paying vacancies");
-        credit=p.factoryWageCredit; sim.Advance(20);
-        Check(p.factoryWageCredit==credit && f.salesRevenue==0,"Stopped factory cannot continue normal pay");
+        credit=p.wageCredit; sim.Advance(20);
+        Check(p.wageCredit==credit && f.salesRevenue==0,"Stopped factory cannot continue normal pay");
         c.Inventory(id).Stock=8; sale=sim.Dispatch(id,CityTraffic.Outside,TripPurpose.Export); Deliver(sim,sale);
         Check(f.cash==360 && c.JobFunded(job) && c.AssignJob(p,job.id),"Selling remaining goods restores liquidity and permits rehiring without subsidies"); Ledger(c);
 
@@ -118,8 +118,8 @@ public static class FactoryFinanceChecks
         Check(copy.Valid() && Snapshot(json,c.society)==Snapshot(json,copy.society) && Snapshot(json,c.traffic)==Snapshot(json,copy.traffic) && Snapshot(json,c.buildings)==Snapshot(json,copy.buildings),"Save continuation preserves accounts, fractional wages and in-transit transactions");
 
         c=Create(out sim,out p,out id); AtWork(c,p,id); c.PayAttendance(p,60); f=c.Factory(id);
-        credit=p.factoryWageCredit; opening=f.cash; c.money=100000; c.DemolishBuilding(id);
-        Check(p.factoryWageCredit==credit && f.cash==opening && p.jobId==-1,"Demolition retains already-paid resident credit and freezes the closed factory ledger");
+        credit=p.wageCredit; opening=f.cash; c.money=100000; c.DemolishBuilding(id);
+        Check(p.wageCredit==credit && f.cash==opening && p.jobId==-1,"Demolition retains already-paid resident credit and freezes the closed factory ledger");
         c.HouseholdTick(); Ledger(c);
 
         c=Create(out sim,out p,out id);f=c.Factory(id);Cash(f,0);c.Recalculate();
