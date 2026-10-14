@@ -7,7 +7,7 @@ import subprocess, json, html, re, csv
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'Docs/Architecture'
-COMMIT = '338ce23'
+COMMIT = '72fbee5'
 BASELINE = '110c4eaa24fa69d55b08a5db2a6d19ec6da5dd7f'
 R = 'Assets/Scripts/Runtime/'
 files = {
@@ -56,6 +56,8 @@ files = {
  'corezoning': R+'Infrastructure/Zoning/CityCoreZoning.cs',
  'coregrowth': R+'Simulation/Growth/CityCoreGrowth.cs',
  'coreconstruction': R+'Simulation/Core/CityCoreConstruction.cs',
+ 'coreutilities': R+'Simulation/Services/CityCoreUtilities.cs',
+ 'corepopulation': R+'Simulation/Residents/CityCorePopulation.cs',
  'candidates': R+'Simulation/Industry/CityFreightCandidates.cs',
  'reachability': R+'Infrastructure/Roads/CityLaneReachability.cs',
 }
@@ -303,21 +305,37 @@ flowdata['save']['note']='城市10 / 核心13：独立位置/冻结模式、任�
 for ident,name,module,kind,key,token,fields,description in [
  ('corezoning','CityCoreZoning','Zoning','derived','corezoning','public sealed class CityCoreZoning','world land stamps / versioned plots / surface', 'Saved designations are facts; road-aligned plots and stamp buckets are derived. Building entities remain independent.'),
  ('coregrowth','CityCoreGrowth','Growth','temporary','coregrowth','public sealed class CityCoreGrowth','Zoning / nextGrowth / projects', 'Healthy pre-actor boundary creates timed private projects and registers completed buildings/jobs/access through CityEntities.'),
- ('coreconstruction','CityCoreConstruction','Construction','temporary','coreconstruction','public sealed class CityCoreConstruction','city / entities / world', 'Budget check, atomic RoadEditPlan commit and one debit; failed or stale edits do not spend.')]:
+ ('coreconstruction','CityCoreConstruction','Construction','temporary','coreconstruction','public sealed class CityCoreConstruction','city / entities / world', 'Budget check, atomic RoadEditPlan commit and one debit; failed or stale edits do not spend.'),
+ ('coreutilities','CityCoreUtilities','Utilities','derived','coreutilities','public sealed class CityCoreUtilities','版本 / 原连通管网 / 供给缓存', '读取真实RoadAccess，按实体/路网/管线及负荷变化重建供给；原CityUtilityState为唯一管网事实，不用旧交通图。'),
+ ('corepopulation','CityCorePopulation','Population','temporary','corepopulation','public sealed class CityCorePopulation','lastSettledDay / nextEmployment / 实体注册', '每日按有供给空住房迁入，通过实体生命周期注册；个人按技能和可达岗位就业，同home/work估算一次。仍有候选遍历，不是常数查询。')]:
     card(ident,name,module,kind,key,token,fields,'Actual R3-A chain',description,description,'No second editable city or road network.','Healthy structural boundary.','Create/read/rebuild.','CitySimulation / CityEntities / shared network.','Cold planning rebuild costs not yet measured at full-city scale.','Restore population, supplies and consumption next.')
     graphs['classes']['nodes'].append(node(ident,name,fields,kind))
     evidence.append(dict(title=name,source=ref(key,token)))
 graphs['classes']['edges'].extend([edge('simulation','coregrowth','pre-actor boundary'),edge('coregrowth','corezoning','owns'),edge('coregrowth','entities','register buildings'),edge('session','coreconstruction','owns'),edge('coreconstruction','world','atomic paid edit')])
+graphs['classes']['edges'].extend([edge('simulation','coreutilities','边界重建供给'),edge('simulation','corepopulation','迁入与岗位'),edge('corepopulation','entities','注册同一事实'),edge('corepopulation','coreutilities','负荷改变失效')])
 graphs['ownership']['nodes'].extend([node('land','Land designations / projects','Saved world stamps and construction deadlines','fact','coregrowth'),node('plots','Roadside plots','Derived from road, terrain and buildings','derived','corezoning')])
 graphs['ownership']['edges'].extend([edge('city','land','owns zoning/development'),edge('land','plots','derived','dash'),edge('network','plots','read shared geometry','dash')])
+graphs['ownership']['nodes'].append(node('utilityfacts','CityUtilityState','唯一电线/水排污管网事实','fact','coreutilities'))
+graphs['ownership']['nodes'].append(node('coreutilities','BuildingSupply / PipeSupply','版本失效的供给缓存，不存档','derived','coreutilities'))
+graphs['ownership']['edges'].extend([edge('city','utilityfacts','拥有'),edge('utilityfacts','coreutilities','按版本派生供给','dash')])
 graphs['global-current']['nodes'].extend([node('coregrowth','Growth / Zoning','Actual R3-A healthy boundary','temporary'),node('coreconstruction','Paid construction','Normal empty terrain startup','temporary')])
 graphs['global-current']['edges'].extend([edge('simulation','coregrowth','before actors'),edge('coreconstruction','world','atomic edits'),edge('coregrowth','entities','lifecycle')])
 for n in graphs['global-current']['nodes']:
-    if n['id']=='old':n.update(label='Services / immigration / economy',sub='Still pending R3 integration')
-    if n['id']=='save':n.update(label='City11 / core13',sub='Map, zoning, projects, active city facts')
-flowdata['current']['name']='R3-A actual city update'
+    if n['id']=='old':n.update(label='垃圾 / 财政 / 消费 / 持续进口',sub='仍待R3恢复完整城市')
+    if n['id']=='save':n.update(label='城市12 / 核心13',sub='地图/分区/管网/人口/在途事实')
+graphs['global-current']['nodes'].extend([node('coreutilities','CityCoreUtilities','实际水电排污与容量','derived'),node('corepopulation','CityCorePopulation','实际迁入与个人找工作','temporary')])
+graphs['global-current']['edges'].extend([edge('simulation','coreutilities','供给变更'),edge('simulation','corepopulation','健康边界'),edge('corepopulation','entities','生命周期')])
+flowdata['current']['name']='R3-B实际城市更新流程'
 flowdata['current']['stages'].insert(0,dict(name='Healthy growth boundary',detail='Terrain and zoning readiness; timed proposals/completion; entity and entrance registration before actors. No invented people.',source=ref('coregrowth','internal void Step')))
-flowdata['save']['note']='City11 / core13: map, designations and pending projects plus active actor facts. Complete services/finance are still pending.'
+growthstage=flowdata['current']['stages'].pop(0);flowdata['current']['stages'].insert(3,growthstage)
+flowdata['current']['stages'].insert(4,dict(name='供给重建边界',detail='实体、路网、管线或负荷改变才重建电、水、排污；旧道路图不参与。',source=ref('coreutilities','public void Refresh')))
+flowdata['current']['stages'].insert(5,dict(name='迁入与就业边界',detail='按日与六秒调度；只有有供给空住房才能迁入，随后个人占具体岗位，负荷改变刷新供给。',source=ref('corepopulation','internal void Step')))
+flowdata['save']['note']='城市12 / 核心13：管线、真实人口、就业截止时间、分区和项目及在途状态；消费垃圾财政等仍待恢复。'
+for c in cards:
+    if c['id']=='save':c.update(fields='城市12 / 核心13；地图、规划、管网、成员和在途状态',facts='已接领域事实与唯一时钟；供给/索引/显示对象派生，不保存两份真相。',risk='垃圾/财政/完整业务仍未恢复，当前保存不能称全城最终格式。')
+    if c['id']=='household':c.update(life='按有供给空住房实际迁入→个人出勤→新保存恢复；迁居/拆除搬迁仍待恢复。')
+    if c['id']=='building':c.update(fields='id / x,z,groundY / entranceX,Y,Z / yaw / level / 独立状态',life='空地分区→计划→私人建筑生长；市政付费建造，实体注册同一对象。')
+    if c['id']=='production':c.update(facts='实际到岗商业/工业工资；私有工厂读earnedWages规则，现金原型工厂读实际工资信用。',risk='原私有企业外部工资资金近似保留；连续原料和消费尚未接入。')
 payload=dict(commit=COMMIT,baseline=BASELINE,cards=cards,graphs=graphs,flows=flowdata,readings=readingdata,perf=perf,evidence=evidence)
 
 page=r'''<!doctype html>
@@ -447,6 +465,11 @@ page=page.replace('默认入口是原居民/工厂/商店接新交通的迁移�
 page=page.replace('完整旧城市的分区、市政、管网、公交、地形工具和经营UI尚未接回。','居民迁入、持续供给消费、市政、管网、公交和完整经营UI尚未接回。')
 page=page.replace('R2-B实现源码 c40bde5','R3-A实现源码 '+COMMIT).replace('实现源码c40bde5','实现源码'+COMMIT)
 page=page.replace('后续进展见上方R2-A','后续进展见上方R3-A')
+r3b=(OUT/'R3PopulationUtilities.md').read_text(encoding='utf-8')
+page=page.replace('<section id="review">','<section id="review"><details open><summary>最新实际：R3-B供给、迁入、就业与出勤</summary><div class="doccontent">'+markdown(r3b)+'</div></details>')
+page=page.replace('居民迁入、持续供给消费、市政、管网、公交和完整经营UI尚未接回。','基础水电排污、居民迁入和个人找工作已接；持续原料、消费、垃圾财政、公交及完整经营UI仍未恢复。')
+page=page.replace('R3-A实现源码 '+COMMIT,'R3-B实现源码 '+COMMIT)
+page=page.replace('当前默认入口仍是迁移中的工业小城','正常入口现在是原地形上的空城建设与实际成长')
 (OUT/'HarborCityArchitecture.html').write_text(page,encoding='utf-8')
 (OUT/'SourceEvidence.md').write_text('# 固定源码定位证据\n\n审查commit：`'+COMMIT+'`。以下行号由固定源码生成，而非当前工作树。\n\n'+ '\n'.join('## '+e['title']+'\n\n['+e['source']['file']+':'+str(e['source']['line'])+']('+e['source']['url']+')\n\n方法/语句：`'+e['source']['token']+'`\n' for e in evidence),encoding='utf-8')
 print(f'Created {OUT / "HarborCityArchitecture.html"}; {len(cards)} class cards, {len(graphs)} graphs, {len(flowdata)} flows; pinned {COMMIT}')
