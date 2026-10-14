@@ -329,20 +329,21 @@ namespace HarborCity.RoadCore
         {
             return SplitCandidate(CopyNetwork(),roadId,sample);
         }
-        public int SplitRoadAt(int roadId,double centerDistance)
+        public int SplitRoadAt(int roadId,double centerDistance,int existingJunction=0)
         {
             var n=CopyNetwork();var road=n.roads.Find(r=>r.id==roadId);if(road==null)throw new ArgumentException("Missing road");var geometry=new Geometry(road.points);
             if(centerDistance<=.1||centerDistance>=geometry.Length-.1||double.IsNaN(centerDistance))throw new ArgumentException("Cut must be inside the road");
-            for(int i=1;i<geometry.Count-1;i++)if(Math.Abs(geometry.At(i)-centerDistance)<1e-8)return SplitCandidate(n,roadId,i);
+            for(int i=1;i<geometry.Count-1;i++)if(Math.Abs(geometry.At(i)-centerDistance)<1e-8)return SplitCandidate(n,roadId,i,existingJunction);
             int after=1;while(geometry.At(after)<centerDistance)after++;double t=(centerDistance-geometry.At(after-1))/(geometry.At(after)-geometry.At(after-1));
             var right=Network.RightVectors(road);var points=new List<Point>(road.points);var vectors=new List<Point>(right);points.Insert(after,geometry.Sample(centerDistance));vectors.Insert(after,Point.Lerp(right[after-1],right[after],t));road.points=points.ToArray();road.rightVectors=vectors.ToArray();
-            return SplitCandidate(n,roadId,after);
+            return SplitCandidate(n,roadId,after,existingJunction);
         }
-        int SplitCandidate(NetworkData n,int roadId,int sample)
+        int SplitCandidate(NetworkData n,int roadId,int sample,int existingJunction=0)
         {
             var r=n.roads.Find(x=>x.id==roadId);if(r==null||sample<=0||sample>=r.points.Length-1)throw new ArgumentException("Split must be an internal geometry sample");var vectors=Network.RightVectors(r);
-            int junction=n.nextJunction++,suffixId=n.nextRoad++;
-            n.junctions.Add(new Junction{id=junction,position=r.points[sample]});
+            int junction=existingJunction==0?n.nextJunction++:existingJunction,suffixId=n.nextRoad++;
+            if(existingJunction==0)n.junctions.Add(new Junction{id=junction,position=r.points[sample]});
+            else {var anchor=n.junctions.Find(j=>j.id==existingJunction);if(anchor==null||Point.Distance(anchor.position,r.points[sample])>1e-6)throw new ArgumentException("Existing junction does not coincide with cut point");}
             var suffix=new PhysicalRoad{id=suffixId,from=junction,to=r.to,oneWay=r.oneWay,lanes=r.lanes,speed=r.speed,points=new Point[r.points.Length-sample],rightVectors=new Point[r.points.Length-sample],endTangent=r.endTangent};
             Array.Copy(r.points,sample,suffix.points,0,suffix.points.Length);
             Array.Copy(vectors,sample,suffix.rightVectors,0,suffix.rightVectors.Length);

@@ -48,7 +48,7 @@ namespace HarborCity.RoadCore
         }
         static int Attach(World draft,Point point,double radius)
         {
-            int junction=draft.SnapJunction(point,radius);if(junction!=0)return junction;
+            int junction=draft.SnapJunction(point,radius);if(junction!=0){JoinCoincidentRoads(draft,junction);return junction;}
             int bestRoad=0;double best=radius,along=0;Point position=point;
             foreach(var road in draft.Snapshot().network.roads)
             {
@@ -61,7 +61,22 @@ namespace HarborCity.RoadCore
                 }
             }
             if(bestRoad==0)return draft.AddJunction(point);
-            junction=draft.SnapJunction(position,.05);return junction!=0?junction:draft.SplitRoadAt(bestRoad,along);
+            junction=draft.SnapJunction(position,.05);if(junction==0)junction=draft.SplitRoadAt(bestRoad,along);JoinCoincidentRoads(draft,junction);return junction;
+        }
+        static void JoinCoincidentRoads(World draft,int junction)
+        {
+            Point anchor=draft.JunctionPosition(junction);
+            foreach(var road in draft.Snapshot().network.roads)
+            {
+                if(road.from==junction||road.to==junction)continue;var geometry=new Geometry(road.points);
+                for(int i=1;i<geometry.Count;i++)
+                {
+                    Point a=geometry[i-1],b=geometry[i];double x=b.x-a.x,y=b.y-a.y,z=b.z-a.z,den=x*x+y*y+z*z,t=Math.Max(0,Math.Min(1,((anchor.x-a.x)*x+(anchor.y-a.y)*y+(anchor.z-a.z)*z)/den));Point p=Point.Lerp(a,b,t);
+                    if(Point.Distance(anchor,p)>1e-6)continue;double distance=geometry.At(i-1)+Point.Distance(a,p);
+                    if(distance<=.1||distance>=geometry.Length-.1)throw new InvalidOperationException("Coincident independent road endpoints require explicit topology repair");
+                    draft.SplitRoadAt(road.id,distance,junction);break;
+                }
+            }
         }
     }
 }
