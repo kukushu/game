@@ -114,7 +114,7 @@ namespace HarborCity
             var jobs=city.society.jobEntities.Where(j=>j.buildingId==1).ToList();for(int i=0;i<4;i++){var worker=family.people[i];city.AssignJob(worker,jobs[i].id);worker.atWork=true;worker.location=1;worker.arrivedDay=1;}
             var session=new CityCoreIndustrySession(city);
             int a=session.Transport.AddJunction(new Point(-35,0,0)),b=session.Transport.AddJunction(new Point(0,0,0)),c=session.Transport.AddJunction(new Point(35,0,0));
-            int sourceRoad=session.Transport.AddRoad(a,b,new[]{session.Transport.JunctionPosition(a),new Point(-18,0,0),session.Transport.JunctionPosition(b)}),goalRoad=session.Transport.AddRoad(b,c,new[]{session.Transport.JunctionPosition(b),new Point(18,0,0),session.Transport.JunctionPosition(c)});
+            int sourceRoad=session.Transport.AddRoad(a,b,new[]{session.Transport.JunctionPosition(a),new Point(-18,0,0),session.Transport.JunctionPosition(b)},lanes:2),goalRoad=session.Transport.AddRoad(b,c,new[]{session.Transport.JunctionPosition(b),new Point(18,0,0),session.Transport.JunctionPosition(c)},lanes:2);
             session.Transport.RegisterAccess(1,Network.LaneId(sourceRoad,false),10,AccessUse.Freight);session.Transport.RegisterAccess(2,Network.LaneId(goalRoad,false),25,AccessUse.Freight);return session;
         }
     }

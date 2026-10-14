@@ -46,6 +46,13 @@ namespace HarborCity.RoadCore
             int lo=0,hi=points.Length-1;while(hi-lo>1){int m=(lo+hi)/2;if(cumulative[m]<=distance)lo=m;else hi=m;}
             return Point.Lerp(points[lo],points[hi],(distance-cumulative[lo])/(cumulative[hi]-cumulative[lo]));
         }
+        public double MapDistance(Geometry target,double distance)
+        {
+            if(Count!=target.Count)throw new ArgumentException("Parallel geometry sample correspondence missing");
+            if(distance<=0)return 0;if(distance>=Length)return target.Length;
+            int lo=0,hi=Count-1;while(hi-lo>1){int m=(lo+hi)/2;if(cumulative[m]<=distance)lo=m;else hi=m;}
+            double t=(distance-cumulative[lo])/(cumulative[hi]-cumulative[lo]);return target.At(lo)+(target.At(hi)-target.At(lo))*t;
+        }
     }
     public sealed class Drivable
     {
@@ -55,6 +62,7 @@ namespace HarborCity.RoadCore
         public readonly double Speed;
         public readonly Geometry Geometry;
         public double ProtectedClearance {get;internal set;}
+        public int ParallelLaneCount {get;internal set;}
         internal Drivable(long id,int road,int from,int to,int junction,bool reverse,double speed,Point[] points)
         {Id=id;RoadId=road;From=from;To=to;JunctionId=junction;Reverse=reverse;Speed=speed;Geometry=new Geometry(points);ProtectedClearance=Math.Min(2,Geometry.Length/3);}
         public bool IsConnection=>JunctionId!=0;
@@ -72,6 +80,7 @@ namespace HarborCity.RoadCore
         public IEnumerable<Drivable> Drivables=>drivables.Values;
         public int RoadCount=>data.roads.Count;
         public int JunctionCount=>data.junctions.Count;
+        public bool HasParallelLanes {get;private set;}
         public Network(NetworkData data){this.data=data??throw new ArgumentNullException(nameof(data));Rebuild();}
         public Drivable Get(long id){Drivable d;if(!drivables.TryGetValue(id,out d))throw new InvalidOperationException("Missing drivable "+id);return d;}
         public bool Contains(long id)=>drivables.ContainsKey(id);
@@ -104,7 +113,7 @@ namespace HarborCity.RoadCore
                 var g=new Geometry(r.points);if(g.Length<.1||!Finite(r.startTangent)||!Finite(r.endTangent)||Point.Distance(r.points[0],junctions[r.from].position)>1e-6||Point.Distance(r.points[r.points.Length-1],junctions[r.to].position)>1e-6)throw new ArgumentException("Road endpoints/tangents disagree with junctions");
                 for(int i=0;i<r.points.Length;i++)if(!Finite(r.points[i])||(i>0&&Point.Distance(r.points[i-1],r.points[i])<1e-8))throw new ArgumentException("Invalid geometry sample");
                 if(r.rightVectors!=null){if(r.rightVectors.Length!=r.points.Length)throw new ArgumentException("Cross-section count mismatch");foreach(var right in r.rightVectors)if(!Finite(right)||Math.Abs(right.y)>1e-9||Point.Distance(right,new Point())>1.000001)throw new ArgumentException("Invalid road cross-section");}
-                maxR=Math.Max(maxR,r.id);laneCounts.Add(r.id,r.lanes);double radius=(r.lanes-.5)*1.1+1;double prior;junctionRadii.TryGetValue(r.from,out prior);junctionRadii[r.from]=Math.Max(prior,radius);junctionRadii.TryGetValue(r.to,out prior);junctionRadii[r.to]=Math.Max(prior,radius);for(int lane=0;lane<r.lanes;lane++){AddLane(r,false,lane);if(!r.oneWay)AddLane(r,true,lane);}
+                maxR=Math.Max(maxR,r.id);laneCounts.Add(r.id,r.lanes);HasParallelLanes|=r.lanes>1;double radius=(r.lanes-.5)*1.1+1;double prior;junctionRadii.TryGetValue(r.from,out prior);junctionRadii[r.from]=Math.Max(prior,radius);junctionRadii.TryGetValue(r.to,out prior);junctionRadii[r.to]=Math.Max(prior,radius);for(int lane=0;lane<r.lanes;lane++){AddLane(r,false,lane);if(!r.oneWay)AddLane(r,true,lane);}
             }
             if(data.nextRoad<=maxR||data.nextJunction<=maxJ)throw new ArgumentException("Identity allocator is behind live entities");
             foreach(var lane in drivables.Values){double from,to;junctionRadii.TryGetValue(lane.From,out from);junctionRadii.TryGetValue(lane.To,out to);lane.ProtectedClearance=Math.Min(Math.Max(2,Math.Max(from,to)),lane.Geometry.Length/3);}
@@ -152,6 +161,7 @@ namespace HarborCity.RoadCore
                 double offset=(.55+index*1.1)*(reverse?-1:1);p[reverse?n-1-i:i]=new Point(road.points[i].x+right[i].x*offset,road.points[i].y,road.points[i].z+right[i].z*offset);
             }
             var d=new Drivable(LaneId(road.id,reverse,index),road.id,reverse?road.to:road.from,reverse?road.from:road.to,0,reverse,road.speed,p);
+            d.ParallelLaneCount=road.lanes;
             drivables.Add(d.Id,d);List<Drivable> list;if(!outgoing.TryGetValue(d.From,out list))outgoing.Add(d.From,list=new List<Drivable>());list.Add(d);
         }
         sealed class RouteQueue
