@@ -19,7 +19,8 @@ namespace HarborCity.RoadCore
         public int cargo {get;internal set;}=1;
         public double price {get;internal set;}=5; public double distance {get;internal set;}
         internal List<long> route;
-        public IReadOnlyList<long> Route=>route;
+        List<long> exposedRouteOwner;IReadOnlyList<long> exposedRoute;
+        public IReadOnlyList<long> Route {get {if(!ReferenceEquals(exposedRouteOwner,route)){exposedRouteOwner=route;exposedRoute=route.AsReadOnly();}return exposedRoute;}}
         public int cursor {get;internal set;}
         public VehicleStatus status {get;internal set;}
         public Point strandedPosition {get;internal set;}
@@ -39,8 +40,9 @@ namespace HarborCity.RoadCore
         public const double StepSeconds=.05,MinimumSpacing=1.5;
         readonly WorldData data;
         public Network Network {get;private set;}
-        public IEnumerable<Vehicle> Vehicles=>data.vehicles;
-        public IEnumerable<Depot> Depots=>data.depots;
+        readonly IReadOnlyList<Vehicle> vehicleView;readonly IReadOnlyList<Depot> depotView;
+        public IEnumerable<Vehicle> Vehicles=>vehicleView;
+        public IEnumerable<Depot> Depots=>depotView;
         public double Clock=>data.clock;
         public int Delivered=>data.delivered;
         public int ActiveCount {get;private set;}
@@ -64,7 +66,7 @@ namespace HarborCity.RoadCore
         {
             if(state==null||state.coreFormat!=1)throw new ArgumentException("Unsupported road-core save. Legacy city saves are not supported.");
             data=state; // Take ownership of a private copy, never the caller's mutable save DTO.
-            data=Snapshot();foreach(var depot in data.depots)depotsById.Add(depot.id,depot);Network=new Network(data.network);Validate();AssertSafety();
+            data=Snapshot();vehicleView=data.vehicles.AsReadOnly();depotView=data.depots.AsReadOnly();foreach(var depot in data.depots)depotsById.Add(depot.id,depot);Network=new Network(data.network);Validate();AssertSafety();
         }
         // Only serializers may receive this copy; callers cannot mutate the live facts.
         public WorldData Snapshot()
@@ -287,20 +289,24 @@ namespace HarborCity.RoadCore
         public void RemoveRoad(int id)
         {
             var n=CopyNetwork();if(n.roads.RemoveAll(r=>r.id==id)==0)throw new ArgumentException("Missing road");var replacement=new Network(n);
+            var remaps=new List<Remap>();var interrupted=new List<KeyValuePair<Vehicle,Point>>();
             foreach(var v in data.vehicles)
             {
                 if(v.status!=VehicleStatus.Active)continue;
                 bool invalid=false;for(int i=v.cursor;i<v.route.Count;i++)if(!replacement.Contains(v.route[i])){invalid=true;break;}
-                if(invalid){v.strandedPosition=Position(v);v.status=VehicleStatus.Stranded;} // Explicit cargo-preserving interrupted task, never teleport.
+                if(invalid)interrupted.Add(new KeyValuePair<Vehicle,Point>(v,Position(v)));
                 else
                 {
                     // Traversed history is not a route dependency. A current connection
                     // retains its incoming lane; a current lane becomes the new route start.
                     int prefix=Network.Get(v.Current).IsConnection?v.cursor-1:v.cursor;
-                    if(prefix>0){v.route.RemoveRange(0,prefix);v.cursor-=prefix;}
-                    replacement.ValidateRoute(v.route);
+                    var route=v.route.GetRange(prefix,v.route.Count-prefix);replacement.ValidateRoute(route);
+                    remaps.Add(new Remap{vehicle=v,route=route,cursor=v.cursor-prefix,distance=v.distance});
                 }
             }
+            ValidateEditReservations(replacement,remaps);
+            foreach(var remap in remaps){remap.vehicle.route=remap.route;remap.vehicle.cursor=remap.cursor;}
+            foreach(var item in interrupted){item.Key.strandedPosition=item.Value;item.Key.status=VehicleStatus.Stranded;}
             data.network=n;Network=replacement;NetworkGeneration++;occupancy.Clear();Reindex();
         }
         public void Validate()
