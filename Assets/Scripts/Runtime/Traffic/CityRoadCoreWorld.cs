@@ -98,11 +98,34 @@ namespace HarborCity.RoadCore
             foreach(var v in data.vehicles)copy.vehicles.Add(new Vehicle{id=v.id,origin=v.origin,destination=v.destination,purpose=v.purpose,citizenId=v.citizenId,departedAt=v.departedAt,cargo=v.cargo,price=v.price,distance=v.distance,arrivalDistance=v.arrivalDistance,changeTarget=v.changeTarget,changeElapsed=v.changeElapsed,cursor=v.cursor,status=v.status,strandedPosition=v.strandedPosition,route=new List<long>(v.route)});
             return copy;
         }
-        NetworkData CopyNetwork()
+        NetworkData CopyNetwork()=>CloneNetwork(data.network);
+        static NetworkData CloneNetwork(NetworkData source)
         {
-            var n=new NetworkData{nextJunction=data.network.nextJunction,nextRoad=data.network.nextRoad};
-            foreach(var j in data.network.junctions)n.junctions.Add(new Junction{id=j.id,position=j.position});
-            foreach(var r in data.network.roads)n.roads.Add(new PhysicalRoad{id=r.id,from=r.from,to=r.to,direction=r.direction,lanes=r.lanes,speed=r.speed,points=(Point[])r.points.Clone(),rightVectors=r.rightVectors==null?null:(Point[])r.rightVectors.Clone(),startTangent=r.startTangent,endTangent=r.endTangent});return n;
+            var n=new NetworkData{nextJunction=source.nextJunction,nextRoad=source.nextRoad};
+            foreach(var j in source.junctions)n.junctions.Add(new Junction{id=j.id,position=j.position});
+            foreach(var r in source.roads)n.roads.Add(new PhysicalRoad{id=r.id,from=r.from,to=r.to,direction=r.direction,lanes=r.lanes,speed=r.speed,points=(Point[])r.points.Clone(),rightVectors=r.rightVectors==null?null:(Point[])r.rightVectors.Clone(),startTangent=r.startTangent,endTangent=r.endTangent});return n;
+        }
+        internal RoadEditState CaptureRoadEdit(){var accesses=new List<RoadAccess>();foreach(var access in data.accesses)accesses.Add(access.Copy());return new RoadEditState{network=CopyNetwork(),accesses=accesses};}
+        internal RoadEditPlan PlanRestoreRoadEdit(RoadEditState state)
+        {
+            var n=CloneNetwork(state.network);n.nextRoad=Math.Max(n.nextRoad,data.network.nextRoad);n.nextJunction=Math.Max(n.nextJunction,data.network.nextJunction);
+            foreach(var depot in data.depots)if(!n.junctions.Exists(j=>j.id==depot.junction)){var current=data.network.junctions.Find(j=>j.id==depot.junction);n.junctions.Add(new Junction{id=current.id,position=current.position});}
+            var candidate=new Network(n);var oldAccess=new Dictionary<int,RoadAccess>();foreach(var access in state.accesses)oldAccess.Add(access.endpoint,access);var proposed=new List<RoadAccess>();var hits=new List<SpatialHit>();
+            foreach(var access in data.accesses)
+            {
+                RoadAccess prior;if(oldAccess.TryGetValue(access.endpoint,out prior)){proposed.Add(prior.Copy());continue;}var restored=access.Copy();if(restored.valid){candidate.Project(Network.Get(access.lane).Geometry.Sample(access.distance),1e-6,false,hits);if(hits.Count==0){restored.valid=false;restored.lane=0;restored.distance=0;}else{restored.lane=hits[0].drivable;restored.distance=hits[0].distance;restored.preferredIndex=candidate.Get(restored.lane).LaneIndex;}}proposed.Add(restored);
+            }
+            var targetAccesses=new Dictionary<int,RoadAccess>();foreach(var access in proposed)targetAccesses.Add(access.endpoint,access);var remaps=new List<Remap>();var interrupted=new List<KeyValuePair<Vehicle,Point>>();
+            foreach(var v in data.vehicles)
+            {
+                if(v.status!=VehicleStatus.Active)continue;var old=Network.Get(v.Current);if(v.changeTarget!=0&&!candidate.Contains(v.changeTarget))throw new InvalidOperationException("正在换道使用待撤路面，等待完成后再撤销；城市未修改。");
+                Point center=old.Geometry.Sample(v.distance);candidate.Project(center,1e-6,true,hits);SpatialHit? located=null;foreach(var hit in hits){var next=candidate.Get(hit.drivable);if(next.IsConnection!=old.IsConnection)continue;if(!next.IsConnection&&(next.LaneIndex!=old.LaneIndex||next.Reverse!=old.Reverse))continue;located=hit;break;}
+                if(!located.HasValue){interrupted.Add(new KeyValuePair<Vehicle,Point>(v,Position(v)));continue;}var current=candidate.Get(located.Value.drivable);long source=current.IsConnection?(uint)(-current.Id-1):current.Id;double start=current.IsConnection?0:located.Value.distance,end=-1;List<long> route=null;RoadAccess goal;
+                if(targetAccesses.TryGetValue(v.destination,out goal)&&goal.valid)route=AccessRouting.FromLane(candidate,source,start,goal,v.purpose!=TransportPurpose.Freight,out end);
+                else if(goal==null){var provider=business as IJunctionEndpointProvider;if(provider!=null){var tail=candidate.Route(candidate.Get(source).To,provider.Junction(v.destination));if(tail!=null){route=new List<long>{source};if(tail.Count>0){long link=Network.ConnectionId(source,tail[0]);if(candidate.Contains(link)){route.Add(link);route.AddRange(tail);}else route=null;}if(route!=null)end=candidate.Get(route[route.Count-1]).Geometry.Length;}}}
+                if(route==null){interrupted.Add(new KeyValuePair<Vehicle,Point>(v,Position(v)));continue;}int cursor=0;if(current.IsConnection){long packed=-current.Id-1;route.Insert(0,current.Id);route.Insert(0,packed>>32);cursor=1;}remaps.Add(new Remap{vehicle=v,route=route,cursor=cursor,distance=located.Value.distance,arrival=end});
+            }
+            return new RoadEditPlan(this,n,candidate,remaps,interrupted,proposed);
         }
         public int AddJunction(Point point)
         {
