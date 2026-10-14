@@ -10,6 +10,7 @@ namespace HarborCity
         [NonSerialized] internal CityEntities entities;
         public CityMapState map=new CityMapState();
         public int money=65000, day=1;
+        public CityTradeState trade {get;internal set;}=new CityTradeState();
         public TrafficState traffic=new TrafficState();
         public CityRoads roads=new CityRoads();
         [NonSerialized] public int population,jobs,income,upkeep,power,water,demand,happiness=70;

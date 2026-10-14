@@ -27,7 +27,7 @@ namespace HarborCity
                 var access=Zoning.Entrance(lot);if(!access.HasValue){city.development.projects.Remove(project);city.development.revision++;continue;}lot.id=city.nextBuildingId;
                 if(lot is ResidentialBuilding home){home.housing=HousingKind.Villa;home.housingUnits=1;home.askingRent=0;}
                 if(lot is IndustrialBuilding factory){factory.factory.capital=FactoryState.StartingCash;factory.factory.cash=FactoryState.StartingCash;}
-                entities.AddBuilding(lot);world.RegisterAccess(lot.id,access.Value.drivable,access.Value.distance);city.development.projects.Remove(project);city.development.revision++;
+                world.CheckNewAccess(lot.id,access.Value.drivable,access.Value.distance);entities.AddBuilding(lot);world.RegisterAccess(lot.id,access.Value.drivable,access.Value.distance);city.development.projects.Remove(project);city.development.revision++;
             }
             if(time.Start<city.development.nextGrowth)return;city.development.nextGrowth=(float)(time.Start+6);
             RefreshStatistics();

@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 03794752723a4edc8d2e5755576069b9, type: 3}
+  m_Name: DefaultEconomy
+  m_EditorClassIdentifier:
+  definition:
+    schemaVersion: 1
+    contentVersion: 1
+    profile: core-economy
+    economy:
+      rawUnitPrice: 8
+      goodsWholesalePrice: 45
+      retailUnitPrice: 60
+      outsideOpeningCash: 100000
+      freightBatch: 8
+      rawReorderTarget: 24
+      exportThreshold: 16
+      maxGateTrucks: 4
+      tradeIntervalSeconds: 1

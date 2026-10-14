@@ -18,7 +18,7 @@ namespace HarborCity
             entities.StructuralBoundary();if(use!=LandUse.Power&&use!=LandUse.Water&&use!=LandUse.Sewage)throw new ArgumentException("当前批次只恢复电站、供水与排污设施");
             var lot=CityModel.NewBuilding(use);lot.x=x;lot.z=z;lot.yaw=yaw;int cost=CityModel.Cost(use);if(city.money<cost)throw new InvalidOperationException("设施建设资金不足");
             if(!zoning.CanPlace(lot))throw new InvalidOperationException("设施占地、水面或坡度不允许建设");var access=zoning.Entrance(lot);if(!access.HasValue)throw new InvalidOperationException("设施需要地面道路入口");
-            lot.id=city.nextBuildingId;entities.AddBuilding(lot);world.RegisterAccess(lot.id,access.Value.drivable,access.Value.distance);city.money-=cost;return lot.id;
+            lot.id=city.nextBuildingId;world.CheckNewAccess(lot.id,access.Value.drivable,access.Value.distance);entities.AddBuilding(lot);world.RegisterAccess(lot.id,access.Value.drivable,access.Value.distance);city.money-=cost;return lot.id;
         }
     }
 }

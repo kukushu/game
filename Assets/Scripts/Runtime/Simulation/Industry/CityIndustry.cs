@@ -58,10 +58,10 @@ namespace HarborCity
         }
         public int TransferFactoryPay(CityResident person)
         {int pay=(int)Math.Floor(person.factoryWageCredit);person.factoryWageCredit-=pay;person.totalFactoryWagesPaid+=pay;return pay;}
-        public void RecordFactorySale(int id,int amount,int trip,int buyer=-1,bool notify=true)
+        public void RecordFactorySale(int id,int amount,int trip,int buyer=-1,bool notify=true,double unitPrice=FactoryState.SalePrice)
         {
             var f=Factory(id); if(f==null || amount<=0) return;
-            double revenue=amount*FactoryState.SalePrice;
+            double revenue=amount*unitPrice;
             f.cash+=revenue; f.salesRevenue+=revenue; f.sold+=amount;
             if(notify){ObserveAnalysisSale(id,buyer);Trace("factory.sale","商品实际交付；买方简化外部经营资金支付货款",f,building:id,trip:trip);}
         }

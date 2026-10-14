@@ -6,9 +6,10 @@ namespace HarborCity.RoadCore
     // not copies of cargo, citizen, endpoints or accounting values.
     [Serializable] public sealed class Shipment
     {
+        public CargoKind kind {get;internal set;}
         public int remaining {get;internal set;}
         public double unitPrice {get;internal set;}
-        internal Shipment Copy()=>new Shipment{remaining=remaining,unitPrice=unitPrice};
+        internal Shipment Copy()=>new Shipment{kind=kind,remaining=remaining,unitPrice=unitPrice};
     }
     public enum TripState { InTransit,Completed }
     [Serializable] public sealed class TripTask

@@ -9,7 +9,6 @@ namespace HarborCity
 {
     public enum TripPurpose { Commute, Delivery, Import, Export, GarbagePickup, GarbageTransfer, Shopping, Healthcare, School, FireResponse, PoliceResponse, Deathcare }
     public enum TripStatus { Driving, Waiting, Visiting }
-    public enum CargoKind { Goods, RawMaterial, Waste }
 
     [Serializable]
     public sealed class TrafficTrip

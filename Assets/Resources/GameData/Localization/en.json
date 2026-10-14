@@ -1,0 +1,37 @@
+{
+  "language": "en",
+  "entries": [
+    {
+      "key": "ui.trade.connect",
+      "text": "Mark outside road connection"
+    },
+    {
+      "key": "ui.trade.choose",
+      "text": "Select a road near the map boundary to connect external freight."
+    },
+    {
+      "key": "ui.trade.connected",
+      "text": "Outside endpoint #{0} connected. Materials are imported at a cost; surplus goods can be exported."
+    },
+    {
+      "key": "trade.connection_requires_boundary",
+      "text": "Outside connections must be near the buildable map boundary."
+    },
+    {
+      "key": "trade.connection_requires_road",
+      "text": "An actual road is required near the boundary."
+    },
+    {
+      "key": "trade.connection_exists",
+      "text": "An outside connection already exists here."
+    },
+    {
+      "key": "ui.trade.summary",
+      "text": "Delivered materials {0} · Exported goods {1} · Outside cash {2}"
+    },
+    {
+      "key": "ui.stage.current",
+      "text": "Construction, private growth, utilities, migration, employment and paid external freight are active. Consumption, waste and finance are still being restored."
+    }
+  ]
+}

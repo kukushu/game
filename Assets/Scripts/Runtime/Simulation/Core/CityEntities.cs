@@ -15,6 +15,7 @@ namespace HarborCity
         readonly Dictionary<int,CityMember> people=new Dictionary<int,CityMember>();
         readonly Dictionary<int,Household> families=new Dictionary<int,Household>();
         readonly Dictionary<int,CityJob> jobs=new Dictionary<int,CityJob>();
+        readonly Dictionary<int,CityOutsideConnection> connections=new Dictionary<int,CityOutsideConnection>();
         readonly List<CityMember> members=new List<CityMember>();
         readonly List<IndustrialBuilding> factories=new List<IndustrialBuilding>();
         readonly List<CommercialBuilding> shops=new List<CommercialBuilding>();
@@ -30,6 +31,7 @@ namespace HarborCity
         {
             this.city=city;this.transport=transport;Members=members.AsReadOnly();Factories=factories.AsReadOnly();Shops=shops.AsReadOnly();
             foreach(var b in city.buildings){buildings.Add(b.id,b);IndexType(b);transport.SetEndpointAvailable(b.id,Available(b));}
+            foreach(var c in city.trade.connections){if(buildings.ContainsKey(c.id))throw new ArgumentException("Endpoint identity collision");connections.Add(c.id,c);transport.SetEndpointAvailable(c.id,c.active);}
             foreach(var h in city.society.families){families.Add(h.id,h);foreach(var p in h.people){var m=new CityMember(h,p);people.Add(p.id,m);members.Add(m);}}
             RebuildJobs();city.entities=this;
         }
@@ -38,6 +40,18 @@ namespace HarborCity
         void UnindexType(CityBuilding b){if(b is IndustrialBuilding f)factories.Remove(f);if(b is CommercialBuilding s)shops.Remove(s);}
         internal void RebuildJobs(){jobs.Clear();foreach(var j in city.society.jobEntities)jobs.Add(j.id,j);}
         public CityBuilding Building(int id)=>buildings.TryGetValue(id,out var b)?b:null;
+        public CityOutsideConnection Connection(int id)=>connections.TryGetValue(id,out var c)?c:null;
+        public void AddConnection(CityOutsideConnection connection)
+        {
+            StructuralBoundary();if(connection==null||connection.id<city.nextBuildingId||connection.id>=int.MaxValue||connections.ContainsKey(connection.id)||buildings.ContainsKey(connection.id))throw new ArgumentException("Outside endpoint ID must be new and monotonic");
+            connections.Add(connection.id,connection);city.trade.AddConnection(connection);city.nextBuildingId=connection.id+1;transport.SetEndpointAvailable(connection.id,connection.active);Revision++;
+        }
+        internal void CheckNewConnections(IReadOnlyList<CityOutsideConnection> proposed)
+        {
+            StructuralBoundary();long next=city.nextBuildingId;foreach(var c in proposed){if(c==null||c.id<next||c.id>=int.MaxValue||Building(c.id)!=null||Connection(c.id)!=null||c.flow<OutsideFlow.Import||c.flow>OutsideFlow.Export||float.IsNaN(c.x)||float.IsNaN(c.y)||float.IsNaN(c.z)||float.IsInfinity(c.x)||float.IsInfinity(c.y)||float.IsInfinity(c.z))throw new ArgumentException("Invalid outside endpoint batch");next=(long)c.id+1;}
+        }
+        public void SetConnectionActive(int id,bool active)
+        {StructuralBoundary();var c=Connection(id);if(c==null)throw new ArgumentException("Missing outside connection");c.active=active;transport.SetEndpointAvailable(id,active);Revision++;transport.RefreshEndpoints();}
         internal bool RoadAccess(int id){var b=Building(id);var access=transport.GetAccess(id);return b!=null&&Available(b)&&!b.burning&&access!=null&&access.valid;}
         public CityJob Job(int id)
         {
@@ -63,6 +77,8 @@ namespace HarborCity
         {StructuralBoundary();var m=Member(citizen);if(m==null||m.Person.tripId!=0||m.Person.factoryWageCredit!=0||m.Person.earnedWages!=0)throw new InvalidOperationException("Cannot remove an in-transit resident or discard unclaimed wages");city.ReleaseJob(m.Person);m.Family.people.Remove(m.Person);members.Remove(m);people.Remove(citizen);Revision++;}
         public void Validate()
         {
+            if(connections.Count!=city.trade.connections.Count)throw new InvalidOperationException("Outside lifecycle bypassed");
+            foreach(var c in city.trade.connections)if(c.id<=0||c.id>=city.nextBuildingId||c.flow<OutsideFlow.Import||c.flow>OutsideFlow.Export||Building(c.id)!=null||!ReferenceEquals(Connection(c.id),c)||transport.EndpointExists(c.id)!=c.active||float.IsNaN(c.x)||float.IsNaN(c.y)||float.IsNaN(c.z)||float.IsInfinity(c.x)||float.IsInfinity(c.y)||float.IsInfinity(c.z))throw new InvalidOperationException("Invalid outside identity/availability");
             if(buildings.Count!=city.buildings.Count||jobs.Count!=city.society.jobEntities.Count||families.Count!=city.society.families.Count)throw new InvalidOperationException("Structural edit bypassed CityEntities");
             foreach(var b in city.buildings)if(!ReferenceEquals(Building(b.id),b)||transport.EndpointExists(b.id)!=Available(b))throw new InvalidOperationException("Stale building identity/availability");
             int count=0;foreach(var h in city.society.families){if(!ReferenceEquals(Family(h.id),h))throw new InvalidOperationException("Stale family");foreach(var p in h.people){count++;var m=Member(p.id);if(m==null||m.Family!=h||m.Person!=p||p.householdId!=h.id)throw new InvalidOperationException("Stale membership");}}

@@ -14,6 +14,8 @@ namespace HarborCity
         public CityCoreGrowth Growth {get;}
         public CityCoreUtilities Utilities {get;}
         public CityCorePopulation Population {get;}
+        public CityCoreTrade Trade {get;}
+        public CityGameDesign Design {get;}
         public SimulationClockData ClockSnapshot=>clock.Snapshot();
         public long Tick=>clock.Tick;public double Seconds=>clock.Seconds;
         public double CalendarOffset {get;}
@@ -21,10 +23,10 @@ namespace HarborCity
         public bool IsApplyingBoundary {get;private set;}
         public Exception Fault {get;private set;}
 #if UNITY_5_3_OR_NEWER
-        static readonly ProfilerMarker stepSample=new ProfilerMarker("City.Simulation.Step"),growthSample=new ProfilerMarker("City.Simulation.GrowthBoundary"),utilitySample=new ProfilerMarker("City.Simulation.UtilitiesBoundary"),populationSample=new ProfilerMarker("City.Simulation.PopulationBoundary"),requestsSample=new ProfilerMarker("City.Simulation.ResidentRequests"),productionSample=new ProfilerMarker("City.Simulation.Production"),logisticsSample=new ProfilerMarker("City.Simulation.Logistics"),settleSample=new ProfilerMarker("City.Simulation.Settlement");
+        static readonly ProfilerMarker stepSample=new ProfilerMarker("City.Simulation.Step"),growthSample=new ProfilerMarker("City.Simulation.GrowthBoundary"),utilitySample=new ProfilerMarker("City.Simulation.UtilitiesBoundary"),populationSample=new ProfilerMarker("City.Simulation.PopulationBoundary"),requestsSample=new ProfilerMarker("City.Simulation.ResidentRequests"),productionSample=new ProfilerMarker("City.Simulation.Production"),logisticsSample=new ProfilerMarker("City.Simulation.Logistics"),tradeSample=new ProfilerMarker("City.Simulation.ExternalTrade"),settleSample=new ProfilerMarker("City.Simulation.Settlement");
 #endif
-        internal CitySimulation(CityModel city,World transport,SimulationClock clock,CityEntities entities,CityCoreResidents residents,CityCoreIndustryBusiness business,double offset,long nextDispatch)
-        {if(double.IsNaN(offset)||double.IsInfinity(offset)||offset<0||city.society.settings.secondsPerDay<1)throw new ArgumentException("Invalid calendar");this.city=city;this.transport=transport;this.clock=clock;this.residents=residents;this.business=business;CalendarOffset=offset;bindings=new CityCoreRoadBindings(city,transport);production=new CityProductionSystem(city,entities);Logistics=new CityLogisticsSystem(entities,transport,this,nextDispatch);Growth=new CityCoreGrowth(city,entities,transport);Utilities=new CityCoreUtilities(city,entities,transport);Population=new CityCorePopulation(city,entities,transport,Utilities);residents.RequestCommute=RequestCommute;SyncCalendar(clock.Seconds);Utilities.Refresh();}
+        internal CitySimulation(CityModel city,World transport,SimulationClock clock,CityEntities entities,CityCoreResidents residents,CityCoreIndustryBusiness business,double offset,long nextDispatch,GameDesignData design=null)
+        {if(double.IsNaN(offset)||double.IsInfinity(offset)||offset<0||city.society.settings.secondsPerDay<1)throw new ArgumentException("Invalid calendar");Design=new CityGameDesign(design??new GameDesignData());this.city=city;this.transport=transport;this.clock=clock;this.residents=residents;this.business=business;CalendarOffset=offset;bindings=new CityCoreRoadBindings(city,transport);production=new CityProductionSystem(city,entities);Logistics=new CityLogisticsSystem(entities,transport,this,nextDispatch);Growth=new CityCoreGrowth(city,entities,transport);Utilities=new CityCoreUtilities(city,entities,transport);Population=new CityCorePopulation(city,entities,transport,Utilities);residents.RequestCommute=RequestCommute;SyncCalendar(clock.Seconds);Trade=new CityCoreTrade(city,entities,transport,this);Utilities.Refresh();}
         void SyncCalendar(double seconds)
         {double absolute=CalendarOffset+seconds,daySeconds=city.society.settings.secondsPerDay;city.day=1+(int)Math.Floor(absolute/daySeconds);city.society.dayElapsed=(float)(absolute%daySeconds);}
         public int Advance(double seconds)
@@ -70,6 +72,10 @@ namespace HarborCity
                 using(logisticsSample.Auto())
 #endif
                 Logistics.Step(time);
+#if UNITY_5_3_OR_NEWER
+                using(tradeSample.Auto())
+#endif
+                Trade.Step(time);
                 transport.MoveStep(time);
 #if UNITY_5_3_OR_NEWER
                 using(settleSample.Auto())
@@ -78,19 +84,21 @@ namespace HarborCity
 #if CITY_CORE_ATTRIBUTION
                     using var settlementObservation=CityCoreProfile.Measure(CityCoreProfile.Part.Settlement);
 #endif
-                    foreach(var arrival in transport.Arrivals)if(business.Deliver(arrival))transport.AcknowledgeArrival(arrival.id);transport.RetireCompleted();}
+                    foreach(var arrival in transport.Arrivals){transport.CheckArrival(arrival);if(business.Deliver(arrival))transport.AcknowledgeArrival(arrival.id);}transport.RetireCompleted();}
             }
         }
-        public Vehicle RequestFreight(int origin,int destination,int cargo=1,double price=FactoryState.SalePrice)
-        =>Dispatch(origin,destination,cargo,price,TransportPurpose.Freight,0);
+        public Vehicle RequestFreight(int origin,int destination,int cargo=1,double? price=null)
+        =>Dispatch(origin,destination,cargo,price??Design.Economy.GoodsWholesalePrice,TransportPurpose.Freight,0);
+        public Vehicle RequestMaterial(int origin,int destination,int amount,CargoKind kind,double price)
+        =>Dispatch(origin,destination,amount,price,TransportPurpose.Freight,0,kind);
         public Vehicle RequestCommute(int citizen,int origin,int destination,bool returning=false)
         =>Dispatch(origin,destination,0,0,returning?TransportPurpose.Home:TransportPurpose.Work,citizen);
-        Vehicle Dispatch(int origin,int destination,int cargo,double price,TransportPurpose purpose,int citizen)
+        Vehicle Dispatch(int origin,int destination,int cargo,double price,TransportPurpose purpose,int citizen,CargoKind kind=CargoKind.Goods)
         {
 #if CITY_CORE_ATTRIBUTION
             using var observation=HarborCity.RoadCore.CityCoreProfile.Measure(HarborCity.RoadCore.CityCoreProfile.Part.Dispatch);
 #endif
-if(Fault!=null)throw new InvalidOperationException("Cannot dispatch into a faulted simulation",Fault);var admission=transport.PrepareTransport(origin,destination,cargo,price,purpose,citizen);if(admission==null||!business.Depart(admission.vehicle.Task))return null;return transport.CommitAdmission(admission);}
+if(Fault!=null)throw new InvalidOperationException("Cannot dispatch into a faulted simulation",Fault);var admission=transport.PrepareTransport(origin,destination,cargo,price,purpose,citizen);if(admission==null)return null;transport.CheckAdmission(admission);if(admission.vehicle.Task.Shipment!=null)admission.vehicle.Task.Shipment.kind=kind;if(!business.Depart(admission.vehicle.Task))return null;return transport.CommitAdmission(admission);}
         internal void AssertSaveBoundary(){if(IsStepping||IsApplyingBoundary||Fault!=null)throw new InvalidOperationException("Cannot save a partial/faulted simulation step");}
     }
 }

@@ -1,0 +1,37 @@
+{
+  "language": "zh-CN",
+  "entries": [
+    {
+      "key": "ui.trade.connect",
+      "text": "标记对外道路连接"
+    },
+    {
+      "key": "ui.trade.choose",
+      "text": "点击地图边界附近的道路，建立实际城外货运连接。"
+    },
+    {
+      "key": "ui.trade.connected",
+      "text": "已连接城外端点 #{0}；原料有价运入，剩余商品可实际运出。"
+    },
+    {
+      "key": "trade.connection_requires_boundary",
+      "text": "对外连接必须位于可建设地图边界附近。"
+    },
+    {
+      "key": "trade.connection_requires_road",
+      "text": "边界附近需要接通实际道路。"
+    },
+    {
+      "key": "trade.connection_exists",
+      "text": "这里已有对外连接。"
+    },
+    {
+      "key": "ui.trade.summary",
+      "text": "原料实际交付 {0} · 商品实际出口 {1} · 城外现金 {2}"
+    },
+    {
+      "key": "ui.stage.current",
+      "text": "空地建设、分区生长、水电排污、迁入就业与有价对外货运已接入；消费、垃圾及财政继续恢复中。"
+    }
+  ]
+}

@@ -3,6 +3,11 @@ using System;
 namespace HarborCity.RoadCore
 {
     [Flags] public enum AccessUse { Freight=1,Resident=2,Service=4,All=7 }
+    public readonly struct AccessRegistration
+    {
+        public readonly int endpoint;public readonly long lane;public readonly double distance;public readonly AccessUse use;
+        public AccessRegistration(int endpoint,long lane,double distance,AccessUse use=AccessUse.All){this.endpoint=endpoint;this.lane=lane;this.distance=distance;this.use=use;}
+    }
     public readonly struct AccessBinding
     {
         public readonly int endpoint;public readonly long lane;public readonly double distance;

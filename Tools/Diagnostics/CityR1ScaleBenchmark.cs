@@ -42,8 +42,9 @@ public static class CityR1ScaleBenchmark
             // This fixture explicitly disables private growth/services. Compare
             // all shared facts, not outer schema tags or new disabled-system data.
             var business=session.SnapshotBusiness();if(business.development.enabled)throw new Exception("Shared legacy performance fixture must disable private development");
+            var tradeField=typeof(CityCoreBusinessData).GetField("trade");if(tradeField!=null){var data=tradeField.GetValue(business);foreach(string name in new[]{"rawDispatched","rawDelivered","goodsExported"})if((int)data.GetType().GetField(name).GetValue(data)!=0)throw new Exception("Common fixture unexpectedly uses trade");}
             var put=typeof(CityCoreSave).GetMethod("Put",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic);
-            foreach(var field in typeof(CityCoreBusinessData).GetFields().Where(f=>!f.IsNotSerialized&&f.Name!="version"&&f.Name!="utilities").OrderBy(f=>f.Name,StringComparer.Ordinal))
+            foreach(var field in typeof(CityCoreBusinessData).GetFields().Where(f=>!f.IsNotSerialized&&f.Name!="version"&&f.Name!="utilities"&&f.Name!="trade"&&f.Name!="design").OrderBy(f=>f.Name,StringComparer.Ordinal))
             {
                 if(field.Name!="development"){put.Invoke(null,new object[]{writer,field.FieldType,field.GetValue(business)});continue;}
                 writer.Write(true);foreach(var nested in typeof(CityDevelopmentState).GetFields().Where(f=>!f.IsNotSerialized&&f.Name!="nextEmployment").OrderBy(f=>f.Name,StringComparer.Ordinal))put.Invoke(null,new object[]{writer,nested.FieldType,nested.GetValue(business.development)});
