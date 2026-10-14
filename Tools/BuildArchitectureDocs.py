@@ -7,10 +7,15 @@ import subprocess, json, html, re, csv
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'Docs/Architecture'
-COMMIT = '23f20eb'
+COMMIT = 'dbfda3d'
 BASELINE = '110c4eaa24fa69d55b08a5db2a6d19ec6da5dd7f'
 R = 'Assets/Scripts/Runtime/'
 files = {
+ 'payroll':R+'Simulation/Economy/CityCorePayroll.cs',
+ 'retail':R+'Simulation/Economy/CityCoreConsumption.cs',
+ 'shopaccount':R+'Simulation/Economy/CityShopAccount.cs',
+ 'retailindex':R+'Simulation/Economy/CityRetailIndex.cs',
+ 'retailrules':R+'GameData/CityRetailDesign.cs',
  'host': R+'Presentation/Game/HarborCityRoadCoreGame.cs',
  'city': R+'Simulation/Core/CityModel.cs',
  'buildings': R+'Simulation/Core/CityBuildings.cs',
@@ -359,6 +364,32 @@ for n in graphs['global-current']['nodes']:
 flowdata['current']['name']='R3-C1实际城市流程'
 flowdata['current']['stages'].insert(9,dict(name='城外采购与出口',detail='配置周期O(任务+工厂×少量端点)；实际车准入后原料付款、出口托管，未到达不改目的库存或销售收入。',source=ref('trade','internal void Step')))
 flowdata['save']['note']='城市13 / 核心14：保存不可变设计快照、端点、贸易账本、货种与原在途实体；消费财政仍待恢复。'
+# R3-C2 actual ownership and schedule; proposals remain separately labelled.
+for c in cards:
+    if c['id']=='save':c.update(fields='城市14 / 核心15 / 业务6 / 设计2；账户、携货、购物和工资截止时间',facts='唯一完整在途/业务事实与不可变设计配置；不保存退休工资第二聚合。',risk='财政/垃圾/完整管理仍待接入。')
+    if c['id']=='production':c.update(facts='到岗劳动→CityCorePayroll从企业实际付薪→付薪劳动加工；固定时间驱动。',risk='仍每步O(P)，冷城市生长/就业/管网有峰值，完整大城市待验证。')
+    if c['id']=='people':c.update(facts='居民实际Work/Shopping/Home任务；携货在出发时唯一移交Shipment，真实到家计消费。',risk='旧观察文字尚未全部Key化；工资已归独立Payroll，不由视图或居民调度重复结算。')
+    if c['id']=='host':c.update(risk='TerrainData高度提供者和低层输入仍过渡；建筑/区视图全量重建下一批处理。')
+    if c['id']=='design':c.update(name='CityGameDesign / 领域Rules',fields='Economy / Employment / Retail / Production不可变分组')
+for ident,name,key,token,kind,fields,owner,facts in [
+ ('payroll','CityCorePayroll','payroll','public sealed class CityCorePayroll','temporary','PaidDay / 派生在岗人数','工资结算域，CitySimulation固定时间驱动。','企业现金→个人wageCredit→每日家庭收入；交易前整批检查。'),
+ ('retail','CityCoreConsumption','retail','public sealed class CityCoreConsumption','temporary','周期 / 候选查询 / 到店购买与返家消费','零售业务规则，不放入World或视图。','实际营业、库存和家庭资金才成交；守恒跨企业/任务/居民/累计消费。'),
+ ('consumption','CityConsumptionState','retail','public sealed class CityConsumptionState','fact','ConsumedGoods / RetailPayments / NextTick','城市只读运行事实，冷DTO可写。','不复制企业库存，真实到家后累计消费。'),
+ ('shopaccount','CityShopAccount','shopaccount','public sealed class CityShopAccount','fact','Cash / Capital / WageCosts / RetailRevenue / WholesaleFunded','CommercialBuilding唯一商业账户。','实际工资、到店销售和批发托管，归档保留同账本。'),
+ ('retailindex','CityRetailIndex','retailindex','internal sealed class CityRetailIndex','derived','16单位门店桶 / 重用排序候选','消费周期可重建，引用真实门店。','营业门店局部邻近查询；不再按候选全扫居民查工人。')]:
+    card(ident,name,'Economy',kind,key,token,fields,'R3-C2实际',owner,facts,'可重建索引不持库存。','明确领域阶段/命令/到达。','固定时间/购物/支付/保存/归档。','独立交通协议和领域只读规则。','复杂度仍需真实大型城市Profiling。','下一步优先完整城财政垃圾UI。')
+    graphs['classes']['nodes'].append(node(ident,name,fields,kind));evidence.append(dict(title=name,source=ref(key,token)))
+graphs['classes']['edges'].extend([edge('simulation','payroll','到岗与跨日工资'),edge('simulation','retail','周期业务'),edge('retail','consumption','唯一消费累计'),edge('retail','retailindex','派生候选'),edge('retail','shopaccount','真实到店付款'),edge('payroll','shopaccount','实际付薪'),edge('retail','task','请求实际Shopping/Home')])
+graphs['ownership']['nodes'].extend([node('consumption','CityConsumptionState','消费累计；非重复库存','fact'),node('shopaccount','ShopAccount','唯一商店账户 / 归档保留','fact')]);graphs['ownership']['edges'].extend([edge('city','consumption','拥有累计事实'),edge('building','shopaccount','拥有；实体归档保留'),edge('shipment','consumption','到家消费；不是渲染触发','dash')])
+graphs['global-current']['nodes'].extend([node('payroll','CityCorePayroll','真实雇主付款 / 跨日结算','temporary'),node('retail','CityCoreConsumption','实际购物 / 本地候选 / 消费','temporary')]);graphs['global-current']['edges'].extend([edge('simulation','payroll','固定时间阶段'),edge('simulation','retail','业务阶段'),edge('retail','world','运输命令 / 读取到达')])
+for n in graphs['global-current']['nodes']:
+    if n['id']=='old':n.update(label='垃圾 / 财政 / 完整UI',sub='尚未恢复，不能称全城完成')
+    if n['id']=='save':n.update(label='城市14 / 核心15',sub='真实账户 / 购物载荷 / 在途继续')
+flowdata['current']['name']='R3-C2实际城市更新'
+flowdata['current']['stages'].insert(9,dict(name='居民零售购物',detail='周期空间候选→实际Shopping运输；到店才付款，携货Home到家后消费。',source=ref('retail','internal void Step')))
+flowdata['freight']['note']='商店实际预付款形成在途托管；到货销售结算。无免费商品或外部零售收入。'
+flowdata['save']['note']='城市14/核心15：真实购物/账户/配置2/工资截止时间/完整在途；不支持旧格式，不删旧文件。'
+flowdata['current']['stages'][-1]['detail']='唯一时钟commit，跨日工资由Payroll结算；到岗最早下一步产生劳动。'
 payload=dict(commit=COMMIT,baseline=BASELINE,cards=cards,graphs=graphs,flows=flowdata,readings=readingdata,perf=perf,evidence=evidence)
 
 page=r'''<!doctype html>
@@ -500,6 +531,11 @@ page=page.replace('<section id="review">','<section id="review"><details open><s
 page=page.replace('R3-B实现源码 '+COMMIT,'R3-C1实现源码 '+COMMIT).replace('R3-A实现源码 '+COMMIT,'R3-C1实现源码 '+COMMIT)
 page=page.replace('持续原料、消费、垃圾财政、公交及完整经营UI仍未恢复。','有价原料运输和实际商品出口已接；消费、垃圾财政、公交及完整经营UI仍未恢复。')
 page=page.replace('04 · 模拟更新流程图 ★（R3-B实际）','04 · 模拟更新流程图 ★（R3-C1实际）')
+retail=(OUT/'R3Retail.md').read_text(encoding='utf-8')
+page=page.replace('<section id="review">','<section id="review"><details open><summary>最新实际：购物、真实付薪、商业账本与边界</summary><div class="doccontent">'+markdown(retail)+'</div></details>')
+page=page.replace('最新实际：有价原料、出口、设计资源与变更影响','上一批R3-C1：有价原料、出口与设计资源')
+page=page.replace('R3-C1实现源码 '+COMMIT,'R3-C2实现源码 '+COMMIT).replace('04 · 模拟更新流程图 ★（R3-C1实际）','04 · 模拟更新流程图 ★（R3-C2实际）')
+page=page.replace('有价原料运输和实际商品出口已接；消费、垃圾财政、公交及完整经营UI仍未恢复。','有价原料、实际批发/零售消费与雇主工资已接；垃圾财政、公交及完整经营UI仍未恢复。')
 (OUT/'HarborCityArchitecture.html').write_text(page,encoding='utf-8')
 (OUT/'SourceEvidence.md').write_text('# 固定源码定位证据\n\n审查commit：`'+COMMIT+'`。以下行号由固定源码生成，而非当前工作树。\n\n'+ '\n'.join('## '+e['title']+'\n\n['+e['source']['file']+':'+str(e['source']['line'])+']('+e['source']['url']+')\n\n方法/语句：`'+e['source']['token']+'`\n' for e in evidence),encoding='utf-8')
 print(f'Created {OUT / "HarborCityArchitecture.html"}; {len(cards)} class cards, {len(graphs)} graphs, {len(flowdata)} flows; pinned {COMMIT}')
