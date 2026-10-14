@@ -16,7 +16,7 @@ namespace HarborCity.RoadCore
             foreach(var d in network.Drivables)
             {
                 if(!d.IsConnection)continue;
-                long packed=-d.Id-1,from=packed>>32,to=(uint)packed;
+                var connection=(LaneConnection)d;long from=connection.Incoming.Id,to=connection.Outgoing.Id;
                 if(!next.TryGetValue(from,out var exits))next.Add(from,exits=new List<long>());
                 exits.Add(to);
             }
@@ -24,8 +24,13 @@ namespace HarborCity.RoadCore
         internal bool CanReach(RoadAccess source,RoadAccess target)
         {
             if(source.lane==target.lane&&target.distance>=source.distance)return true;
-            if(!next.TryGetValue(source.lane,out var first))return false;
-            if(!reached.TryGetValue(source.lane,out var set))
+            var set=Reachable(source.lane);return set!=null&&set.Contains(target.lane);
+        }
+        internal bool HasCycle(long source){var set=Reachable(source);return set!=null&&set.Contains(source);}
+        HashSet<long> Reachable(long source)
+        {
+            if(!next.TryGetValue(source,out var first))return null;
+            if(!reached.TryGetValue(source,out var set))
             {
                 set=new HashSet<long>(CityRoadKeyComparer.Instance);var queue=new Queue<long>();
                 // Do not seed the source itself: reaching an upstream station on
@@ -37,9 +42,9 @@ namespace HarborCity.RoadCore
                     foreach(long exit in exits)if(set.Add(exit))queue.Enqueue(exit);
                 }
                 if(reached.Count==MaximumSources)reached.Remove(sources.Dequeue());
-                reached.Add(source.lane,set);sources.Enqueue(source.lane);
+                reached.Add(source,set);sources.Enqueue(source);
             }
-            return set.Contains(target.lane);
+            return set;
         }
     }
 }

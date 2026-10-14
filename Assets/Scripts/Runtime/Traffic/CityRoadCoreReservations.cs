@@ -38,9 +38,9 @@ namespace HarborCity.RoadCore
             foreach(var d in network.Drivables)if(d.IsConnection)
             {
                 List<Drivable> list;if(!local.TryGetValue(d.JunctionId,out list))local.Add(d.JunctionId,list=new List<Drivable>());list.Add(d);conflicts.Add(d.Id,new HashSet<long>(CityRoadKeyComparer.Instance){d.Id});
-                long packed=-d.Id-1;var entry=network.Get(packed>>32);var exit=network.Get((uint)packed);var path=new List<Point>();double start=entry.Geometry.Length-network.Clearance(entry),end=network.Clearance(exit);path.Add(entry.Geometry.Sample(start));
-                for(int i=1;i<entry.Geometry.Count;i++)if(entry.Geometry.At(i)>start)path.Add(entry.Geometry[i]);
-                for(int i=0;i<d.Geometry.Count;i++)path.Add(d.Geometry[i]);for(int i=0;i<exit.Geometry.Count;i++)if(exit.Geometry.At(i)<end)path.Add(exit.Geometry[i]);path.Add(exit.Geometry.Sample(end));protectedPaths.Add(d.Id,new Geometry(path.ToArray()));
+                var connection=(LaneConnection)d;var entry=connection.Incoming;var exit=connection.Outgoing;var path=new List<Point>();double start=Math.Max(entry.StartDistance,entry.EndDistance-World.MinimumSpacing),end=Math.Min(exit.EndDistance,exit.StartDistance+World.MinimumSpacing);path.Add(entry.Geometry.Sample(start));
+                for(int i=1;i<entry.Geometry.Count;i++)if(entry.Geometry.At(i)>start&&entry.Geometry.At(i)<entry.EndDistance)path.Add(entry.Geometry[i]);
+                for(int i=0;i<d.Geometry.Count;i++)path.Add(d.Geometry[i]);for(int i=0;i<exit.Geometry.Count;i++)if(exit.Geometry.At(i)>exit.StartDistance&&exit.Geometry.At(i)<end)path.Add(exit.Geometry[i]);path.Add(exit.Geometry.Sample(end));protectedPaths.Add(d.Id,new Geometry(path.ToArray()));
             }
             foreach(var bucket in local.Values)for(int i=0;i<bucket.Count;i++)for(int j=i+1;j<bucket.Count;j++)if(Overlap(protectedPaths[bucket[i].Id],protectedPaths[bucket[j].Id])){conflicts[bucket[i].Id].Add(bucket[j].Id);conflicts[bucket[j].Id].Add(bucket[i].Id);}
         }

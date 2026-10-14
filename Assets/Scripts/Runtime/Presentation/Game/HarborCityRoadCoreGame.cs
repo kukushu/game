@@ -31,7 +31,7 @@ namespace HarborCity
         bool hasStart;Point startPoint;bool building,oneWay,wide;int origin,destination;float speed=1;
         long previousTick;int lastSteps;
         string notice="原工厂劳动→生产→新交通实车运输→原商店库存/支付。居民实际通勤已接入；市政、分区、信号灯和行人尚未接回。";
-        string SavePath=>Path.Combine(Application.persistentDataPath,session==null?"harbor-road-core-v12.hcrc":"harbor-city-core-v9.hcity");
+        string SavePath=>Path.Combine(Application.persistentDataPath,session==null?"harbor-road-core-v13.hcrc":"harbor-city-core-v10.hcity");
         static Vector3 V(Point p)=>new Vector3((float)p.x,(float)p.y,(float)p.z);
         void Start()
         {
@@ -118,7 +118,7 @@ namespace HarborCity
             foreach(var go in roads){Destroy(go.GetComponent<MeshFilter>().sharedMesh);Destroy(go);}roads.Clear();
             foreach(var d in world.Network.Drivables)
             {
-                var g=d.Geometry;if(g.Length<1e-8)continue;var vertices=new Vector3[g.Count*2];var indices=new int[(g.Count-1)*6];
+                var g=new Geometry(d.Geometry.Slice(d.StartDistance,d.EndDistance));if(g.Length<1e-8)continue;var vertices=new Vector3[g.Count*2];var indices=new int[(g.Count-1)*6];
                 for(int i=0;i<g.Count;i++){var t=Network.Tangent(g[Math.Max(0,i-1)],g[Math.Min(g.Count-1,i+1)]);vertices[i*2]=V(Network.Offset(g[i],t,-.5));vertices[i*2+1]=V(Network.Offset(g[i],t,.5));if(i==0)continue;int b=(i-1)*6,a=(i-1)*2;indices[b]=a;indices[b+1]=a+2;indices[b+2]=a+1;indices[b+3]=a+1;indices[b+4]=a+2;indices[b+5]=a+3;}
                 var mesh=new Mesh{name="Shared lane geometry "+d.Id};mesh.vertices=vertices;mesh.triangles=indices;mesh.RecalculateNormals();
                 var go=new GameObject(mesh.name);go.AddComponent<MeshFilter>().sharedMesh=mesh;go.AddComponent<MeshRenderer>().sharedMaterial=roadMaterial;roads.Add(go);

@@ -6,6 +6,11 @@ $baselinePath=Join-Path $output 'Baseline';$archive=Join-Path $output 'baseline.
 & git archive --format=zip ('--output='+$archive) $Baseline Assets/Scripts
 if($LASTEXITCODE -ne 0){throw 'Baseline archive failed'}
 Expand-Archive -LiteralPath $archive -DestinationPath $baselinePath -Force
+if($AllowBehaviorChange){
+    # Same physical actors/stations on both sides. The new junction model stops
+    # upstream of ports; do not seed conflicting actors inside its protected area.
+    Copy-Item -LiteralPath (Join-Path $root 'Assets/Scripts/Diagnostics/Runtime/CityRoadCoreFixtures.cs') -Destination (Join-Path $baselinePath 'Assets/Scripts/Diagnostics/Runtime/CityRoadCoreFixtures.cs')
+}
 $mono='C:/Program Files/Unity/Hub/Editor/6000.6.3f1/Editor/Data/MonoBleedingEdge/bin/mono.exe'
 $compiler='C:/Program Files/Unity/Hub/Editor/6000.6.3f1/Editor/Data/MonoBleedingEdge/lib/mono/4.5/csc.exe'
 foreach($version in @('before','after')){

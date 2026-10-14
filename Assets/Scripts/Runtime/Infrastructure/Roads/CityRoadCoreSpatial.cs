@@ -38,8 +38,8 @@ namespace HarborCity.RoadCore
                 List<Segment> bucket;if(!cells.TryGetValue(Key(x,z),out bucket))continue;
                 foreach(var segment in bucket)
                 {
-                    var road=segment.road;if(road.IsConnection&&!connections)continue;Point a=road.Geometry[segment.sample-1],b=road.Geometry[segment.sample];double dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z,den=dx*dx+dy*dy+dz*dz,t=den<1e-18?0:Math.Max(0,Math.Min(1,((p.x-a.x)*dx+(p.y-a.y)*dy+(p.z-a.z)*dz)/den));Point q=Point.Lerp(a,b,t);double gap=Point.Distance(p,q);if(gap>radius)continue;
-                    var hit=new SpatialHit(road.Id,road.Geometry.At(segment.sample-1)+Point.Distance(a,q),gap,q);int index=-1;for(int i=0;i<output.Count;i++)if(output[i].drivable==road.Id){index=i;break;}if(index<0)output.Add(hit);else if(gap<output[index].separation)output[index]=hit;
+                    var road=segment.road;if(road.IsConnection&&!connections)continue;double lo=Math.Max(road.StartDistance,road.Geometry.At(segment.sample-1)),hi=Math.Min(road.EndDistance,road.Geometry.At(segment.sample));if(hi<lo)continue;Point a=road.Geometry.Sample(lo),b=road.Geometry.Sample(hi);double dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z,den=dx*dx+dy*dy+dz*dz,t=den<1e-18?0:Math.Max(0,Math.Min(1,((p.x-a.x)*dx+(p.y-a.y)*dy+(p.z-a.z)*dz)/den));Point q=Point.Lerp(a,b,t);double gap=Point.Distance(p,q);if(gap>radius)continue;
+                    var hit=new SpatialHit(road.Id,lo+Point.Distance(a,q),gap,q);int index=-1;for(int i=0;i<output.Count;i++)if(output[i].drivable==road.Id){index=i;break;}if(index<0)output.Add(hit);else if(gap<output[index].separation)output[index]=hit;
                 }
             }
             output.Sort(Order.Instance);

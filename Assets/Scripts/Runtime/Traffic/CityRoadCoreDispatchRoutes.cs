@@ -13,7 +13,7 @@ namespace HarborCity.RoadCore
         internal DispatchBlueprint(Network network,List<long> path,double start,double end)
         {
             route=path==null?null:path.ToArray();this.start=start;this.end=end;seconds=path==null?double.PositiveInfinity:0;
-            if(path!=null)for(int i=0;i<path.Count;i++){var d=network.Get(path[i]);seconds+=(i==path.Count-1?end:d.Geometry.Length)/d.Speed;if(i==0)seconds-=start/d.Speed;}
+            if(path!=null)for(int i=0;i<path.Count;i++){var d=network.Get(path[i]);seconds+=((i==path.Count-1?end:d.EndDistance)-(i==0?start:d.StartDistance))/d.Speed;}
         }
     }
     // Bounded, derived route plans. Every admitted actor gets its own mutable route.
@@ -42,7 +42,7 @@ namespace HarborCity.RoadCore
             {
                 double start=0,end=-1;List<long> route=null;Preparations++;
                 if(source!=null&&target!=null)route=AccessRouting.Find(current,source,target,resident,out start,out end);
-                else if(!resident&&provider!=null){route=current.Route(provider.Junction(origin),provider.Junction(destination));if(route!=null&&route.Count>0)end=current.Get(route[route.Count-1]).Geometry.Length;}
+                else if(!resident&&provider!=null){route=current.Route(provider.Junction(origin),provider.Junction(destination));if(route!=null&&route.Count>0){start=current.Get(route[0]).StartDistance;end=current.Get(route[route.Count-1]).EndDistance;}}
                 result=new DispatchBlueprint(current,route,start,end);
 #if CITY_CORE_ATTRIBUTION
                 if(route==null)CityCoreProfile.Unreachable++;if(Count>=4096)CityCoreProfile.CacheFlushes++;

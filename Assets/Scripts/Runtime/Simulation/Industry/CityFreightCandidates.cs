@@ -15,7 +15,6 @@ namespace HarborCity
         {internal static readonly OriginalOrder Instance=new OriginalOrder();public int Compare(Entry a,Entry b)=>a.order.CompareTo(b.order);}
         readonly Dictionary<long,List<Entry>> lanes=new Dictionary<long,List<Entry>>(CityRoadKeyComparer.Instance);
         readonly List<Entry> scratch=new List<Entry>();
-        readonly RoadAccess cycleProbe=new RoadAccess();
         Network network;int revision=-1;long accessRevision=-1;
         internal CityFreightCandidates(CityEntities entities,World world){this.entities=entities;this.world=world;}
         void Refresh()
@@ -41,8 +40,7 @@ namespace HarborCity
                 {
                     // Probe a strictly upstream station to detect an actual cycle.
                     // At distance zero all stations are downstream already.
-                    cycleProbe.lane=source.lane;cycleProbe.distance=0;
-                    bool cycle=source.distance>0&&network.CanReach(source,cycleProbe);
+                    bool cycle=network.HasLaneCycle(source.lane);
                     if(!cycle){int lo=0,hi=bucket.Count;while(lo<hi){int mid=(lo+hi)/2;if(bucket[mid].access.distance<source.distance)lo=mid+1;else hi=mid;}first=lo;}
                 }
                 else if(!network.CanReach(source,bucket[0].access))continue;

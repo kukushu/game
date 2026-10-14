@@ -52,6 +52,14 @@ namespace HarborCity.RoadCore
             int lo=0,hi=points.Length-1;while(hi-lo>1){int m=(lo+hi)/2;if(cumulative[m]<=distance)lo=m;else hi=m;}
             return Point.Lerp(points[lo],points[hi],(distance-cumulative[lo])/(cumulative[hi]-cumulative[lo]));
         }
+        public Point DirectionAt(double distance)
+        {
+            int lo=0,hi=points.Length-1;while(hi-lo>1){int mid=(lo+hi)/2;if(cumulative[mid]<=distance)lo=mid;else hi=mid;}var d=Network.Tangent(points[lo],points[hi]);double length=Point.Distance(d,new Point());return length<1e-12?new Point():new Point(d.x/length,d.y/length,d.z/length);
+        }
+        public Point[] Slice(double start,double end)
+        {
+            if(start<0||end>Length||end<start)throw new ArgumentException("Invalid geometry range");var result=new List<Point>{Sample(start)};for(int i=1;i<Count-1;i++)if(At(i)>start&&At(i)<end)result.Add(this[i]);result.Add(Sample(end));return result.ToArray();
+        }
         public double MapDistance(Geometry target,double distance)
         {
             if(Count!=target.Count)throw new ArgumentException("Parallel geometry sample correspondence missing");
@@ -67,17 +75,20 @@ namespace HarborCity.RoadCore
             double t=(distance-cumulative[lo])/(cumulative[hi]-cumulative[lo]);return target.At(Count-1-lo)+(target.At(Count-1-hi)-target.At(Count-1-lo))*t;
         }
     }
-    public sealed class Drivable
+    public abstract class Drivable
     {
         public readonly long Id;
         public readonly int RoadId,From,To,JunctionId;
         public readonly bool Reverse;
         public readonly double Speed;
         public readonly Geometry Geometry;
+        public double StartDistance {get;internal set;}
+        public double EndDistance {get;internal set;}
+        public double TravelLength=>EndDistance-StartDistance;
         public double ProtectedClearance {get;internal set;}
         public int ParallelLaneCount {get;internal set;}
         internal Drivable(long id,int road,int from,int to,int junction,bool reverse,double speed,Point[] points)
-        {Id=id;RoadId=road;From=from;To=to;JunctionId=junction;Reverse=reverse;Speed=speed;Geometry=new Geometry(points);ProtectedClearance=Math.Min(2,Geometry.Length/3);}
+        {Id=id;RoadId=road;From=from;To=to;JunctionId=junction;Reverse=reverse;Speed=speed;Geometry=new Geometry(points);EndDistance=Geometry.Length;ProtectedClearance=Math.Min(2,Geometry.Length/3);}
         public bool IsConnection=>JunctionId!=0;
         public int LaneIndex=>IsConnection?-1:(int)((Id>>1)&31);
     }
@@ -92,9 +103,12 @@ namespace HarborCity.RoadCore
         ConnectionConflicts connectionConflicts;
         RoadSpatialIndex spatialIndex;
         LaneReachability reachability;
+        public bool HasLaneCycle(long lane)
+        {if(!Contains(lane)||Get(lane).IsConnection)return false;if(reachability==null)reachability=new LaneReachability(this);return reachability.HasCycle(lane);}
         public bool CanReach(RoadAccess source,RoadAccess target)
         {
             if(source==null||target==null||!source.valid||!target.valid||!Contains(source.lane)||!Contains(target.lane)||Get(source.lane).IsConnection||Get(target.lane).IsConnection)return false;
+            var a=Get(source.lane);var b=Get(target.lane);if(source.distance<a.StartDistance||source.distance>a.EndDistance||target.distance<b.StartDistance||target.distance>b.EndDistance)return false;
             if(reachability==null)reachability=new LaneReachability(this);
             return reachability.CanReach(source,target);
         }
@@ -156,7 +170,8 @@ namespace HarborCity.RoadCore
                 if(pair.Value.Count!=2)continue;Point p=pair.Value[0],q=pair.Value[1];double product=Point.Distance(p,new Point())*Point.Distance(q,new Point());
                 if(product<1e-9||(p.x*q.x+p.y*q.y+p.z*q.z)/product>-.98)conflictJunctions.Add(pair.Key);
             }
-            var lanes=new List<Drivable>(drivables.Values);
+            var ports=new HashSet<int>(conflictJunctions);var widths=new Dictionary<int,int>();foreach(var road in data.roads)foreach(int junction in new[]{road.from,road.to}){if(widths.TryGetValue(junction,out int width)&&width!=road.lanes)ports.Add(junction);else widths[junction]=road.lanes;}
+            var lanes=new List<Drivable>(drivables.Values);foreach(Lane lane in lanes)lane.ConfigurePorts(ports.Contains(lane.From),ports.Contains(lane.To));
             foreach(var a in lanes)
             {
                 List<Drivable> exits;if(!outgoing.TryGetValue(a.To,out exits))continue;
@@ -167,10 +182,7 @@ namespace HarborCity.RoadCore
                     // Real intersections may connect different lane indices; explicit
                     // turn restrictions and lane-change intentions are separate rules.
                     if(!IsConflictJunction(a.To)&&b.LaneIndex!=Math.Min(a.LaneIndex,LaneCount(b.RoadId)-1))continue;
-                    Point p=a.Geometry.Sample(a.Geometry.Length),q=b.Geometry.Sample(0),c=junctions[a.To].position;
-                    var samples=Point.Distance(p,q)<1e-8?new[]{p,q}:new Point[9];
-                    if(samples.Length>2)for(int i=0;i<9;i++){double t=i/8.0;samples[i]=Point.Lerp(Point.Lerp(p,c,t),Point.Lerp(c,q,t),t);}
-                    long id=ConnectionId(a.Id,b.Id);drivables.Add(id,new Drivable(id,0,a.To,a.To,a.To,false,Math.Min(a.Speed,b.Speed),samples));
+                    long id=ConnectionId(a.Id,b.Id);drivables.Add(id,new LaneConnection(id,(Lane)a,(Lane)b));
                 }
             }
             connectionConflicts=new ConnectionConflicts(this);
@@ -184,7 +196,7 @@ namespace HarborCity.RoadCore
             {
                 double offset=(.55+index*1.1)*(reverse?-1:1);p[reverse?n-1-i:i]=new Point(road.points[i].x+right[i].x*offset,road.points[i].y,road.points[i].z+right[i].z*offset);
             }
-            var d=new Drivable(LaneId(road.id,reverse,index),road.id,reverse?road.to:road.from,reverse?road.from:road.to,0,reverse,road.speed,p);
+            var d=new Lane(LaneId(road.id,reverse,index),road.id,reverse?road.to:road.from,reverse?road.from:road.to,reverse,road.speed,p);
             d.ParallelLaneCount=road.lanes;
             drivables.Add(d.Id,d);List<Drivable> list;if(!outgoing.TryGetValue(d.From,out list))outgoing.Add(d.From,list=new List<Drivable>());list.Add(d);
         }
@@ -214,7 +226,7 @@ namespace HarborCity.RoadCore
             var parent=new Dictionary<long,long>(CityRoadKeyComparer.Instance);
             var open=new RouteQueue();var closed=new HashSet<long>(CityRoadKeyComparer.Instance);
             List<Drivable> starts;if(!outgoing.TryGetValue(from,out starts))return null;
-            foreach(var d in starts){cost[d.Id]=d.Geometry.Length/d.Speed;parent[d.Id]=0;open.Push(d.Id,cost[d.Id]);}
+            foreach(var d in starts){cost[d.Id]=d.TravelLength/d.Speed;parent[d.Id]=0;open.Push(d.Id,cost[d.Id]);}
             while(open.Count>0)
             {
                 var entry=open.Pop();long id=entry.id;if(entry.cost!=cost[id]||!closed.Add(id))continue;var a=Get(id);
@@ -224,7 +236,7 @@ namespace HarborCity.RoadCore
                     var route=new List<long>(lanes.Count*2-1);for(int i=0;i<lanes.Count;i++){if(i>0)route.Add(ConnectionId(lanes[i-1],lanes[i]));route.Add(lanes[i]);}return route;
                 }
                 List<Drivable> next;if(!outgoing.TryGetValue(a.To,out next))continue;
-                foreach(var b in next){long link=ConnectionId(id,b.Id);if(!Contains(link)||closed.Contains(b.Id))continue;double c=cost[id]+Get(link).Geometry.Length/Get(link).Speed+b.Geometry.Length/b.Speed;double old;if(!cost.TryGetValue(b.Id,out old)||c<old){cost[b.Id]=c;parent[b.Id]=id;open.Push(b.Id,c);}}
+                foreach(var b in next){long link=ConnectionId(id,b.Id);if(!Contains(link)||closed.Contains(b.Id))continue;double c=cost[id]+Get(link).Geometry.Length/Get(link).Speed+b.TravelLength/b.Speed;double old;if(!cost.TryGetValue(b.Id,out old)||c<old){cost[b.Id]=c;parent[b.Id]=id;open.Push(b.Id,c);}}
             }
             return null;
         }
@@ -235,10 +247,10 @@ namespace HarborCity.RoadCore
 #endif
 
             var first=Get(start.lane);var last=Get(goal.lane);
-            if(!start.valid||!goal.valid||first.IsConnection||last.IsConnection)return null;
+            if(!start.valid||!goal.valid||first.IsConnection||last.IsConnection||start.distance<first.StartDistance||start.distance>first.EndDistance||goal.distance<last.StartDistance||goal.distance>last.EndDistance)return null;
             if(first.Id==last.Id&&goal.distance>=start.distance)return new List<long>{first.Id};
             var queue=new RouteQueue();var costs=new Dictionary<long,double>(CityRoadKeyComparer.Instance);var parents=new Dictionary<long,long>(CityRoadKeyComparer.Instance);var settled=new HashSet<long>(CityRoadKeyComparer.Instance);
-            double initial=(first.Geometry.Length-start.distance)/first.Speed;costs[first.Id]=initial;parents[first.Id]=0;queue.Push(first.Id,initial);
+            double initial=(first.EndDistance-start.distance)/first.Speed;costs[first.Id]=initial;parents[first.Id]=0;queue.Push(first.Id,initial);
             long beforeGoal=0;double goalCost=double.PositiveInfinity;
             while(queue.Count>0)
             {
@@ -247,8 +259,8 @@ namespace HarborCity.RoadCore
                 foreach(var lane in next)
                 {
                     long link=ConnectionId(current.Id,lane.Id);if(!Contains(link))continue;double prefix=item.cost+Get(link).Geometry.Length/Get(link).Speed;
-                    if(lane.Id==last.Id){double terminal=prefix+goal.distance/lane.Speed;if(terminal<goalCost){goalCost=terminal;beforeGoal=current.Id;}continue;}
-                    if(settled.Contains(lane.Id))continue;double candidate=prefix+lane.Geometry.Length/lane.Speed,old;
+                    if(lane.Id==last.Id){double terminal=prefix+(goal.distance-lane.StartDistance)/lane.Speed;if(terminal<goalCost){goalCost=terminal;beforeGoal=current.Id;}continue;}
+                    if(settled.Contains(lane.Id))continue;double candidate=prefix+lane.TravelLength/lane.Speed,old;
                     if(!costs.TryGetValue(lane.Id,out old)||candidate<old){costs[lane.Id]=candidate;parents[lane.Id]=current.Id;queue.Push(lane.Id,candidate);}
                 }
             }

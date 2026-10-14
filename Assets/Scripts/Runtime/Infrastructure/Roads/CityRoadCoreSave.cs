@@ -8,7 +8,7 @@ namespace HarborCity.RoadCore
     // Explicit new format. Binary double values round-trip exactly, including fixed-step remainder.
     public static class SaveCodec
     {
-        const int Magic=0x48435243,Version=12,Limit=1000000;
+        const int Magic=0x48435243,Version=13,Limit=1000000;
         static void PointOut(BinaryWriter w,Point p){w.Write(p.x);w.Write(p.y);w.Write(p.z);}
         static Point PointIn(BinaryReader r)=>new Point(r.ReadDouble(),r.ReadDouble(),r.ReadDouble());
         static int Count(BinaryReader r){int count=r.ReadInt32();if(count<0||count>Limit)throw new InvalidDataException("Invalid entity count");return count;}
@@ -30,13 +30,13 @@ namespace HarborCity.RoadCore
         }
         public static World Read(byte[] bytes,SimulationClock clock=null,IEnumerable<int> endpoints=null)
         {
-            if(bytes==null||bytes.Length<8||BitConverter.ToInt32(bytes,0)!=Magic||BitConverter.ToInt32(bytes,4)!=Version)throw new InvalidDataException("Unsupported save format: expected HarborCity road-core version 12. Legacy city saves cannot be loaded.");
+            if(bytes==null||bytes.Length<8||BitConverter.ToInt32(bytes,0)!=Magic||BitConverter.ToInt32(bytes,4)!=Version)throw new InvalidDataException("Unsupported save format: expected HarborCity road-core version 13. Legacy city saves cannot be loaded.");
             if(bytes.Length<40)throw new InvalidDataException("Truncated road-core save");
             byte[] digest;using(var sha=SHA256.Create())digest=sha.ComputeHash(bytes,0,bytes.Length-32);
             for(int i=0;i<32;i++)if(digest[i]!=bytes[bytes.Length-32+i])throw new InvalidDataException("Unsupported or corrupted road-core save (checksum mismatch)");
             using(var stream=new MemoryStream(bytes,0,bytes.Length-32,false))using(var r=new BinaryReader(stream))
             {
-                if(bytes.Length<8||r.ReadInt32()!=Magic||r.ReadInt32()!=Version)throw new InvalidDataException("Unsupported save format: expected HarborCity road-core version 12. Legacy city saves cannot be loaded.");
+                if(bytes.Length<8||r.ReadInt32()!=Magic||r.ReadInt32()!=Version)throw new InvalidDataException("Unsupported save format: expected HarborCity road-core version 13. Legacy city saves cannot be loaded.");
                 var d=new WorldData{nextVehicle=r.ReadInt32(),nextTask=r.ReadInt32(),nextDepot=r.ReadInt32(),standaloneClock=new SimulationClockData{tick=r.ReadInt64(),pendingSeconds=r.ReadDouble()}};if(Count(r)!=0)throw new InvalidDataException("Endpoint index is derived, not saved");d.delivered=r.ReadInt32();d.externalBusiness=r.ReadBoolean();d.networkRevision=r.ReadInt32();
                 d.network.nextJunction=r.ReadInt32();d.network.nextRoad=r.ReadInt32();int count=Count(r);
                 for(int i=0;i<count;i++)d.network.junctions.Add(new Junction{id=r.ReadInt32(),position=PointIn(r)});

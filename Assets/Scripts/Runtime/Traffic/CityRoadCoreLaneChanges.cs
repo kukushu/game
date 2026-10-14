@@ -20,7 +20,7 @@ namespace HarborCity.RoadCore
         public static bool TryStart(Network network,Dictionary<long,List<LaneOccupant>> occupancy,Vehicle v,int targetIndex)
         {
             if(v.status!=VehicleStatus.Active||v.changeTarget!=0||targetIndex<0||targetIndex>31)return false;var lane=network.Get(v.Current);
-            if(lane.IsConnection||Math.Abs(targetIndex-lane.LaneIndex)!=1||v.cursor+2>=v.Plan.segments.Count||v.distance<network.Clearance(lane)+1||v.distance+lane.Speed>lane.Geometry.Length-network.Clearance(lane))return false;
+            if(lane.IsConnection||Math.Abs(targetIndex-lane.LaneIndex)!=1||v.cursor+2>=v.Plan.segments.Count||v.distance<lane.StartDistance+network.Clearance(lane)+1||v.distance+lane.Speed>lane.EndDistance-network.Clearance(lane))return false;
             long target=Network.LaneId(lane.RoadId,lane.Reverse,targetIndex);if(!network.Contains(target)||!Route(network,v,target,null))return false;
             var other=network.Get(target);double d=lane.Geometry.MapDistance(other.Geometry,v.distance);List<LaneOccupant> bucket;
             if(occupancy.TryGetValue(target,out bucket)){int slot=Slot(bucket,d);double gap=World.MinimumSpacing+lane.Speed*World.StepSeconds;if(slot>0&&bucket[slot-1].distance-d<gap||slot<bucket.Count&&d-bucket[slot].distance<gap)return false;}

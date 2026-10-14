@@ -20,7 +20,7 @@ namespace HarborCity.RoadCore
             foreach(var a in sources)foreach(var b in goals)
             {
                 if(a==null||b==null)continue;var route=network.Route(a,b);if(route==null||route.Count==0)continue;double candidate=0;
-                for(int i=0;i<route.Count;i++){var d=network.Get(route[i]);candidate+=(i==route.Count-1?b.distance:d.Geometry.Length)/d.Speed;if(i==0)candidate-=a.distance/d.Speed;}
+                for(int i=0;i<route.Count;i++){var d=network.Get(route[i]);candidate+=((i==route.Count-1?b.distance:d.EndDistance)-(i==0?a.distance:d.StartDistance))/d.Speed;}
                 if(candidate<cost){cost=candidate;best=route;start=a.distance;end=b.distance;}
             }
             return best;
@@ -35,6 +35,6 @@ namespace HarborCity.RoadCore
             if(bothDirections){var opposite=Opposite(network,target);if(opposite!=null){var candidate=network.Route(source,opposite);double other=Cost(network,candidate,distance,opposite.distance);if(other<cost){route=candidate;end=opposite.distance;}}}return route;
         }
         static double Cost(Network network,List<long> route,double start,double end)
-        {if(route==null)return double.PositiveInfinity;double cost=0;for(int i=0;i<route.Count;i++){var d=network.Get(route[i]);cost+=(i==route.Count-1?end:d.Geometry.Length)/d.Speed;if(i==0)cost-=start/d.Speed;}return cost;}
+        {if(route==null)return double.PositiveInfinity;double cost=0;for(int i=0;i<route.Count;i++){var d=network.Get(route[i]);cost+=((i==route.Count-1?end:d.EndDistance)-(i==0?start:d.StartDistance))/d.Speed;}return cost;}
     }
 }
