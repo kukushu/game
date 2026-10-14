@@ -31,7 +31,7 @@ namespace HarborCity
         bool hasStart;Point startPoint;bool building,oneWay,wide;int origin,destination;float speed=1;
         long previousTick;int lastSteps;
         string notice="原工厂劳动→生产→新交通实车运输→原商店库存/支付。居民实际通勤已接入；市政、分区、信号灯和行人尚未接回。";
-        string SavePath=>Path.Combine(Application.persistentDataPath,session==null?"harbor-road-core-v10.hcrc":"harbor-city-core-v7.hcity");
+        string SavePath=>Path.Combine(Application.persistentDataPath,session==null?"harbor-road-core-v11.hcrc":"harbor-city-core-v8.hcity");
         static Vector3 V(Point p)=>new Vector3((float)p.x,(float)p.y,(float)p.z);
         void Start()
         {
@@ -47,6 +47,7 @@ namespace HarborCity
             int flag=Array.IndexOf(args,"-harbor-core-validate");if(flag>=0&&flag+1<args.Length)StartCoroutine(ValidateNative(args[flag+1]));
             flag=Array.IndexOf(args,"-harbor-core-window");if(flag>=0&&flag+1<args.Length)StartCoroutine(MeasureWindow(args[flag+1]));
             flag=Array.IndexOf(args,"-harbor-city-core-validate");if(flag>=0&&flag+1<args.Length)StartCoroutine(ValidateIndustryNative(args[flag+1]));
+            flag=Array.IndexOf(args,"-harbor-city-window");if(flag>=0&&flag+1<args.Length){Application.runInBackground=true;StartCoroutine(MeasureIntegratedWindow(args[flag+1]));}
 #if CITY_CORE_ATTRIBUTION
             flag=Array.IndexOf(args,"-harbor-city-profile");if(flag>=0&&flag+1<args.Length){Application.runInBackground=true;StartCoroutine(ProfileCity(args[flag+1]));}
 #endif
@@ -86,6 +87,31 @@ namespace HarborCity
             if(Point.Distance(startPoint,p)<4)return;
             try{var plan=world.PlanConnectedRoad(new[]{startPoint,Point.Lerp(startPoint,p,.5),p},oneWay,snap:4,lanes:wide?2:1);if(!plan.TryCommit())throw new InvalidOperationException("城市已变化，请重新施工");RenderRoads();notice="已原子提交道路、路口和车辆入口迁移。";hasStart=false;}
             catch(Exception e){notice=e.Message;}
+        }
+        System.Collections.IEnumerator MeasureIntegratedWindow(string path)
+        {
+            Directory.CreateDirectory(path);QualitySettings.vSyncCount=0;Application.targetFrameRate=60;
+            using(var output=new StreamWriter(Path.Combine(path,"city-window.csv")))
+            {
+                output.WriteLine("residents,rate,frames,wall_seconds,simulation_seconds,actual_rate,fps,frame_mean_ms,frame_p95_ms,frame_p99_ms,active_min,active_max,steps,steps_per_frame_max,gc_frame_mean_bytes,gc_counter_valid");
+                foreach(int population in new[]{1000,3000})foreach(int rate in new[]{1,3})
+                {
+                    speed=0;session=CityIntegratedScaleFixture.Create(population);world=session.Transport;RenderBuildings();RenderRoads();for(int i=0;i<20;i++)session.Advance(.05);
+                    cameraView.farClipPlane=60000;cameraView.transform.position=new Vector3(population/4*15,25000,0);cameraView.transform.LookAt(new Vector3(population/4*15,0,0));
+                    yield return null;previousTick=System.Diagnostics.Stopwatch.GetTimestamp();speed=rate;yield return new WaitForSecondsRealtime(1);
+                    var frameTimes=new List<double>();int min=int.MaxValue,max=0,maxSteps=0;long memory=0,startTick=session.Simulation.Tick;double start=Time.realtimeSinceStartupAsDouble,last=start;
+                    using(var gc=ProfilerRecorder.StartNew(ProfilerCategory.Memory,"GC Allocated In Frame"))
+                    {
+                        while(Time.realtimeSinceStartupAsDouble-start<12)
+                        {
+                            yield return null;double now=Time.realtimeSinceStartupAsDouble;frameTimes.Add((now-last)*1000);last=now;min=Math.Min(min,world.ActiveCount);max=Math.Max(max,world.ActiveCount);maxSteps=Math.Max(maxSteps,lastSteps);if(gc.Valid)memory+=gc.LastValue;
+                        }
+                        speed=0;double elapsed=last-start,sim=(session.Simulation.Tick-startTick)*World.StepSeconds;var sorted=frameTimes.ToArray();Array.Sort(sorted);session.Validate();
+                        string row=string.Join(",",population,rate,frameTimes.Count,elapsed.ToString("F6",System.Globalization.CultureInfo.InvariantCulture),sim.ToString("F6",System.Globalization.CultureInfo.InvariantCulture),(sim/elapsed).ToString("F6",System.Globalization.CultureInfo.InvariantCulture),(frameTimes.Count/elapsed).ToString("F3",System.Globalization.CultureInfo.InvariantCulture),frameTimes.Average().ToString("F3",System.Globalization.CultureInfo.InvariantCulture),sorted[(int)((sorted.Length-1)*.95)].ToString("F3",System.Globalization.CultureInfo.InvariantCulture),sorted[(int)((sorted.Length-1)*.99)].ToString("F3",System.Globalization.CultureInfo.InvariantCulture),min,max,session.Simulation.Tick-startTick,maxSteps,memory/frameTimes.Count,gc.Valid);output.WriteLine(row);output.Flush();
+                    }
+                }
+            }
+            Application.Quit(0);
         }
         void RenderRoads()
         {
@@ -162,7 +188,7 @@ namespace HarborCity
             speed=0;Directory.CreateDirectory(path);yield return null;
             try
             {
-                int branch=world.AddJunction(new Point(0,0,25));world.AddRoad(2,branch,new[]{world.JunctionPosition(2),world.JunctionPosition(branch)});if(session.City.Citizens.Any(p=>p.atWork))throw new Exception("Default residents started onsite");for(int wait=0;wait<100&&!world.Vehicles.Any(v=>v.purpose==TransportPurpose.Freight);wait++)session.Advance(.05);var actor=world.Vehicles.First(v=>v.purpose==TransportPurpose.Freight);if(world.RoutePreparations!=2)throw new Exception("Repeated actual departures reran route preparation");if(!world.TryChangeLane(actor.id,1))throw new Exception("Actual industry truck could not start lane change");Point first=world.Position(actor);session.Advance(.5);if(Point.Distance(first,world.Position(actor))<1)throw new Exception("Truck did not physically move");
+                int branch=world.AddJunction(new Point(0,0,25));world.AddRoad(2,branch,new[]{world.JunctionPosition(2),world.JunctionPosition(branch)});if(session.City.Citizens.Any(p=>p.atWork))throw new Exception("Default residents started onsite");for(int wait=0;wait<100&&!world.Vehicles.Any(v=>v.Task.purpose==TransportPurpose.Freight);wait++)session.Advance(.05);var actor=world.Vehicles.First(v=>v.Task.purpose==TransportPurpose.Freight);if(world.RoutePreparations!=2)throw new Exception("Repeated actual departures reran route preparation");if(!world.TryChangeLane(actor.id,1))throw new Exception("Actual industry truck could not start lane change");Point first=world.Position(actor);session.Advance(.5);if(Point.Distance(first,world.Position(actor))<1)throw new Exception("Truck did not physically move");
                 Point beforeEdit=world.Position(actor);world.SplitRoadAt(1,12.75);world.SplitRoadAt(2,20.25);var widePlan=world.PlanConnectedRoad(new[]{new Point(-35,0,30),new Point(35,0,30)},lanes:2);if(!widePlan.TryCommit())throw new Exception("Wide road transaction failed");RenderRoads();if(Point.Distance(beforeEdit,world.Position(actor))>1e-8)throw new Exception("Access edit moved truck");
                 Point beforeUpgrade=world.Position(actor);if(!world.PlanUpgradeRoad(1,3,14,RoadDirection.Both).TryCommit()||Point.Distance(beforeUpgrade,world.Position(actor))>1e-7)throw new Exception("Actual road upgrade moved freight");RenderRoads();var restored=CityCoreSave.Read(CityCoreSave.Write(session));for(int i=0;i<300;i++){session.Advance(.05);restored.Advance(.05);session.Validate();}
                 if(Convert.ToBase64String(CityCoreSave.Write(session))!=Convert.ToBase64String(CityCoreSave.Write(restored)))throw new Exception("Integrated save differs");

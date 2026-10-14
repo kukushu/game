@@ -25,12 +25,12 @@ namespace HarborCity
                 starts.Add(world.AddDepot(a,0));destinations.Add(queued?receiver:world.AddDepot(c,0));
                 routes.Add(new List<long>{Network.LaneId(road,false),Network.ConnectionId(Network.LaneId(road,false),Network.LaneId(next,false)),Network.LaneId(next,false)});
             }
-            var state=world.Snapshot();state.nextVehicle=count+1;if(queued)state.depots.Find(d=>d.id==receiver).capacity=0;
+            var state=world.Snapshot();state.nextVehicle=count+1;state.nextTask=count+1;if(queued)state.depots.Find(d=>d.id==receiver).capacity=0;
             for(int i=0;i<count;i++)
             {
                 int g=i%groups,index=i/groups;var route=routes[g];double length=world.Network.Get(route[0]).Geometry.Length;
-                var vehicle=new Vehicle{id=i+1,origin=starts[g],destination=destinations[g],route=new List<long>(route),distance=queued?length-2-index*1.6:20+index*5};
-                if(queued&&i==0){vehicle.cursor=2;vehicle.distance=world.Network.Get(route[2]).Geometry.Length;}state.vehicles.Add(vehicle);
+                var vehicle=new Vehicle{id=i+1,distance=queued?length-2-index*1.6:20+index*5,Task=new TripTask{id=i+1,origin=starts[g],destination=destinations[g],Shipment=new Shipment{remaining=1,unitPrice=5}},Plan=new RoutePlan{segments=new List<long>(route)}};
+                if(queued&&i==0){vehicle.cursor=2;vehicle.distance=world.Network.Get(route[2]).Geometry.Length;}state.tasks.Add(vehicle.Task);state.vehicles.Add(vehicle);
             }
             var result=new World(state);result.AssertSafety();return result;
         }

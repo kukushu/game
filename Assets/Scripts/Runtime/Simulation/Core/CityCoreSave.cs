@@ -13,7 +13,7 @@ namespace HarborCity
     // Save is a cold path; reflection preserves every original business scalar's exact bits.
     public static class CityCoreSave
     {
-        const int Magic=0x48434932,Version=7,MaximumCount=1000000;
+        const int Magic=0x48434932,Version=8,MaximumCount=1000000;
         static readonly Dictionary<Type,FieldInfo[]> fields=new Dictionary<Type,FieldInfo[]>();
         static FieldInfo[] Fields(Type type)
         {FieldInfo[] result;if(!fields.TryGetValue(type,out result)){result=type.GetFields(BindingFlags.Public|BindingFlags.Instance).Where(f=>!f.IsNotSerialized).OrderBy(f=>f.Name,StringComparer.Ordinal).ToArray();fields.Add(type,result);}return result;}

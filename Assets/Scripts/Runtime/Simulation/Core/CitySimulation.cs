@@ -73,7 +73,7 @@ namespace HarborCity
 #if CITY_CORE_ATTRIBUTION
             using var observation=HarborCity.RoadCore.CityCoreProfile.Measure(HarborCity.RoadCore.CityCoreProfile.Part.Dispatch);
 #endif
-if(Fault!=null)throw new InvalidOperationException("Cannot dispatch into a faulted simulation",Fault);var admission=transport.PrepareTransport(origin,destination,cargo,price,purpose,citizen);if(admission==null||!business.Depart(admission.vehicle))return null;return transport.CommitAdmission(admission);}
+if(Fault!=null)throw new InvalidOperationException("Cannot dispatch into a faulted simulation",Fault);var admission=transport.PrepareTransport(origin,destination,cargo,price,purpose,citizen);if(admission==null||!business.Depart(admission.vehicle.Task))return null;return transport.CommitAdmission(admission);}
         internal void AssertSaveBoundary(){if(IsStepping||Fault!=null)throw new InvalidOperationException("Cannot save a partial/faulted simulation step");}
     }
 }

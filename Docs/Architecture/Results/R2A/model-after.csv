@@ -1,0 +1,4 @@
+version,residents,factories,shops,steps,active_min,active_max,mean_ms,p95_ms,p99_ms,allocated_per_step,produced,delivered
+after,100,25,25,200,0,50,0.048557,0.042100,0.097400,757,175,175
+after,1000,250,250,200,0,500,0.343300,0.377400,1.661900,4780,1750,1750
+after,3000,750,750,200,0,1500,1.240386,1.142000,10.209000,13662,5250,5250

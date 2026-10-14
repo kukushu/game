@@ -20,10 +20,10 @@ namespace HarborCity
             this.city=city;this.transport=transport;this.entities=entities;this.calendarOffset=calendarOffset;Enabled=enabled;PayrollDay=payrollDay<0?city.day:payrollDay;
 
         }
-        public bool Depart(Vehicle v)
+        public bool Depart(TripTask v)
         {
             var member=entities.Member(v.citizenId);if(member==null)return false;var p=member.Person;var h=member.Family;
-            if(!h.resident||p.dead||p.tripId!=0||p.location!=v.origin||v.cargo!=0||v.price!=0)return false;
+            if(!h.resident||p.dead||p.tripId!=0||p.location!=v.origin||v.Cargo!=0||v.Price!=0)return false;
             if(v.purpose==TransportPurpose.Work&&(p.atWork||v.origin!=h.home||v.destination!=city.Workplace(p)||!city.CanAttendWork(p)||!city.JobFunded(city.ResidentJob(p))))return false;
             if(v.purpose==TransportPurpose.Home&&v.destination!=h.home)return false;
             if(v.purpose!=TransportPurpose.Home&&v.purpose!=TransportPurpose.Work)return false;
@@ -32,7 +32,7 @@ namespace HarborCity
         public bool Arrive(TransportArrival v)
         {
             var member=entities.Member(v.citizenId);if(member==null)return false;var p=member.Person;var h=member.Family;
-            if(p.dead||!h.resident||p.tripId!=v.id)return false;
+            if(p.dead||!h.resident||p.tripId!=v.taskId)return false;
             p.tripId=0;p.location=v.destination;p.atWork=v.purpose==TransportPurpose.Work&&city.Workplace(p)==v.destination&&city.CanAttendWork(p)&&city.JobFunded(city.ResidentJob(p));
             if(p.atWork){double seconds=city.society.settings.secondsPerDay,absolute=calendarOffset+v.arrivedAt;p.arrivedDay=1+(int)Math.Floor(absolute/seconds);p.lastCommute=(float)Math.Max(0,(v.arrivedAt-v.departedAt)*1440/seconds);p.lastDelay=(float)Math.Max(0,(p.arrivedDay-p.departureDay)*1440+absolute%seconds*1440/seconds-(480+p.id%3*30));p.observedHome=h.home;p.observedWork=v.destination;p.observedRevision=transport.NetworkGeneration;}
             return true;
@@ -62,14 +62,14 @@ namespace HarborCity
         public ResidentActivity Observe(int citizen)
         {
             var member=entities.Member(citizen);if(member==null)throw new ArgumentException("Unknown citizen");var p=member.Person;var a=new ResidentActivity();
-            if(p.tripId!=0){var task=transport.FindVehicle(p.tripId);if(task==null)throw new InvalidOperationException("Resident transport reference missing");var point=transport.Position(task);a.located=true;a.travelling=true;a.x=(float)point.x;a.z=(float)point.z;a.destination=task.destination;a.state=task.status==VehicleStatus.Stranded?"道路中断，仍在车辆中":task.purpose==TransportPurpose.Home?"回家途中":"上班途中";a.reason="实际车辆 #"+task.id;return a;}
+            if(p.tripId!=0){var task=transport.FindTaskVehicle(p.tripId);if(task==null)throw new InvalidOperationException("Resident transport reference missing");var point=transport.Position(task);a.located=true;a.travelling=true;a.x=(float)point.x;a.z=(float)point.z;a.destination=task.Task.destination;a.state=task.status==VehicleStatus.Stranded?"道路中断，仍在车辆中":task.Task.purpose==TransportPurpose.Home?"回家途中":"上班途中";a.reason="实际车辆 #"+task.id;return a;}
             var building=city.GetBuilding(p.location);a.building=p.location;a.located=building!=null;a.state=p.atWork?"实际在岗":"在家 / 等待出发";if(building!=null){a.x=building.x;a.z=building.z;}return a;
         }
         public void Validate()
         {
             if(PayrollDay<1||PayrollDay>city.day)throw new InvalidOperationException("Invalid payroll settlement day");
-            var owned=new HashSet<int>();foreach(var task in transport.Vehicles)if(task.purpose!=TransportPurpose.Freight){var member=entities.Member(task.citizenId);if(member==null||!owned.Add(task.citizenId)||member.Person.tripId!=task.id||member.Person.atWork||member.Person.location!=-1)throw new InvalidOperationException("Resident/vehicle ownership mismatch");}
-            foreach(var member in entities.Members){var p=member.Person;if(p.tripId!=0){var task=transport.FindVehicle(p.tripId);if(task==null||task.citizenId!=p.id)throw new InvalidOperationException("Dangling resident trip");}}
+            var owned=new HashSet<int>();foreach(var task in transport.Vehicles)if(task.Task.purpose!=TransportPurpose.Freight){var member=entities.Member(task.Task.citizenId);if(member==null||!owned.Add(task.Task.citizenId)||member.Person.tripId!=task.Task.id||member.Person.atWork||member.Person.location!=-1)throw new InvalidOperationException("Resident/vehicle ownership mismatch");}
+            foreach(var member in entities.Members){var p=member.Person;if(p.tripId!=0){var task=transport.FindTaskVehicle(p.tripId);if(task==null||task.Task.citizenId!=p.id)throw new InvalidOperationException("Dangling resident trip");}}
         }
     }
 }

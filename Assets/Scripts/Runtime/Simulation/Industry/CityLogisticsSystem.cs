@@ -19,7 +19,7 @@ namespace HarborCity
 #endif
 
             if(time.Tick<NextDispatchTick)return;NextDispatchTick=time.Tick+5;incoming.Clear();
-            foreach(var task in transport.Vehicles){incoming.TryGetValue(task.destination,out int count);incoming[task.destination]=count+task.cargo;}
+            foreach(var task in transport.Tasks){incoming.TryGetValue(task.destination,out int count);incoming[task.destination]=count+task.Cargo;}
             // Local source backpressure: no destination can bypass the same blocked
             // station. Preserve shop order; unreachable destinations still try later shops.
             // Query directed lane/station ranges; preserve canonical shop ordering.

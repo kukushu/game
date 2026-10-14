@@ -26,11 +26,11 @@ namespace HarborCity
         public CityCoreResidents Residents {get;internal set;}
         public CityCoreIndustryBusiness(CityModel city){this.city=city;}
         public bool Exists(int id)=>city.GetBuilding(id)!=null&&!city.GetBuilding(id).abandoned&&!city.GetBuilding(id).burned;
-        internal bool Depart(Vehicle v)
+        internal bool Depart(TripTask v)
         {
             if(v.purpose!=TransportPurpose.Freight)return Residents!=null&&Residents.Depart(v);
-            if(!(city.GetBuilding(v.origin) is IndustrialBuilding factory)||!(city.GetBuilding(v.destination) is CommercialBuilding shop)||!Exists(v.origin)||!Exists(v.destination)||factory.Stock<v.cargo||shop.Stock+v.cargo>32||v.price!=FactoryState.SalePrice)return false;
-            factory.Stock-=v.cargo;factory.factory.shipped+=v.cargo;return true;
+            if(!(city.GetBuilding(v.origin) is IndustrialBuilding factory)||!(city.GetBuilding(v.destination) is CommercialBuilding shop)||!Exists(v.origin)||!Exists(v.destination)||factory.Stock<v.Cargo||shop.Stock+v.Cargo>32||v.Price!=FactoryState.SalePrice)return false;
+            factory.Stock-=v.Cargo;factory.factory.shipped+=v.Cargo;return true;
         }
         internal bool Deliver(TransportArrival v)
         {
@@ -41,7 +41,7 @@ namespace HarborCity
             // Called after physics has committed every vehicle; successful receipt is
             // acknowledged and retired in the same city boundary, never saved mid-step.
             target.Stock+=v.cargo;target.wholesaleCosts+=v.cargo*FactoryState.SalePrice;
-            city.RecordFactorySale(v.origin,v.cargo,v.id,v.destination,notify:false);return true;
+            city.RecordFactorySale(v.origin,v.cargo,v.taskId,v.destination,notify:false);return true;
         }
     }
     public sealed class CityCoreIndustrySession
