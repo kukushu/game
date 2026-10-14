@@ -65,6 +65,7 @@ namespace HarborCity
         public override LandUse Use => LandUse.Commercial;
         public int stock,customers,retailSold,retailSoldToday;
         public int retailDay=-1;
+        public double wholesaleCosts;
         public int Stock {get=>stock; set=>stock=value;}
     }
     [Serializable] public sealed class IndustrialBuilding : CityBuilding, IGoodsBuilding

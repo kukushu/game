@@ -1,0 +1,34 @@
+using System;
+using System.Linq;
+using HarborCity;
+using HarborCity.RoadCore;
+
+public static class CityCoreIndustryChecks
+{
+    static int checks;
+    static void Check(bool condition,string message){checks++;if(!condition)throw new Exception(message);}
+    public static void Main(string[] args)
+    {
+        var session=CityCoreIndustrySession.Create();var city=session.City;var factory=city.Factory(1);double opening=factory.cash;
+        var snapshot=session.SnapshotBusiness();snapshot.buildings[0].industrial[0].cash=0;snapshot.society.families[0].people[0].location=-1;Check(factory.cash==opening&&city.Citizens.First().location==1,"Business snapshot leaked live state");
+        Check(city.roads.edges.Count==0&&city.traffic.trips.Count==0,"Legacy engine/network used");Check(session.Transport.Snapshot().depots.Count==0,"Duplicate city inventory");
+        session.Advance(2);Check(factory.produced>0&&factory.productiveMinutes>0,"No real labour production");Check(session.Transport.ActiveCount>0&&factory.shipped>0,"No business dispatch");Check(city.Goods(2)==0&&factory.sold==0,"Goods teleported / early revenue");var actor=session.Transport.Vehicles.First();Point pose=session.Transport.Position(actor);session.Advance(.5);Check(Point.Distance(pose,session.Transport.Position(actor))>1,"No actual new-core movement");
+        var restored=CityCoreSave.Read(CityCoreSave.Write(session));for(int i=0;i<220;i++){session.Advance(.05);restored.Advance(.05);session.Validate();Check(Convert.ToBase64String(CityCoreSave.Write(session))==Convert.ToBase64String(CityCoreSave.Write(restored)),"City/traffic saved continuation differs");}
+        Check(factory.sold==session.Transport.Delivered&&factory.sold==city.Goods(2),"Inventory/delivery ledger mismatch");Check(factory.salesRevenue==city.GetBuilding(2).AsShop().wholesaleCosts,"Buyer/seller money mismatch");Check(Math.Abs(factory.CashError)<1e-6&&Math.Abs(factory.cash-(opening+factory.salesRevenue-factory.wageCosts-factory.productionCosts))<1e-8,"Financial conservation");Check(factory.produced==city.Goods(1)+city.Goods(2)+session.Transport.Vehicles.Sum(v=>v.cargo),"Goods conservation");
+        var blocked=CityCoreIndustrySession.Create();blocked.City.Inventory(2).Stock=31;blocked.Advance(2);var waiting=blocked.Transport.Vehicles.First();blocked.City.Inventory(2).Stock=32;blocked.Advance(9);Check(waiting.cargo>0&&waiting.status==VehicleStatus.Active&&blocked.Transport.Delivered==0,"Full target dropped cargo");blocked.City.Inventory(2).Stock=31;blocked.Advance(.1);Check(blocked.Transport.Delivered==1&&waiting.cargo==0,"Unloading did not resume");double sales=blocked.City.Factory(1).salesRevenue;blocked.Advance(.1);Check(blocked.City.Factory(1).salesRevenue==sales,"Duplicate payment");
+        var disconnected=CityCoreIndustrySession.Create();disconnected.Transport.RemoveRoad(2);disconnected.Advance(2);Check(disconnected.Transport.ActiveCount==0&&disconnected.City.Goods(1)>0&&disconnected.City.Factory(1).salesRevenue==0,"Unreachable request debited stock");
+        var interrupted=CityCoreIndustrySession.Create();interrupted.Advance(2);var task=interrupted.Transport.Vehicles.First();int cargo=task.cargo;Point before=interrupted.Transport.Position(task);interrupted.Transport.RemoveRoad(1);interrupted.Advance(.05);Check(task.status==VehicleStatus.Stranded&&task.cargo==cargo&&Point.Distance(before,interrupted.Transport.Position(task))<1e-8,"Road interruption lost cargo/position");var loaded=CityCoreSave.Read(CityCoreSave.Write(interrupted));Check(loaded.Transport.Vehicles.Sum(v=>v.cargo)==interrupted.Transport.Vehicles.Sum(v=>v.cargo),"Interrupted saved cargo lost");
+        var empty=CityCoreIndustrySession.Create();foreach(var worker in empty.City.Citizens)worker.atWork=false;empty.Advance(3);Check(empty.City.Factory(1).produced==0&&empty.Transport.ActiveCount==0,"Jobs alone produced goods");
+        var gone=CityCoreIndustrySession.Create();gone.Advance(2);var goneTask=gone.Transport.Vehicles.First();gone.City.buildings.Remove(gone.City.GetBuilding(2));gone.Advance(.05);Check(goneTask.status==VehicleStatus.Stranded&&goneTask.cargo>0,"Deleted destination lost task");CityCoreSave.Read(CityCoreSave.Write(gone)).Validate();
+        var closed=CityCoreIndustrySession.Create();closed.Advance(2);int carrying=closed.Transport.Vehicles.Sum(v=>v.cargo);double companyCash=closed.City.Factory(1).cash;closed.CloseBuilding(1);Check(closed.Transport.ActiveCount==0&&closed.Transport.Vehicles.Sum(v=>v.cargo)==carrying,"Closed source lost cargo");var closedLoad=CityCoreSave.Read(CityCoreSave.Write(closed));closedLoad.Advance(.1);Check(closedLoad.SnapshotBusiness().retiredBuildings[0].industrial[0].cash==companyCash,"Closed business finance lost on load");closedLoad.Validate();
+        Console.WriteLine("PASS "+checks+" integrated industry checks; original labour/inventory/finance, real RoadCore transport, exact new city save, interruption and full unloading.");
+        if(args.Length>0)
+        {
+            var tested=CityCoreIndustrySession.Create();for(int i=0;i<50;i++)tested.Advance(.05);var samples=new double[300];int min=int.MaxValue,max=0;long allocated=GC.GetAllocatedBytesForCurrentThread();var clock=System.Diagnostics.Stopwatch.StartNew();var timer=new System.Diagnostics.Stopwatch();
+            for(int i=0;i<samples.Length;i++){timer.Restart();tested.Advance(.05);timer.Stop();samples[i]=timer.Elapsed.TotalMilliseconds;min=Math.Min(min,tested.Transport.ActiveCount);max=Math.Max(max,tested.Transport.ActiveCount);}clock.Stop();allocated=GC.GetAllocatedBytesForCurrentThread()-allocated;tested.Validate();double sum=samples.Sum();Array.Sort(samples);
+            string row=string.Join(",",min,max,tested.Transport.Network.RoadCount,tested.Transport.Network.JunctionCount,4,300,(sum/300).ToString("F6",System.Globalization.CultureInfo.InvariantCulture),samples[284].ToString("F6",System.Globalization.CultureInfo.InvariantCulture),samples[296].ToString("F6",System.Globalization.CultureInfo.InvariantCulture),allocated/300,15,clock.Elapsed.TotalSeconds.ToString("F6",System.Globalization.CultureInfo.InvariantCulture));
+            System.IO.File.WriteAllLines(args[0],new[]{"active_min,active_max,roads,junctions,workers,steps,mean_ms,p95_ms,p99_ms,allocated_per_step,simulation_seconds,wall_seconds",row});Console.WriteLine(row);
+        }
+    }
+    static CommercialBuilding AsShop(this CityBuilding b)=>(CommercialBuilding)b;
+}

@@ -56,13 +56,12 @@ namespace HarborCity
             f.cash-=paid; f.wageCosts+=paid; f.unpaidWages+=due-paid;
             person.factoryWageCredit+=paid;
         }
-        public void RecordFactorySale(int id,int amount,int trip,int buyer=-1)
+        public void RecordFactorySale(int id,int amount,int trip,int buyer=-1,bool notify=true)
         {
             var f=Factory(id); if(f==null || amount<=0) return;
             double revenue=amount*FactoryState.SalePrice;
             f.cash+=revenue; f.salesRevenue+=revenue; f.sold+=amount;
-            ObserveAnalysisSale(id,buyer);
-            Trace("factory.sale","商品实际交付；买方简化外部经营资金支付货款",f,building:id,trip:trip);
+            if(notify){ObserveAnalysisSale(id,buyer);Trace("factory.sale","商品实际交付；买方简化外部经营资金支付货款",f,building:id,trip:trip);}
         }
         // Called only with the minutes actually credited by the resident attendance system.
         public void ProcessFactoryWork(CityResident person,float minutes,float actualAttendance=-1)
