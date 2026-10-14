@@ -1,0 +1,2 @@
+PASS actual Unity default city industry: original residents/jobs credit labour, original factory produces, RoadCore trucks move, original shop receives/payments reconcile, exact combined save continues. No old Move or duplicate Depot.
+PASS rendered truck transform follows new-core state across actual Unity frames.

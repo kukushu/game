@@ -29,7 +29,7 @@ namespace HarborCity.RoadCore
     }
     [Serializable] public sealed class WorldData
     {
-        public int coreFormat=3,nextVehicle=1,nextDepot=1;
+        public int coreFormat=4,nextVehicle=1,nextDepot=1;
         public bool externalBusiness;
         public double clock,accumulator;
         public int delivered;
@@ -51,6 +51,7 @@ namespace HarborCity.RoadCore
         public int Delivered=>data.delivered;
         public int ActiveCount {get;private set;}
         public int NetworkGeneration {get;private set;}
+        internal long EditEpoch {get;private set;}
         readonly Dictionary<long,List<Vehicle>> occupancy=new Dictionary<long,List<Vehicle>>(CityRoadKeyComparer.Instance);
         readonly Dictionary<int,int> locks=new Dictionary<int,int>();
         readonly Dictionary<int,Depot> depotsById=new Dictionary<int,Depot>();
@@ -59,7 +60,7 @@ namespace HarborCity.RoadCore
         readonly Dictionary<long,double> entries=new Dictionary<long,double>(CityRoadKeyComparer.Instance);
         readonly List<Intent> intents=new List<Intent>();
         struct Intent { public Vehicle vehicle;public int cursor;public double distance,limit; }
-        struct Remap { public Vehicle vehicle;public List<long> route;public int cursor;public double distance,arrival; }
+        internal struct Remap { public Vehicle vehicle;public List<long> route;public int cursor;public double distance,arrival; }
         sealed class IntentOrder:IComparer<Intent>
         {public static readonly IntentOrder Instance=new IntentOrder();public int Compare(Intent a,Intent b)=>a.vehicle.id.CompareTo(b.vehicle.id);}
         sealed class OccupantOrder:IComparer<Vehicle>
@@ -71,7 +72,7 @@ namespace HarborCity.RoadCore
         public World(ITransportBusiness owner):this(new WorldData{externalBusiness=true},owner){}
         public World(WorldData state,ITransportBusiness owner=null)
         {
-            if(state==null||state.coreFormat!=3||state.externalBusiness!=(owner!=null))throw new ArgumentException("Unsupported road-core save or missing business owner. Legacy city saves are not supported.");
+            if(state==null||state.coreFormat!=4||state.externalBusiness!=(owner!=null))throw new ArgumentException("Unsupported road-core save or missing business owner. Legacy city saves are not supported.");
             data=state; // Take ownership of a private copy, never the caller's mutable save DTO.
             data=Snapshot();vehicleView=data.vehicles.AsReadOnly();depotView=data.depots.AsReadOnly();foreach(var depot in data.depots)depotsById.Add(depot.id,depot);
             if(data.externalBusiness&&data.depots.Count!=0)throw new ArgumentException("External city cannot contain duplicate fixture inventories");foreach(var access in data.accesses)accesses.Add(access.endpoint,access);
@@ -80,7 +81,7 @@ namespace HarborCity.RoadCore
         // Only serializers may receive this copy; callers cannot mutate the live facts.
         public WorldData Snapshot()
         {
-            var copy=new WorldData{coreFormat=3,externalBusiness=data.externalBusiness,nextVehicle=data.nextVehicle,nextDepot=data.nextDepot,clock=data.clock,accumulator=data.accumulator,delivered=data.delivered,network=CopyNetwork()};
+            var copy=new WorldData{coreFormat=4,externalBusiness=data.externalBusiness,nextVehicle=data.nextVehicle,nextDepot=data.nextDepot,clock=data.clock,accumulator=data.accumulator,delivered=data.delivered,network=CopyNetwork()};
             foreach(var access in data.accesses)copy.accesses.Add(access.Copy());
             foreach(var d in data.depots)copy.depots.Add(new Depot{id=d.id,junction=d.junction,stock=d.stock,capacity=d.capacity,cash=d.cash});
             foreach(var v in data.vehicles)copy.vehicles.Add(new Vehicle{id=v.id,origin=v.origin,destination=v.destination,cargo=v.cargo,price=v.price,distance=v.distance,arrivalDistance=v.arrivalDistance,cursor=v.cursor,status=v.status,strandedPosition=v.strandedPosition,route=new List<long>(v.route)});
@@ -90,19 +91,51 @@ namespace HarborCity.RoadCore
         {
             var n=new NetworkData{nextJunction=data.network.nextJunction,nextRoad=data.network.nextRoad};
             foreach(var j in data.network.junctions)n.junctions.Add(new Junction{id=j.id,position=j.position});
-            foreach(var r in data.network.roads)n.roads.Add(new PhysicalRoad{id=r.id,from=r.from,to=r.to,oneWay=r.oneWay,speed=r.speed,points=(Point[])r.points.Clone(),startTangent=r.startTangent,endTangent=r.endTangent});return n;
+            foreach(var r in data.network.roads)n.roads.Add(new PhysicalRoad{id=r.id,from=r.from,to=r.to,oneWay=r.oneWay,speed=r.speed,points=(Point[])r.points.Clone(),rightVectors=r.rightVectors==null?null:(Point[])r.rightVectors.Clone(),startTangent=r.startTangent,endTangent=r.endTangent});return n;
         }
         public int AddJunction(Point point)
         {
-            var n=CopyNetwork();int id=n.nextJunction++;n.junctions.Add(new Junction{id=id,position=point});var replacement=new Network(n);data.network=n;Network=replacement;NetworkGeneration++;return id;
+            var n=CopyNetwork();int id=n.nextJunction++;n.junctions.Add(new Junction{id=id,position=point});var replacement=new Network(n);if(!new RoadEditPlan(this,n,replacement).TryCommit())throw new InvalidOperationException("Road plan became stale");return id;
         }
         public Point JunctionPosition(int id){foreach(var j in data.network.junctions)if(j.id==id)return j.position;throw new ArgumentException("Missing junction");}
         public int SnapJunction(Point p,double radius)
         {int best=0;foreach(var j in data.network.junctions){double d=Point.Distance(j.position,p);if(d<radius){radius=d;best=j.id;}}return best;}
         public int AddRoad(int from,int to,Point[] points,bool oneWay=false,double speed=12)
         {
-            var n=CopyNetwork();int id=n.nextRoad++;n.roads.Add(new PhysicalRoad{id=id,from=from,to=to,points=(Point[])points.Clone(),oneWay=oneWay,speed=speed});
-            var network=new Network(n);ValidateEditReservations(network,null);data.network=n;Network=network;NetworkGeneration++;occupancy.Clear();Reindex();return id;
+            int id=data.network.nextRoad;var plan=PlanRoad(from,to,points,oneWay,speed);if(!plan.TryCommit())throw new InvalidOperationException("Road plan became stale");return id;
+        }
+        public RoadEditPlan PlanRoad(int from,int to,Point[] points,bool oneWay=false,double speed=12)
+        {var n=CopyNetwork();int id=n.nextRoad++;n.roads.Add(new PhysicalRoad{id=id,from=from,to=to,points=(Point[])points.Clone(),oneWay=oneWay,speed=speed});var network=new Network(n);ValidateEditReservations(network,null);return new RoadEditPlan(this,n,network);}
+        public RoadEditPlan PlanConnectedRoad(Point[] center,bool oneWay=false,double speed=12,double snap=3)=>RoadConstruction.Connect(this,center,oneWay,speed,snap);
+        internal World EditDraft()=>new World(Snapshot(),data.externalBusiness?business:null);
+        internal RoadEditPlan PlanFromDraft(World draft)
+        {
+            var candidate=draft.Snapshot();var mapped=new Dictionary<int,Vehicle>();foreach(var v in candidate.vehicles)mapped.Add(v.id,v);
+            var remaps=new List<Remap>();var interrupted=new List<KeyValuePair<Vehicle,Point>>();
+            foreach(var v in data.vehicles)
+            {
+                var next=mapped[v.id];if(v.status==VehicleStatus.Active&&next.status==VehicleStatus.Stranded)interrupted.Add(new KeyValuePair<Vehicle,Point>(v,next.strandedPosition));
+                else if(draft.Network.Contains(next.Current))remaps.Add(new Remap{vehicle=v,route=next.route,cursor=next.cursor,distance=next.distance,arrival=next.arrivalDistance});
+            }
+            return new RoadEditPlan(this,candidate.network,draft.Network,remaps,interrupted,candidate.accesses);
+        }
+        internal bool TryCommit(RoadEditPlan plan)
+        {
+            if(!ReferenceEquals(plan.owner,this)||!ReferenceEquals(plan.source,Network)||plan.epoch!=EditEpoch)return false;
+            ValidateEditReservations(plan.network,plan.remaps);
+            foreach(var remap in plan.remaps){if(remap.vehicle.status!=VehicleStatus.Stranded)plan.network.ValidateRoute(remap.route);if(Point.Distance(Position(remap.vehicle),plan.network.Get(remap.route[remap.cursor]).Geometry.Sample(remap.distance))>1e-7)throw new InvalidOperationException("Edit moved an existing vehicle");}
+            var staged=Snapshot();staged.network=plan.data;if(plan.accesses!=null)staged.accesses=plan.accesses;
+            var stagedVehicles=new Dictionary<int,Vehicle>();foreach(var vehicle in staged.vehicles)stagedVehicles.Add(vehicle.id,vehicle);
+            foreach(var remap in plan.remaps){var vehicle=stagedVehicles[remap.vehicle.id];vehicle.route=remap.route;vehicle.cursor=remap.cursor;vehicle.distance=remap.distance;if(vehicle.status!=VehicleStatus.Stranded)vehicle.arrivalDistance=remap.arrival;}
+            foreach(var item in plan.interruptions){var vehicle=stagedVehicles[item.Key.id];vehicle.strandedPosition=item.Value;vehicle.status=VehicleStatus.Stranded;}
+            // Cold transaction validation proves references, endpoint bounds and occupancy
+            // together before the first live write. No business callback mutates inventory.
+            new World(staged,data.externalBusiness?business:null);
+            // Every fallible geometry/migration/reservation check precedes these writes.
+            foreach(var remap in plan.remaps){remap.vehicle.route=remap.route;remap.vehicle.cursor=remap.cursor;remap.vehicle.distance=remap.distance;if(remap.vehicle.status!=VehicleStatus.Stranded)remap.vehicle.arrivalDistance=remap.arrival;}
+            foreach(var item in plan.interruptions){item.Key.strandedPosition=item.Value;item.Key.status=VehicleStatus.Stranded;}
+            if(plan.accesses!=null){data.accesses=plan.accesses;accesses.Clear();foreach(var access in plan.accesses)accesses.Add(access.endpoint,access);}
+            data.network=plan.data;Network=plan.network;NetworkGeneration++;EditEpoch++;occupancy.Clear();Reindex();return true;
         }
         public int AddDepot(int junction,int stock=100)
         {if(data.externalBusiness)throw new InvalidOperationException("City owns its inventories; synthetic depots are disabled");JunctionPosition(junction);if(stock<0||stock>100000)throw new ArgumentOutOfRangeException(nameof(stock));int id=data.nextDepot++;var depot=new Depot{id=id,junction=junction,stock=stock};data.depots.Add(depot);depotsById.Add(id,depot);return id;}
@@ -112,6 +145,7 @@ namespace HarborCity.RoadCore
         {
             var drivable=Network.Get(lane);if(endpoint<0||accesses.ContainsKey(endpoint)||drivable.IsConnection||distance<0||distance>drivable.Geometry.Length||double.IsNaN(distance)||double.IsInfinity(distance)||use==0||(use&~AccessUse.All)!=0)throw new ArgumentException("Invalid road access");
             var access=new RoadAccess{endpoint=endpoint,lane=lane,distance=distance,use=use};data.accesses.Add(access);accesses.Add(endpoint,access);
+            EditEpoch++;
         }
         public Vehicle Dispatch(int origin,int destination,int amount=1,double price=5)
         {
@@ -127,14 +161,14 @@ namespace HarborCity.RoadCore
             if(Network.IsConflictJunction(reservation)&&locks.ContainsKey(reservation))return null;
             var v=new Vehicle{id=data.nextVehicle,origin=origin,destination=destination,cargo=amount,price=price,route=route,distance=start,arrivalDistance=end};
             if(data.vehicles.Count==data.vehicles.Capacity)data.vehicles.Capacity=Math.Max(4,data.vehicles.Capacity*2);
-            if(!business.Depart(v))return null;data.nextVehicle++;data.vehicles.Add(v);ActiveCount++;
+            if(!business.Depart(v))return null;data.nextVehicle++;data.vehicles.Add(v);ActiveCount++;EditEpoch++;
             if(!occupancy.TryGetValue(v.Current,out bucket))occupancy.Add(v.Current,bucket=new List<Vehicle>());bucket.Insert(InsertionSlot(bucket,start),v);if(Network.IsConflictJunction(reservation))locks[reservation]=v.id;return v;
         }
         static int InsertionSlot(List<Vehicle> bucket,double position){int lo=0,hi=bucket.Count;while(lo<hi){int mid=(lo+hi)/2;if(bucket[mid].distance>position)lo=mid+1;else hi=mid;}return lo;}
         static double EndDistance(Vehicle v,Drivable road)=>v.arrivalDistance<0?road.Geometry.Length:v.arrivalDistance;
         public Point Position(Vehicle v)=>v.status==VehicleStatus.Stranded?v.strandedPosition:Network.Get(v.Current).Geometry.Sample(v.distance);
         public void RefreshEndpoints()
-        {foreach(var v in data.vehicles)if(v.status==VehicleStatus.Active&&(!business.Exists(v.origin)||!business.Exists(v.destination))){v.strandedPosition=Position(v);v.status=VehicleStatus.Stranded;}Reindex();}
+        {foreach(var v in data.vehicles)if(v.status==VehicleStatus.Active&&(!business.Exists(v.origin)||!business.Exists(v.destination))){v.strandedPosition=Position(v);v.status=VehicleStatus.Stranded;}EditEpoch++;Reindex();}
         static double Clearance(Drivable lane)=>Math.Min(2,lane.Geometry.Length/3);
         void ValidateEditReservations(Network candidate,List<Remap> changes)
         {
@@ -259,18 +293,33 @@ namespace HarborCity.RoadCore
                 int retained=0;for(int i=0;i<data.vehicles.Count;i++)if(data.vehicles[i].status!=VehicleStatus.Delivered)data.vehicles[retained++]=data.vehicles[i];
                 if(retained<data.vehicles.Count)data.vehicles.RemoveRange(retained,data.vehicles.Count-retained);
                 data.clock+=StepSeconds;
+                EditEpoch++;
                 indexDirty=true;
             }
         }
         public int SplitRoad(int roadId,int sample)
         {
-            var n=CopyNetwork();var r=n.roads.Find(x=>x.id==roadId);if(r==null||sample<=0||sample>=r.points.Length-1)throw new ArgumentException("Split must be an internal geometry sample");
+            return SplitCandidate(CopyNetwork(),roadId,sample);
+        }
+        public int SplitRoadAt(int roadId,double centerDistance)
+        {
+            var n=CopyNetwork();var road=n.roads.Find(r=>r.id==roadId);if(road==null)throw new ArgumentException("Missing road");var geometry=new Geometry(road.points);
+            if(centerDistance<=.1||centerDistance>=geometry.Length-.1||double.IsNaN(centerDistance))throw new ArgumentException("Cut must be inside the road");
+            for(int i=1;i<geometry.Count-1;i++)if(Math.Abs(geometry.At(i)-centerDistance)<1e-8)return SplitCandidate(n,roadId,i);
+            int after=1;while(geometry.At(after)<centerDistance)after++;double t=(centerDistance-geometry.At(after-1))/(geometry.At(after)-geometry.At(after-1));
+            var right=Network.RightVectors(road);var points=new List<Point>(road.points);var vectors=new List<Point>(right);points.Insert(after,geometry.Sample(centerDistance));vectors.Insert(after,Point.Lerp(right[after-1],right[after],t));road.points=points.ToArray();road.rightVectors=vectors.ToArray();
+            return SplitCandidate(n,roadId,after);
+        }
+        int SplitCandidate(NetworkData n,int roadId,int sample)
+        {
+            var r=n.roads.Find(x=>x.id==roadId);if(r==null||sample<=0||sample>=r.points.Length-1)throw new ArgumentException("Split must be an internal geometry sample");var vectors=Network.RightVectors(r);
             int junction=n.nextJunction++,suffixId=n.nextRoad++;
             n.junctions.Add(new Junction{id=junction,position=r.points[sample]});
-            var suffix=new PhysicalRoad{id=suffixId,from=junction,to=r.to,oneWay=r.oneWay,speed=r.speed,points=new Point[r.points.Length-sample],endTangent=r.endTangent};
+            var suffix=new PhysicalRoad{id=suffixId,from=junction,to=r.to,oneWay=r.oneWay,speed=r.speed,points=new Point[r.points.Length-sample],rightVectors=new Point[r.points.Length-sample],endTangent=r.endTangent};
             Array.Copy(r.points,sample,suffix.points,0,suffix.points.Length);
+            Array.Copy(vectors,sample,suffix.rightVectors,0,suffix.rightVectors.Length);
             var tangent=Network.Tangent(r.points[sample-1],r.points[sample+1]);suffix.startTangent=tangent;r.endTangent=tangent;
-            var prefix=new Point[sample+1];Array.Copy(r.points,prefix,prefix.Length);r.points=prefix;r.to=junction;n.roads.Add(suffix);
+            var prefix=new Point[sample+1];Array.Copy(r.points,prefix,prefix.Length);r.points=prefix;r.rightVectors=new Point[sample+1];Array.Copy(vectors,r.rightVectors,r.rightVectors.Length);r.to=junction;n.roads.Add(suffix);
             var replacement=new Network(n);
             var accessPlan=new List<RoadAccess>();
             foreach(var existing in data.accesses)
@@ -327,9 +376,7 @@ namespace HarborCity.RoadCore
                 remaps.Add(new Remap{vehicle=v,route=route,cursor=newCursor,distance=newDistance,arrival=newArrival});
             }
             ValidateEditReservations(replacement,remaps);
-            foreach(var remap in remaps){remap.vehicle.route=remap.route;remap.vehicle.cursor=remap.cursor;remap.vehicle.distance=remap.distance;if(remap.vehicle.status!=VehicleStatus.Stranded)remap.vehicle.arrivalDistance=remap.arrival;}
-            data.accesses=accessPlan;accesses.Clear();foreach(var access in accessPlan)accesses.Add(access.endpoint,access);
-            data.network=n;Network=replacement;NetworkGeneration++;occupancy.Clear();Reindex();return junction;
+            new RoadEditPlan(this,n,replacement,remaps,accesses:accessPlan).TryCommit();return junction;
         }
         public void RemoveRoad(int id)
         {
@@ -346,14 +393,12 @@ namespace HarborCity.RoadCore
                     // retains its incoming lane; a current lane becomes the new route start.
                     int prefix=Network.Get(v.Current).IsConnection?v.cursor-1:v.cursor;
                     var route=v.route.GetRange(prefix,v.route.Count-prefix);replacement.ValidateRoute(route);
-                    remaps.Add(new Remap{vehicle=v,route=route,cursor=v.cursor-prefix,distance=v.distance});
+                    remaps.Add(new Remap{vehicle=v,route=route,cursor=v.cursor-prefix,distance=v.distance,arrival=v.arrivalDistance});
                 }
             }
             ValidateEditReservations(replacement,remaps);
-            foreach(var remap in remaps){remap.vehicle.route=remap.route;remap.vehicle.cursor=remap.cursor;}
-            foreach(var item in interrupted){item.Key.strandedPosition=item.Value;item.Key.status=VehicleStatus.Stranded;}
-            foreach(var access in data.accesses)if(access.valid&&!replacement.Contains(access.lane)){access.valid=false;access.lane=0;access.distance=0;}
-            data.network=n;Network=replacement;NetworkGeneration++;occupancy.Clear();Reindex();
+            var accessPlan=data.accesses.ConvertAll(a=>a.Copy());foreach(var access in accessPlan)if(access.valid&&!replacement.Contains(access.lane)){access.valid=false;access.lane=0;access.distance=0;}
+            new RoadEditPlan(this,n,replacement,remaps,interrupted,accessPlan).TryCommit();
         }
         public void Validate()
         {

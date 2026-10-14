@@ -28,10 +28,10 @@ namespace HarborCity
         readonly HashSet<int> visibleIds=new HashSet<int>();readonly List<int> expiredIds=new List<int>();
         readonly List<GameObject> roads=new List<GameObject>();
         readonly List<GameObject> buildings=new List<GameObject>();
-        int startJunction;Point startPoint;bool building,oneWay;int origin,destination;float speed=1;
+        bool hasStart;Point startPoint;bool building,oneWay;int origin,destination;float speed=1;
         long previousTick;int lastSteps;
         string notice="原工厂劳动→生产→新交通实车运输→原商店库存/支付。居民通勤、市政、分区、换道、行人尚未接回。";
-        string SavePath=>Path.Combine(Application.persistentDataPath,session==null?"harbor-road-core-v3.hcrc":"harbor-city-core-v2.hcity");
+        string SavePath=>Path.Combine(Application.persistentDataPath,session==null?"harbor-road-core-v4.hcrc":"harbor-city-core-v2.hcity");
         static Vector3 V(Point p)=>new Vector3((float)p.x,(float)p.y,(float)p.z);
         void Start()
         {
@@ -65,15 +65,13 @@ namespace HarborCity
             if(Keyboard.current!=null)
             {
                 var k=Keyboard.current;Vector3 move=new Vector3((k.dKey.isPressed?1:0)-(k.aKey.isPressed?1:0),0,(k.wKey.isPressed?1:0)-(k.sKey.isPressed?1:0));cameraView.transform.position+=move*Time.deltaTime*35;
-                if(k.escapeKey.wasPressedThisFrame){building=false;startJunction=0;}
+                if(k.escapeKey.wasPressedThisFrame){building=false;hasStart=false;}
             }
             if(!building||Mouse.current==null||!Mouse.current.leftButton.wasPressedThisFrame||Mouse.current.position.ReadValue().y>Screen.height-200)return;
             var ray=cameraView.ScreenPointToRay(Mouse.current.position.ReadValue());float enter;if(!new Plane(Vector3.up,Vector3.zero).Raycast(ray,out enter))return;var hit=ray.GetPoint(enter);var p=new Point(hit.x,0,hit.z);
-            int snap=world.SnapJunction(p,4);
-            if(startJunction==0){startJunction=snap!=0?snap:world.AddJunction(p);startPoint=world.JunctionPosition(startJunction);notice="再点击终点（4单位内吸附端点）；Esc 取消。";return;}
-            if(snap==startJunction||Point.Distance(startPoint,p)<4)return;
-            int end=snap!=0?snap:world.AddJunction(p);var q=world.JunctionPosition(end);
-            try{world.AddRoad(startJunction,end,new[]{startPoint,Point.Lerp(startPoint,q,.5),q},oneWay);RenderRoads();notice="已建路：几何中点不进入寻路拓扑。当前工具仅吸附端点；内部交叉需要显式拆分。";startJunction=0;}
+            if(!hasStart){startPoint=p;hasStart=true;notice="再点击终点；吸附道路内部或端点，同高度交叉自动建路口。Esc 取消。";return;}
+            if(Point.Distance(startPoint,p)<4)return;
+            try{var plan=world.PlanConnectedRoad(new[]{startPoint,Point.Lerp(startPoint,p,.5),p},oneWay,snap:4);if(!plan.TryCommit())throw new InvalidOperationException("城市已变化，请重新施工");RenderRoads();notice="已原子提交道路、路口和车辆入口迁移。";hasStart=false;}
             catch(Exception e){notice=e.Message;}
         }
         void RenderRoads()
@@ -97,7 +95,7 @@ namespace HarborCity
             if(world==null)return;GUI.Box(new Rect(8,8,Math.Min(Screen.width-16,1100),195),"");GUILayout.BeginArea(new Rect(20,16,Math.Min(Screen.width-40,1080),180));
             GUILayout.Label("HarborCity 原工业/商业接入新交通（完整城市仍在迁移）");GUILayout.Label(notice);
             GUILayout.Label("活动车辆 "+world.ActiveCount+" · 交付 "+world.Delivered+" · 道路 "+world.Network.RoadCount+" · 拓扑节点 "+world.Network.JunctionCount+" · 模拟秒 "+world.Clock.ToString("F1"));
-            GUILayout.BeginHorizontal();if(GUILayout.Button(building?"结束修路":"修路")){building=!building;startJunction=0;}oneWay=GUILayout.Toggle(oneWay,"单行");if(GUILayout.Button("发货 A → B"))notice=world.Dispatch(origin,destination,1,session==null?5:FactoryState.SalePrice)==null?"暂无可用入口/库存/路线":"已发车，库存已扣；到达后才付款";if(GUILayout.Button("1×"))speed=1;if(GUILayout.Button("3×"))speed=3;if(GUILayout.Button("暂停"))speed=0;
+            GUILayout.BeginHorizontal();if(GUILayout.Button(building?"结束修路":"修路")){building=!building;hasStart=false;}oneWay=GUILayout.Toggle(oneWay,"单行");if(GUILayout.Button("发货 A → B"))notice=world.Dispatch(origin,destination,1,session==null?5:FactoryState.SalePrice)==null?"暂无可用入口/库存/路线":"已发车，库存已扣；到达后才付款";if(GUILayout.Button("1×"))speed=1;if(GUILayout.Button("3×"))speed=3;if(GUILayout.Button("暂停"))speed=0;
             if(GUILayout.Button("拆分第一路中点")){try{world.SplitRoad(1,1);RenderRoads();notice="已拆分并迁移活动车辆";}catch(Exception e){notice=e.Message;}}
             if(GUILayout.Button("拆除第一路")){try{world.RemoveRoad(1);RenderRoads();notice="受影响运输保留为中断，不传送、不丢货";}catch(Exception e){notice=e.Message;}}
             if(GUILayout.Button("保存"))Save();if(GUILayout.Button("读取"))Load();GUILayout.EndHorizontal();
@@ -149,7 +147,7 @@ namespace HarborCity
             try
             {
                 session.Advance(2);var actor=world.Vehicles.First();Point first=world.Position(actor);session.Advance(.5);if(Point.Distance(first,world.Position(actor))<1)throw new Exception("Truck did not physically move");
-                Point beforeEdit=world.Position(actor);world.SplitRoad(1,1);world.SplitRoad(2,1);RenderRoads();if(Point.Distance(beforeEdit,world.Position(actor))>1e-8)throw new Exception("Access edit moved truck");
+                Point beforeEdit=world.Position(actor);world.SplitRoadAt(1,12.75);world.SplitRoadAt(2,20.25);RenderRoads();if(Point.Distance(beforeEdit,world.Position(actor))>1e-8)throw new Exception("Access edit moved truck");
                 var restored=CityCoreSave.Read(CityCoreSave.Write(session));for(int i=0;i<300;i++){session.Advance(.05);restored.Advance(.05);session.Validate();}
                 if(Convert.ToBase64String(CityCoreSave.Write(session))!=Convert.ToBase64String(CityCoreSave.Write(restored)))throw new Exception("Integrated save differs");
                 if(session.City.Factory(1).sold==0||session.City.Factory(1).sold!=world.Delivered||session.City.Goods(2)!=world.Delivered||session.City.roads.edges.Count!=0||session.City.traffic.trips.Count!=0)throw new Exception("Business loop/legacy engine invariant failed");

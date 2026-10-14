@@ -17,6 +17,7 @@ namespace HarborCity.RoadCore
         public bool oneWay;
         public double speed=12;
         public Point[] points;
+        public Point[] rightVectors;
         public Point startTangent,endTangent;
     }
     [Serializable] public sealed class NetworkData
@@ -79,6 +80,11 @@ namespace HarborCity.RoadCore
         public static Point Tangent(Point a,Point b)=>new Point(b.x-a.x,b.y-a.y,b.z-a.z);
         public static Point Offset(Point p,Point tangent,double offset)
         {double l=Math.Sqrt(tangent.x*tangent.x+tangent.z*tangent.z);if(l<1e-9)return p;return new Point(p.x+tangent.z/l*offset,p.y,p.z-tangent.x/l*offset);}
+        internal static Point[] RightVectors(PhysicalRoad road)
+        {
+            if(road.rightVectors!=null)return (Point[])road.rightVectors.Clone();int n=road.points.Length;var result=new Point[n];
+            for(int i=0;i<n;i++){Point tangent=i==0?road.startTangent:i==n-1?road.endTangent:Tangent(road.points[i-1],road.points[i+1]);if(Point.Distance(tangent,new Point())<1e-9)tangent=Tangent(road.points[Math.Max(0,i-1)],road.points[Math.Min(n-1,i+1)]);result[i]=Offset(new Point(),tangent,1);}return result;
+        }
         void Rebuild()
         {
             var junctions=new Dictionary<int,Junction>();int maxJ=0,maxR=0;
@@ -89,6 +95,7 @@ namespace HarborCity.RoadCore
                 if(r.id<=0||r.id>MaximumRoadId||!roads.Add(r.id)||!junctions.ContainsKey(r.from)||!junctions.ContainsKey(r.to)||r.from==r.to||r.speed<=0||double.IsNaN(r.speed)||double.IsInfinity(r.speed))throw new ArgumentException("Invalid road identity/direction/speed");
                 var g=new Geometry(r.points);if(g.Length<.1||!Finite(r.startTangent)||!Finite(r.endTangent)||Point.Distance(r.points[0],junctions[r.from].position)>1e-6||Point.Distance(r.points[r.points.Length-1],junctions[r.to].position)>1e-6)throw new ArgumentException("Road endpoints/tangents disagree with junctions");
                 for(int i=0;i<r.points.Length;i++)if(!Finite(r.points[i])||(i>0&&Point.Distance(r.points[i-1],r.points[i])<1e-8))throw new ArgumentException("Invalid geometry sample");
+                if(r.rightVectors!=null){if(r.rightVectors.Length!=r.points.Length)throw new ArgumentException("Cross-section count mismatch");foreach(var right in r.rightVectors)if(!Finite(right)||Math.Abs(right.y)>1e-9||Point.Distance(right,new Point())>1.000001)throw new ArgumentException("Invalid road cross-section");}
                 maxR=Math.Max(maxR,r.id);AddLane(r,false);if(!r.oneWay)AddLane(r,true);
             }
             if(data.nextRoad<=maxR||data.nextJunction<=maxJ)throw new ArgumentException("Identity allocator is behind live entities");
@@ -124,12 +131,10 @@ namespace HarborCity.RoadCore
         static bool Finite(Point p)=>!(double.IsNaN(p.x)||double.IsNaN(p.y)||double.IsNaN(p.z)||double.IsInfinity(p.x)||double.IsInfinity(p.y)||double.IsInfinity(p.z));
         void AddLane(PhysicalRoad road,bool reverse)
         {
-            int n=road.points.Length;var p=new Point[n];
+            int n=road.points.Length;var p=new Point[n];var right=RightVectors(road);
             for(int i=0;i<n;i++)
             {
-                Point tangent=i==0?road.startTangent:i==n-1?road.endTangent:Tangent(road.points[i-1],road.points[i+1]);
-                if(Point.Distance(tangent,new Point())<1e-9)tangent=Tangent(road.points[Math.Max(0,i-1)],road.points[Math.Min(n-1,i+1)]);
-                p[reverse?n-1-i:i]=Offset(road.points[i],tangent,reverse?-.55:.55);
+                double offset=reverse?-.55:.55;p[reverse?n-1-i:i]=new Point(road.points[i].x+right[i].x*offset,road.points[i].y,road.points[i].z+right[i].z*offset);
             }
             var d=new Drivable(LaneId(road.id,reverse),road.id,reverse?road.to:road.from,reverse?road.from:road.to,0,reverse,road.speed,p);
             drivables.Add(d.Id,d);List<Drivable> list;if(!outgoing.TryGetValue(d.From,out list))outgoing.Add(d.From,list=new List<Drivable>());list.Add(d);
