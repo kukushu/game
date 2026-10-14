@@ -154,6 +154,7 @@ namespace HarborCity
         }
         public bool BuildingAccess(int id)
         {
+            if(entities!=null)return entities.RoadAccess(id);
             foreach (int node in AccessBuilding(id)) if (roads.Connected(node)) return true;
             return false;
         }

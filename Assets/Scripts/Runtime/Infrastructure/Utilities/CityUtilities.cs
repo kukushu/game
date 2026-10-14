@@ -70,8 +70,6 @@ namespace HarborCity
         {return Math.Max(0,CityRoads.Length(new RoadNode{x=a.x,z=a.z},new RoadNode{x=b.x,z=b.z})-(Math.Max(a.width,a.depth)+Math.Max(b.width,b.depth))/2);}
         static float LineDistance(CityBuilding b,CityUtilityNetwork net,UtilityEdge edge)
         {return Math.Max(0,CityRoads.Distance(new RoadNode{x=b.x,z=b.z},net.Node(edge.a),net.Node(edge.b))-Math.Min(b.width,b.depth)/2);}
-        int UtilityLoad(CityBuilding b)=>b.Use==LandUse.Residential?Math.Max(1,society.families.Where(h=>h.resident && h.home==b.id).Sum(h=>LivingMembers(h))):
-            b.Use==LandUse.Commercial || b.Use==LandUse.Industrial?Math.Max(1,EmployedAt(b.id)*2):b.Use==LandUse.Power?0:2;
         // Provisional load shedding, not a claim about CS1's exact allocation algorithm.
         // Keep essential services operating first; stable IDs avoid random daily flicker.
         // Supply whole buildings only, never spending more than this component provides.
@@ -88,8 +86,13 @@ namespace HarborCity
         public void RecalculateUtilities()
         {
             supply=buildings.ToDictionary(b=>b.id,b=>new BuildingSupply());WaterDemand=SewageCapacity=0;if(!development.enabled)return;
-            demand=buildings.Sum(UtilityLoad);
-            WaterDemand=buildings.Where(b=>CityZoningState.ZoneUse(b.Use)).Sum(UtilityLoad);
+            // One aggregation of actual people/job occupancy per rebuild. Calling
+            // Occupancy/EmployedAt from every component was repeated O(B*(P+J)).
+            var peopleByHome=new Dictionary<int,int>();foreach(var h in society.families)if(h.resident){peopleByHome.TryGetValue(h.home,out int n);peopleByHome[h.home]=n+LivingMembers(h);}
+            var workersByBuilding=new Dictionary<int,int>();foreach(var job in society.jobEntities)if(job.occupiedCitizenId>=0){workersByBuilding.TryGetValue(job.buildingId,out int n);workersByBuilding[job.buildingId]=n+1;}
+            var loads=new Dictionary<int,int>();foreach(var b in buildings){peopleByHome.TryGetValue(b.id,out int people);workersByBuilding.TryGetValue(b.id,out int workers);loads.Add(b.id,b.Use==LandUse.Residential?Math.Max(1,people):b.Use==LandUse.Commercial||b.Use==LandUse.Industrial?Math.Max(1,workers*2):b.Use==LandUse.Power?0:2);}
+            demand=loads.Values.Sum();
+            WaterDemand=buildings.Where(b=>CityZoningState.ZoneUse(b.Use)).Sum(b=>loads[b.id]);
             var powerNet=utilities.electricity;var components=powerNet.Components();
             var adjacency=buildings.ToDictionary(b=>b.id,b=>new List<int>());
             // Maximum validated footprint is 8.9; 16-unit buckets plus adjacent
@@ -118,7 +121,7 @@ namespace HarborCity
                 while(queue.Count>0){int id=queue.Dequeue();group.Add(id);foreach(int next in adjacency[id])if(visited.Add(next))queue.Enqueue(next);}
                 int capacity=group.Count(id=>GetBuilding(id) is PowerBuilding && BuildingAccess(id))*ServiceCapacity(CityServiceKind.Electricity,160);
                 power+=capacity;
-                foreach(int id in AllocateUtility(group,capacity,id=>UtilityLoad(GetBuilding(id))))supply[id].electricity=true;
+                foreach(int id in AllocateUtility(group,capacity,id=>loads[id]))supply[id].electricity=true;
             }
             var waterNet=utilities.water;var pipeComponents=waterNet.Components();water=0;
             var pipeBuildings=new Dictionary<int,List<int>>();var countedSources=new HashSet<int>();var countedDrains=new HashSet<int>();
@@ -130,14 +133,14 @@ namespace HarborCity
                 var group=pair.Value;
                 int fresh=group.Count(id=>GetBuilding(id) is WaterBuilding && supply[id].electricity && BuildingAccess(id))*ServiceCapacity(CityServiceKind.Water,160);
                 int drain=group.Count(id=>GetBuilding(id) is SewageBuilding && supply[id].electricity && BuildingAccess(id))*ServiceCapacity(CityServiceKind.Water,160);
-                water+=group.Where(id=>GetBuilding(id) is WaterBuilding && supply[id].electricity && BuildingAccess(id) && countedSources.Add(id)).Count()*ServiceCapacity(CityServiceKind.Water,160);int load=group.Where(id=>CityZoningState.ZoneUse(UseOf(id))).Sum(id=>UtilityLoad(GetBuilding(id)));
+                water+=group.Where(id=>GetBuilding(id) is WaterBuilding && supply[id].electricity && BuildingAccess(id) && countedSources.Add(id)).Count()*ServiceCapacity(CityServiceKind.Water,160);int load=group.Where(id=>CityZoningState.ZoneUse(UseOf(id))).Sum(id=>loads[id]);
                 SewageCapacity+=group.Count(id=>GetBuilding(id) is SewageBuilding && supply[id].electricity && BuildingAccess(id) && countedDrains.Add(id))*ServiceCapacity(CityServiceKind.Water,160);
                 var status=new PipeSupply{id=pair.Key,load=load,fresh=fresh,drain=drain};
                 status.inactiveDrains.AddRange(group.Where(id=>GetBuilding(id) is SewageBuilding && (!supply[id].electricity || !BuildingAccess(id))));
                 foreach(int id in group)supply[id].pipes.Add(status);
-                var watered=AllocateUtility(group,fresh,id=>CityZoningState.ZoneUse(UseOf(id))?UtilityLoad(GetBuilding(id)):0).ToList();
+                var watered=AllocateUtility(group,fresh,id=>CityZoningState.ZoneUse(UseOf(id))?loads[id]:0).ToList();
                 foreach(int id in watered)supply[id].water=true;
-                foreach(int id in AllocateUtility(watered,drain,id=>CityZoningState.ZoneUse(UseOf(id))?UtilityLoad(GetBuilding(id)):0))supply[id].sewage=true;
+                foreach(int id in AllocateUtility(watered,drain,id=>CityZoningState.ZoneUse(UseOf(id))?loads[id]:0))supply[id].sewage=true;
             }
         }
     }

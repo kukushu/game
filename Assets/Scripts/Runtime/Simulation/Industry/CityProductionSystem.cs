@@ -15,8 +15,11 @@ namespace HarborCity
             float minute=city.ResidentMinute,minutes=(float)(time.Duration*1440/city.society.settings.secondsPerDay);
             foreach(var member in entities.Members)
             {
-                var worker=member.Person;if(!member.Family.resident||!(city.GetBuilding(worker.location) is IndustrialBuilding)||!city.CanAttendWork(worker)||!worker.atWork||worker.tripId!=0||worker.arrivedDay!=city.day||city.Workplace(worker)!=worker.location||city.ResidentJob(worker)==null)continue;
-                float shift=480+worker.id%3*30,worked=Math.Max(0,Math.Min(minute+minutes,shift+480)-Math.Max(minute,shift));double credit=worker.factoryWageCredit;worker.workedMinutes+=worked;city.PayAttendance(worker,worked);int wage=city.ResidentWage(worker);float paid=wage==0?0:(float)((worker.factoryWageCredit-credit)*480/wage);city.ProcessFactoryWork(worker,Math.Min(worked,paid),worked);
+                var worker=member.Person;if(!member.Family.resident||!city.CanAttendWork(worker)||!worker.atWork||worker.tripId!=0||worker.arrivedDay!=city.day||city.Workplace(worker)!=worker.location||city.ResidentJob(worker)==null)continue;
+                float shift=480+worker.id%3*30,worked=Math.Max(0,Math.Min(minute+minutes,shift+480)-Math.Max(minute,shift));double credit=worker.factoryWageCredit;worker.workedMinutes+=worked;city.PayAttendance(worker,worked);int wage=city.ResidentWage(worker);
+                // Preserve both existing rulesets: private-development employers
+                // credit earnedWages; prototype factories debit cash into wage credit.
+                float paid=city.development.enabled||city.Factory(worker.location)==null?worked:wage==0?0:(float)((worker.factoryWageCredit-credit)*480/wage);city.ProcessFactoryWork(worker,Math.Min(worked,paid),worked);
             }
             city.AdvanceIndustry(minutes);
         }

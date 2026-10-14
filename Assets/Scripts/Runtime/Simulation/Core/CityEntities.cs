@@ -38,6 +38,7 @@ namespace HarborCity
         void UnindexType(CityBuilding b){if(b is IndustrialBuilding f)factories.Remove(f);if(b is CommercialBuilding s)shops.Remove(s);}
         internal void RebuildJobs(){jobs.Clear();foreach(var j in city.society.jobEntities)jobs.Add(j.id,j);}
         public CityBuilding Building(int id)=>buildings.TryGetValue(id,out var b)?b:null;
+        internal bool RoadAccess(int id){var b=Building(id);var access=transport.GetAccess(id);return b!=null&&Available(b)&&!b.burning&&access!=null&&access.valid;}
         public CityJob Job(int id)
         {
             return jobs.TryGetValue(id,out var j)?j:null;

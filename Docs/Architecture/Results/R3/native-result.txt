@@ -1,0 +1,2 @@
+PASS actual Unity blank original terrain; production mouse road/zoning tools and paid construction; private R/C/I growth; electricity, water and sewage facilities/pipes; real migration, job assignment, vehicle commute, attendance and return; unfinished-project and in-flight complete-state save continuation. No old runtime traffic/network. Sustained raw import, consumption, garbage and fiscal management are still pending.
+PASS 1x/3x real original-terrain growing-city window FPS/time/GC sampling; small city only, not complete sustainable economy or large-city proof.

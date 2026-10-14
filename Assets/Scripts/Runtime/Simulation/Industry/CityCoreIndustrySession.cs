@@ -7,7 +7,8 @@ namespace HarborCity
 {
     [Serializable] public sealed class CityCoreBusinessData
     {
-        public int version=3,money,day,nextBuilding;
+        public int version=4,money,day,nextBuilding;
+        public CityUtilityState utilities;
         public CityMapState map;
         public CityZoningState zoning;
         public CityDevelopmentState development;
@@ -80,9 +81,10 @@ namespace HarborCity
             if(building is IndustrialBuilding factory)City.retiredFactoryWages+=factory.factory.wageCosts;
             Entities.RemoveBuilding(id);retired.Add(building);foreach(var member in Entities.Members)if(member.Person.location==id)member.Person.atWork=false;
         }
-        public CityCoreBusinessData SnapshotBusiness()=>CityCoreSave.CopyBusiness(new CityCoreBusinessData{map=City.map,zoning=City.zoning,development=City.development,money=City.money,day=City.day,nextBuilding=City.nextBuildingId,calendarOffset=Simulation.CalendarOffset,clock=Simulation.ClockSnapshot,nextDispatchTick=Simulation.Logistics.NextDispatchTick,commuteEnabled=Residents.Enabled,payrollDay=Residents.PayrollDay,society=City.society,buildings=City.buildings.Select(BuildingSaveData.FromBuilding).ToList(),retiredBuildings=retired.Select(BuildingSaveData.FromBuilding).ToList(),retiredFactoryWages=City.retiredFactoryWages,residualIndustry=City.residualIndustry});
+        public CityCoreBusinessData SnapshotBusiness()=>CityCoreSave.CopyBusiness(new CityCoreBusinessData{utilities=City.utilities,map=City.map,zoning=City.zoning,development=City.development,money=City.money,day=City.day,nextBuilding=City.nextBuildingId,calendarOffset=Simulation.CalendarOffset,clock=Simulation.ClockSnapshot,nextDispatchTick=Simulation.Logistics.NextDispatchTick,commuteEnabled=Residents.Enabled,payrollDay=Residents.PayrollDay,society=City.society,buildings=City.buildings.Select(BuildingSaveData.FromBuilding).ToList(),retiredBuildings=retired.Select(BuildingSaveData.FromBuilding).ToList(),retiredFactoryWages=City.retiredFactoryWages,residualIndustry=City.residualIndustry});
         public void Validate()
         {
+            if(City.utilities==null||!City.utilities.Valid()||float.IsNaN(City.development.nextEmployment)||float.IsInfinity(City.development.nextEmployment)||City.development.nextEmployment<0)throw new InvalidOperationException("Invalid utilities/population schedule");
             if(City.map==null||!City.map.Valid()||City.zoning==null||!City.zoning.Valid()||City.development==null)throw new InvalidOperationException("Invalid map/zoning/development facts");
             Simulation.AssertSaveBoundary();Entities.Validate();Transport.Validate();Transport.AssertSafety();Residents.Validate();if(!City.ValidIndustry())throw new InvalidOperationException("Industrial financial/labour invariants failed");
             foreach(var shop in City.buildings.OfType<CommercialBuilding>())if(shop.Stock<0||shop.Stock>32||shop.wholesaleCosts<0)throw new InvalidOperationException("Commercial inventory invalid");

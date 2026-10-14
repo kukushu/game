@@ -21,6 +21,7 @@ namespace HarborCity
         public int nextProjectId=1,residentialTax=9,commercialTax=9,industrialTax=9;
         public int electricityBudget=100,waterBudget=100,garbageBudget=100,healthcareBudget=100,educationBudget=100,fireBudget=100,policeBudget=100;
         public float nextGrowth;
+        public float nextEmployment;
         public List<DevelopmentProject> projects=new List<DevelopmentProject>();
         [NonSerialized] public int revision;
     }

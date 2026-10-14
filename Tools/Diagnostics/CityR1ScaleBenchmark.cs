@@ -39,8 +39,15 @@ public static class CityR1ScaleBenchmark
     {
         using(var stream=new MemoryStream())using(var writer=new BinaryWriter(stream))
         {
-            // Common business DTO schema, without changed outer save-version header.
-            typeof(CityCoreSave).GetMethod("Put",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic).Invoke(null,new object[]{writer,typeof(CityCoreBusinessData),session.SnapshotBusiness()});
+            // This fixture explicitly disables private growth/services. Compare
+            // all shared facts, not outer schema tags or new disabled-system data.
+            var business=session.SnapshotBusiness();if(business.development.enabled)throw new Exception("Shared legacy performance fixture must disable private development");
+            var put=typeof(CityCoreSave).GetMethod("Put",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic);
+            foreach(var field in typeof(CityCoreBusinessData).GetFields().Where(f=>!f.IsNotSerialized&&f.Name!="version"&&f.Name!="utilities").OrderBy(f=>f.Name,StringComparer.Ordinal))
+            {
+                if(field.Name!="development"){put.Invoke(null,new object[]{writer,field.FieldType,field.GetValue(business)});continue;}
+                writer.Write(true);foreach(var nested in typeof(CityDevelopmentState).GetFields().Where(f=>!f.IsNotSerialized&&f.Name!="nextEmployment").OrderBy(f=>f.Name,StringComparer.Ordinal))put.Invoke(null,new object[]{writer,nested.FieldType,nested.GetValue(business.development)});
+            }
             var world=session.Transport;writer.Write(world.Clock);writer.Write(world.Delivered);writer.Write(world.Vehicles.Count);
             foreach(var v in world.Vehicles)
             {
