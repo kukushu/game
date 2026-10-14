@@ -1,5 +1,8 @@
 # 开发约定
 
+- 最新R2-B已完成有限验收：e17732d独立VehiclePosition，c40bde5真实Lane/LaneConnection/JunctionPort及共享端口曲线。位置不依附Plan，Frozen归同一组件；等待/预约/空间索引/渲染使用实际通行区间。城市10/核心13；RoadEdit不能挪车通过校验，端口覆盖在途车时安全拒绝。根节点/车道/连接静态事实按Network变化派生，不单独保存第二份几何。
+- 用户要求R2-B→R3→真实复杂城市验证。R2-B到必要验收即结束，下一阶段最高优先是恢复空地建设、沿路分区、生长、人口/供给消费、市政财政及原UI；不能继续无限完善孤立交通内核。信号/行人/服务车仍未接新链，必须作为R3集成缺失明示；保留旧源码/旧测试不算恢复玩法。新批次必须实际接CitySimulation/CityEntities/任务边界并独立测试/提交/推送。
+
 - 2026-10-14 R1后续与有限R2-A已实施（5a3dddf）：TripTask/Shipment是独立任务事实，Vehicle仅引用，不复活被删任务/载荷字段。当前居民tripId指Task ID，不能假设等于车辆ID；逆关联为派生索引。城8/核心11，不兼容旧格式，不删除用户原文件。RoutePlan已独立，但Current仍由Plan/cursor取得；独立物理位置、真实LaneConnection端口属于未实施R2-B，不可宣称已完成。见Docs/Architecture/R2TaskModel.md。
 - 规模基准先用共同夹具配对；不同格式用共同业务/在途语义摘要，不能要求新旧字节相同，也不能删钱货/方向/安全断言。真实Unity采样归因见R1PerformanceAttribution.md：不可达货运与缓存全清为主因，岗位wrapper捕获变量已消除；普通构建不定义CITY_CORE_ATTRIBUTION。任务退休/冷候选索引仍有维护成本，不宣称全部O(1)。R2有限核心完成后优先R3恢复完整可玩城，不无限扩交通Demo。
 

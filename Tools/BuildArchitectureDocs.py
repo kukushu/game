@@ -7,7 +7,7 @@ import subprocess, json, html, re, csv
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'Docs/Architecture'
-COMMIT = '5a3dddf'
+COMMIT = 'c40bde5'
 BASELINE = '110c4eaa24fa69d55b08a5db2a6d19ec6da5dd7f'
 R = 'Assets/Scripts/Runtime/'
 files = {
@@ -51,6 +51,8 @@ files = {
  'logistics': R+'Simulation/Industry/CityLogisticsSystem.cs',
  'boundary': R+'Traffic/CityTransportBoundary.cs',
  'trip': R+'Traffic/CityTripTask.cs',
+ 'position': R+'Traffic/CityVehiclePosition.cs',
+ 'ports': R+'Infrastructure/Roads/CityLaneConnection.cs',
  'candidates': R+'Simulation/Industry/CityFreightCandidates.cs',
  'reachability': R+'Infrastructure/Roads/CityLaneReachability.cs',
 }
@@ -76,7 +78,7 @@ card('road','PhysicalRoad','Roads / 物理道路','fact','network','public seale
 card('junction','Junction','Roads / 拓扑地点','fact','network','public sealed class Junction','id / position XYZ','AddJunction · SplitRoadAt · RoadConstruction.Connect','道路事实集合。','真实连接地点或道路端点，不是每个曲线点。','进出口列表、是否冲突、端口与允许移动。','RoadEditPlan提交候选。','吸附/同高交叉创建；上下层不连；移除要处理关联道路。','PhysicalRoad端点和派生LaneConnection。','Junction并非某辆车的转弯轨迹；端口尺度简化。','保留稳定ID；规则/端口分离成派生或显式配置。')
 card('network','Network','Roads / 只读派生网络','derived','network','public sealed class Network','drivables / outgoing / conflictJunctions / connectionConflicts / spatialIndex','Rebuild · Route · Project · Get · ValidateRoute','World.Network按事务替换；Network保留输入NetworkData引用。','不新增第二套可编辑道路事实。','有向车道/连接、邻接、冲突/净距、惰性空间网格。','构造Rebuild；查询不改道路，但派生缓存可初始化。','每次网络替换全重建；读档重建。','PhysicalRoad/Junction、Geometry、哈希比较器。','构造传入可写DTO会破坏边界；全量冲突冷成本依路口度数增长。','只读RoadNetwork快照+显式派生版本；限制可写DTO所有权。')
 card('geometry','Geometry','Roads / 共享曲线','derived','network','public sealed class Geometry','readonly points / cumulative / Length','Sample · MapDistance · MapReverseDistance','Network各Drivable拥有派生Geometry；物理中心线属于Road事实。','中心线和截面从PhysicalRoad派生，当前Geometry不独立编辑。','长度表与车道曲线；读档重建。','构造复制输入数组，查询返回值Point。','网络构建生成，视图直接读取；网络更换失效。','Point数组，无Unity依赖。','二分采样O(log S)，按车道复制点会增加存储；没有全城峰值内存基准。','保留共享模拟几何；端口改变必须统一模拟/渲染。')
-card('lane','Drivable（Lane）','Roads → Traffic / 有向路面','derived','network','public sealed class Drivable','Id / RoadId / From / To / Reverse / LaneIndex / Geometry / Speed','IsConnection=false · Network.Get · LaneId','Network派生；占用属于交通，不属于物理道路对象。','当前没有独立可编辑Lane事实；其身份由RoadID/方向/序号派生。','有向几何/净距/速度/邻接。','Network构建；交通不改Lane静态属性。','Road编辑重建，保持仍存在车道ID，移除方向必须迁移或拒绝。','PhysicalRoad、Geometry；Vehicle用ID引用。','Lane与Connection共用类型；车道身份和位运算不应扩散业务。','分语义Lane/LaneConnection，typed ID封装；保留混合hash。')
+card('lane','Drivable（Lane）','Roads → Traffic / 有向路面','derived','network','public abstract class Drivable','Id / RoadId / From / To / Reverse / LaneIndex / Geometry / Speed','IsConnection=false · Network.Get · LaneId','Network派生；占用属于交通，不属于物理道路对象。','当前没有独立可编辑Lane事实；其身份由RoadID/方向/序号派生。','有向几何/净距/速度/邻接。','Network构建；交通不改Lane静态属性。','Road编辑重建，保持仍存在车道ID，移除方向必须迁移或拒绝。','PhysicalRoad、Geometry；Vehicle用ID引用。','Lane与Connection共用类型；车道身份和位运算不应扩散业务。','分语义Lane/LaneConnection，typed ID封装；保留混合hash。')
 card('connection','Drivable（LaneConnection）','Roads / 路口通行路径','derived','network','long id=ConnectionId','负ID / JunctionId / RoadId=0 / Geometry / Speed','ConnectionId · MovementsConflict · ValidateRoute','Network生成；当前无名为LaneConnection的独立类。','允许连接目前从进口/出口车道推导，未保存专用转向配置。','p→路口中心→q短曲线、保护路径、静态冲突图。','Network.Rebuild生成，JunctionReservations写动态预约。','路口/车道变化后重建；活跃连接移除需要安全拒绝或迁移。','进出Lane、Junction与共享Geometry。','中心短曲线不能当真实端口；路口c_j条路径两两静态比较。','建立真实端口和LaneConnection；规则/冲突共享同一几何。')
 card('vehicle','Vehicle','Traffic / 当前车与任务','fact','world','public sealed class Vehicle','id / purpose / citizenId / origin / destination / cargo / route / cursor / distance / changeTarget','Current · World.Position · World.Step · LaneChanges.Route','World车辆集合与vehiclesById；业务有只读观察关系。','车身中心沿有向Geometry从起点的distance；换道target+elapsed；中断XYZ。','Current=route[cursor]、影子位置、Transform不是独立事实。','World移动/换道，Depart/Deliver回调更新业务事实。','成功发车创建（一次出行一车）；Deliver成功后当步压缩退休；Stranded仍在途。','Network/Lane/Connection、任务端点与CityResident.tripId。','路线改动即可能改变Current；任务=车不适合多站服务/公交。','独立VehiclePosition/RoutePlan；任务与货物转归领域Store，保持实际车数量。')
 card('access','RoadAccess','Roads ↔ Building / 接入关系','fact','access','public sealed class RoadAccess','endpoint / lane / distance / use / valid / preferredIndex','RegisterAccess · RebindAccesses · AccessRouting','World保存关系，原建筑保存门口坐标。','哪栋建筑可使用哪条有向车道的哪个站位。','对向入口按同一物理路采样对应派生；未创建额外Junction。','道路事务或入口器批量重绑。','建筑注册/道路拆分迁移/删除失效/原位重建恢复。','Building ID、Lane ID和权限；非存房子坐标。','Y=0入口器不能承载原Terrain；有隔离带/对街访问规则待定义。','入口位置由建筑唯一持有，Access用明确地表/driveway关联。')
@@ -128,6 +130,18 @@ for c in cards:
     if c['id']=='factory':c.update(deps='个人到岗、Job、Building、TripTask.Shipment；无重复库存。')
 card('routeplan','RoutePlan','Navigation / R2-A已实现','fact','trip','public sealed class RoutePlan','segments / EndDistance','Segments只读视图 · Copy','每车独立拥有Plan；蓝图为派生缓存，不共享可写List。','路径及终点站位；不存居民/货物/几何。','车道和连接Geometry从Network读取。','导航/施工事务替换路径；Vehicle仍持cursor。','准入创建、换道/施工替换、随车退休。','Vehicle、Network、RoadAccess。','Current仍通过Plan/cursor，尚未独立物理位置。','R2-B先设计并迁移位置与导航进度唯一关系。')
 card('shipment','Shipment','Freight / R2-A已实现','fact','trip','public sealed class Shipment','remaining / unitPrice','TripTask.Cargo / Price派生只读查询','TripTask唯一拥有，身份由Task ID确定。','扣库存后在途的货物与价格。','incoming预留统计读取任务，不保存第二需求真相。','准入扣原库存；成功交付ACK清remaining。','Freight准入才创建；中断不丢货；交付后随任务退休。','TripTask、原Factory/Commercial库存账户。','无转运/分货/独立货单ID；未引入不必要复杂业务。','现有最小运输够用后先恢复完整经营。')
+
+# R2-B actual facts supersede the R2-A transition notes.
+for c in cards:
+    if c['id']=='vehicle':c.update(fields='id / Position唯一物理组件 / Task / Plan / cursor / changeTarget',facts='物理Drivable+车身中心距离；冻结位置归同一组件。',derived='Current/distance为Position只读投影，Plan不能决定位置。',risk='World仍兼道路/准入协调；信号/行人和完整城市服务待R3接入。',decision='R2-B必要位置/连接验收已结束，优先恢复可玩R3。')
+    if c['id']=='routeplan':c.update(risk='当前段仅作导航一致性锚点，实际位置来自Position；未来任务多站尚未实现。',decision='不继续扩大导航框架，随真实城市需求演进。')
+    if c['id']=='lane':c.update(name='Lane',source=ref('ports','public sealed class Lane'),fields='共享Geometry / Entry,Exit端口 / StartDistance,EndDistance',facts='端口/范围由PhysicalRoad与真实路口派生。',risk='不是可单独编辑的第二道路事实；高车道静态构建尚有冷成本。')
+    if c['id']=='connection':c.update(name='LaneConnection',source=ref('ports','public sealed class LaneConnection'),fields='Incoming / Outgoing / Entry / Exit / Geometry',facts='真实允许通行关系及进口出口共享曲线。',derived='三次切线曲线；同几何供移动、Mesh、保护路径/冲突表。',risk='信号/行人、重型车辆扫掠尚未迁移/验证，不称完整复杂路口。',decision='有限端口模型已接，交通控制随R3实际集成。')
+    if c['id']=='data':c.update(fields='coreFormat=13 / tasks / vehicles.Position / network / accesses')
+    if c['id']=='save':c.update(fields='城市10 / 核心13 / Position+Frozen / Task关联 / Plan')
+    if c['id']=='world':c.update(risk='全量冷施工仍有代价；完整经营/市政待R3，不再扩交通Demo。')
+card('position','VehiclePosition','Traffic / R2-B已实现','fact','position','public sealed class VehiclePosition','Drivable / Distance / Frozen模式与世界点','Commit · Freeze · Copy','每车唯一物理组件，无每步new；外部只能读取。','从有向共享几何起点量出的车身中心距离；冻结模式保留原位。','Current/distance和Transform只读派生。','移动/换道完成/施工迁移统一提交并校验导航；中断Freeze。','创建→实际运动/冻结→原位恢复；深复制保存，不共享活组件。','Vehicle、Drivable.Geometry；Plan只导航。','纯交通提交检查有测得成本，不宣称重构加速。','已完成必要验收，R3恢复可玩城市优先。')
+card('port','JunctionPort','Roads / R2-B已实现','derived','ports','public sealed class JunctionPort','LaneId / JunctionId / Station / Position / Direction','Lane.Entry/Exit · LaneConnection.Entry/Exit','Network从共享车道几何派生，不单独保存/编辑。','进出路口的明确几何边界与切线。','道路变化时重建，控制可按车道/连接稳定ID引用。','仅Network构建；UI不能独立改变端口。','真实交叉/变宽退让，同宽连续切分保持连续。','Lane、LaneConnection、PhysicalRoad与共享Geometry。','高阶匝道/公交站/行人服务并未提前实现。','边界达标就接真实城市，不提前建通用道路框架。')
 
 def md_inline(s):
     s=html.escape(s)
@@ -215,14 +229,14 @@ for reading in readingdata:
         reading.update(why='R2-A任务/载荷已独立；MoveStep仍使用Plan/cursor位置，业务在全提交后结算。',source=ref('world','internal void MoveStep'))
 evidence_specs=[
  ('P0 时钟与同步结算','world','public void Step()'),
- ('P0 物理位置仍依附路线（R2-B待实施）','world','public long Current=>Plan.segments[cursor]'),
+ ('R2-B 物理位置已独立','world','public long Current=>Position.Drivable'),
  ('P1 建筑索引已有，但Count失效不充分','buildings','if(buildingLookup==null'),
  ('P1 岗位仍是线性查找','jobs','public CityJob Job(int id)'),
  ('P1 成员索引生命周期仅构造','people','members.Add(person.id'),
  ('P1 商店过滤嵌在每个工厂循环','session','foreach(var factory in City.buildings.OfType'),
  ('P1 新货车环境暴露缺失：读旧任务','industry','foreach(var t in traffic.trips)'),
  ('P1 完成收据无限保留','session','readonly HashSet<int> receipts'),
- ('P1 中心短连接影响冲突几何','network','Point p=a.Geometry.Sample'),
+ ('R2-B 真实端口与共享曲线','ports','static Point[] Curve'),
  ('P2 全量施工候选与提交','world','internal bool TryCommit'),
  ('P2 局部连接冲突两两构建','reservations','foreach(var bucket in local.Values)'),
  ('P2 保存协议依赖public字段布局','save','static FieldInfo[] Fields'),
@@ -273,6 +287,15 @@ flowdata['freight']['stages'][1]['detail']='incoming从Tasks重算，车道/站�
 flowdata['freight']['stages'][5]['detail']='全物理提交后业务确认；同健康步骤ACK/退休，重复付款由生命周期拒绝，无永久receipts。'
 flowdata['freight']['stages'][-1]['detail']='成功ACK清Shipment并同时退休任务/车；无永久receipts。'
 flowdata['save']['note']='城市8 / 核心11：独立任务、Shipment、Vehicle关联和Plan，旧格式明确拒绝。'
+graphs['ownership']['nodes'].extend([node('position','VehiclePosition','唯一物理锚点/冻结模式','fact'),node('port','JunctionPort','几何端口/站位/切线','derived')])
+graphs['ownership']['edges'].extend([edge('vehicle','position','唯一拥有'),edge('network','port','派生边界','dash'),edge('position','network','Drivable引用','dash')])
+graphs['classes']['edges'].extend([edge('vehicle','position','唯一物理事实'),edge('lane','port','派生端口'),edge('connection','port','连接真实进出口')])
+for n in graphs['global-current']['nodes']:
+    if n['id']=='save':n.update(label='城市10 / 核心13',sub='Position/任务/路径/唯一时钟')
+flowdata['current']['name']='R2-B实际更新流程（基础验收完成）'
+flowdata['current']['stages'][6]['detail']='从Position建立源/影子/冻结占用；端口外等待，实际连接曲线预约。'
+flowdata['current']['stages'][7]['detail']='意图读取物理锚点，导航只取后续段；全部位置与导航一致提交。'
+flowdata['save']['note']='城市10 / 核心13：独立位置/冻结模式、任务与导航，旧格式拒绝。'
 payload=dict(commit=COMMIT,baseline=BASELINE,cards=cards,graphs=graphs,flows=flowdata,readings=readingdata,perf=perf,evidence=evidence)
 
 page=r'''<!doctype html>
@@ -389,6 +412,13 @@ page=page.replace('R1不自动授权R2全面重写','R2-A已授权并完成；�
 r2=(OUT/'R2TaskModel.md').read_text(encoding='utf-8')
 attribution=(OUT/'R1PerformanceAttribution.md').read_text(encoding='utf-8')
 page=page.replace('<section id="review">','<section id="review"><details open><summary>本轮实际：性能归因与R2-A任务模型（最新）</summary><div class="doccontent">'+markdown(r2)+markdown(attribution)+'</div></details>')
+b2=(OUT/'R2BImplementation.md').read_text(encoding='utf-8')
+page=page.replace('<section id="review">','<section id="review"><details open><summary>最新实际：R2-B验收与转入R3</summary><div class="doccontent">'+markdown(b2)+'</div></details>')
+page=page.replace('本轮实际：性能归因与R2-A任务模型（最新）','R1后续 / R2-A历史模型与性能证据')
+page=page.replace('R2-A实现源码 5a3dddf','R2-B实现源码 c40bde5').replace('实现源码5a3dddf','实现源码c40bde5')
+page=page.replace('R2-A任务已独立，物理位置仍依附Plan','R2-B位置和端口均已接实际调用链')
+page=page.replace('任务/位置分离与端口尚需R2复评','信号/行人随R3接入，结束有限交通结构阶段')
+page=page.replace('R1后续 / R2-A实际','R2-B实际')
 (OUT/'HarborCityArchitecture.html').write_text(page,encoding='utf-8')
 (OUT/'SourceEvidence.md').write_text('# 固定源码定位证据\n\n审查commit：`'+COMMIT+'`。以下行号由固定源码生成，而非当前工作树。\n\n'+ '\n'.join('## '+e['title']+'\n\n['+e['source']['file']+':'+str(e['source']['line'])+']('+e['source']['url']+')\n\n方法/语句：`'+e['source']['token']+'`\n' for e in evidence),encoding='utf-8')
 print(f'Created {OUT / "HarborCityArchitecture.html"}; {len(cards)} class cards, {len(graphs)} graphs, {len(flowdata)} flows; pinned {COMMIT}')
