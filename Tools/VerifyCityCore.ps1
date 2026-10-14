@@ -9,3 +9,8 @@ $output=Join-Path $root 'Temp/RoadCore/CityChecks.exe'
 if($LASTEXITCODE -ne 0){throw 'City core checks compile failed'}
 & $mono $output (Join-Path $root $Results)
 if($LASTEXITCODE -ne 0){throw 'City core checks failed'}
+$probe=Join-Path $root 'Temp/RoadCore/JobChecks.exe'
+& $mono $compiler /nologo /langversion:latest ('/out:'+$probe) (Get-CityModelSources $root) (Join-Path $root 'Tools/Diagnostics/CityJobAllocationChecks.cs')
+if($LASTEXITCODE -ne 0){throw 'Job allocation checks compile failed'}
+& $mono $probe
+if($LASTEXITCODE -ne 0){throw 'Job allocation checks failed'}

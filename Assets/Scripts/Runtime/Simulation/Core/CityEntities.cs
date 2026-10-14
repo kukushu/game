@@ -39,9 +39,6 @@ namespace HarborCity
         public CityBuilding Building(int id)=>buildings.TryGetValue(id,out var b)?b:null;
         public CityJob Job(int id)
         {
-#if CITY_CORE_ATTRIBUTION
-            using var observation=HarborCity.RoadCore.CityCoreProfile.Measure(HarborCity.RoadCore.CityCoreProfile.Part.Job);
-#endif
             return jobs.TryGetValue(id,out var j)?j:null;
         }
         public CityMember Member(int id)=>people.TryGetValue(id,out var m)?m:null;

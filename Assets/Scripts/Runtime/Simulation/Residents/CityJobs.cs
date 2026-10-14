@@ -11,7 +11,17 @@ namespace HarborCity
     }
     public sealed partial class CityModel
     {
-        public CityJob Job(int id) => entities!=null?entities.Job(id):society?.jobEntities?.Find(j=>j.id==id);
+        public CityJob Job(int id)
+        {
+#if CITY_CORE_ATTRIBUTION
+            using var observation=HarborCity.RoadCore.CityCoreProfile.Measure(HarborCity.RoadCore.CityCoreProfile.Part.Job);
+#endif
+            if(entities!=null)return entities.Job(id);
+            return LegacyJob(id);
+        }
+        // Keep the captured predicate in the unported city's cold branch. Putting
+        // it in Job's ternary allocates its display class even for indexed cities.
+        CityJob LegacyJob(int id)=>society?.jobEntities?.Find(j=>j.id==id);
         public CityJob ResidentJob(CityResident p)
         {
             var job=p==null?null:Job(p.jobId);
