@@ -14,8 +14,8 @@ const {chromium}=require(packagePath);
  await page.goto(pathToFileURL(path.join(root,'Docs/Architecture/HarborCityArchitecture.html')).href);
  await page.locator('#ownergraph svg .node').first().waitFor();
  assert.equal(await page.locator('section').count(),13);
- assert.equal(await page.locator('#classgraph .node').count(),35);
- assert.equal(await page.locator('#ownergraph .node').count(),26);
+ assert.equal(await page.locator('#classgraph .node').count(),41);
+ assert.equal(await page.locator('#ownergraph .node').count(),29);
  await page.locator('#ownergraph [data-id="data"]').click();
  assert.match(await page.locator('#ownergraph aside').innerText(),/WorldData/);
  await page.locator('#ownergraph [data-zoom="+"]').click();
@@ -40,7 +40,7 @@ const {chromium}=require(packagePath);
  await page.locator('#simulation-mode').selectOption('legacy');
  assert.match(await page.locator('#simulation-note').innerText(),/未运行/);
  await page.locator('#simulation-mode').selectOption('current');
- assert.equal(await page.locator('#simulation-flow .stage').count(),14);
+ assert.equal(await page.locator('#simulation-flow .stage').count(),15);
  for(const value of ['construction','commute','freight','save']){
  await page.locator('#business-mode').selectOption(value);assert(await page.locator('#business-flow .stage').count()>=6);
  await page.locator('#business-flow .stage').last().click();assert(await page.locator('#business-detail pre').count()>0);
@@ -49,6 +49,7 @@ const {chromium}=require(packagePath);
  await page.locator('[data-scene="2"]').click();assert.match(await page.locator('#scene-detail').innerText(),/Shipment/);
  await page.locator('[data-object="factory"]').click();assert.match(await page.locator('#scene-object').innerText(),/FactoryState/);
  const data=await page.evaluate(()=>JSON.parse(document.getElementById('architecture-data').textContent));
+ for(const graph of Object.values(data.graphs)){const ids=new Set(graph.nodes.map(n=>n.id));assert.equal(ids.size,graph.nodes.length,'Duplicate graph node');for(const edge of graph.edges)assert(ids.has(edge.a)&&ids.has(edge.b),'Invisible graph edge: '+edge.a+' -> '+edge.b);}
  const sources=[...data.cards.map(c=>c.source),...data.readings.map(r=>r.source),...data.evidence.map(e=>e.source),...Object.values(data.flows).flatMap(f=>f.stages.map(s=>s.source))];
  const pinned=new Map();
  for(const s of sources){assert(fs.existsSync(path.join(root,s.file)));assert(s.url.includes(data.commit));assert(s.url.endsWith('#L'+s.line));
@@ -63,7 +64,7 @@ const {chromium}=require(packagePath);
  await page.setViewportSize({width:700,height:1000});await page.locator('#ownership').scrollIntoViewIfNeeded();
  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),'Horizontal page overflow at 700px');
  assert.deepEqual(errors,[]);assert(requests.every(u=>u.startsWith('file:')),'External dependency requested');
- const result={passed:true,offline:true,sections:13,classCards:35,ownershipNodes:26,graphs:4,flows:7,sourceReferences:sources.length,pageErrors:errors,externalRequests:requests.filter(u=>!u.startsWith('file:')),screenshots:['ownership.png','classes.png','simulation.png']};
+ const result={passed:true,offline:true,sections:13,classCards:41,ownershipNodes:29,graphs:4,flows:7,sourceReferences:sources.length,pageErrors:errors,externalRequests:requests.filter(u=>!u.startsWith('file:')),screenshots:['ownership.png','classes.png','simulation.png']};
  fs.writeFileSync(path.join(dir,'browser-validation.json'),JSON.stringify(result,null,2));console.log(JSON.stringify(result));
  } finally {await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

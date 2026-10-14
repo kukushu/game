@@ -7,7 +7,7 @@ import subprocess, json, html, re, csv
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'Docs/Architecture'
-COMMIT = '72fbee5'
+COMMIT = '23f20eb'
 BASELINE = '110c4eaa24fa69d55b08a5db2a6d19ec6da5dd7f'
 R = 'Assets/Scripts/Runtime/'
 files = {
@@ -58,6 +58,9 @@ files = {
  'coreconstruction': R+'Simulation/Core/CityCoreConstruction.cs',
  'coreutilities': R+'Simulation/Services/CityCoreUtilities.cs',
  'corepopulation': R+'Simulation/Residents/CityCorePopulation.cs',
+ 'trade': R+'Simulation/Economy/CityCoreTrade.cs',
+ 'design': R+'GameData/CityGameDesign.cs',
+ 'localization': R+'GameData/CityLocalization.cs',
  'candidates': R+'Simulation/Industry/CityFreightCandidates.cs',
  'reachability': R+'Infrastructure/Roads/CityLaneReachability.cs',
 }
@@ -332,10 +335,30 @@ flowdata['current']['stages'].insert(4,dict(name='供给重建边界',detail='�
 flowdata['current']['stages'].insert(5,dict(name='迁入与就业边界',detail='按日与六秒调度；只有有供给空住房才能迁入，随后个人占具体岗位，负荷改变刷新供给。',source=ref('corepopulation','internal void Step')))
 flowdata['save']['note']='城市12 / 核心13：管线、真实人口、就业截止时间、分区和项目及在途状态；消费垃圾财政等仍待恢复。'
 for c in cards:
-    if c['id']=='save':c.update(fields='城市12 / 核心13；地图、规划、管网、成员和在途状态',facts='已接领域事实与唯一时钟；供给/索引/显示对象派生，不保存两份真相。',risk='垃圾/财政/完整业务仍未恢复，当前保存不能称全城最终格式。')
+    if c['id']=='save':c.update(fields='城市13 / 核心14；设计快照、独立端点、账本、货种与原在途状态',facts='已接领域事实与唯一时钟；配置快照单独保存，作者资产修改不重解释旧交易。',risk='消费/垃圾/财政/完整业务仍未恢复，当前保存不能称全城最终格式。')
     if c['id']=='household':c.update(life='按有供给空住房实际迁入→个人出勤→新保存恢复；迁居/拆除搬迁仍待恢复。')
     if c['id']=='building':c.update(fields='id / x,z,groundY / entranceX,Y,Z / yaw / level / 独立状态',life='空地分区→计划→私人建筑生长；市政付费建造，实体注册同一对象。')
     if c['id']=='production':c.update(facts='实际到岗商业/工业工资；私有工厂读earnedWages规则，现金原型工厂读实际工资信用。',risk='原私有企业外部工资资金近似保留；连续原料和消费尚未接入。')
+for ident,name,module,kind,key,token,fields,owner,facts in [
+ ('trade','CityCoreTrade','Economy','temporary','trade','public sealed class CityCoreTrade','进口/出口 / 定期调度 / 真实资金托管','CitySimulation驱动，经济领域拥有规则。','有价原料、到达后库存、真实出口；World无企业账本。'),
+ ('tradestate','CityTradeState','Economy','fact','trade','public sealed class CityTradeState','只读端点 / rawReceipts / exportFunded / cash','城市唯一贸易事实；公共可写字段仅冷DTO。','有限城外现金；原料/商品/出口托管按真实任务守恒。'),
+ ('outside','CityOutsideConnection','Infrastructure','fact','trade','public sealed class CityOutsideConnection','稳定id / 世界锚点 / Import或Export','贸易事实拥有，CityEntities索引和生命周期入口。','不是假建筑；有向车道接城外，编辑后方向保持。'),
+ ('design','CityGameDesign / EconomyRules','GameData','fact','design','public sealed class CityGameDesign','schema/contentVersion / 不可变领域规则','城市配置快照，不是现金或库存；Unity资源只负责作者入口。','新城读强类型资产，旧城按保存规则继续，不热改在途价格。'),
+ ('localization','CityLocalization','Presentation','derived','localization','public sealed class CityLocalization','稳定Key / 两种语言资源 / 翻译查询','表现层拥有翻译字典；领域只抛规则Key。','新文字集中管理；旧UI和大量设计常量仍待迁移。'),
+ ('host','HarborCityRoadCoreGame','Presentation','temporary','host','public sealed class HarborCityRoadCoreGame','Unity调度 / 输入命令 / 视图ID / 相机','宿主持有会话和显示对象，不拥有城市库存或车辆物理位置。','Update只请求模拟推进并读取结果；部分低层World工具与全量视图重建仍待局部整理。')]:
+    card(ident,name,module,kind,key,token,fields,'R3-C1实际',owner,facts,'候选/负荷/显示仍可重建，不复制事实。','明确领域命令，视图不写账本。','新建/恢复/结构变更/任务完成。','统一城市时钟、实体与运输协议。','仍有冷全量规划/视图成本，未验证大型完整城市。','继续消费和财政，不扩通用平台。')
+    graphs['classes']['nodes'].append(node(ident,name,fields,kind));evidence.append(dict(title=name,source=ref(key,token)))
+graphs['classes']['edges'].extend([edge('simulation','trade','定期领域阶段'),edge('trade','tradestate','唯一账本写'),edge('tradestate','outside','拥有'),edge('outside','access','有向端点关联'),edge('simulation','design','配置只读'),edge('trade','design','只读经济规则'),edge('host','localization','Key转显示')])
+graphs['ownership']['nodes'].extend([node('tradestate','CityTradeState','只读端点/账本/出口托管','fact'),node('outside','OutsideConnection','实际有向进/出城端点','fact'),node('design','CityGameDesign','配置快照；非运行库存','fact')])
+graphs['ownership']['edges'].extend([edge('city','tradestate','唯一事实根'),edge('tradestate','outside','拥有'),edge('entities','outside','同对象索引/生命周期','dash'),edge('simulation','design','不可变配置'),edge('design','shipment','价格在准入时固化','dash')])
+graphs['global-current']['nodes'].append(node('trade','CityCoreTrade','有价原料/实际出口阶段','temporary'));graphs['global-current']['edges'].append(edge('simulation','trade','周期调度/到达确认'))
+graphs['global-current']['nodes'].append(node('host','Unity Host / Views','命令与只读展示；地形适配仍过渡','temporary'));graphs['global-current']['edges'].extend([edge('host','simulation','真实时间推进请求'),edge('host','session','持有会话'),edge('host','world','只读物理位置；旧工具命令待收紧')])
+for n in graphs['global-current']['nodes']:
+    if n['id']=='old':n.update(label='消费 / 垃圾 / 财政 / 完整UI',sub='继续恢复，不称R3完成')
+    if n['id']=='save':n.update(label='城市13 / 核心14',sub='设计快照/端点/贸易/原在途事实')
+flowdata['current']['name']='R3-C1实际城市流程'
+flowdata['current']['stages'].insert(9,dict(name='城外采购与出口',detail='配置周期O(任务+工厂×少量端点)；实际车准入后原料付款、出口托管，未到达不改目的库存或销售收入。',source=ref('trade','internal void Step')))
+flowdata['save']['note']='城市13 / 核心14：保存不可变设计快照、端点、贸易账本、货种与原在途实体；消费财政仍待恢复。'
 payload=dict(commit=COMMIT,baseline=BASELINE,cards=cards,graphs=graphs,flows=flowdata,readings=readingdata,perf=perf,evidence=evidence)
 
 page=r'''<!doctype html>
@@ -472,6 +495,11 @@ page=page.replace('R3-A实现源码 '+COMMIT,'R3-B实现源码 '+COMMIT)
 page=page.replace('当前默认入口仍是迁移中的工业小城','正常入口现在是原地形上的空城建设与实际成长')
 page=page.replace('04 · 模拟更新流程图 ★（R2-B实际）','04 · 模拟更新流程图 ★（R3-B实际）')
 page=page.replace('旧日界；新仅工资游标</td>','R3-B日界迁入、工资游标；生长6秒、就业6秒</td>')
+trade=(OUT/'R3Trade.md').read_text(encoding='utf-8')
+page=page.replace('<section id="review">','<section id="review"><details open><summary>最新实际：有价原料、出口、设计资源与变更影响</summary><div class="doccontent">'+markdown(trade)+'</div></details>')
+page=page.replace('R3-B实现源码 '+COMMIT,'R3-C1实现源码 '+COMMIT).replace('R3-A实现源码 '+COMMIT,'R3-C1实现源码 '+COMMIT)
+page=page.replace('持续原料、消费、垃圾财政、公交及完整经营UI仍未恢复。','有价原料运输和实际商品出口已接；消费、垃圾财政、公交及完整经营UI仍未恢复。')
+page=page.replace('04 · 模拟更新流程图 ★（R3-B实际）','04 · 模拟更新流程图 ★（R3-C1实际）')
 (OUT/'HarborCityArchitecture.html').write_text(page,encoding='utf-8')
 (OUT/'SourceEvidence.md').write_text('# 固定源码定位证据\n\n审查commit：`'+COMMIT+'`。以下行号由固定源码生成，而非当前工作树。\n\n'+ '\n'.join('## '+e['title']+'\n\n['+e['source']['file']+':'+str(e['source']['line'])+']('+e['source']['url']+')\n\n方法/语句：`'+e['source']['token']+'`\n' for e in evidence),encoding='utf-8')
 print(f'Created {OUT / "HarborCityArchitecture.html"}; {len(cards)} class cards, {len(graphs)} graphs, {len(flowdata)} flows; pinned {COMMIT}')
