@@ -91,6 +91,7 @@ namespace HarborCity
         [NonSerialized] Dictionary<int,List<int>> buildingEntrances=new Dictionary<int,List<int>>();
         public CityBuilding GetBuilding(int id)
         {
+            if(entities!=null)return entities.Building(id);
             if(id<0) return null;
             if(buildingLookup==null || buildingLookup.Count!=buildings.Count) buildingLookup=buildings.ToDictionary(b=>b.id);
             return buildingLookup.TryGetValue(id,out var b)?b:null;

@@ -7,44 +7,41 @@ namespace HarborCity
 {
     [Serializable] public sealed class CityCoreBusinessData
     {
-        public int version=1,money,day,nextBuilding;
-        public double calendarOffset=50,dispatchAt;
+        public int version=2,money,day,nextBuilding;
+        public double calendarOffset=50;
+        public SimulationClockData clock=new SimulationClockData();
+        public long nextDispatchTick;
         public bool commuteEnabled=true;
         public int payrollDay;
         public List<BuildingSaveData> buildings;
         public List<BuildingSaveData> retiredBuildings=new List<BuildingSaveData>();
         public HouseholdState society;
-        public List<int> receipts=new List<int>();
         public double retiredFactoryWages;
         public List<IndustrialExposure> residualIndustry;
     }
     // Business boundary, using the original IndustrialBuilding/CommercialBuilding facts.
-    public sealed class CityCoreIndustryBusiness:ITransportBusiness
+    public sealed class CityCoreIndustryBusiness
     {
         readonly CityModel city;
-        readonly HashSet<int> receipts=new HashSet<int>();
         public CityCoreResidents Residents {get;internal set;}
-        public CityCoreIndustryBusiness(CityModel city,IEnumerable<int> completed=null)
-        {this.city=city;if(completed!=null)foreach(int id in completed)if(!receipts.Add(id))throw new ArgumentException("Duplicate receipt");}
-        public IEnumerable<int> Receipts {get {foreach(int id in receipts)yield return id;}}
+        public CityCoreIndustryBusiness(CityModel city){this.city=city;}
         public bool Exists(int id)=>city.GetBuilding(id)!=null&&!city.GetBuilding(id).abandoned&&!city.GetBuilding(id).burned;
-        public bool Depart(Vehicle v)
+        internal bool Depart(Vehicle v)
         {
             if(v.purpose!=TransportPurpose.Freight)return Residents!=null&&Residents.Depart(v);
             if(!(city.GetBuilding(v.origin) is IndustrialBuilding factory)||!(city.GetBuilding(v.destination) is CommercialBuilding shop)||!Exists(v.origin)||!Exists(v.destination)||factory.Stock<v.cargo||shop.Stock+v.cargo>32||v.price!=FactoryState.SalePrice)return false;
             factory.Stock-=v.cargo;factory.factory.shipped+=v.cargo;return true;
         }
-        public bool Deliver(Vehicle v)
+        internal bool Deliver(TransportArrival v)
         {
             if(v.purpose!=TransportPurpose.Freight)return Residents!=null&&Residents.Arrive(v);
-            if(receipts.Contains(v.id))return true;
             if(!Exists(v.origin)||!Exists(v.destination))return false;
             var source=city.GetBuilding(v.origin) as IndustrialBuilding;var target=city.GetBuilding(v.destination) as CommercialBuilding;
             if(source==null||target==null||target.Stock+v.cargo>32)return false;
-            // All prerequisites are checked before committing. No log/observer can throw
-            // between stock receipt and financial receipt. The saved ID guards retries.
+            // Called after physics has committed every vehicle; successful receipt is
+            // acknowledged and retired in the same city boundary, never saved mid-step.
             target.Stock+=v.cargo;target.wholesaleCosts+=v.cargo*FactoryState.SalePrice;
-            city.RecordFactorySale(v.origin,v.cargo,v.id,v.destination,notify:false);receipts.Add(v.id);return true;
+            city.RecordFactorySale(v.origin,v.cargo,v.id,v.destination,notify:false);return true;
         }
     }
     public sealed class CityCoreIndustrySession
@@ -54,64 +51,32 @@ namespace HarborCity
         public CityCoreIndustryBusiness Business {get;}
         public CityCoreResidents Residents {get;}
         readonly List<CityBuilding> retired=new List<CityBuilding>();
-        readonly Action before,after;
-        readonly double calendarOffset;
-        double dispatchAt;
-        readonly CityCoreRoadBindings roadBindings;
-        public CityCoreIndustrySession(CityModel city,double calendarOffset=50,WorldData transport=null,IEnumerable<int> receipts=null,double dispatchAt=0,IEnumerable<CityBuilding> retired=null,bool commuteEnabled=true,int payrollDay=-1)
+        public CitySimulation Simulation {get;}
+        public CityEntities Entities {get;}
+        public CityCoreIndustrySession(CityModel city,double calendarOffset=50,WorldData transport=null,SimulationClockData clock=null,long nextDispatchTick=0,IEnumerable<CityBuilding> retired=null,bool commuteEnabled=true,int payrollDay=-1)
         {
-            City=city;this.calendarOffset=calendarOffset;this.dispatchAt=dispatchAt;
-            if(retired!=null)this.retired.AddRange(retired);
-            Business=new CityCoreIndustryBusiness(city,receipts);Transport=transport==null?new World(Business):new World(transport,Business);
-            before=BeforeStep;after=SyncCalendar;SyncCalendar();
-            Residents=new CityCoreResidents(city,Transport,commuteEnabled,payrollDay,calendarOffset);Business.Residents=Residents;
-            roadBindings=new CityCoreRoadBindings(city,Transport);
+            City=city;if(retired!=null)this.retired.AddRange(retired);var timeline=new SimulationClock(clock);
+            Business=new CityCoreIndustryBusiness(city);Transport=new World(transport??new WorldData{externalBusiness=true},timeline,city.buildings.Where(b=>!b.abandoned&&!b.burned).Select(b=>b.id));Entities=new CityEntities(city,Transport);
+            double absolute=calendarOffset+timeline.Seconds;City.day=1+(int)Math.Floor(absolute/City.society.settings.secondsPerDay);City.society.dayElapsed=(float)(absolute%City.society.settings.secondsPerDay);
+            Residents=new CityCoreResidents(city,Transport,Entities,commuteEnabled,payrollDay,calendarOffset);Business.Residents=Residents;
+            Simulation=new CitySimulation(city,Transport,timeline,Entities,Residents,Business,calendarOffset,nextDispatchTick);
+            Entities.Simulation=Simulation;
         }
-        public int Advance(double seconds)=>Transport.Advance(seconds,before,after);
+        public int Advance(double seconds)=>Simulation.Advance(seconds);
         public string AccessIssue(int building)
         {var access=Transport.GetAccess(building);return access==null?"缺少道路入口":!access.valid?"入口道路已拆除":(access.use&AccessUse.Freight)==0?"入口不允许货运":"";}
-        void SyncCalendar()
-        {
-            double absolute=calendarOffset+Transport.Clock,seconds=City.society.settings.secondsPerDay;
-            City.day=1+(int)Math.Floor(absolute/seconds);City.society.dayElapsed=(float)(absolute%seconds);
-        }
-        void BeforeStep()
-        {
-            SyncCalendar();float minute=City.ResidentMinute,minutes=(float)(World.StepSeconds*1440/City.society.settings.secondsPerDay);
-            roadBindings.RefreshIfChanged();
-            Residents.AdvanceRequests();
-            foreach(var household in City.society.families)
-            {
-                if(!household.resident)continue;
-                foreach(var worker in household.people)
-                {
-                    if(!(City.GetBuilding(worker.location) is IndustrialBuilding)||!City.CanAttendWork(worker)||!worker.atWork||worker.tripId!=0||worker.arrivedDay!=City.day||City.Workplace(worker)!=worker.location||City.ResidentJob(worker)==null)continue;
-                    float shift=480+worker.id%3*30,worked=Math.Max(0,Math.Min(minute+minutes,shift+480)-Math.Max(minute,shift));
-                    double credit=worker.factoryWageCredit;worker.workedMinutes+=worked;City.PayAttendance(worker,worked);
-                    float paid=City.ResidentWage(worker)==0?0:(float)((worker.factoryWageCredit-credit)*480/City.ResidentWage(worker));
-                    City.ProcessFactoryWork(worker,Math.Min(worked,paid),worked);
-                }
-            }
-            City.AdvanceIndustry(minutes);
-            if(Transport.Clock+1e-9<dispatchAt)return;dispatchAt=Transport.Clock+.25;
-            var incoming=new Dictionary<int,int>();foreach(var task in Transport.Vehicles){int count;incoming.TryGetValue(task.destination,out count);incoming[task.destination]=count+task.cargo;}
-            foreach(var factory in City.buildings.OfType<IndustrialBuilding>())foreach(var shop in City.buildings.OfType<CommercialBuilding>())
-            {
-                int reserved;incoming.TryGetValue(shop.id,out reserved);int amount=Math.Min(8,Math.Min(factory.Stock,32-shop.Stock-reserved));
-                if(amount<=0)continue;var task=Transport.Dispatch(factory.id,shop.id,amount,FactoryState.SalePrice);if(task!=null)incoming[shop.id]=reserved+amount;
-            }
-        }
         public void CloseBuilding(int id)
         {
+            Entities.StructuralBoundary();
             var building=City.GetBuilding(id);if(building==null)throw new ArgumentException("Missing business building");
+            if(building is ResidentialBuilding&&City.society.families.Any(h=>h.resident&&h.home==id))throw new InvalidOperationException("Occupied housing requires an explicit relocation policy; no residents were removed");
             if(building is IndustrialBuilding factory)City.retiredFactoryWages+=factory.factory.wageCosts;
-            City.buildings.Remove(building);retired.Add(building);City.SyncJobs();Transport.RefreshEndpoints();
+            Entities.RemoveBuilding(id);retired.Add(building);foreach(var member in Entities.Members)if(member.Person.location==id)member.Person.atWork=false;
         }
-        public CityCoreBusinessData SnapshotBusiness()=>CityCoreSave.CopyBusiness(new CityCoreBusinessData{money=City.money,day=City.day,nextBuilding=City.nextBuildingId,calendarOffset=calendarOffset,dispatchAt=dispatchAt,commuteEnabled=Residents.Enabled,payrollDay=Residents.PayrollDay,society=City.society,buildings=City.buildings.Select(BuildingSaveData.FromBuilding).ToList(),retiredBuildings=retired.Select(BuildingSaveData.FromBuilding).ToList(),receipts=Business.Receipts.OrderBy(id=>id).ToList(),retiredFactoryWages=City.retiredFactoryWages,residualIndustry=City.residualIndustry});
+        public CityCoreBusinessData SnapshotBusiness()=>CityCoreSave.CopyBusiness(new CityCoreBusinessData{money=City.money,day=City.day,nextBuilding=City.nextBuildingId,calendarOffset=Simulation.CalendarOffset,clock=Simulation.ClockSnapshot,nextDispatchTick=Simulation.Logistics.NextDispatchTick,commuteEnabled=Residents.Enabled,payrollDay=Residents.PayrollDay,society=City.society,buildings=City.buildings.Select(BuildingSaveData.FromBuilding).ToList(),retiredBuildings=retired.Select(BuildingSaveData.FromBuilding).ToList(),retiredFactoryWages=City.retiredFactoryWages,residualIndustry=City.residualIndustry});
         public void Validate()
         {
-            Transport.Validate();Transport.AssertSafety();Residents.Validate();if(!City.ValidIndustry())throw new InvalidOperationException("Industrial financial/labour invariants failed");
-            var receipts=new HashSet<int>(Business.Receipts);foreach(var task in Transport.Vehicles)if(task.cargo>0&&receipts.Contains(task.id))throw new InvalidOperationException("Settled receipt still has in-transit cargo");
+            Simulation.AssertSaveBoundary();Entities.Validate();Transport.Validate();Transport.AssertSafety();Residents.Validate();if(!City.ValidIndustry())throw new InvalidOperationException("Industrial financial/labour invariants failed");
             foreach(var shop in City.buildings.OfType<CommercialBuilding>())if(shop.Stock<0||shop.Stock>32||shop.wholesaleCosts<0)throw new InvalidOperationException("Commercial inventory invalid");
             foreach(var factory in retired.OfType<IndustrialBuilding>())if(Math.Abs(factory.factory.CashError)>1e-6)throw new InvalidOperationException("Retired account mismatch");
         }

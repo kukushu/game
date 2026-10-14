@@ -37,9 +37,10 @@ namespace HarborCity.RoadCore
     }
     [Serializable] public sealed class WorldData
     {
-        public int coreFormat=9,nextVehicle=1,nextDepot=1,networkRevision;
+        public int coreFormat=10,nextVehicle=1,nextDepot=1,networkRevision;
         public bool externalBusiness;
-        public double clock,accumulator;
+        public SimulationClockData standaloneClock=new SimulationClockData();
+        public List<int> availableEndpoints=new List<int>();
         public int delivered;
         public NetworkData network=new NetworkData();
         public List<Depot> depots=new List<Depot>();
@@ -48,14 +49,19 @@ namespace HarborCity.RoadCore
     }
     public sealed class World
     {
-        public const double StepSeconds=.05,MinimumSpacing=1.5;
+        public const double StepSeconds=SimulationClock.StepSeconds,MinimumSpacing=1.5;
         readonly WorldData data;
-        readonly ITransportBusiness business;
+        readonly DepotBusiness business;
+        readonly SimulationClock timeline;
+        readonly HashSet<int> availableEndpoints=new HashSet<int>();
+        readonly List<TransportArrival> arrivals=new List<TransportArrival>();
+        public IReadOnlyList<TransportArrival> Arrivals=>arrivalsView;
+        readonly IReadOnlyList<TransportArrival> arrivalsView;
         public Network Network {get;private set;}
         readonly IReadOnlyList<Vehicle> vehicleView;readonly IReadOnlyList<Depot> depotView;
         public IReadOnlyList<Vehicle> Vehicles=>vehicleView;
         public IEnumerable<Depot> Depots=>depotView;
-        public double Clock=>data.clock;
+        public double Clock=>timeline.Seconds;
         public int Delivered=>data.delivered;
         public int ActiveCount {get;private set;}
         public int NetworkGeneration=>data.networkRevision;
@@ -80,19 +86,20 @@ namespace HarborCity.RoadCore
         static readonly ProfilerMarker stepSample=new ProfilerMarker("City.RoadCore.Step"),indexSample=new ProfilerMarker("City.RoadCore.Occupancy"),intentSample=new ProfilerMarker("City.RoadCore.IntentAndReservations"),commitSample=new ProfilerMarker("City.RoadCore.CommitAndSettlement");
 #endif
         public World():this(new WorldData()){}
-        public World(ITransportBusiness owner):this(new WorldData{externalBusiness=true},owner){}
-        public World(WorldData state,ITransportBusiness owner=null)
+
+        public World(WorldData state,SimulationClock clock=null,IEnumerable<int> endpoints=null)
         {
-            if(state==null||state.coreFormat!=9||state.externalBusiness!=(owner!=null))throw new ArgumentException("Unsupported road-core save or missing business owner. Legacy city saves are not supported.");
+            if(state==null||state.coreFormat!=10||state.externalBusiness!=(clock!=null))throw new ArgumentException("Unsupported road-core save or missing business owner. Legacy city saves are not supported.");
+            if(state.externalBusiness&&(state.standaloneClock.tick!=0||state.standaloneClock.pendingSeconds!=0))throw new ArgumentException("City transport cannot own a second clock");
             data=state; // Take ownership of a private copy, never the caller's mutable save DTO.
-            data=Snapshot();vehicleView=data.vehicles.AsReadOnly();depotView=data.depots.AsReadOnly();foreach(var depot in data.depots)depotsById.Add(depot.id,depot);
+            timeline=clock??new SimulationClock(state.standaloneClock);data=Snapshot();if(endpoints!=null)data.availableEndpoints=new List<int>(endpoints);arrivalsView=arrivals.AsReadOnly();foreach(int endpoint in data.availableEndpoints)if(endpoint<=0||!availableEndpoints.Add(endpoint))throw new ArgumentException("Duplicate/invalid endpoint");vehicleView=data.vehicles.AsReadOnly();depotView=data.depots.AsReadOnly();foreach(var depot in data.depots)depotsById.Add(depot.id,depot);
             if(data.externalBusiness&&data.depots.Count!=0)throw new ArgumentException("External city cannot contain duplicate fixture inventories");foreach(var access in data.accesses)accesses.Add(access.endpoint,access);
-            foreach(var vehicle in data.vehicles)vehiclesById.Add(vehicle.id,vehicle);business=owner??new DepotBusiness(depotsById);Network=new Network(data.network);Validate();AssertSafety();
+            foreach(var vehicle in data.vehicles)vehiclesById.Add(vehicle.id,vehicle);business=data.externalBusiness?null:new DepotBusiness(depotsById);Network=new Network(data.network);Validate();AssertSafety();
         }
         // Only serializers may receive this copy; callers cannot mutate the live facts.
         public WorldData Snapshot()
         {
-            var copy=new WorldData{coreFormat=9,networkRevision=data.networkRevision,externalBusiness=data.externalBusiness,nextVehicle=data.nextVehicle,nextDepot=data.nextDepot,clock=data.clock,accumulator=data.accumulator,delivered=data.delivered,network=CopyNetwork()};
+            var copy=new WorldData{coreFormat=10,networkRevision=data.networkRevision,externalBusiness=data.externalBusiness,nextVehicle=data.nextVehicle,nextDepot=data.nextDepot,standaloneClock=data.externalBusiness?new SimulationClockData():timeline.Snapshot(),availableEndpoints=new List<int>(data.availableEndpoints),delivered=data.delivered,network=CopyNetwork()};
             foreach(var access in data.accesses)copy.accesses.Add(access.Copy());
             foreach(var d in data.depots)copy.depots.Add(new Depot{id=d.id,junction=d.junction,stock=d.stock,capacity=d.capacity,cash=d.cash});
             foreach(var v in data.vehicles)copy.vehicles.Add(new Vehicle{id=v.id,origin=v.origin,destination=v.destination,purpose=v.purpose,citizenId=v.citizenId,departedAt=v.departedAt,cargo=v.cargo,price=v.price,distance=v.distance,arrivalDistance=v.arrivalDistance,changeTarget=v.changeTarget,changeElapsed=v.changeElapsed,cursor=v.cursor,status=v.status,strandedPosition=v.strandedPosition,route=new List<long>(v.route)});
@@ -169,7 +176,7 @@ namespace HarborCity.RoadCore
             }
             return new RoadEditPlan(this,n,candidate,remaps,interrupted,proposed);
         }
-        internal World EditDraft()=>new World(Snapshot(),data.externalBusiness?business:null);
+        internal World EditDraft()=>new World(Snapshot(),data.externalBusiness?timeline.Copy():null);
         internal RoadEditPlan PlanFromDraft(World draft)
         {
             var candidate=draft.Snapshot();var mapped=new Dictionary<int,Vehicle>();foreach(var v in candidate.vehicles)mapped.Add(v.id,v);
@@ -192,7 +199,7 @@ namespace HarborCity.RoadCore
             foreach(var item in plan.interruptions){var vehicle=stagedVehicles[item.Key.id];vehicle.strandedPosition=item.Value;vehicle.status=VehicleStatus.Stranded;}
             // Cold transaction validation proves references, endpoint bounds and occupancy
             // together before the first live write. No business callback mutates inventory.
-            new World(staged,data.externalBusiness?business:null);
+            new World(staged,data.externalBusiness?timeline.Copy():null);
             // Every fallible geometry/migration/reservation check precedes these writes.
             foreach(var remap in plan.remaps){long target=RemappedChangeTarget(remap.vehicle,plan.network,remap.route[remap.cursor]);remap.vehicle.route=remap.route;remap.vehicle.cursor=remap.cursor;remap.vehicle.distance=remap.distance;remap.vehicle.changeTarget=target;if(remap.vehicle.status!=VehicleStatus.Stranded)remap.vehicle.arrivalDistance=remap.arrival;}
             foreach(var item in plan.interruptions){item.Key.strandedPosition=item.Value;item.Key.status=VehicleStatus.Stranded;}
@@ -220,7 +227,7 @@ namespace HarborCity.RoadCore
         }
         public bool TryResumeStranded(int id)
         {
-            Vehicle v;if(!vehiclesById.TryGetValue(id,out v)||v.status!=VehicleStatus.Stranded||!business.Exists(v.origin)||!business.Exists(v.destination))return false;long current=v.Current;double distance=v.distance;
+            Vehicle v;if(!vehiclesById.TryGetValue(id,out v)||v.status!=VehicleStatus.Stranded||!EndpointExists(v.origin)||!EndpointExists(v.destination))return false;long current=v.Current;double distance=v.distance;
             if(!Network.Contains(current))
             {
                 if(v.changeTarget!=0)return false;var hits=new List<SpatialHit>();Network.Project(v.strandedPosition,1e-6,false,hits);if(hits.Count==0)return false;current=hits[0].drivable;distance=hits[0].distance;
@@ -231,17 +238,18 @@ namespace HarborCity.RoadCore
             else if(target==null){var provider=business as IJunctionEndpointProvider;if(provider==null)return false;var remainder=Network.Route(Network.Get(source).To,provider.Junction(v.destination));if(remainder!=null){route=new List<long>{source};if(remainder.Count>0){long link=Network.ConnectionId(source,remainder[0]);if(!Network.Contains(link))return false;route.Add(link);route.AddRange(remainder);}end=Network.Get(route[route.Count-1]).Geometry.Length;}}
             if(route==null||route.Count==0)return false;int cursor=0;if(surface.IsConnection){long packed=-current-1;route.Insert(0,current);route.Insert(0,packed>>32);cursor=1;}
             if(Point.Distance(v.strandedPosition,LaneChanges.Position(Network,current,distance,v.changeTarget,v.changeElapsed))>1e-7)return false;
-            var snapshot=Snapshot();var copied=snapshot.vehicles.Find(actor=>actor.id==id);copied.route=route;copied.cursor=cursor;copied.distance=distance;copied.arrivalDistance=end;copied.status=VehicleStatus.Active;new World(snapshot,data.externalBusiness?business:null);
+            var snapshot=Snapshot();var copied=snapshot.vehicles.Find(actor=>actor.id==id);copied.route=route;copied.cursor=cursor;copied.distance=distance;copied.arrivalDistance=end;copied.status=VehicleStatus.Active;new World(snapshot,data.externalBusiness?timeline.Copy():null);
             v.route=route;v.cursor=cursor;v.distance=distance;v.arrivalDistance=end;v.status=VehicleStatus.Active;lostOccupancy.Forget(id);EditEpoch++;Reindex();return true;
         }
         public Vehicle Dispatch(int origin,int destination,int amount=1,double price=5)
         =>DispatchTask(origin,destination,amount,price,TransportPurpose.Freight,0);
         public Vehicle DispatchResident(int citizen,int origin,int destination,bool returning=false)
         {if(citizen<=0)throw new ArgumentOutOfRangeException(nameof(citizen));return DispatchTask(origin,destination,0,0,returning?TransportPurpose.Home:TransportPurpose.Work,citizen);}
-        Vehicle DispatchTask(int origin,int destination,int amount,double price,TransportPurpose purpose,int citizen)
+        internal TransportAdmission PrepareTransport(int origin,int destination,int amount,double price,TransportPurpose purpose,int citizen)
         {
+            if(data.nextVehicle>=int.MaxValue)throw new InvalidOperationException("Vehicle IDs exhausted");
             if(amount<0||purpose==TransportPurpose.Freight&&amount==0||price<0||double.IsNaN(price)||double.IsInfinity(price))throw new ArgumentOutOfRangeException("Cargo/price");
-            if(origin==destination||!business.Exists(origin)||!business.Exists(destination))return null;
+            if(origin==destination||!EndpointExists(origin)||!EndpointExists(destination))return null;
             RoadAccess source=GetAccess(origin),target=GetAccess(destination);if(source!=null&&target!=null){var use=purpose==TransportPurpose.Freight?AccessUse.Freight:AccessUse.Resident;if(!source.valid||!target.valid||(source.use&use)==0||(target.use&use)==0)return null;}
             var blueprint=dispatchRoutes.Get(Network,origin,destination,source,target,purpose!=TransportPurpose.Freight,business as IJunctionEndpointProvider);var route=blueprint.route;double start=blueprint.start,end=blueprint.end;if(route==null||route.Length==0)return null;
             if(indexDirty)Reindex();List<LaneOccupant> bucket;
@@ -249,14 +257,20 @@ namespace HarborCity.RoadCore
             var entry=Network.Get(route[0]);int reservation=start<Clearance(entry)-1e-9?entry.From:start>entry.Geometry.Length-Clearance(entry)+1e-9?entry.To:0;
             long spawnMovement=reservation==entry.To&&route.Length>1?route[1]:0;
             if(Network.IsConflictJunction(reservation)&&!reservations.CanReserve(reservation,spawnMovement,data.nextVehicle))return null;
-            var v=new Vehicle{id=data.nextVehicle,origin=origin,destination=destination,purpose=purpose,citizenId=citizen,departedAt=data.clock,cargo=amount,price=price,route=new List<long>(route),distance=start,arrivalDistance=end};
+            var v=new Vehicle{id=data.nextVehicle,origin=origin,destination=destination,purpose=purpose,citizenId=citizen,departedAt=Clock,cargo=amount,price=price,route=new List<long>(route),distance=start,arrivalDistance=end};
             if(data.vehicles.Count==data.vehicles.Capacity)data.vehicles.Capacity=Math.Max(4,data.vehicles.Capacity*2);
-            if(!business.Depart(v))return null;data.nextVehicle++;data.vehicles.Add(v);vehiclesById.Add(v.id,v);ActiveCount++;EditEpoch++;
+            return new TransportAdmission(this,EditEpoch,v);
+        }
+        internal Vehicle CommitAdmission(TransportAdmission admission)
+        {
+            if(admission==null||admission.owner!=this||admission.epoch!=EditEpoch||admission.vehicle.id!=data.nextVehicle)throw new InvalidOperationException("Stale transport admission");var v=admission.vehicle;var entry=Network.Get(v.Current);double start=v.distance;List<LaneOccupant> bucket;int reservation=start<Clearance(entry)-1e-9?entry.From:start>entry.Geometry.Length-Clearance(entry)+1e-9?entry.To:0;long spawnMovement=reservation==entry.To&&v.route.Count>1?v.route[1]:0;data.nextVehicle++;data.vehicles.Add(v);vehiclesById.Add(v.id,v);ActiveCount++;EditEpoch++;
             if(!occupancy.TryGetValue(v.Current,out bucket))occupancy.Add(v.Current,bucket=new List<LaneOccupant>());v.sourceOccupant.distance=start;bucket.Insert(InsertionSlot(bucket,start),v.sourceOccupant);if(Network.IsConflictJunction(reservation))reservations.Reserve(reservation,spawnMovement,v.id);return v;
         }
+        Vehicle DispatchTask(int origin,int destination,int amount,double price,TransportPurpose purpose,int citizen)
+        {if(data.externalBusiness)throw new InvalidOperationException("Use CitySimulation.RequestFreight/RequestCommute");var prepared=PrepareTransport(origin,destination,amount,price,purpose,citizen);if(prepared==null||!business.Depart(prepared.vehicle))return null;return CommitAdmission(prepared);}
         static int InsertionSlot(List<LaneOccupant> bucket,double position){int lo=0,hi=bucket.Count;while(lo<hi){int mid=(lo+hi)/2;if(bucket[mid].distance>position)lo=mid+1;else hi=mid;}return lo;}
         public double EstimateResidentSeconds(int origin,int destination)
-        {var a=GetAccess(origin);var b=GetAccess(destination);if(a==null||b==null||!a.valid||!b.valid||(a.use&AccessUse.Resident)==0||(b.use&AccessUse.Resident)==0||!business.Exists(origin)||!business.Exists(destination))return double.PositiveInfinity;return dispatchRoutes.Get(Network,origin,destination,a,b,true,null).seconds;}
+        {var a=GetAccess(origin);var b=GetAccess(destination);if(a==null||b==null||!a.valid||!b.valid||(a.use&AccessUse.Resident)==0||(b.use&AccessUse.Resident)==0||!EndpointExists(origin)||!EndpointExists(destination))return double.PositiveInfinity;return dispatchRoutes.Get(Network,origin,destination,a,b,true,null).seconds;}
         static double EndDistance(Vehicle v,Drivable road)=>v.arrivalDistance<0?road.Geometry.Length:v.arrivalDistance;
         public Point Position(Vehicle v)=>v.status==VehicleStatus.Stranded?v.strandedPosition:LaneChanges.Position(Network,v.Current,v.distance,v.changeTarget,v.changeElapsed);
         long RemappedChangeTarget(Vehicle v,Network candidate,long current)
@@ -264,7 +278,7 @@ namespace HarborCity.RoadCore
         public bool TryChangeLane(int vehicleId,int targetIndex)
         {Vehicle v;if(!vehiclesById.TryGetValue(vehicleId,out v))return false;if(indexDirty)Reindex();if(!LaneChanges.TryStart(Network,occupancy,v,targetIndex))return false;EditEpoch++;return true;}
         public void RefreshEndpoints()
-        {foreach(var v in data.vehicles)if(v.status==VehicleStatus.Active&&(!business.Exists(v.origin)||!business.Exists(v.destination))){v.strandedPosition=Position(v);v.status=VehicleStatus.Stranded;}EditEpoch++;Reindex();}
+        {foreach(var v in data.vehicles)if(v.status==VehicleStatus.Active&&(!EndpointExists(v.origin)||!EndpointExists(v.destination))){v.strandedPosition=Position(v);v.status=VehicleStatus.Stranded;}EditEpoch++;Reindex();}
         double Clearance(Drivable lane)=>Network.Clearance(lane);
         static long Movement(Network network,IList<long> route,int cursor,Drivable lane,int junction)
         {if(lane.IsConnection)return lane.Id;if(junction==lane.To&&cursor+1<route.Count)return route[cursor+1];if(junction==lane.From&&cursor>0&&network.Get(route[cursor-1]).IsConnection)return route[cursor-1];return 0;}
@@ -282,17 +296,17 @@ namespace HarborCity.RoadCore
                 long movement=vehicle.changeTarget!=0?0:Movement(candidate,route,cursor,lane,junction);if(!owners.CanReserve(junction,movement,vehicle.id))throw new InvalidOperationException("施工节点安全区内有冲突车辆，请等待它们驶离后重试；道路和任务未修改。");owners.Reserve(junction,movement,vehicle.id);
             }
         }
-        public int Advance(double simulationSeconds,Action beforeStep=null,Action afterStep=null)
+        public int Advance(double simulationSeconds)
         {
             if(simulationSeconds<0||double.IsNaN(simulationSeconds)||double.IsInfinity(simulationSeconds))throw new ArgumentException("Invalid time");
-            data.accumulator+=simulationSeconds;int steps=0;while(data.accumulator+1e-12>=StepSeconds){beforeStep?.Invoke();Step();afterStep?.Invoke();data.accumulator-=StepSeconds;steps++;}return steps;
+            if(data.externalBusiness)throw new InvalidOperationException("CitySimulation owns time");timeline.Request(simulationSeconds);int steps=0;while(timeline.HasStep){Step();timeline.ConsumeDebt();steps++;}return steps;
         }
         void Reindex()
         {
             foreach(var b in occupancy.Values)b.Clear();ActiveCount=0;reservations.Reset(Network);
             foreach(var v in data.vehicles)
             {
-                if(v.status==VehicleStatus.Active&&(!business.Exists(v.origin)||!business.Exists(v.destination))){v.strandedPosition=Position(v);v.status=VehicleStatus.Stranded;}
+                if(v.status==VehicleStatus.Active&&(!EndpointExists(v.origin)||!EndpointExists(v.destination))){v.strandedPosition=Position(v);v.status=VehicleStatus.Stranded;}
                 if(v.status==VehicleStatus.Delivered)continue;
                 if(!Network.Contains(v.Current))
                 {
@@ -316,6 +330,11 @@ namespace HarborCity.RoadCore
         }
         public void Step()
         {
+            if(data.externalBusiness)throw new InvalidOperationException("CitySimulation owns city steps");MoveStep(timeline.Context);foreach(var arrival in arrivals)if(business.Deliver(arrival))AcknowledgeArrival(arrival.id);RetireCompleted();timeline.Commit(false);
+        }
+        internal void MoveStep(TimeContext context)
+        {
+            if(context.Tick!=timeline.Tick)throw new InvalidOperationException("Mismatched simulation step");arrivals.Clear();
 #if UNITY_5_3_OR_NEWER
             using(stepSample.Auto())
 #endif
@@ -324,7 +343,7 @@ namespace HarborCity.RoadCore
                 using(indexSample.Auto())
 #endif
                 Reindex();
-                if(Network.HasParallelLanes)EditEpoch+=LaneChanges.Choose(Network,data.vehicles,occupancy,(int)Math.Round(data.clock/StepSeconds));
+                if(Network.HasParallelLanes)EditEpoch+=LaneChanges.Choose(Network,data.vehicles,occupancy,(int)(timeline.Tick%int.MaxValue));
                 entries.Clear();intents.Clear();
 #if UNITY_5_3_OR_NEWER
                 using(intentSample.Auto())
@@ -397,18 +416,19 @@ namespace HarborCity.RoadCore
                     var v=intent.vehicle;v.cursor=intent.cursor;v.distance=intent.distance;
                     if(v.changeTarget!=0){v.changeElapsed+=StepSeconds;if(v.changeElapsed>=1-1e-9){var lane=Network.Get(v.Current);var target=Network.Get(v.changeTarget);var route=new List<long>();if(!LaneChanges.Route(Network,v,target.Id,route))throw new InvalidOperationException("Lane-change route became invalid");v.distance=lane.Geometry.MapDistance(target.Geometry,v.distance);v.route=route;v.cursor=0;v.changeTarget=0;v.changeElapsed=0;}}
                     if(v.cursor!=v.route.Count-1||v.distance<EndDistance(v,Network.Get(v.Current))-1e-9)continue;
-                    if(!business.Deliver(v))continue;
-                    data.delivered+=v.cargo;v.cargo=0;v.status=VehicleStatus.Delivered;ActiveCount--;
+                    arrivals.Add(new TransportArrival(v,context.End));
                 }
-                // Retire finished tasks in one compaction pass; historical traffic never grows
-                // the hot simulation scan. Stock/cash and delivered ledger are authoritative.
-                int retained=0;for(int i=0;i<data.vehicles.Count;i++)if(data.vehicles[i].status!=VehicleStatus.Delivered)data.vehicles[retained++]=data.vehicles[i];else vehiclesById.Remove(data.vehicles[i].id);
-                if(retained<data.vehicles.Count)data.vehicles.RemoveRange(retained,data.vehicles.Count-retained);
-                data.clock+=StepSeconds;
                 EditEpoch++;
                 indexDirty=true;
             }
         }
+        internal bool EndpointExists(int id)=>data.externalBusiness?availableEndpoints.Contains(id):business.Exists(id);
+        internal void SetEndpointAvailable(int id,bool present)
+        {if(!data.externalBusiness)throw new InvalidOperationException("Fixture endpoints are depots");if(present){if(availableEndpoints.Add(id))data.availableEndpoints.Add(id);}else if(availableEndpoints.Remove(id))data.availableEndpoints.Remove(id);}
+        internal void AcknowledgeArrival(int id)
+        {var v=FindVehicle(id);if(v==null||v.status!=VehicleStatus.Active||v.cursor!=v.route.Count-1||v.distance<EndDistance(v,Network.Get(v.Current))-1e-9)throw new InvalidOperationException("Cannot acknowledge non-arrival");data.delivered+=v.cargo;v.cargo=0;v.status=VehicleStatus.Delivered;ActiveCount--;}
+        internal void RetireCompleted()
+        {int retained=0;for(int i=0;i<data.vehicles.Count;i++)if(data.vehicles[i].status!=VehicleStatus.Delivered)data.vehicles[retained++]=data.vehicles[i];else vehiclesById.Remove(data.vehicles[i].id);if(retained<data.vehicles.Count)data.vehicles.RemoveRange(retained,data.vehicles.Count-retained);arrivals.Clear();indexDirty=true;}
         public int SplitRoad(int roadId,int sample)
         {
             return SplitCandidate(CopyNetwork(),roadId,sample);
@@ -518,7 +538,7 @@ namespace HarborCity.RoadCore
         public void Validate()
         {
             if(data.networkRevision<0)throw new ArgumentException("Invalid network revision");
-            if(data.accumulator< -1e-9||double.IsNaN(data.accumulator)||double.IsInfinity(data.accumulator)||data.clock<0||double.IsNaN(data.clock)||double.IsInfinity(data.clock)||data.delivered<0)throw new ArgumentException("Invalid clock");
+            if(data.delivered<0)throw new ArgumentException("Invalid clock");
             var depots=new HashSet<int>();int maxD=0,maxV=0;foreach(var d in data.depots){JunctionPosition(d.junction);if(d.id<=0||!depots.Add(d.id)||d.stock<0||d.stock>d.capacity||d.cash<0||double.IsNaN(d.cash)||double.IsInfinity(d.cash))throw new ArgumentException("Invalid depot");maxD=Math.Max(maxD,d.id);}
             var attached=new HashSet<int>();foreach(var access in data.accesses)
             {
@@ -528,9 +548,9 @@ namespace HarborCity.RoadCore
             }
             var ids=new HashSet<int>();foreach(var v in data.vehicles)
             {
-                if(v.purpose<TransportPurpose.Freight||v.purpose>TransportPurpose.Home||v.purpose==TransportPurpose.Freight&&v.citizenId!=0||v.purpose!=TransportPurpose.Freight&&(v.citizenId<=0||v.cargo!=0||v.price!=0)||v.departedAt<0||v.departedAt>data.clock||double.IsNaN(v.departedAt)||double.IsInfinity(v.departedAt))throw new ArgumentException("Invalid transport purpose/owner/time");
+                if(v.purpose<TransportPurpose.Freight||v.purpose>TransportPurpose.Home||v.purpose==TransportPurpose.Freight&&v.citizenId!=0||v.purpose!=TransportPurpose.Freight&&(v.citizenId<=0||v.cargo!=0||v.price!=0)||v.departedAt<0||v.departedAt>Clock||double.IsNaN(v.departedAt)||double.IsInfinity(v.departedAt))throw new ArgumentException("Invalid transport purpose/owner/time");
                 if(!data.externalBusiness&&v.purpose!=TransportPurpose.Freight)throw new ArgumentException("Synthetic depots cannot own residents");
-                if(v.id<=0||!ids.Add(v.id)||v.status!=VehicleStatus.Stranded&&(!business.Exists(v.origin)||!business.Exists(v.destination))||v.cargo<0||v.price<0||double.IsNaN(v.price)||double.IsInfinity(v.price)||v.status<VehicleStatus.Active||v.status>VehicleStatus.Stranded)throw new ArgumentException("Invalid vehicle");maxV=Math.Max(maxV,v.id);
+                if(v.id<=0||!ids.Add(v.id)||v.status!=VehicleStatus.Stranded&&(!EndpointExists(v.origin)||!EndpointExists(v.destination))||v.cargo<0||v.price<0||double.IsNaN(v.price)||double.IsInfinity(v.price)||v.status<VehicleStatus.Active||v.status>VehicleStatus.Stranded)throw new ArgumentException("Invalid vehicle");maxV=Math.Max(maxV,v.id);
                 if(v.route==null||v.route.Count==0||v.cursor<0||v.cursor>=v.route.Count||v.distance<0||double.IsNaN(v.distance)||double.IsInfinity(v.distance))throw new ArgumentException("Invalid vehicle cursor");
                 if(v.status==VehicleStatus.Stranded)
                 {

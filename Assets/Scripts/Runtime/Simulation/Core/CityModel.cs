@@ -7,6 +7,7 @@ namespace HarborCity
     {
         public const int SaveFormat=34;
         public const float BuildHalfSize=CityMapState.BuildHalfSize, RoadHalfSize=BuildHalfSize-1.5f;
+        [NonSerialized] internal CityEntities entities;
         public CityMapState map=new CityMapState();
         public int money=65000, day=1;
         public TrafficState traffic=new TrafficState();

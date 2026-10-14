@@ -11,7 +11,7 @@ namespace HarborCity
     }
     public sealed partial class CityModel
     {
-        public CityJob Job(int id) => society?.jobEntities?.Find(j=>j.id==id);
+        public CityJob Job(int id) => entities!=null?entities.Job(id):society?.jobEntities?.Find(j=>j.id==id);
         public CityJob ResidentJob(CityResident p)
         {
             var job=p==null?null:Job(p.jobId);
@@ -74,6 +74,7 @@ namespace HarborCity
                     society.jobEntities.Add(job); Trace("job.created","建筑提供岗位",job,job:job.id,building:i);
                 }
             }
+            entities?.RebuildJobs();
         }
         
         bool ApplyJobPlan(Household h,HouseholdOption option)

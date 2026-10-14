@@ -1,0 +1,13 @@
+vehicles,scenario,speed,frames,fps,mean_frame_ms,p95_frame_ms,p99_frame_ms,actual_sim_rate,gc_alloc_bytes_per_frame,gc_collections,steps_per_frame_max
+1000,spaced-twenty-corridors,1,361,60.010,16.664,17.902,18.169,0.9974,62932,27,1
+1000,spaced-twenty-corridors,3,361,60.001,16.666,17.869,18.162,3.0000,68751,27,1
+1000,queued-three-approach,1,360,59.991,16.669,17.878,18.247,0.9999,17041,7,1
+1000,queued-three-approach,3,360,60.000,16.667,17.511,17.969,3.0000,20698,7,1
+3000,spaced-twenty-corridors,1,361,60.001,16.666,19.140,19.477,0.9972,63280,19,1
+3000,spaced-twenty-corridors,3,360,59.985,16.671,22.134,23.347,2.9993,68508,20,2
+3000,queued-three-approach,1,361,60.005,16.665,18.889,19.456,0.9973,17038,5,1
+3000,queued-three-approach,3,360,59.996,16.668,20.568,21.527,2.9998,20698,6,2
+10000,spaced-twenty-corridors,1,360,59.988,16.670,23.367,24.049,0.9998,63524,10,1
+10000,spaced-twenty-corridors,3,361,59.975,16.673,19.098,19.353,2.9988,71303,5,1
+10000,queued-three-approach,1,360,59.997,16.667,20.239,20.579,1.0000,17104,2,1
+10000,queued-three-approach,3,360,59.990,16.670,18.782,19.012,2.9995,20858,4,1
