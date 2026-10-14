@@ -9,6 +9,7 @@ namespace HarborCity
         public static World Create(int count,bool queued)
         {
             var world=new World();int groups=queued?3:20;
+            double approach=queued?System.Math.Max(3000,(count/groups+1)*1.6+100):System.Math.Max(2000,(count/groups+1)*5+100);
             var starts=new List<int>();var destinations=new List<int>();var routes=new List<List<long>>();
             int merge=queued?world.AddJunction(new Point(0,0,0)):0;
             int end=queued?world.AddJunction(new Point(5,0,0)):0;
@@ -16,10 +17,10 @@ namespace HarborCity
             int receiver=queued?world.AddDepot(end,0):0;
             for(int g=0;g<groups;g++)
             {
-                Point p=queued?(g==0?new Point(-3000,0,0):g==1?new Point(0,0,-3000):new Point(0,0,3000)):new Point(0,0,g*8);
-                int a=world.AddJunction(p),b=queued?merge:world.AddJunction(new Point(2000,0,g*8));
+                Point p=queued?(g==0?new Point(-approach,0,0):g==1?new Point(0,0,-approach):new Point(0,0,approach)):new Point(0,0,g*8);
+                int a=world.AddJunction(p),b=queued?merge:world.AddJunction(new Point(approach,0,g*8));
                 int road=world.AddRoad(a,b,new[]{p,Point.Lerp(p,world.JunctionPosition(b),.5),world.JunctionPosition(b)},true);
-                int c=queued?end:world.AddJunction(new Point(4000,0,g*8));
+                int c=queued?end:world.AddJunction(new Point(approach*2,0,g*8));
                 int next=queued?exit:world.AddRoad(b,c,new[]{world.JunctionPosition(b),world.JunctionPosition(c)},true);
                 starts.Add(world.AddDepot(a,0));destinations.Add(queued?receiver:world.AddDepot(c,0));
                 routes.Add(new List<long>{Network.LaneId(road,false),Network.ConnectionId(Network.LaneId(road,false),Network.LaneId(next,false)),Network.LaneId(next,false)});

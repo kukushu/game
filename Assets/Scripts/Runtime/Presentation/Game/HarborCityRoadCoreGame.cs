@@ -121,7 +121,7 @@ namespace HarborCity
         {
             session=null;RenderBuildings();Directory.CreateDirectory(path);QualitySettings.vSyncCount=0;Application.targetFrameRate=60;
             var rows=new List<string>{"vehicles,scenario,speed,frames,fps,mean_frame_ms,p95_frame_ms,p99_frame_ms,actual_sim_rate,gc_alloc_bytes_per_frame,gc_collections,steps_per_frame_max"};
-            foreach(int count in new[]{1000,3000})foreach(bool queued in new[]{false,true})foreach(int multiplier in new[]{1,3})
+            foreach(int count in new[]{1000,3000,10000})foreach(bool queued in new[]{false,true})foreach(int multiplier in new[]{1,3})
             {
                 speed=0;foreach(var car in cars.Values)Destroy(car.gameObject);cars.Clear();world=CityRoadCoreFixtures.Create(count,queued);RenderRoads();
                 cameraView.transform.position=queued?new Vector3(0,4500,-3000):new Vector3(400,1200,-700);cameraView.farClipPlane=12000;cameraView.transform.LookAt(queued?Vector3.zero:new Vector3(400,0,80));

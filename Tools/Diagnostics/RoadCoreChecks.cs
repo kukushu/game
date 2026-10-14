@@ -58,12 +58,20 @@ public static class RoadCoreChecks
         var permissions=new World();int permA=permissions.AddJunction(new Point(0,0,0)),permB=permissions.AddJunction(new Point(30,0,0));permissions.AddRoad(permA,permB,new[]{permissions.JunctionPosition(permA),permissions.JunctionPosition(permB)});int permFrom=permissions.AddDepot(permA),permTo=permissions.AddDepot(permB,0);permissions.RegisterAccess(permFrom,Network.LaneId(1,false),5,AccessUse.Resident);permissions.RegisterAccess(permTo,Network.LaneId(1,false),20);Check(permissions.Dispatch(permFrom,permTo)==null,"Freight ignored access permission");
         var rear=new World();int rearA=rear.AddJunction(new Point(0,0,0)),rearB=rear.AddJunction(new Point(100,0,0));rear.AddRoad(rearA,rearB,new[]{rear.JunctionPosition(rearA),rear.JunctionPosition(rearB)});int rearSource=rear.AddDepot(rearA),rearGoal=rear.AddDepot(rearB,0),mergeSource=rear.AddDepot(rearA);rear.RegisterAccess(rearSource,Network.LaneId(1,false),20);rear.RegisterAccess(rearGoal,Network.LaneId(1,false),80);rear.RegisterAccess(mergeSource,Network.LaneId(1,false),21);rear.Dispatch(rearSource,rearGoal);Check(rear.Dispatch(mergeSource,rearGoal)==null,"Middle insertion ignored rear vehicle");
         var loop=new World();int loopA=loop.AddJunction(new Point(0,0,0)),loopB=loop.AddJunction(new Point(100,0,0)),loopC=loop.AddJunction(new Point(50,0,50));loop.AddRoad(loopA,loopB,new[]{loop.JunctionPosition(loopA),loop.JunctionPosition(loopB)},true);loop.AddRoad(loopB,loopC,new[]{loop.JunctionPosition(loopB),loop.JunctionPosition(loopC)},true);loop.AddRoad(loopC,loopA,new[]{loop.JunctionPosition(loopC),loop.JunctionPosition(loopA)},true);int loopSource=loop.AddDepot(loopA),loopGoal=loop.AddDepot(loopB,0);loop.RegisterAccess(loopSource,Network.LaneId(1,false),60);loop.RegisterAccess(loopGoal,Network.LaneId(1,false),20);var around=loop.Dispatch(loopSource,loopGoal);Check(around!=null&&around.Route.Count==7,"Upstream target drove backwards / could not traverse loop");for(int i=0;i<500;i++){loop.Step();loop.AssertSafety();}Check(loop.Delivered==1,"Partial-lane loop failed actual delivery");
-        EditTests();MultiLaneTests();ConflictTests();LaneChangeTests();
+        EditTests();MultiLaneTests();ConflictTests();LaneChangeTests();TurnoverTest();
         foreach(bool congested in new[]{false,true}){var fleet=Fixture(1000,congested);for(int i=0;i<300;i++){fleet.Step();fleet.AssertSafety();}Check(fleet.ActiveCount==1000,"Benchmark lost active vehicles");}
         // Competing approaches: whole-junction mutex must prevent simultaneous connection occupancy.
         var crossing=new World();int center=crossing.AddJunction(new Point(0,0,0)),west=crossing.AddJunction(new Point(-30,0,0)),south=crossing.AddJunction(new Point(0,0,-30)),east=crossing.AddJunction(new Point(30,0,0));
         crossing.AddRoad(west,center,new[]{crossing.JunctionPosition(west),crossing.JunctionPosition(center)},true);crossing.AddRoad(south,center,new[]{crossing.JunctionPosition(south),crossing.JunctionPosition(center)},true);crossing.AddRoad(center,east,new[]{crossing.JunctionPosition(center),crossing.JunctionPosition(east)},true);int westD=crossing.AddDepot(west),southD=crossing.AddDepot(south),eastD=crossing.AddDepot(east,0);crossing.Dispatch(westD,eastD);crossing.Dispatch(southD,eastD);for(int i=0;i<200;i++){crossing.Step();crossing.AssertSafety();}Check(crossing.Delivered==2,"Intersection deadlock");
         Console.WriteLine("PASS "+checks+" core checks; direction, topology, safety, split/reverse/removal, freight/cash, binary continuation. Lane change verified; pedestrian/full city not yet connected.");
+    }
+    static void TurnoverTest()
+    {
+        var world=new World();var sources=new List<int>();var goals=new List<int>();
+        for(int road=0;road<4;road++){int a=world.AddJunction(new Point(0,0,road*8)),b=world.AddJunction(new Point(12,0,road*8));world.AddRoad(a,b,new[]{world.JunctionPosition(a),world.JunctionPosition(b)},true);sources.Add(world.AddDepot(a,100000));goals.Add(world.AddDepot(b,0));}
+        for(int step=0;step<30000;step++){for(int i=0;i<4;i++)world.Dispatch(sources[i],goals[i],price:1);world.Step();if(step%100==0){world.AssertSafety();Check(world.Vehicles.Count<=40,"Retired tasks accumulated in hot collection");}}
+        int inTransit=0,remaining=0,received=0;foreach(var v in world.Vehicles)inTransit+=v.cargo;for(int i=0;i<4;i++){remaining+=world.GetDepot(sources[i]).stock;received+=world.GetDepot(goals[i]).stock;Check(world.GetDepot(sources[i]).cash+world.GetDepot(goals[i]).cash==200000,"Turnover money conservation failed");}
+        Check(world.Delivered>30000&&400000==remaining+received+inTransit&&world.Delivered==received,"Long turnover cargo/history failed");Check(world.Snapshot().nextVehicle>30000&&SaveCodec.Write(world).Length<15000,"Lifetime task IDs grew live saved state");var restored=SaveCodec.Read(SaveCodec.Write(world));for(int step=0;step<100;step++){world.Step();restored.Step();}Check(Convert.ToBase64String(SaveCodec.Write(world))==Convert.ToBase64String(SaveCodec.Write(restored)),"Long-turnover continuation failed");
     }
     static void LaneChangeTests()
     {
@@ -128,7 +136,7 @@ public static class RoadCoreChecks
     static void Benchmark(string path)
     {
         var result=new List<string>{"scenario,active,steps,mean_ms,p95_ms,p99_ms,allocated_bytes_per_step,simulated_seconds,wall_seconds"};
-        foreach(int count in new[]{1000,3000})foreach(bool congested in new[]{false,true})
+        foreach(int count in new[]{1000,3000,10000})foreach(bool congested in new[]{false,true})
         {
             var w=Fixture(count,congested);for(int i=0;i<50;i++)w.Step();w.AssertSafety();var times=new double[300];var sw=new Stopwatch();long gc=GC.GetAllocatedBytesForCurrentThread();var total=Stopwatch.StartNew();
             for(int i=0;i<times.Length;i++){sw.Restart();w.Step();sw.Stop();times[i]=sw.Elapsed.TotalMilliseconds;if(w.ActiveCount!=count)throw new Exception("Fixture ceased to have requested active population");}

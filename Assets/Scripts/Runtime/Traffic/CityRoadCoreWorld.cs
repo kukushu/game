@@ -49,7 +49,7 @@ namespace HarborCity.RoadCore
         readonly ITransportBusiness business;
         public Network Network {get;private set;}
         readonly IReadOnlyList<Vehicle> vehicleView;readonly IReadOnlyList<Depot> depotView;
-        public IEnumerable<Vehicle> Vehicles=>vehicleView;
+        public IReadOnlyList<Vehicle> Vehicles=>vehicleView;
         public IEnumerable<Depot> Depots=>depotView;
         public double Clock=>data.clock;
         public int Delivered=>data.delivered;
