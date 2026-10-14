@@ -13,7 +13,7 @@ namespace HarborCity.RoadCore
     [Serializable] public sealed class Junction { public int id; public Point position; }
     [Serializable] public sealed class PhysicalRoad
     {
-        public int id,from,to;
+        public int id,from,to,lanes=1;
         public bool oneWay;
         public double speed=12;
         public Point[] points;
@@ -92,11 +92,11 @@ namespace HarborCity.RoadCore
             var roads=new HashSet<int>();
             foreach(var r in data.roads)
             {
-                if(r.id<=0||r.id>MaximumRoadId||!roads.Add(r.id)||!junctions.ContainsKey(r.from)||!junctions.ContainsKey(r.to)||r.from==r.to||r.speed<=0||double.IsNaN(r.speed)||double.IsInfinity(r.speed))throw new ArgumentException("Invalid road identity/direction/speed");
+                if(r.id<=0||r.id>MaximumRoadId||!roads.Add(r.id)||!junctions.ContainsKey(r.from)||!junctions.ContainsKey(r.to)||r.from==r.to||r.lanes<1||r.lanes>8||r.speed<=0||double.IsNaN(r.speed)||double.IsInfinity(r.speed))throw new ArgumentException("Invalid road identity/direction/speed/lanes");
                 var g=new Geometry(r.points);if(g.Length<.1||!Finite(r.startTangent)||!Finite(r.endTangent)||Point.Distance(r.points[0],junctions[r.from].position)>1e-6||Point.Distance(r.points[r.points.Length-1],junctions[r.to].position)>1e-6)throw new ArgumentException("Road endpoints/tangents disagree with junctions");
                 for(int i=0;i<r.points.Length;i++)if(!Finite(r.points[i])||(i>0&&Point.Distance(r.points[i-1],r.points[i])<1e-8))throw new ArgumentException("Invalid geometry sample");
                 if(r.rightVectors!=null){if(r.rightVectors.Length!=r.points.Length)throw new ArgumentException("Cross-section count mismatch");foreach(var right in r.rightVectors)if(!Finite(right)||Math.Abs(right.y)>1e-9||Point.Distance(right,new Point())>1.000001)throw new ArgumentException("Invalid road cross-section");}
-                maxR=Math.Max(maxR,r.id);AddLane(r,false);if(!r.oneWay)AddLane(r,true);
+                maxR=Math.Max(maxR,r.id);for(int lane=0;lane<r.lanes;lane++){AddLane(r,false,lane);if(!r.oneWay)AddLane(r,true,lane);}
             }
             if(data.nextRoad<=maxR||data.nextJunction<=maxJ)throw new ArgumentException("Identity allocator is behind live entities");
             var approaches=new Dictionary<int,List<Point>>();
@@ -121,6 +121,10 @@ namespace HarborCity.RoadCore
                 foreach(var b in exits)
                 {
                     if(a.RoadId==b.RoadId)continue; // First batch excludes U-turns.
+                    // A continuous geometry cut cannot silently change parallel lanes.
+                    // Real intersections may connect different lane indices; explicit
+                    // turn restrictions and lane-change intentions are separate rules.
+                    if(!IsConflictJunction(a.To)&&a.LaneIndex!=b.LaneIndex)continue;
                     Point p=a.Geometry.Sample(a.Geometry.Length),q=b.Geometry.Sample(0),c=junctions[a.To].position;
                     var samples=Point.Distance(p,q)<1e-8?new[]{p,q}:new Point[9];
                     if(samples.Length>2)for(int i=0;i<9;i++){double t=i/8.0;samples[i]=Point.Lerp(Point.Lerp(p,c,t),Point.Lerp(c,q,t),t);}
@@ -129,14 +133,14 @@ namespace HarborCity.RoadCore
             }
         }
         static bool Finite(Point p)=>!(double.IsNaN(p.x)||double.IsNaN(p.y)||double.IsNaN(p.z)||double.IsInfinity(p.x)||double.IsInfinity(p.y)||double.IsInfinity(p.z));
-        void AddLane(PhysicalRoad road,bool reverse)
+        void AddLane(PhysicalRoad road,bool reverse,int index)
         {
             int n=road.points.Length;var p=new Point[n];var right=RightVectors(road);
             for(int i=0;i<n;i++)
             {
-                double offset=reverse?-.55:.55;p[reverse?n-1-i:i]=new Point(road.points[i].x+right[i].x*offset,road.points[i].y,road.points[i].z+right[i].z*offset);
+                double offset=(.55+index*1.1)*(reverse?-1:1);p[reverse?n-1-i:i]=new Point(road.points[i].x+right[i].x*offset,road.points[i].y,road.points[i].z+right[i].z*offset);
             }
-            var d=new Drivable(LaneId(road.id,reverse),road.id,reverse?road.to:road.from,reverse?road.from:road.to,0,reverse,road.speed,p);
+            var d=new Drivable(LaneId(road.id,reverse,index),road.id,reverse?road.to:road.from,reverse?road.from:road.to,0,reverse,road.speed,p);
             drivables.Add(d.Id,d);List<Drivable> list;if(!outgoing.TryGetValue(d.From,out list))outgoing.Add(d.From,list=new List<Drivable>());list.Add(d);
         }
         sealed class RouteQueue

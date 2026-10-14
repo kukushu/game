@@ -9,7 +9,7 @@ namespace HarborCity.RoadCore
     {
         struct Cut {public double distance;public Point point;public int junction;}
         static double Cross(double ax,double az,double bx,double bz)=>ax*bz-az*bx;
-        public static RoadEditPlan Connect(World owner,Point[] center,bool oneWay,double speed,double snap)
+        public static RoadEditPlan Connect(World owner,Point[] center,bool oneWay,double speed,double snap,int lanes)
         {
             if(center==null||center.Length<2)throw new ArgumentException("A road stroke needs two points");
             if(snap<0||double.IsNaN(snap)||double.IsInfinity(snap))throw new ArgumentOutOfRangeException(nameof(snap));
@@ -42,7 +42,7 @@ namespace HarborCity.RoadCore
             {
                 var piece=new List<Point>{draft.JunctionPosition(resolved[i-1].junction)};
                 for(int sample=1;sample<geometry.Count-1;sample++)if(geometry.At(sample)>resolved[i-1].distance+.01&&geometry.At(sample)<resolved[i].distance-.01)piece.Add(geometry[sample]);
-                piece.Add(draft.JunctionPosition(resolved[i].junction));draft.AddRoad(resolved[i-1].junction,resolved[i].junction,piece.ToArray(),oneWay,speed);
+                piece.Add(draft.JunctionPosition(resolved[i].junction));draft.AddRoad(resolved[i-1].junction,resolved[i].junction,piece.ToArray(),oneWay,speed,lanes);
             }
             return owner.PlanFromDraft(draft);
         }
