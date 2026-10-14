@@ -1,0 +1,16 @@
+{
+  "passed": true,
+  "offline": true,
+  "sections": 13,
+  "classCards": 21,
+  "graphs": 4,
+  "flows": 7,
+  "sourceReferences": 109,
+  "pageErrors": [],
+  "externalRequests": [],
+  "screenshots": [
+    "ownership.png",
+    "classes.png",
+    "simulation.png"
+  ]
+}
