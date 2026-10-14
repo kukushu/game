@@ -7,7 +7,7 @@ import subprocess, json, html, re, csv
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'Docs/Architecture'
-COMMIT = 'c40bde5'
+COMMIT = '338ce23'
 BASELINE = '110c4eaa24fa69d55b08a5db2a6d19ec6da5dd7f'
 R = 'Assets/Scripts/Runtime/'
 files = {
@@ -53,6 +53,9 @@ files = {
  'trip': R+'Traffic/CityTripTask.cs',
  'position': R+'Traffic/CityVehiclePosition.cs',
  'ports': R+'Infrastructure/Roads/CityLaneConnection.cs',
+ 'corezoning': R+'Infrastructure/Zoning/CityCoreZoning.cs',
+ 'coregrowth': R+'Simulation/Growth/CityCoreGrowth.cs',
+ 'coreconstruction': R+'Simulation/Core/CityCoreConstruction.cs',
  'candidates': R+'Simulation/Industry/CityFreightCandidates.cs',
  'reachability': R+'Infrastructure/Roads/CityLaneReachability.cs',
 }
@@ -296,6 +299,25 @@ flowdata['current']['name']='R2-B实际更新流程（基础验收完成）'
 flowdata['current']['stages'][6]['detail']='从Position建立源/影子/冻结占用；端口外等待，实际连接曲线预约。'
 flowdata['current']['stages'][7]['detail']='意图读取物理锚点，导航只取后续段；全部位置与导航一致提交。'
 flowdata['save']['note']='城市10 / 核心13：独立位置/冻结模式、任务与导航，旧格式拒绝。'
+# R3-A: actual normal startup is empty terrain, not the diagnostic commuter city.
+for ident,name,module,kind,key,token,fields,description in [
+ ('corezoning','CityCoreZoning','Zoning','derived','corezoning','public sealed class CityCoreZoning','world land stamps / versioned plots / surface', 'Saved designations are facts; road-aligned plots and stamp buckets are derived. Building entities remain independent.'),
+ ('coregrowth','CityCoreGrowth','Growth','temporary','coregrowth','public sealed class CityCoreGrowth','Zoning / nextGrowth / projects', 'Healthy pre-actor boundary creates timed private projects and registers completed buildings/jobs/access through CityEntities.'),
+ ('coreconstruction','CityCoreConstruction','Construction','temporary','coreconstruction','public sealed class CityCoreConstruction','city / entities / world', 'Budget check, atomic RoadEditPlan commit and one debit; failed or stale edits do not spend.')]:
+    card(ident,name,module,kind,key,token,fields,'Actual R3-A chain',description,description,'No second editable city or road network.','Healthy structural boundary.','Create/read/rebuild.','CitySimulation / CityEntities / shared network.','Cold planning rebuild costs not yet measured at full-city scale.','Restore population, supplies and consumption next.')
+    graphs['classes']['nodes'].append(node(ident,name,fields,kind))
+    evidence.append(dict(title=name,source=ref(key,token)))
+graphs['classes']['edges'].extend([edge('simulation','coregrowth','pre-actor boundary'),edge('coregrowth','corezoning','owns'),edge('coregrowth','entities','register buildings'),edge('session','coreconstruction','owns'),edge('coreconstruction','world','atomic paid edit')])
+graphs['ownership']['nodes'].extend([node('land','Land designations / projects','Saved world stamps and construction deadlines','fact','coregrowth'),node('plots','Roadside plots','Derived from road, terrain and buildings','derived','corezoning')])
+graphs['ownership']['edges'].extend([edge('city','land','owns zoning/development'),edge('land','plots','derived','dash'),edge('network','plots','read shared geometry','dash')])
+graphs['global-current']['nodes'].extend([node('coregrowth','Growth / Zoning','Actual R3-A healthy boundary','temporary'),node('coreconstruction','Paid construction','Normal empty terrain startup','temporary')])
+graphs['global-current']['edges'].extend([edge('simulation','coregrowth','before actors'),edge('coreconstruction','world','atomic edits'),edge('coregrowth','entities','lifecycle')])
+for n in graphs['global-current']['nodes']:
+    if n['id']=='old':n.update(label='Services / immigration / economy',sub='Still pending R3 integration')
+    if n['id']=='save':n.update(label='City11 / core13',sub='Map, zoning, projects, active city facts')
+flowdata['current']['name']='R3-A actual city update'
+flowdata['current']['stages'].insert(0,dict(name='Healthy growth boundary',detail='Terrain and zoning readiness; timed proposals/completion; entity and entrance registration before actors. No invented people.',source=ref('coregrowth','internal void Step')))
+flowdata['save']['note']='City11 / core13: map, designations and pending projects plus active actor facts. Complete services/finance are still pending.'
 payload=dict(commit=COMMIT,baseline=BASELINE,cards=cards,graphs=graphs,flows=flowdata,readings=readingdata,perf=perf,evidence=evidence)
 
 page=r'''<!doctype html>
@@ -419,6 +441,12 @@ page=page.replace('R2-A实现源码 5a3dddf','R2-B实现源码 c40bde5').replace
 page=page.replace('R2-A任务已独立，物理位置仍依附Plan','R2-B位置和端口均已接实际调用链')
 page=page.replace('任务/位置分离与端口尚需R2复评','信号/行人随R3接入，结束有限交通结构阶段')
 page=page.replace('R1后续 / R2-A实际','R2-B实际')
+r3=(OUT/'R3Construction.md').read_text(encoding='utf-8')
+page=page.replace('<section id="review">','<section id="review"><details open><summary>当前实际：R3-A空地建设与生长</summary><div class="doccontent">'+markdown(r3)+'</div></details>')
+page=page.replace('默认入口是原居民/工厂/商店接新交通的迁移小城。','默认入口已恢复原地形上的空城、付费修路、沿路分区和定时私有建筑生长；迁移小城仅用于诊断。')
+page=page.replace('完整旧城市的分区、市政、管网、公交、地形工具和经营UI尚未接回。','居民迁入、持续供给消费、市政、管网、公交和完整经营UI尚未接回。')
+page=page.replace('R2-B实现源码 c40bde5','R3-A实现源码 '+COMMIT).replace('实现源码c40bde5','实现源码'+COMMIT)
+page=page.replace('后续进展见上方R2-A','后续进展见上方R3-A')
 (OUT/'HarborCityArchitecture.html').write_text(page,encoding='utf-8')
 (OUT/'SourceEvidence.md').write_text('# 固定源码定位证据\n\n审查commit：`'+COMMIT+'`。以下行号由固定源码生成，而非当前工作树。\n\n'+ '\n'.join('## '+e['title']+'\n\n['+e['source']['file']+':'+str(e['source']['line'])+']('+e['source']['url']+')\n\n方法/语句：`'+e['source']['token']+'`\n' for e in evidence),encoding='utf-8')
 print(f'Created {OUT / "HarborCityArchitecture.html"}; {len(cards)} class cards, {len(graphs)} graphs, {len(flowdata)} flows; pinned {COMMIT}')
