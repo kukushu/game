@@ -13,7 +13,7 @@ namespace HarborCity
     // Save is a cold path; reflection preserves every original business scalar's exact bits.
     public static class CityCoreSave
     {
-        const int Magic=0x48434932,Version=3,MaximumCount=1000000;
+        const int Magic=0x48434932,Version=4,MaximumCount=1000000;
         static readonly Dictionary<Type,FieldInfo[]> fields=new Dictionary<Type,FieldInfo[]>();
         static FieldInfo[] Fields(Type type)
         {FieldInfo[] result;if(!fields.TryGetValue(type,out result)){result=type.GetFields(BindingFlags.Public|BindingFlags.Instance).Where(f=>!f.IsNotSerialized).OrderBy(f=>f.Name,StringComparer.Ordinal).ToArray();fields.Add(type,result);}return result;}
@@ -61,7 +61,7 @@ namespace HarborCity
                 int count=reader.ReadInt32();if(count<0||count>stream.Length-stream.Position)throw new InvalidDataException("Truncated transport state");byte[] core=reader.ReadBytes(count);if(stream.Position!=stream.Length)throw new InvalidDataException("Trailing city save data");
                 var city=new CityModel{money=data.money,day=data.day,nextBuildingId=data.nextBuilding,society=data.society,retiredFactoryWages=data.retiredFactoryWages,residualIndustry=data.residualIndustry,buildings=data.buildings.Select(b=>b.ToBuilding()).ToList()};city.development.enabled=false;
                 var business=new CityCoreIndustryBusiness(city,data.receipts);var transport=SaveCodec.Read(core,business);
-                var session=new CityCoreIndustrySession(city,data.calendarOffset,transport.Snapshot(),data.receipts,data.dispatchAt,data.retiredBuildings.Select(b=>b.ToBuilding()));session.Validate();return session;
+                var session=new CityCoreIndustrySession(city,data.calendarOffset,transport.Snapshot(),data.receipts,data.dispatchAt,data.retiredBuildings.Select(b=>b.ToBuilding()),data.commuteEnabled,data.payrollDay);session.Validate();return session;
             }
         }
     }

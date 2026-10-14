@@ -53,6 +53,13 @@ namespace HarborCity.RoadCore
             int lo=0,hi=Count-1;while(hi-lo>1){int m=(lo+hi)/2;if(cumulative[m]<=distance)lo=m;else hi=m;}
             double t=(distance-cumulative[lo])/(cumulative[hi]-cumulative[lo]);return target.At(lo)+(target.At(hi)-target.At(lo))*t;
         }
+        public double MapReverseDistance(Geometry target,double distance)
+        {
+            if(Count!=target.Count)throw new ArgumentException("Opposite geometry sample correspondence missing");
+            if(distance<=0)return target.Length;if(distance>=Length)return 0;
+            int lo=0,hi=Count-1;while(hi-lo>1){int m=(lo+hi)/2;if(cumulative[m]<=distance)lo=m;else hi=m;}
+            double t=(distance-cumulative[lo])/(cumulative[hi]-cumulative[lo]);return target.At(Count-1-lo)+(target.At(Count-1-hi)-target.At(Count-1-lo))*t;
+        }
     }
     public sealed class Drivable
     {

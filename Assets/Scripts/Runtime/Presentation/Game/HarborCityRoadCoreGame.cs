@@ -30,8 +30,8 @@ namespace HarborCity
         readonly List<GameObject> buildings=new List<GameObject>();
         bool hasStart;Point startPoint;bool building,oneWay,wide;int origin,destination;float speed=1;
         long previousTick;int lastSteps;
-        string notice="原工厂劳动→生产→新交通实车运输→原商店库存/支付。居民通勤、市政、分区、信号灯和行人尚未接回。";
-        string SavePath=>Path.Combine(Application.persistentDataPath,session==null?"harbor-road-core-v6.hcrc":"harbor-city-core-v3.hcity");
+        string notice="原工厂劳动→生产→新交通实车运输→原商店库存/支付。居民实际通勤已接入；市政、分区、信号灯和行人尚未接回。";
+        string SavePath=>Path.Combine(Application.persistentDataPath,session==null?"harbor-road-core-v7.hcrc":"harbor-city-core-v4.hcity");
         static Vector3 V(Point p)=>new Vector3((float)p.x,(float)p.y,(float)p.z);
         void Start()
         {
@@ -146,12 +146,12 @@ namespace HarborCity
             speed=0;Directory.CreateDirectory(path);yield return null;
             try
             {
-                int branch=world.AddJunction(new Point(0,0,25));world.AddRoad(2,branch,new[]{world.JunctionPosition(2),world.JunctionPosition(branch)});session.Advance(1.6);var actor=world.Vehicles.First();if(!world.TryChangeLane(actor.id,1))throw new Exception("Actual industry truck could not start lane change");Point first=world.Position(actor);session.Advance(.5);if(Point.Distance(first,world.Position(actor))<1)throw new Exception("Truck did not physically move");
+                int branch=world.AddJunction(new Point(0,0,25));world.AddRoad(2,branch,new[]{world.JunctionPosition(2),world.JunctionPosition(branch)});if(session.City.Citizens.Any(p=>p.atWork))throw new Exception("Default residents started onsite");for(int wait=0;wait<100&&!world.Vehicles.Any(v=>v.purpose==TransportPurpose.Freight);wait++)session.Advance(.05);var actor=world.Vehicles.First(v=>v.purpose==TransportPurpose.Freight);if(!world.TryChangeLane(actor.id,1))throw new Exception("Actual industry truck could not start lane change");Point first=world.Position(actor);session.Advance(.5);if(Point.Distance(first,world.Position(actor))<1)throw new Exception("Truck did not physically move");
                 Point beforeEdit=world.Position(actor);world.SplitRoadAt(1,12.75);world.SplitRoadAt(2,20.25);var widePlan=world.PlanConnectedRoad(new[]{new Point(-35,0,30),new Point(35,0,30)},lanes:2);if(!widePlan.TryCommit())throw new Exception("Wide road transaction failed");RenderRoads();if(Point.Distance(beforeEdit,world.Position(actor))>1e-8)throw new Exception("Access edit moved truck");
                 var restored=CityCoreSave.Read(CityCoreSave.Write(session));for(int i=0;i<300;i++){session.Advance(.05);restored.Advance(.05);session.Validate();}
                 if(Convert.ToBase64String(CityCoreSave.Write(session))!=Convert.ToBase64String(CityCoreSave.Write(restored)))throw new Exception("Integrated save differs");
                 if(session.City.Factory(1).sold==0||session.City.Factory(1).sold!=world.Delivered||session.City.Goods(2)!=world.Delivered||session.City.roads.edges.Count!=0||session.City.traffic.trips.Count!=0)throw new Exception("Business loop/legacy engine invariant failed");
-                File.WriteAllText(Path.Combine(path,"IndustryResult.txt"),"PASS actual Unity default city industry including real truck lane change and arbitrary split during maneuver: original residents/jobs credit labour, original factory produces, RoadCore trucks move, original shop receives/payments reconcile, exact combined save continues. No old Move or duplicate Depot.\n");
+                File.WriteAllText(Path.Combine(path,"IndustryResult.txt"),"PASS actual Unity default city industry including actual resident commuting, real truck lane change and arbitrary split during maneuver: original residents/jobs credit labour, original factory produces, RoadCore trucks move, original shop receives/payments reconcile, exact combined save continues. No old Move or duplicate Depot.\n");
             }
             catch(Exception e){File.WriteAllText(Path.Combine(path,"IndustryResult.txt"),"FAIL "+e);Application.Quit(1);yield break;}
             yield return null;

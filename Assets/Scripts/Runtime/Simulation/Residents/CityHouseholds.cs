@@ -266,9 +266,7 @@ namespace HarborCity
                 h.wagePaid=0;
                 foreach(var person in h.people)
                 {
-                    int factoryPay=(int)Math.Floor(person.factoryWageCredit);
-                    person.factoryWageCredit-=factoryPay;
-                    person.totalFactoryWagesPaid+=factoryPay; r.factoryWages+=factoryPay;
+                    int factoryPay=TransferFactoryPay(person);r.factoryWages+=factoryPay;
                     r.externalWages+=(int)Math.Round(person.earnedWages);
                     person.wagePaid=(int)Math.Round(person.earnedWages)+factoryPay; h.wagePaid+=person.wagePaid;
                     Trace("citizen.pay","日末个人实际出勤与入账",new CityLogDetail {minutes=person.workedMinutes,earned=person.earnedWages+factoryPay,amount=person.wagePaid,reason="工厂实付 "+factoryPay+"；其余为商业工资"},

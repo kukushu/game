@@ -56,6 +56,8 @@ namespace HarborCity
             f.cash-=paid; f.wageCosts+=paid; f.unpaidWages+=due-paid;
             person.factoryWageCredit+=paid;
         }
+        public int TransferFactoryPay(CityResident person)
+        {int pay=(int)Math.Floor(person.factoryWageCredit);person.factoryWageCredit-=pay;person.totalFactoryWagesPaid+=pay;return pay;}
         public void RecordFactorySale(int id,int amount,int trip,int buyer=-1,bool notify=true)
         {
             var f=Factory(id); if(f==null || amount<=0) return;

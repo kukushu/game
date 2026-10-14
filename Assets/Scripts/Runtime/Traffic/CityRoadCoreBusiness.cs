@@ -19,7 +19,7 @@ namespace HarborCity.RoadCore
         public DepotBusiness(Dictionary<int,Depot> depots){this.depots=depots;}
         public bool Exists(int id)=>depots.ContainsKey(id);
         public int Junction(int id)=>depots[id].junction;
-        public bool Depart(Vehicle v){var source=depots[v.origin];if(source.stock<v.cargo)return false;source.stock-=v.cargo;return true;}
+        public bool Depart(Vehicle v){if(v.purpose!=TransportPurpose.Freight)return false;var source=depots[v.origin];if(source.stock<v.cargo)return false;source.stock-=v.cargo;return true;}
         public bool Deliver(Vehicle v)
         {
             var destination=depots[v.destination];double payment=v.price*v.cargo;
