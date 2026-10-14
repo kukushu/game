@@ -29,8 +29,8 @@ namespace HarborCity
             for(int i=0;i<count;i++)
             {
                 int g=i%groups,index=i/groups;var route=routes[g];double length=world.Network.Get(route[0]).Geometry.Length;
-                var vehicle=new Vehicle{id=i+1,distance=queued?length-2-index*1.6:20+index*5,Task=new TripTask{id=i+1,origin=starts[g],destination=destinations[g],Shipment=new Shipment{remaining=1,unitPrice=5}},Plan=new RoutePlan{segments=new List<long>(route)}};
-                if(queued&&i==0){vehicle.cursor=2;vehicle.distance=world.Network.Get(route[2]).Geometry.Length;}state.tasks.Add(vehicle.Task);state.vehicles.Add(vehicle);
+                var vehicle=new Vehicle{id=i+1,Task=new TripTask{id=i+1,origin=starts[g],destination=destinations[g],Shipment=new Shipment{remaining=1,unitPrice=5}},Plan=new RoutePlan{segments=new List<long>(route)},Position=new VehiclePosition(route[0],queued?length-2-index*1.6:20+index*5)};
+                if(queued&&i==0){vehicle.CommitPosition(route[2],world.Network.Get(route[2]).Geometry.Length,2);}state.tasks.Add(vehicle.Task);state.vehicles.Add(vehicle);
             }
             var result=new World(state);result.AssertSafety();return result;
         }
