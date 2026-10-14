@@ -7,9 +7,11 @@ namespace HarborCity
     {
         readonly CityEntities entities;readonly World transport;readonly CitySimulation simulation;
         readonly Dictionary<int,int> incoming=new Dictionary<int,int>();
+        readonly CityFreightCandidates candidates;
+        readonly List<CommercialBuilding> shops=new List<CommercialBuilding>();
         public long NextDispatchTick {get;private set;}
         internal CityLogisticsSystem(CityEntities entities,World transport,CitySimulation simulation,long nextTick)
-        {this.entities=entities;this.transport=transport;this.simulation=simulation;NextDispatchTick=nextTick;}
+        {this.entities=entities;this.transport=transport;this.simulation=simulation;NextDispatchTick=nextTick;candidates=new CityFreightCandidates(entities,transport);}
         internal void Step(TimeContext time)
         {
 #if CITY_CORE_ATTRIBUTION
@@ -20,11 +22,12 @@ namespace HarborCity
             foreach(var task in transport.Vehicles){incoming.TryGetValue(task.destination,out int count);incoming[task.destination]=count+task.cargo;}
             // Local source backpressure: no destination can bypass the same blocked
             // station. Preserve shop order; unreachable destinations still try later shops.
-            // Worst case remains O(V+F*S) for free sources with unreachable destinations.
+            // Query directed lane/station ranges; preserve canonical shop ordering.
             foreach(var factory in entities.Factories)
             {
                 if(factory.Stock<=0||transport.FreightSourceBlocked(factory.id))continue;
-                foreach(var shop in entities.Shops)
+                candidates.Collect(transport.GetAccess(factory.id),shops);
+                foreach(var shop in shops)
                 {incoming.TryGetValue(shop.id,out int reserved);int amount=Math.Min(8,Math.Min(factory.Stock,32-shop.Stock-reserved));if(amount<=0)continue;var task=simulation.RequestFreight(factory.id,shop.id,amount,FactoryState.SalePrice);if(task!=null){incoming[shop.id]=reserved+amount;break;}}
             }
         }

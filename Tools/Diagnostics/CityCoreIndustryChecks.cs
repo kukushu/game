@@ -10,6 +10,7 @@ public static class CityCoreIndustryChecks
     public static void Main(string[] args)
     {
         ReachabilityTests();
+        FreightCandidateTests();
         var session=CityCoreIndustrySession.Create(startAtWork:true);var city=session.City;var factory=city.Factory(1);double opening=factory.cash;
         var snapshot=session.SnapshotBusiness();snapshot.buildings[0].industrial[0].cash=0;snapshot.society.families[0].people[0].location=-1;Check(factory.cash==opening&&city.Citizens.First().location==1,"Business snapshot leaked live state");
         Check(city.roads.edges.Count==0&&city.traffic.trips.Count==0,"Legacy engine/network used");Check(session.Transport.Snapshot().depots.Count==0,"Duplicate city inventory");
@@ -63,6 +64,22 @@ public static class CityCoreIndustryChecks
         }
         var city=CityCoreIndustrySession.Create();var old=city.Transport.Network;var source=city.Transport.GetAccess(1);var goal=city.Transport.GetAccess(2);
         Check(old.CanReach(source,goal),"Freight path incorrectly rejected");city.Transport.RemoveRoad(2);Check(!city.Transport.Network.CanReach(source,goal),"Construction reused stale reachability");
+    }
+    static void FreightCandidateTests()
+    {
+        var s=CityIntegratedScaleFixture.Create(100);var index=new CityFreightCandidates(s.Entities,s.Transport);var result=new System.Collections.Generic.List<CommercialBuilding>();
+        Action verify=()=>
+        {
+            foreach(var f in s.Entities.Factories)
+            {
+                var source=s.Transport.GetAccess(f.id);index.Collect(source,result);
+                var expected=s.Entities.Shops.Where(shop=>s.Transport.Network.CanReach(source,s.Transport.GetAccess(shop.id))).ToArray();
+                Check(result.SequenceEqual(expected),"Local freight candidate index changed reachable shop ordering");
+            }
+        };
+        verify();s.Transport.SplitRoadAt(1,380);verify();s.Transport.RemoveRoad(2);verify();
+        var load=CityCoreSave.Read(CityCoreSave.Write(s));var restoredIndex=new CityFreightCandidates(load.Entities,load.Transport);
+        foreach(var f in load.Entities.Factories){restoredIndex.Collect(load.Transport.GetAccess(f.id),result);Check(result.SequenceEqual(load.Entities.Shops.Where(shop=>load.Transport.Network.CanReach(load.Transport.GetAccess(f.id),load.Transport.GetAccess(shop.id)))),"Loaded freight index wrong");}
     }
     static void R1Tests()
     {

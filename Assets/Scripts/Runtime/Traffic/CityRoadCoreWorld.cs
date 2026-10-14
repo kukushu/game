@@ -66,6 +66,7 @@ namespace HarborCity.RoadCore
         public int ActiveCount {get;private set;}
         public int NetworkGeneration=>data.networkRevision;
         internal long EditEpoch {get;private set;}
+        public long AccessRevision {get;private set;}
         readonly Dictionary<long,List<LaneOccupant>> occupancy=new Dictionary<long,List<LaneOccupant>>(CityRoadKeyComparer.Instance);
         readonly JunctionReservations reservations=new JunctionReservations(null);
         readonly Dictionary<int,Depot> depotsById=new Dictionary<int,Depot>();
@@ -216,6 +217,7 @@ namespace HarborCity.RoadCore
             var drivable=Network.Get(lane);if(endpoint<0||accesses.ContainsKey(endpoint)||drivable.IsConnection||distance<0||distance>drivable.Geometry.Length||double.IsNaN(distance)||double.IsInfinity(distance)||use==0||(use&~AccessUse.All)!=0)throw new ArgumentException("Invalid road access");
             var access=new RoadAccess{endpoint=endpoint,preferredIndex=drivable.LaneIndex,lane=lane,distance=distance,use=use};data.accesses.Add(access);accesses.Add(endpoint,access);
             dispatchRoutes.Reset(Network);
+            AccessRevision++;
             EditEpoch++;
         }
         public bool RebindAccess(int endpoint,long lane,double distance)
