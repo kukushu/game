@@ -29,5 +29,12 @@ namespace HarborCity.RoadCore
         {
             if(access.lane==lane)return Math.Abs(access.distance-distance)<1e-7;if(!bothDirections)return false;var other=Opposite(network,access);return other!=null&&other.lane==lane&&Math.Abs(other.distance-distance)<1e-7;
         }
+        public static List<long> FromLane(Network network,long lane,double distance,RoadAccess target,bool bothDirections,out double end)
+        {
+            var source=new RoadAccess{lane=lane,distance=distance};var route=network.Route(source,target);end=target.distance;double cost=Cost(network,route,distance,end);
+            if(bothDirections){var opposite=Opposite(network,target);if(opposite!=null){var candidate=network.Route(source,opposite);double other=Cost(network,candidate,distance,opposite.distance);if(other<cost){route=candidate;end=opposite.distance;}}}return route;
+        }
+        static double Cost(Network network,List<long> route,double start,double end)
+        {if(route==null)return double.PositiveInfinity;double cost=0;for(int i=0;i<route.Count;i++){var d=network.Get(route[i]);cost+=(i==route.Count-1?end:d.Geometry.Length)/d.Speed;if(i==0)cost-=start/d.Speed;}return cost;}
     }
 }

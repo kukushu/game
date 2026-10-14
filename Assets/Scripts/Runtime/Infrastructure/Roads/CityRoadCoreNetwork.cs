@@ -84,6 +84,7 @@ namespace HarborCity.RoadCore
         readonly Dictionary<int,int> laneCounts=new Dictionary<int,int>();
         readonly Dictionary<int,double> junctionRadii=new Dictionary<int,double>();
         ConnectionConflicts connectionConflicts;
+        RoadSpatialIndex spatialIndex;
         public IEnumerable<Drivable> Drivables=>drivables.Values;
         public int RoadCount=>data.roads.Count;
         public int JunctionCount=>data.junctions.Count;
@@ -93,6 +94,8 @@ namespace HarborCity.RoadCore
         public bool Contains(long id)=>drivables.ContainsKey(id);
         public bool IsConflictJunction(int id)=>conflictJunctions.Contains(id);
         public bool MovementsConflict(long a,long b)=>connectionConflicts.Contains(a,b);
+        public void Project(Point point,double radius,bool includeConnections,List<SpatialHit> output)
+        {if(spatialIndex==null)spatialIndex=new RoadSpatialIndex(this);spatialIndex.Project(point,radius,includeConnections,output);}
         public int LaneCount(int road)=>laneCounts[road];
         public double Clearance(Drivable lane)
         =>lane.ProtectedClearance;

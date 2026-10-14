@@ -31,7 +31,7 @@ namespace HarborCity
         bool hasStart;Point startPoint;bool building,oneWay,wide;int origin,destination;float speed=1;
         long previousTick;int lastSteps;
         string notice="原工厂劳动→生产→新交通实车运输→原商店库存/支付。居民实际通勤已接入；市政、分区、信号灯和行人尚未接回。";
-        string SavePath=>Path.Combine(Application.persistentDataPath,session==null?"harbor-road-core-v7.hcrc":"harbor-city-core-v4.hcity");
+        string SavePath=>Path.Combine(Application.persistentDataPath,session==null?"harbor-road-core-v8.hcrc":"harbor-city-core-v5.hcity");
         static Vector3 V(Point p)=>new Vector3((float)p.x,(float)p.y,(float)p.z);
         void Start()
         {
@@ -151,6 +151,7 @@ namespace HarborCity
                 var restored=CityCoreSave.Read(CityCoreSave.Write(session));for(int i=0;i<300;i++){session.Advance(.05);restored.Advance(.05);session.Validate();}
                 if(Convert.ToBase64String(CityCoreSave.Write(session))!=Convert.ToBase64String(CityCoreSave.Write(restored)))throw new Exception("Integrated save differs");
                 if(session.City.Factory(1).sold==0||session.City.Factory(1).sold!=world.Delivered||session.City.Goods(2)!=world.Delivered||session.City.roads.edges.Count!=0||session.City.traffic.trips.Count!=0)throw new Exception("Business loop/legacy engine invariant failed");
+                var repair=CityCoreIndustrySession.Create();repair.Advance(.05);var commuter=repair.Transport.Vehicles.First();Point strandedAt=repair.Transport.Position(commuter);repair.Transport.RemoveRoad(1);repair.Transport.AddRoad(1,2,new[]{repair.Transport.JunctionPosition(1),new Point(-18,0,0),repair.Transport.JunctionPosition(2)},lanes:2);repair.Advance(.05);if(commuter.status!=VehicleStatus.Active||Point.Distance(strandedAt,repair.Transport.Position(commuter))>.7)throw new Exception("Native repaired commute failed / jumped");repair.Advance(6);repair.Validate();
                 File.WriteAllText(Path.Combine(path,"IndustryResult.txt"),"PASS actual Unity default city industry including actual resident commuting, real truck lane change and arbitrary split during maneuver: original residents/jobs credit labour, original factory produces, RoadCore trucks move, original shop receives/payments reconcile, exact combined save continues. No old Move or duplicate Depot.\n");
             }
             catch(Exception e){File.WriteAllText(Path.Combine(path,"IndustryResult.txt"),"FAIL "+e);Application.Quit(1);yield break;}

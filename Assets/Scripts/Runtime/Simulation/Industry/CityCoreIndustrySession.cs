@@ -57,6 +57,7 @@ namespace HarborCity
         readonly Action before,after;
         readonly double calendarOffset;
         double dispatchAt;
+        readonly CityCoreRoadBindings roadBindings;
         public CityCoreIndustrySession(CityModel city,double calendarOffset=50,WorldData transport=null,IEnumerable<int> receipts=null,double dispatchAt=0,IEnumerable<CityBuilding> retired=null,bool commuteEnabled=true,int payrollDay=-1)
         {
             City=city;this.calendarOffset=calendarOffset;this.dispatchAt=dispatchAt;
@@ -64,6 +65,7 @@ namespace HarborCity
             Business=new CityCoreIndustryBusiness(city,receipts);Transport=transport==null?new World(Business):new World(transport,Business);
             before=BeforeStep;after=SyncCalendar;SyncCalendar();
             Residents=new CityCoreResidents(city,Transport,commuteEnabled,payrollDay,calendarOffset);Business.Residents=Residents;
+            roadBindings=new CityCoreRoadBindings(city,Transport);
         }
         public int Advance(double seconds)=>Transport.Advance(seconds,before,after);
         public string AccessIssue(int building)
@@ -76,6 +78,7 @@ namespace HarborCity
         void BeforeStep()
         {
             SyncCalendar();float minute=City.ResidentMinute,minutes=(float)(World.StepSeconds*1440/City.society.settings.secondsPerDay);
+            roadBindings.RefreshIfChanged();
             Residents.AdvanceRequests();
             foreach(var household in City.society.families)
             {

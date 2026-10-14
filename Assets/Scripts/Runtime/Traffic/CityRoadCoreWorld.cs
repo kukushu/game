@@ -37,7 +37,7 @@ namespace HarborCity.RoadCore
     }
     [Serializable] public sealed class WorldData
     {
-        public int coreFormat=7,nextVehicle=1,nextDepot=1,networkRevision;
+        public int coreFormat=8,nextVehicle=1,nextDepot=1,networkRevision;
         public bool externalBusiness;
         public double clock,accumulator;
         public int delivered;
@@ -66,6 +66,7 @@ namespace HarborCity.RoadCore
         readonly Dictionary<int,Vehicle> vehiclesById=new Dictionary<int,Vehicle>();
         readonly Dictionary<int,RoadAccess> accesses=new Dictionary<int,RoadAccess>();
         readonly DispatchRoutes dispatchRoutes=new DispatchRoutes();
+        readonly LostOccupancy lostOccupancy=new LostOccupancy();
         public long RoutePreparations=>dispatchRoutes.Preparations;
         public int CachedRoutes=>dispatchRoutes.Count;
         bool indexDirty=true;
@@ -82,7 +83,7 @@ namespace HarborCity.RoadCore
         public World(ITransportBusiness owner):this(new WorldData{externalBusiness=true},owner){}
         public World(WorldData state,ITransportBusiness owner=null)
         {
-            if(state==null||state.coreFormat!=7||state.externalBusiness!=(owner!=null))throw new ArgumentException("Unsupported road-core save or missing business owner. Legacy city saves are not supported.");
+            if(state==null||state.coreFormat!=8||state.externalBusiness!=(owner!=null))throw new ArgumentException("Unsupported road-core save or missing business owner. Legacy city saves are not supported.");
             data=state; // Take ownership of a private copy, never the caller's mutable save DTO.
             data=Snapshot();vehicleView=data.vehicles.AsReadOnly();depotView=data.depots.AsReadOnly();foreach(var depot in data.depots)depotsById.Add(depot.id,depot);
             if(data.externalBusiness&&data.depots.Count!=0)throw new ArgumentException("External city cannot contain duplicate fixture inventories");foreach(var access in data.accesses)accesses.Add(access.endpoint,access);
@@ -91,7 +92,7 @@ namespace HarborCity.RoadCore
         // Only serializers may receive this copy; callers cannot mutate the live facts.
         public WorldData Snapshot()
         {
-            var copy=new WorldData{coreFormat=7,networkRevision=data.networkRevision,externalBusiness=data.externalBusiness,nextVehicle=data.nextVehicle,nextDepot=data.nextDepot,clock=data.clock,accumulator=data.accumulator,delivered=data.delivered,network=CopyNetwork()};
+            var copy=new WorldData{coreFormat=8,networkRevision=data.networkRevision,externalBusiness=data.externalBusiness,nextVehicle=data.nextVehicle,nextDepot=data.nextDepot,clock=data.clock,accumulator=data.accumulator,delivered=data.delivered,network=CopyNetwork()};
             foreach(var access in data.accesses)copy.accesses.Add(access.Copy());
             foreach(var d in data.depots)copy.depots.Add(new Depot{id=d.id,junction=d.junction,stock=d.stock,capacity=d.capacity,cash=d.cash});
             foreach(var v in data.vehicles)copy.vehicles.Add(new Vehicle{id=v.id,origin=v.origin,destination=v.destination,purpose=v.purpose,citizenId=v.citizenId,departedAt=v.departedAt,cargo=v.cargo,price=v.price,distance=v.distance,arrivalDistance=v.arrivalDistance,changeTarget=v.changeTarget,changeElapsed=v.changeElapsed,cursor=v.cursor,status=v.status,strandedPosition=v.strandedPosition,route=new List<long>(v.route)});
@@ -145,7 +146,7 @@ namespace HarborCity.RoadCore
             foreach(var remap in plan.remaps){long target=RemappedChangeTarget(remap.vehicle,plan.network,remap.route[remap.cursor]);remap.vehicle.route=remap.route;remap.vehicle.cursor=remap.cursor;remap.vehicle.distance=remap.distance;remap.vehicle.changeTarget=target;if(remap.vehicle.status!=VehicleStatus.Stranded)remap.vehicle.arrivalDistance=remap.arrival;}
             foreach(var item in plan.interruptions){item.Key.strandedPosition=item.Value;item.Key.status=VehicleStatus.Stranded;}
             if(plan.accesses!=null){data.accesses=plan.accesses;accesses.Clear();foreach(var access in plan.accesses)accesses.Add(access.endpoint,access);}
-            data.network=plan.data;Network=plan.network;data.networkRevision++;EditEpoch++;dispatchRoutes.Reset(Network);occupancy.Clear();Reindex();return true;
+            data.network=plan.data;Network=plan.network;data.networkRevision++;EditEpoch++;dispatchRoutes.Reset(Network);lostOccupancy.Reset(Network);occupancy.Clear();Reindex();return true;
         }
         public int AddDepot(int junction,int stock=100)
         {if(data.externalBusiness)throw new InvalidOperationException("City owns its inventories; synthetic depots are disabled");JunctionPosition(junction);if(stock<0||stock>100000)throw new ArgumentOutOfRangeException(nameof(stock));int id=data.nextDepot++;var depot=new Depot{id=id,junction=junction,stock=stock};data.depots.Add(depot);depotsById.Add(id,depot);return id;}
@@ -155,9 +156,32 @@ namespace HarborCity.RoadCore
         public void RegisterAccess(int endpoint,long lane,double distance,AccessUse use=AccessUse.All)
         {
             var drivable=Network.Get(lane);if(endpoint<0||accesses.ContainsKey(endpoint)||drivable.IsConnection||distance<0||distance>drivable.Geometry.Length||double.IsNaN(distance)||double.IsInfinity(distance)||use==0||(use&~AccessUse.All)!=0)throw new ArgumentException("Invalid road access");
-            var access=new RoadAccess{endpoint=endpoint,lane=lane,distance=distance,use=use};data.accesses.Add(access);accesses.Add(endpoint,access);
+            var access=new RoadAccess{endpoint=endpoint,preferredIndex=drivable.LaneIndex,lane=lane,distance=distance,use=use};data.accesses.Add(access);accesses.Add(endpoint,access);
             dispatchRoutes.Reset(Network);
             EditEpoch++;
+        }
+        public bool RebindAccess(int endpoint,long lane,double distance)
+        =>RebindAccesses(new[]{new AccessBinding(endpoint,lane,distance)});
+        public bool RebindAccesses(IReadOnlyList<AccessBinding> bindings)
+        {
+            if(bindings==null||bindings.Count==0)return false;var replacements=new Dictionary<int,RoadAccess>();foreach(var binding in bindings){var old=GetAccess(binding.endpoint);var road=Network.Get(binding.lane);if(old==null||old.valid)return false;if(road.IsConnection||binding.distance<0||binding.distance>road.Geometry.Length||double.IsNaN(binding.distance)||double.IsInfinity(binding.distance))throw new ArgumentException("Invalid replacement access");replacements.Add(binding.endpoint,new RoadAccess{endpoint=binding.endpoint,preferredIndex=road.LaneIndex,lane=binding.lane,distance=binding.distance,use=old.use});}
+            var proposed=new List<RoadAccess>();foreach(var access in data.accesses){RoadAccess replacement;proposed.Add(replacements.TryGetValue(access.endpoint,out replacement)?replacement:access.Copy());}var networkData=CopyNetwork();return new RoadEditPlan(this,networkData,new Network(networkData),accesses:proposed).TryCommit();
+        }
+        public bool TryResumeStranded(int id)
+        {
+            Vehicle v;if(!vehiclesById.TryGetValue(id,out v)||v.status!=VehicleStatus.Stranded||!business.Exists(v.origin)||!business.Exists(v.destination))return false;long current=v.Current;double distance=v.distance;
+            if(!Network.Contains(current))
+            {
+                if(v.changeTarget!=0)return false;var hits=new List<SpatialHit>();Network.Project(v.strandedPosition,1e-6,false,hits);if(hits.Count==0)return false;current=hits[0].drivable;distance=hits[0].distance;
+            }
+            var surface=Network.Get(current);long source=current;double start=distance;if(surface.IsConnection){long packed=-current-1;source=(uint)packed;start=0;}
+            var target=GetAccess(v.destination);List<long> route=null;double end=-1;
+            if(target!=null&&target.valid)route=AccessRouting.FromLane(Network,source,start,target,v.purpose!=TransportPurpose.Freight,out end);
+            else if(target==null){var provider=business as IJunctionEndpointProvider;if(provider==null)return false;var remainder=Network.Route(Network.Get(source).To,provider.Junction(v.destination));if(remainder!=null){route=new List<long>{source};if(remainder.Count>0){long link=Network.ConnectionId(source,remainder[0]);if(!Network.Contains(link))return false;route.Add(link);route.AddRange(remainder);}end=Network.Get(route[route.Count-1]).Geometry.Length;}}
+            if(route==null||route.Count==0)return false;int cursor=0;if(surface.IsConnection){long packed=-current-1;route.Insert(0,current);route.Insert(0,packed>>32);cursor=1;}
+            if(Point.Distance(v.strandedPosition,LaneChanges.Position(Network,current,distance,v.changeTarget,v.changeElapsed))>1e-7)return false;
+            var snapshot=Snapshot();var copied=snapshot.vehicles.Find(actor=>actor.id==id);copied.route=route;copied.cursor=cursor;copied.distance=distance;copied.arrivalDistance=end;copied.status=VehicleStatus.Active;new World(snapshot,data.externalBusiness?business:null);
+            v.route=route;v.cursor=cursor;v.distance=distance;v.arrivalDistance=end;v.status=VehicleStatus.Active;lostOccupancy.Forget(id);EditEpoch++;Reindex();return true;
         }
         public Vehicle Dispatch(int origin,int destination,int amount=1,double price=5)
         =>DispatchTask(origin,destination,amount,price,TransportPurpose.Freight,0);
@@ -218,7 +242,16 @@ namespace HarborCity.RoadCore
             foreach(var v in data.vehicles)
             {
                 if(v.status==VehicleStatus.Active&&(!business.Exists(v.origin)||!business.Exists(v.destination))){v.strandedPosition=Position(v);v.status=VehicleStatus.Stranded;}
-                if(v.status==VehicleStatus.Delivered||!Network.Contains(v.Current))continue;
+                if(v.status==VehicleStatus.Delivered)continue;
+                if(!Network.Contains(v.Current))
+                {
+                    if(v.status!=VehicleStatus.Stranded)throw new InvalidOperationException("Active actor lost its drivable");
+                    foreach(var placement in lostOccupancy.Get(Network,v))
+                    {
+                        List<LaneOccupant> bucket;if(!occupancy.TryGetValue(placement.lane,out bucket))occupancy.Add(placement.lane,bucket=new List<LaneOccupant>());bucket.Add(placement.occupant);var road=Network.Get(placement.lane);int obstacleJunction=road.JunctionId;if(obstacleJunction==0&&placement.occupant.distance<Clearance(road))obstacleJunction=road.From;if(!road.IsConnection&&placement.occupant.distance>road.Geometry.Length-Clearance(road))obstacleJunction=road.To;if(Network.IsConflictJunction(obstacleJunction))reservations.Reserve(obstacleJunction,0,v.id);
+                    }
+                    continue;
+                }
                 if(v.status==VehicleStatus.Active)ActiveCount++;List<LaneOccupant> b;if(!occupancy.TryGetValue(v.Current,out b))occupancy.Add(v.Current,b=new List<LaneOccupant>());v.sourceOccupant.distance=v.distance;b.Add(v.sourceOccupant);
                 if(v.changeTarget!=0&&Network.Contains(v.changeTarget)){var target=Network.Get(v.changeTarget);List<LaneOccupant> shadow;if(!occupancy.TryGetValue(target.Id,out shadow))occupancy.Add(target.Id,shadow=new List<LaneOccupant>());v.shadowOccupant.distance=Network.Get(v.Current).Geometry.MapDistance(target.Geometry,v.distance);shadow.Add(v.shadowOccupant);}
                 var d=Network.Get(v.Current);int junction=d.JunctionId;
@@ -438,7 +471,7 @@ namespace HarborCity.RoadCore
             var depots=new HashSet<int>();int maxD=0,maxV=0;foreach(var d in data.depots){JunctionPosition(d.junction);if(d.id<=0||!depots.Add(d.id)||d.stock<0||d.stock>d.capacity||d.cash<0||double.IsNaN(d.cash)||double.IsInfinity(d.cash))throw new ArgumentException("Invalid depot");maxD=Math.Max(maxD,d.id);}
             var attached=new HashSet<int>();foreach(var access in data.accesses)
             {
-                if(access.endpoint<0||!attached.Add(access.endpoint)||access.use==0||(access.use&~AccessUse.All)!=0)throw new ArgumentException("Invalid access identity/permission");
+                if(access.endpoint<0||access.preferredIndex<0||access.preferredIndex>31||!attached.Add(access.endpoint)||access.use==0||(access.use&~AccessUse.All)!=0)throw new ArgumentException("Invalid access identity/permission");
                 if(access.valid){var lane=Network.Get(access.lane);if(lane.IsConnection||access.distance<0||access.distance>lane.Geometry.Length||double.IsNaN(access.distance)||double.IsInfinity(access.distance))throw new ArgumentException("Invalid lane access");}
                 else if(access.lane!=0||access.distance!=0)throw new ArgumentException("Invalid access retains dangling road reference");
             }
