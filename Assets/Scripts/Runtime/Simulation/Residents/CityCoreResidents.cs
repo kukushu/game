@@ -43,6 +43,10 @@ namespace HarborCity
         }
         public void AdvanceRequests()
         {
+#if CITY_CORE_ATTRIBUTION
+            using var observation=HarborCity.RoadCore.CityCoreProfile.Measure(HarborCity.RoadCore.CityCoreProfile.Part.Residents);
+#endif
+
             if(!Enabled)return;
             float minute=city.ResidentMinute;
             foreach(var member in entities.Members)

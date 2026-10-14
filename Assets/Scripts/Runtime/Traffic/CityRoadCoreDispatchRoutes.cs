@@ -31,6 +31,10 @@ namespace HarborCity.RoadCore
         public void Reset(Network network){this.network=network;freight.Clear();passengers.Clear();}
         public DispatchBlueprint Get(Network current,int origin,int destination,RoadAccess source,RoadAccess target,bool resident,IJunctionEndpointProvider provider)
         {
+#if CITY_CORE_ATTRIBUTION
+            using var observation=HarborCity.RoadCore.CityCoreProfile.Measure(HarborCity.RoadCore.CityCoreProfile.Part.RouteLookup);
+#endif
+
             if(!ReferenceEquals(network,current))Reset(current);var table=resident?passengers:freight;long key=((long)origin<<32)|(uint)destination;DispatchBlueprint result;if(table.TryGetValue(key,out result))return result;
 #if UNITY_5_3_OR_NEWER
             using(prepareSample.Auto())
@@ -39,7 +43,11 @@ namespace HarborCity.RoadCore
                 double start=0,end=-1;List<long> route=null;Preparations++;
                 if(source!=null&&target!=null)route=AccessRouting.Find(current,source,target,resident,out start,out end);
                 else if(!resident&&provider!=null){route=current.Route(provider.Junction(origin),provider.Junction(destination));if(route!=null&&route.Count>0)end=current.Get(route[route.Count-1]).Geometry.Length;}
-                result=new DispatchBlueprint(current,route,start,end);if(Count>=4096)Reset(current);table.Add(key,result);return result;
+                result=new DispatchBlueprint(current,route,start,end);
+#if CITY_CORE_ATTRIBUTION
+                if(route==null)CityCoreProfile.Unreachable++;if(Count>=4096)CityCoreProfile.CacheFlushes++;
+#endif
+                if(Count>=4096)Reset(current);table.Add(key,result);return result;
             }
         }
     }

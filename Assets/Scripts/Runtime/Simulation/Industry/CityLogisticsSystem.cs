@@ -12,11 +12,21 @@ namespace HarborCity
         {this.entities=entities;this.transport=transport;this.simulation=simulation;NextDispatchTick=nextTick;}
         internal void Step(TimeContext time)
         {
+#if CITY_CORE_ATTRIBUTION
+            using var observation=HarborCity.RoadCore.CityCoreProfile.Measure(HarborCity.RoadCore.CityCoreProfile.Part.Logistics);
+#endif
+
             if(time.Tick<NextDispatchTick)return;NextDispatchTick=time.Tick+5;incoming.Clear();
             foreach(var task in transport.Vehicles){incoming.TryGetValue(task.destination,out int count);incoming[task.destination]=count+task.cargo;}
-            // Still O(V+F*S), explicitly measured; typed views remove the old F*B filtering.
-            foreach(var factory in entities.Factories)foreach(var shop in entities.Shops)
-            {incoming.TryGetValue(shop.id,out int reserved);int amount=Math.Min(8,Math.Min(factory.Stock,32-shop.Stock-reserved));if(amount<=0)continue;var task=simulation.RequestFreight(factory.id,shop.id,amount,FactoryState.SalePrice);if(task!=null)incoming[shop.id]=reserved+amount;}
+            // Local source backpressure: no destination can bypass the same blocked
+            // station. Preserve shop order; unreachable destinations still try later shops.
+            // Worst case remains O(V+F*S) for free sources with unreachable destinations.
+            foreach(var factory in entities.Factories)
+            {
+                if(factory.Stock<=0||transport.FreightSourceBlocked(factory.id))continue;
+                foreach(var shop in entities.Shops)
+                {incoming.TryGetValue(shop.id,out int reserved);int amount=Math.Min(8,Math.Min(factory.Stock,32-shop.Stock-reserved));if(amount<=0)continue;var task=simulation.RequestFreight(factory.id,shop.id,amount,FactoryState.SalePrice);if(task!=null){incoming[shop.id]=reserved+amount;break;}}
+            }
         }
     }
 }

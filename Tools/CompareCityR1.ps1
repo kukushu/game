@@ -6,6 +6,8 @@ $baselinePath=Join-Path $output 'Baseline';$archive=Join-Path $output 'baseline.
 & git archive --format=zip ('--output='+$archive) $Baseline Assets/Scripts Tools/ProjectLayout.ps1
 if($LASTEXITCODE -ne 0){throw 'Baseline archive failed'}
 Expand-Archive -LiteralPath $archive -DestinationPath $baselinePath -Force
+# Same fixture source for both sides, including historical versions that predate it.
+Copy-Item -LiteralPath (Join-Path $root 'Assets/Scripts/Diagnostics/Runtime/CityIntegratedScaleFixture.cs') -Destination (Join-Path $baselinePath 'Assets/Scripts/Diagnostics/Runtime/CityIntegratedScaleFixture.cs')
 $mono='C:/Program Files/Unity/Hub/Editor/6000.6.3f1/Editor/Data/MonoBleedingEdge/bin/mono.exe'
 $compiler='C:/Program Files/Unity/Hub/Editor/6000.6.3f1/Editor/Data/MonoBleedingEdge/lib/mono/4.5/csc.exe'
 foreach($version in @('before','after')){

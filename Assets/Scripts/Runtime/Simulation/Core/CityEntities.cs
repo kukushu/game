@@ -37,7 +37,13 @@ namespace HarborCity
         void UnindexType(CityBuilding b){if(b is IndustrialBuilding f)factories.Remove(f);if(b is CommercialBuilding s)shops.Remove(s);}
         internal void RebuildJobs(){jobs.Clear();foreach(var j in city.society.jobEntities)jobs.Add(j.id,j);}
         public CityBuilding Building(int id)=>buildings.TryGetValue(id,out var b)?b:null;
-        public CityJob Job(int id)=>jobs.TryGetValue(id,out var j)?j:null;
+        public CityJob Job(int id)
+        {
+#if CITY_CORE_ATTRIBUTION
+            using var observation=HarborCity.RoadCore.CityCoreProfile.Measure(HarborCity.RoadCore.CityCoreProfile.Part.Job);
+#endif
+            return jobs.TryGetValue(id,out var j)?j:null;
+        }
         public CityMember Member(int id)=>people.TryGetValue(id,out var m)?m:null;
         public Household Family(int id)=>families.TryGetValue(id,out var h)?h:null;
         public void AddBuilding(CityBuilding b)

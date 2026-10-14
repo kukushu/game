@@ -8,6 +8,10 @@ namespace HarborCity
         internal CityProductionSystem(CityModel city,CityEntities entities){this.city=city;this.entities=entities;}
         internal void Step(TimeContext time)
         {
+#if CITY_CORE_ATTRIBUTION
+            using var observation=HarborCity.RoadCore.CityCoreProfile.Measure(HarborCity.RoadCore.CityCoreProfile.Part.Production);
+#endif
+
             float minute=city.ResidentMinute,minutes=(float)(time.Duration*1440/city.society.settings.secondsPerDay);
             foreach(var member in entities.Members)
             {

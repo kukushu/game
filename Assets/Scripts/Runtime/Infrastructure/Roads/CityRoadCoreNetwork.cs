@@ -91,6 +91,13 @@ namespace HarborCity.RoadCore
         readonly Dictionary<int,double> junctionRadii=new Dictionary<int,double>();
         ConnectionConflicts connectionConflicts;
         RoadSpatialIndex spatialIndex;
+        LaneReachability reachability;
+        public bool CanReach(RoadAccess source,RoadAccess target)
+        {
+            if(source==null||target==null||!source.valid||!target.valid||!Contains(source.lane)||!Contains(target.lane)||Get(source.lane).IsConnection||Get(target.lane).IsConnection)return false;
+            if(reachability==null)reachability=new LaneReachability(this);
+            return reachability.CanReach(source,target);
+        }
         public IEnumerable<Drivable> Drivables=>drivables.Values;
         public int RoadCount=>data.roads.Count;
         public int JunctionCount=>data.junctions.Count;
@@ -223,6 +230,10 @@ namespace HarborCity.RoadCore
         }
         public List<long> Route(RoadAccess start,RoadAccess goal)
         {
+#if CITY_CORE_ATTRIBUTION
+            using var observation=HarborCity.RoadCore.CityCoreProfile.Measure(HarborCity.RoadCore.CityCoreProfile.Part.RouteSearch);
+#endif
+
             var first=Get(start.lane);var last=Get(goal.lane);
             if(!start.valid||!goal.valid||first.IsConnection||last.IsConnection)return null;
             if(first.Id==last.Id&&goal.distance>=start.distance)return new List<long>{first.Id};

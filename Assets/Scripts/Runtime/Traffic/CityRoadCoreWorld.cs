@@ -247,10 +247,24 @@ namespace HarborCity.RoadCore
         {if(citizen<=0)throw new ArgumentOutOfRangeException(nameof(citizen));return DispatchTask(origin,destination,0,0,returning?TransportPurpose.Home:TransportPurpose.Work,citizen);}
         internal TransportAdmission PrepareTransport(int origin,int destination,int amount,double price,TransportPurpose purpose,int citizen)
         {
+#if CITY_CORE_ATTRIBUTION
+            using var observation=HarborCity.RoadCore.CityCoreProfile.Measure(HarborCity.RoadCore.CityCoreProfile.Part.Admission);
+#endif
+
             if(data.nextVehicle>=int.MaxValue)throw new InvalidOperationException("Vehicle IDs exhausted");
             if(amount<0||purpose==TransportPurpose.Freight&&amount==0||price<0||double.IsNaN(price)||double.IsInfinity(price))throw new ArgumentOutOfRangeException("Cargo/price");
             if(origin==destination||!EndpointExists(origin)||!EndpointExists(destination))return null;
             RoadAccess source=GetAccess(origin),target=GetAccess(destination);if(source!=null&&target!=null){var use=purpose==TransportPurpose.Freight?AccessUse.Freight:AccessUse.Resident;if(!source.valid||!target.valid||(source.use&use)==0||(target.use&use)==0)return null;}
+            // Freight has exactly one saved source lane/station. Physical source
+            // blockage is independent of its destination; reject before path search.
+            if(purpose==TransportPurpose.Freight&&FreightSourceBlocked(origin))return null;
+            if(purpose==TransportPurpose.Freight&&source!=null&&target!=null&&!Network.CanReach(source,target))
+            {
+#if CITY_CORE_ATTRIBUTION
+                CityCoreProfile.Unreachable++;
+#endif
+                return null;
+            }
             var blueprint=dispatchRoutes.Get(Network,origin,destination,source,target,purpose!=TransportPurpose.Freight,business as IJunctionEndpointProvider);var route=blueprint.route;double start=blueprint.start,end=blueprint.end;if(route==null||route.Length==0)return null;
             if(indexDirty)Reindex();List<LaneOccupant> bucket;
             if(occupancy.TryGetValue(route[0],out bucket)){int slot=InsertionSlot(bucket,start);if(slot>0&&bucket[slot-1].distance-start<MinimumSpacing||slot<bucket.Count&&start-bucket[slot].distance<MinimumSpacing)return null;}
@@ -269,6 +283,12 @@ namespace HarborCity.RoadCore
         Vehicle DispatchTask(int origin,int destination,int amount,double price,TransportPurpose purpose,int citizen)
         {if(data.externalBusiness)throw new InvalidOperationException("Use CitySimulation.RequestFreight/RequestCommute");var prepared=PrepareTransport(origin,destination,amount,price,purpose,citizen);if(prepared==null||!business.Depart(prepared.vehicle))return null;return CommitAdmission(prepared);}
         static int InsertionSlot(List<LaneOccupant> bucket,double position){int lo=0,hi=bucket.Count;while(lo<hi){int mid=(lo+hi)/2;if(bucket[mid].distance>position)lo=mid+1;else hi=mid;}return lo;}
+        internal bool FreightSourceBlocked(int origin)
+        {
+            var source=GetAccess(origin);if(source==null||!source.valid)return false;if(indexDirty)Reindex();
+            if(!occupancy.TryGetValue(source.lane,out var bucket))return false;int slot=InsertionSlot(bucket,source.distance);
+            return slot>0&&bucket[slot-1].distance-source.distance<MinimumSpacing||slot<bucket.Count&&source.distance-bucket[slot].distance<MinimumSpacing;
+        }
         public double EstimateResidentSeconds(int origin,int destination)
         {var a=GetAccess(origin);var b=GetAccess(destination);if(a==null||b==null||!a.valid||!b.valid||(a.use&AccessUse.Resident)==0||(b.use&AccessUse.Resident)==0||!EndpointExists(origin)||!EndpointExists(destination))return double.PositiveInfinity;return dispatchRoutes.Get(Network,origin,destination,a,b,true,null).seconds;}
         static double EndDistance(Vehicle v,Drivable road)=>v.arrivalDistance<0?road.Geometry.Length:v.arrivalDistance;
@@ -303,6 +323,10 @@ namespace HarborCity.RoadCore
         }
         void Reindex()
         {
+#if CITY_CORE_ATTRIBUTION
+            using var observation=HarborCity.RoadCore.CityCoreProfile.Measure(HarborCity.RoadCore.CityCoreProfile.Part.Occupancy);
+#endif
+
             foreach(var b in occupancy.Values)b.Clear();ActiveCount=0;reservations.Reset(Network);
             foreach(var v in data.vehicles)
             {
@@ -334,6 +358,10 @@ namespace HarborCity.RoadCore
         }
         internal void MoveStep(TimeContext context)
         {
+#if CITY_CORE_ATTRIBUTION
+            using var observation=HarborCity.RoadCore.CityCoreProfile.Measure(HarborCity.RoadCore.CityCoreProfile.Part.Movement);
+#endif
+
             if(context.Tick!=timeline.Tick)throw new InvalidOperationException("Mismatched simulation step");arrivals.Clear();
 #if UNITY_5_3_OR_NEWER
             using(stepSample.Auto())

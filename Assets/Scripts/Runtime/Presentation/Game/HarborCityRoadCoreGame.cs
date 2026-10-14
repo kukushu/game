@@ -47,7 +47,20 @@ namespace HarborCity
             int flag=Array.IndexOf(args,"-harbor-core-validate");if(flag>=0&&flag+1<args.Length)StartCoroutine(ValidateNative(args[flag+1]));
             flag=Array.IndexOf(args,"-harbor-core-window");if(flag>=0&&flag+1<args.Length)StartCoroutine(MeasureWindow(args[flag+1]));
             flag=Array.IndexOf(args,"-harbor-city-core-validate");if(flag>=0&&flag+1<args.Length)StartCoroutine(ValidateIndustryNative(args[flag+1]));
+#if CITY_CORE_ATTRIBUTION
+            flag=Array.IndexOf(args,"-harbor-city-profile");if(flag>=0&&flag+1<args.Length){Application.runInBackground=true;StartCoroutine(ProfileCity(args[flag+1]));}
+#endif
         }
+#if CITY_CORE_ATTRIBUTION
+        System.Collections.IEnumerator ProfileCity(string path)
+        {
+            speed=0;Application.targetFrameRate=60;Directory.CreateDirectory(path);session=CityIntegratedScaleFixture.Create(3000);world=session.Transport;RenderRoads();RenderBuildings();for(int i=0;i<20;i++)session.Advance(.05);
+            UnityEngine.Profiling.Profiler.logFile=Path.Combine(path,"city.raw");UnityEngine.Profiling.Profiler.maxUsedMemory=512*1024*1024;UnityEngine.Profiling.Profiler.enableBinaryLog=true;UnityEngine.Profiling.Profiler.enabled=true;CityCoreProfile.Enabled=true;
+            using(var writer=new StreamWriter(Path.Combine(path,"steps.csv")))
+            {writer.WriteLine(CityCoreProfile.Header());for(int i=0;i<200;i++){CityCoreProfile.Reset();int a=GC.CollectionCount(0),b=GC.CollectionCount(1),c=GC.CollectionCount(2);long r=world.RoutePreparations;session.Advance(.05);writer.WriteLine(CityCoreProfile.Row(session.Simulation.Tick,world.ActiveCount,world.RoutePreparations-r,GC.CollectionCount(0)-a,GC.CollectionCount(1)-b,GC.CollectionCount(2)-c));yield return null;}}
+            CityCoreProfile.Enabled=false;UnityEngine.Profiling.Profiler.enabled=false;UnityEngine.Profiling.Profiler.enableBinaryLog=false;session.Validate();File.WriteAllText(Path.Combine(path,"ProfileResult.txt"),"PASS native Unity 3000 actual residents, 750 factories/shops, full profiler binary and per-step nested counters. No Deep Profile. Actual frame timings include rendering; counters measure instrumented simulation, not uninstrumented FPS.");Application.Quit(0);
+        }
+#endif
         void Update()
         {
             if(world==null)return;long now=System.Diagnostics.Stopwatch.GetTimestamp();double seconds=(now-previousTick)/(double)System.Diagnostics.Stopwatch.Frequency*speed;using(simulationSample.Auto())lastSteps=session==null?world.Advance(seconds):session.Advance(seconds);previousTick=now;

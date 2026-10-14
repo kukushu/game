@@ -32,7 +32,8 @@ namespace HarborCity
             // Match the existing validation build's camera/input fixture resolution.
             PlayerSettings.SetScriptingBackend(UnityEditor.Build.NamedBuildTarget.Standalone,UnityEditor.ScriptingImplementation.Mono2x);
             PlayerSettings.defaultScreenWidth=1440;PlayerSettings.defaultScreenHeight=900;PlayerSettings.fullScreenMode=FullScreenMode.Windowed;
-            var report=BuildPipeline.BuildPlayer(new BuildPlayerOptions{scenes=new[]{"Assets/Scenes/SampleScene.unity"},locationPathName=Environment.GetEnvironmentVariable("HARBOR_TRAFFIC_VALIDATION_PLAYER"),target=BuildTarget.StandaloneWindows64,options=BuildOptions.Development,extraScriptingDefines=new[]{"CITY_TRAFFIC_ATTRIBUTION"}});
+            var defines=new System.Collections.Generic.List<string>{"CITY_TRAFFIC_ATTRIBUTION"};if(Environment.GetEnvironmentVariable("HARBOR_CORE_ATTRIBUTION")=="1")defines.Add("CITY_CORE_ATTRIBUTION");
+            var report=BuildPipeline.BuildPlayer(new BuildPlayerOptions{scenes=new[]{"Assets/Scenes/SampleScene.unity"},locationPathName=Environment.GetEnvironmentVariable("HARBOR_TRAFFIC_VALIDATION_PLAYER"),target=BuildTarget.StandaloneWindows64,options=BuildOptions.Development,extraScriptingDefines=defines.ToArray()});
             if(report.summary.result!=UnityEditor.Build.Reporting.BuildResult.Succeeded)throw new Exception("Research validation build failed");
         }
         public static void BuildFullWindowPlayer()
@@ -89,6 +90,35 @@ namespace HarborCity
                     throw new Exception("Missing benchmark frame during Profiler export: "+line);
             File.WriteAllText(Path.Combine(directory,"modules.csv"),rows.ToString());
             File.WriteAllText(Path.Combine(directory,"profiler-frames.csv"),clocks.ToString());
+        }
+        public static void ExportCoreProfile()
+        {
+            string directory=Environment.GetEnvironmentVariable("HARBOR_CORE_PROFILE_RESULTS");
+            var history=typeof(ProfilerDriver).GetMethod("SetMaxFrameHistoryLength",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.Public|System.Reflection.BindingFlags.NonPublic);
+            if(history==null)throw new Exception("Profiler history binding unavailable");history.Invoke(null,new object[]{10000});
+            if(!ProfilerDriver.LoadProfile(Path.Combine(directory,"city.raw"),false))throw new Exception("Core profile load failed");
+            var rows=new StringBuilder("profiler_frame,path,total_ms,self_ms,calls,gc_bytes\n");
+            var frames=new StringBuilder("profiler_frame,frame_ms\n");int count=0;
+            for(int frame=ProfilerDriver.firstFrameIndex;frame<=ProfilerDriver.lastFrameIndex;frame++)
+            using(var raw=ProfilerDriver.GetRawFrameDataView(frame,0))
+            using(var data=ProfilerDriver.GetHierarchyFrameDataView(frame,0,HierarchyFrameDataView.ViewModes.MergeSamplesWithTheSameName,HierarchyFrameDataView.columnDontSort,false))
+            {
+                if(!raw.valid||!data.valid)continue;
+                frames.Append(frame).Append(',').Append(raw.frameTimeMs.ToString("R",CultureInfo.InvariantCulture)).AppendLine();
+                VisitCore(data,data.GetRootItemID(),"",frame,rows);count++;
+            }
+            if(count<200)throw new Exception("Core recording lost frames: "+count);
+            File.WriteAllText(Path.Combine(directory,"hierarchy.csv"),rows.ToString());File.WriteAllText(Path.Combine(directory,"frames.csv"),frames.ToString());
+        }
+        static void VisitCore(HierarchyFrameDataView data,int id,string parent,int frame,StringBuilder rows)
+        {
+            string name=data.GetItemName(id),path=parent.Length==0?name:parent+"/"+name;
+            if(name.StartsWith("City.",StringComparison.Ordinal)||name=="GC.Collect")
+            {
+                rows.Append(frame).Append(',').Append('"').Append(path.Replace("\"","\"\"")).Append('"');
+                foreach(int column in new[]{HierarchyFrameDataView.columnTotalTime,HierarchyFrameDataView.columnSelfTime,HierarchyFrameDataView.columnCalls,HierarchyFrameDataView.columnGcMemory})rows.Append(',').Append(data.GetItemColumnDataAsDouble(id,column).ToString("R",CultureInfo.InvariantCulture));rows.AppendLine();
+            }
+            var children=new System.Collections.Generic.List<int>();data.GetItemChildren(id,children);foreach(int child in children)VisitCore(data,child,path,frame,rows);
         }
         static void Visit(HierarchyFrameDataView data,int id,string parent,long ordinal,int frame,StringBuilder rows)
         {

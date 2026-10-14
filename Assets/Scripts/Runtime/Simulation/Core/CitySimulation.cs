@@ -32,6 +32,10 @@ namespace HarborCity
         }
         void Step(TimeContext time)
         {
+#if CITY_CORE_ATTRIBUTION
+            using var observation=HarborCity.RoadCore.CityCoreProfile.Measure(HarborCity.RoadCore.CityCoreProfile.Part.Step);
+#endif
+
 #if UNITY_5_3_OR_NEWER
             using(stepSample.Auto())
 #endif
@@ -53,7 +57,11 @@ namespace HarborCity
 #if UNITY_5_3_OR_NEWER
                 using(settleSample.Auto())
 #endif
-                {foreach(var arrival in transport.Arrivals)if(business.Deliver(arrival))transport.AcknowledgeArrival(arrival.id);transport.RetireCompleted();}
+                {
+#if CITY_CORE_ATTRIBUTION
+                    using var settlementObservation=CityCoreProfile.Measure(CityCoreProfile.Part.Settlement);
+#endif
+                    foreach(var arrival in transport.Arrivals)if(business.Deliver(arrival))transport.AcknowledgeArrival(arrival.id);transport.RetireCompleted();}
             }
         }
         public Vehicle RequestFreight(int origin,int destination,int cargo=1,double price=FactoryState.SalePrice)
@@ -61,7 +69,11 @@ namespace HarborCity
         public Vehicle RequestCommute(int citizen,int origin,int destination,bool returning=false)
         =>Dispatch(origin,destination,0,0,returning?TransportPurpose.Home:TransportPurpose.Work,citizen);
         Vehicle Dispatch(int origin,int destination,int cargo,double price,TransportPurpose purpose,int citizen)
-        {if(Fault!=null)throw new InvalidOperationException("Cannot dispatch into a faulted simulation",Fault);var admission=transport.PrepareTransport(origin,destination,cargo,price,purpose,citizen);if(admission==null||!business.Depart(admission.vehicle))return null;return transport.CommitAdmission(admission);}
+        {
+#if CITY_CORE_ATTRIBUTION
+            using var observation=HarborCity.RoadCore.CityCoreProfile.Measure(HarborCity.RoadCore.CityCoreProfile.Part.Dispatch);
+#endif
+if(Fault!=null)throw new InvalidOperationException("Cannot dispatch into a faulted simulation",Fault);var admission=transport.PrepareTransport(origin,destination,cargo,price,purpose,citizen);if(admission==null||!business.Depart(admission.vehicle))return null;return transport.CommitAdmission(admission);}
         internal void AssertSaveBoundary(){if(IsStepping||Fault!=null)throw new InvalidOperationException("Cannot save a partial/faulted simulation step");}
     }
 }
