@@ -14,7 +14,7 @@ const {chromium}=require(packagePath);
  await page.goto(pathToFileURL(path.join(root,'Docs/Architecture/HarborCityArchitecture.html')).href);
  await page.locator('#ownergraph svg .node').first().waitFor();
  assert.equal(await page.locator('section').count(),13);
- assert.equal(await page.locator('#classgraph .node').count(),46);
+ assert.equal(await page.locator('#classgraph .node').count(),47);
  assert.equal(await page.locator('#ownergraph .node').count(),31);
  await page.locator('#ownergraph [data-id="data"]').click();
  assert.match(await page.locator('#ownergraph aside').innerText(),/WorldData/);
@@ -64,7 +64,7 @@ const {chromium}=require(packagePath);
  await page.setViewportSize({width:700,height:1000});await page.locator('#ownership').scrollIntoViewIfNeeded();
  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),'Horizontal page overflow at 700px');
  assert.deepEqual(errors,[]);assert(requests.every(u=>u.startsWith('file:')),'External dependency requested');
- const result={passed:true,offline:true,sections:13,classCards:46,ownershipNodes:31,graphs:4,flows:7,sourceReferences:sources.length,pageErrors:errors,externalRequests:requests.filter(u=>!u.startsWith('file:')),screenshots:['ownership.png','classes.png','simulation.png']};
+ const result={passed:true,offline:true,sections:13,classCards:47,ownershipNodes:31,graphs:4,flows:7,sourceReferences:sources.length,pageErrors:errors,externalRequests:requests.filter(u=>!u.startsWith('file:')),screenshots:['ownership.png','classes.png','simulation.png']};
  fs.writeFileSync(path.join(dir,'browser-validation.json'),JSON.stringify(result,null,2));console.log(JSON.stringify(result));
  } finally {await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

@@ -7,10 +7,11 @@ import subprocess, json, html, re, csv
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'Docs/Architecture'
-COMMIT = 'dbfda3d'
+COMMIT = 'b532733'
 BASELINE = '110c4eaa24fa69d55b08a5db2a6d19ec6da5dd7f'
 R = 'Assets/Scripts/Runtime/'
 files = {
+ 'buildingviews':R+'Presentation/World/HarborCityBuildingViews.cs',
  'payroll':R+'Simulation/Economy/CityCorePayroll.cs',
  'retail':R+'Simulation/Economy/CityCoreConsumption.cs',
  'shopaccount':R+'Simulation/Economy/CityShopAccount.cs',
@@ -390,6 +391,10 @@ flowdata['current']['stages'].insert(9,dict(name='居民零售购物',detail='�
 flowdata['freight']['note']='商店实际预付款形成在途托管；到货销售结算。无免费商品或外部零售收入。'
 flowdata['save']['note']='城市14/核心15：真实购物/账户/配置2/工资截止时间/完整在途；不支持旧格式，不删旧文件。'
 flowdata['current']['stages'][-1]['detail']='唯一时钟commit，跨日工资由Payroll结算；到岗最早下一步产生劳动。'
+card('buildingviews','HarborCityBuildingViews','Presentation','derived','buildingviews','public sealed class HarborCityBuildingViews','稳定ID→显示对象 / 重用同步缓冲','R3-D1实际','表现层独占；只读CityEntities.Buildings。','只读事实更新Transform，不改变模拟或保存。','视图全可重建，绝非第二份物理真相。','Sync仅接只读集合；Dispose仅销毁表现对象。','实体新增/删除更新对应对象；相同ID不重建。','Unity视图→模拟只读，模拟不引用此类。','同步仍O(B)，只在结构变化时，不称O(变化量)。','区域/道路显示与地形适配仍待局部改善。')
+graphs['classes']['nodes'].append(node('buildingviews','HarborCityBuildingViews','稳定ID建筑显示对象','derived'));graphs['classes']['edges'].extend([edge('host','buildingviews','结构修订后同步'),edge('buildingviews','entities','读取，不写模拟')]);evidence.append(dict(title='增量建筑视图',source=ref('buildingviews','public void Sync')))
+for c in cards:
+    if c['id']=='host':c.update(facts='Update请求固定模拟推进，随后显示；建筑对象生命周期已移到独立稳定ID视图。',risk='TerrainData高度提供者、低层工具和内嵌测试仍过渡；区域/道路全量冷显示仍待处理。')
 payload=dict(commit=COMMIT,baseline=BASELINE,cards=cards,graphs=graphs,flows=flowdata,readings=readingdata,perf=perf,evidence=evidence)
 
 page=r'''<!doctype html>
@@ -536,6 +541,8 @@ page=page.replace('<section id="review">','<section id="review"><details open><s
 page=page.replace('最新实际：有价原料、出口、设计资源与变更影响','上一批R3-C1：有价原料、出口与设计资源')
 page=page.replace('R3-C1实现源码 '+COMMIT,'R3-C2实现源码 '+COMMIT).replace('04 · 模拟更新流程图 ★（R3-C1实际）','04 · 模拟更新流程图 ★（R3-C2实际）')
 page=page.replace('有价原料运输和实际商品出口已接；消费、垃圾财政、公交及完整经营UI仍未恢复。','有价原料、实际批发/零售消费与雇主工资已接；垃圾财政、公交及完整经营UI仍未恢复。')
+views=(OUT/'R3Views.md').read_text(encoding='utf-8')
+page=page.replace('<section id="review">','<section id="review"><details open><summary>最新边界修正：独立增量建筑视图</summary><div class="doccontent">'+markdown(views)+'</div></details>')
 (OUT/'HarborCityArchitecture.html').write_text(page,encoding='utf-8')
 (OUT/'SourceEvidence.md').write_text('# 固定源码定位证据\n\n审查commit：`'+COMMIT+'`。以下行号由固定源码生成，而非当前工作树。\n\n'+ '\n'.join('## '+e['title']+'\n\n['+e['source']['file']+':'+str(e['source']['line'])+']('+e['source']['url']+')\n\n方法/语句：`'+e['source']['token']+'`\n' for e in evidence),encoding='utf-8')
 print(f'Created {OUT / "HarborCityArchitecture.html"}; {len(cards)} class cards, {len(graphs)} graphs, {len(flowdata)} flows; pinned {COMMIT}')
