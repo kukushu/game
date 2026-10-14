@@ -44,6 +44,14 @@
 
 ## 下一步与可玩优先级
 
+本轮最终（含R2-A）再与89190fe整体配对，结果归档Results/R2A/r1-through-r2-*.csv：3000居民平均 **6.485475→1.227400ms**，P95 **6.6546→1.1396ms**，P99 **135.1933→10.1481ms**，分配 **6,654,977→13,662 B/步**。1000居民平均0.952711→0.342807ms；100居民0.039640→0.048062ms，小规模索引/任务开销回归明确保留。新旧格式不同，用共同业务DTO与全部在途路线/姿态/载荷语义摘要核对，三规模一致；这些是有限真实业务夹具，不是完整城市成绩。
+
+最终实际Unity再采200步（Profile-r2-final）：带细粒度采样平均Step4.9033ms，居民1.3604、生产2.6755、物流0.6428、派车0.0690、路线查询0.0058、实际寻路0.0012、移动0.2042、占用0.1048、结算0.0171ms。岗位约26,576次/步，Marker/计时自身影响很大，约2.4553ms嵌套其中，不能与父模块相加，也不能误称实际字典耗时。派车平均调用9856.9→26.2，寻路9856.9→3.8；主要收益来自减少真实调用链工作量。
+
+最终Unity Hierarchy Step GC平均20,570B（平台与诊断开销不同于普通Mono）；全记录GC.Collect仅5条、累计3.2241ms、最大0.8801ms。轻量模块汇总位于Results/R2A/unity-profile-before.csv与unity-profile-final.csv；GC.GetAllocatedBytesForCurrentThread返回零的平台问题仍适用，原生内存必须读Hierarchy列。打开raw后按 City.Attribution.Step / City.Simulation.Step → ResidentRequests / Production / Logistics → City.Attribution.Dispatch → Admission → RouteLookup → RouteSearch 展开，Job与Settlement/Movement/Occupancy分别在其真实调用层级查看。
+
+普通窗口1×/3×、FPS/全帧GC验收和R2模型成本见R2TaskModel.md。这次诊断构建均启用Deep Profile=false，普通构建编译掉Attribution；完整可玩城市、真实路口端口、独立物理位置、局部施工、due队列仍未完成。
+
 独立岗位修复（对照 58d91db）：把捕获 id 的旧 Find 放进独立 LegacyJob，仅未迁移城市调用；Job Marker 移到真正公共入口，避免遗漏 wrapper 成本。探针由 160000 B/10000 次变为零；2031 城市断言通过。3000 人每步分配 433976→8756 B，平均 2.843401→2.755058ms，P99 53.7941→53.8947ms；说明分配已降，但剩余尖峰主要不是这项 GC。100/1000 人分别 524/3107 B/步。相同最终保存哈希继续核对，不改岗位选择。
 
 第三个独立批次：CityFreightCandidates 每商店一项，以车道/站位索引筛掉不可达和同车道上游，无 F×S 持久矩阵；候选用可复用 scratch 排回原商店优先顺序。入口注册版本、Network 实例和 CityEntities.Revision 改变才重建。库存/在途保留量每次读取真实状态，不成为缓存需求真相。可达候选仍可能很多，收集和排序最差仍 O(F×S log S)；这不是最终局部需求调度器，后续可改惰性有序迭代/需求索引，但本轮不改变分配规则。

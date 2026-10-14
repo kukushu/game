@@ -1,4 +1,6 @@
-# 架构决策记录：方案B的R1已实现，R2需复评
+# 架构决策记录：R1与有限R2-A已实现
+
+最新实际源码5a3dddf：真实归因后分别实施可达性筛除、岗位分配修复、车道站位物流候选，以及独立TripTask/Shipment/RoutePlan。事实/生命周期、成本与限制见R2TaskModel.md和R1PerformanceAttribution.md。Vehicle位置仍依附Plan；独立位置与LaneConnection端口是下一批提案。R3恢复完整可玩城是前置集成门槛，不等孤立内核无限完善。下文初始ADR保留历史设计，按实际小批验证修正。
 
 2026-10-14：用户已授权R1，代码0c49201实现唯一tick、支持的实体生命周期/索引、物理后业务确认。CitySimulation、TimeContext、CityEntities、Production/Logistics与TransportArrival现为实际类；CityState、独立任务/物理位置、真实端口、due队列与完全只读事实仍为提案。以下ADR保留总体决策，实际边界/复杂度与局限以R1Implementation.md为准，不机械执行原蓝图。
 

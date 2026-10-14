@@ -1,5 +1,8 @@
 # 开发约定
 
+- 2026-10-14 R1后续与有限R2-A已实施（5a3dddf）：TripTask/Shipment是独立任务事实，Vehicle仅引用，不复活被删任务/载荷字段。当前居民tripId指Task ID，不能假设等于车辆ID；逆关联为派生索引。城8/核心11，不兼容旧格式，不删除用户原文件。RoutePlan已独立，但Current仍由Plan/cursor取得；独立物理位置、真实LaneConnection端口属于未实施R2-B，不可宣称已完成。见Docs/Architecture/R2TaskModel.md。
+- 规模基准先用共同夹具配对；不同格式用共同业务/在途语义摘要，不能要求新旧字节相同，也不能删钱货/方向/安全断言。真实Unity采样归因见R1PerformanceAttribution.md：不可达货运与缓存全清为主因，岗位wrapper捕获变量已消除；普通构建不定义CITY_CORE_ATTRIBUTION。任务退休/冷候选索引仍有维护成本，不宣称全部O(1)。R2有限核心完成后优先R3恢复完整可玩城，不无限扩交通Demo。
+
 - 2026-10-14用户已认可方案B并授权R1。实际实现见Docs/Architecture/R1Implementation.md、HTML当前图与源码0c49201；CitySimulation是唯一tick/欠步调度者，正常World只读该时钟并输出到达，业务在全物理提交后确认。结构生命周期用CityEntities；旧public列表不支持绕过编辑，Validate拒绝。R1结束后先复评R2，不能未审查就连续全面重写；暂不扩公交/人生玩法。RoadCore新代码同样接受推翻，不能以Demo运行证明长期设计正确。
 - 文档必须区分当前默认迁移城市、旧完整游戏与未实施目标。库存/工资/污染历史、成员关系、时钟和任务生命周期应纳入全城审查；独立10000车基准不等于完整城市规模。GetBuilding已有字典，但Count失效不充分；不能重复开发已有索引或把新货车尚未进入旧环境暴露当成性能优化。
 

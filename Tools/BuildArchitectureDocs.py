@@ -7,7 +7,7 @@ import subprocess, json, html, re, csv
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'Docs/Architecture'
-COMMIT = '0c4920189ef047f30755940f3c087ddbdabea934'
+COMMIT = '5a3dddf'
 BASELINE = '110c4eaa24fa69d55b08a5db2a6d19ec6da5dd7f'
 R = 'Assets/Scripts/Runtime/'
 files = {
@@ -50,6 +50,9 @@ files = {
  'production': R+'Simulation/Industry/CityProductionSystem.cs',
  'logistics': R+'Simulation/Industry/CityLogisticsSystem.cs',
  'boundary': R+'Traffic/CityTransportBoundary.cs',
+ 'trip': R+'Traffic/CityTripTask.cs',
+ 'candidates': R+'Simulation/Industry/CityFreightCandidates.cs',
+ 'reachability': R+'Infrastructure/Roads/CityLaneReachability.cs',
 }
 sources = {key: subprocess.check_output(['git','show',f'{COMMIT}:{path}'],cwd=ROOT).decode('utf-8-sig') for key,path in files.items()}
 
@@ -112,6 +115,20 @@ for c in cards:
     if c['id']=='business':c.update(life='城市每步在全部物理提交之后处理Arrival；成功ACK后退休，无永久收据集合。',write='只有城市边界调用internal Depart/Deliver，不注入World。')
     if c['id']=='people':c.update(life='CityEntities新增/移除/换家庭立即更新同对象索引；每步请求、步末到达和日界工资。')
 
+# R2-A actual implementation overrides; historical audit descriptions above are
+# not the displayed current facts. Physical position/ports remain explicit risks.
+for c in cards:
+    if c['id']=='task':c.update(name='TripTask',module='Transport / R2-A已实现',kind='fact',source=ref('trip','public sealed class TripTask'),fields='id / endpoints / purpose / citizenId / departedAt / state / Shipment',methods='World.FindTask · FindTaskVehicle · CitySimulation请求/确认',owner='WorldData.tasks独立集合；车辆引用同一对象，反查为派生索引。',facts='任务与货物事实；Task ID独立于Vehicle ID，居民tripId引用Task。',derived='vehiclesByTask / incoming / Arrival值；不另存可写vehicleId。',write='城市Depart(TripTask)扣货/关联居民；ACK完成后同步退休。',life='准入成功发布→InTransit（车可能Stranded）→业务确认→Completed→退休。',deps='Vehicle.Task引用；Shipment拥有在途货量；业务库存仍在Building。',risk='当前一任务一车，无等待/多站；任务准入协调仍共处World。',decision='已接真实通勤与货运；继续独立物理位置，不提前扩公交。')
+    if c['id']=='vehicle':c.update(name='Vehicle',module='Traffic / R2-A实际过渡',fields='id / Task引用 / Plan / cursor / distance / changeTarget / status',facts='物理状态与唯一任务关联；已删目的/居民/货量/价格复制字段。',derived='Current=Plan.segments[cursor]；影子/Transform派生。',life='准入后实际行驶/中断；业务确认完成后车与Task同边界退休。',deps='TripTask引用、独立RoutePlan、Lane/Connection及共享Geometry。',risk='物理drivable仍依附Plan/cursor；独立位置是R2-B尚未实施。',decision='下一批独立VehiclePosition与导航进度；不能以RoutePlan类存在宣称完成。')
+    if c['id']=='world':c.update(fields='道路/车辆/Tasks独立集合与派生关联索引 / arrivals / occupancy',facts='当前道路/接入、任务及物理车事实；唯一时钟仍在CitySimulation。',risk='仍聚合编辑/准入协调/交通，位置仍依附路线；不是最终边界。')
+    if c['id']=='data':c.update(fields='coreFormat=11 / nextTask / tasks / vehicles / network / accesses',facts='独立任务事实与车辆→任务关联；城市时钟只在城市DTO。')
+    if c['id']=='logistics':c.update(fields='NextDispatchTick / incoming / CityFreightCandidates',facts='调度游标；货物归TripTask.Shipment，库存仍归Building。',derived='车道/站位商店索引与可复用候选 scratch，结构/入口版本失效。',risk='可达候选多时仍收集排序，最坏O(F*S log S)；未实现due需求。',decision='实测P99下降；随后恢复完整城市并测局部需求，不无限扩夹具。')
+    if c['id']=='save':c.update(fields='城市8 / 核心11 / 独立任务与关联 / RoutePlan / SHA256',facts='唯一城市时钟及全部在途任务/货物/实车；索引重建。')
+    if c['id']=='resident':c.update(fields='id / householdId / jobId / location / tripId(Task ID) / atWork / 实际工资',deps='家庭/岗位/建筑；Task ID经派生映射定位实车。')
+    if c['id']=='factory':c.update(deps='个人到岗、Job、Building、TripTask.Shipment；无重复库存。')
+card('routeplan','RoutePlan','Navigation / R2-A已实现','fact','trip','public sealed class RoutePlan','segments / EndDistance','Segments只读视图 · Copy','每车独立拥有Plan；蓝图为派生缓存，不共享可写List。','路径及终点站位；不存居民/货物/几何。','车道和连接Geometry从Network读取。','导航/施工事务替换路径；Vehicle仍持cursor。','准入创建、换道/施工替换、随车退休。','Vehicle、Network、RoadAccess。','Current仍通过Plan/cursor，尚未独立物理位置。','R2-B先设计并迁移位置与导航进度唯一关系。')
+card('shipment','Shipment','Freight / R2-A已实现','fact','trip','public sealed class Shipment','remaining / unitPrice','TripTask.Cargo / Price派生只读查询','TripTask唯一拥有，身份由Task ID确定。','扣库存后在途的货物与价格。','incoming预留统计读取任务，不保存第二需求真相。','准入扣原库存；成功交付ACK清remaining。','Freight准入才创建；中断不丢货；交付后随任务退休。','TripTask、原Factory/Commercial库存账户。','无转运/分货/独立货单ID；未引入不必要复杂业务。','现有最小运输够用后先恢复完整经营。')
+
 def md_inline(s):
     s=html.escape(s)
     s=re.sub(r'`([^`]+)`',r'<code>\1</code>',s)
@@ -171,7 +188,7 @@ flows={
 flowdata={}
 flow_refs={'host':('host','void Update()'),'session':('session','void BeforeStep()'),'bindings':('bindings','public void RefreshIfChanged()'),'people':('people','public void AdvanceRequests()'),'industry':('industry','public void AdvanceIndustry'),'world':('world','public void Step()'),'changes':('changes','public static int Choose'),'edit':('edit','public bool TryCommit()'),'factory':('industry','public void ProcessFactoryWork'),'vehicle':('world','public sealed class Vehicle'),'connection':('network','long id=ConnectionId'),'construction':('construction','public static RoadEditPlan Connect'),'business':('session','public bool Deliver'),'save':('save','public static byte[] Write'),'network':('network','void Rebuild()'),'legacy':('legacy','void Simulate()'),'development':('development','void BaselineTick()'),'residents':('residents','public sealed class CityResident')}
 flow_refs['city']=('city','public void Tick()')
-flow_refs.update({'session':('simulation','void Step(TimeContext time)'),'business':('session','internal bool Deliver'),'production':('production','internal void Step'),'logistics':('logistics','internal void Step')})
+flow_refs.update({'session':('simulation','void Step(TimeContext time)'),'business':('session','internal bool Deliver'),'production':('production','internal void Step'),'logistics':('logistics','internal void Step'),'world':('world','internal void MoveStep')})
 flows['current']=('R1当前默认入口 · 已实现','CitySimulation唯一tick/欠步量；正常交通不再推进城市时间或回调城市业务。',[
  ('Update → CitySimulation.Advance','host','真实时间×倍速请求交给城市调度，不再由交通包住业务回调。'),
  ('TimeContext / 步首日历','session','唯一整数tick产生start/end；World只读取同一时钟。'),
@@ -193,9 +210,12 @@ readings.insert(1,('simulation','void Step(TimeContext time)','2 · R1城市调�
 readings.insert(3,('entities','public sealed class CityEntities','3b · 实体生命周期','原对象不复制；结构API同步ID索引/成员/岗位/端点，绕过旧列表编辑会在Validate失败。'))
 readings=[(k,token,t,('当前城走CityEntities索引；下方Count缓存仅旧入口后备，理解为何要维护生命周期。' if k=='buildings' else w)) for k,token,t,w in readings]
 readingdata=[dict(title=t,why=w,source=ref(k,token)) for k,token,t,w in readings]
+for reading in readingdata:
+    if reading['title'].startswith('6 ·'):
+        reading.update(why='R2-A任务/载荷已独立；MoveStep仍使用Plan/cursor位置，业务在全提交后结算。',source=ref('world','internal void MoveStep'))
 evidence_specs=[
  ('P0 时钟与同步结算','world','public void Step()'),
- ('P0 物理位置依附路线','world','public long Current=>route[cursor]'),
+ ('P0 物理位置仍依附路线（R2-B待实施）','world','public long Current=>Plan.segments[cursor]'),
  ('P1 建筑索引已有，但Count失效不充分','buildings','if(buildingLookup==null'),
  ('P1 岗位仍是线性查找','jobs','public CityJob Job(int id)'),
  ('P1 成员索引生命周期仅构造','people','members.Add(person.id'),
@@ -234,6 +254,25 @@ graphs['classes']['edges'].extend([edge('session','simulation','持有'),edge('s
 for n in graphs['global-target']['nodes']:
     if n['id']=='sim':n.update(label='CitySimulation',sub='R1已落地：唯一时钟/阶段',kind='fact',detail='simulation')
     if n['id']=='arrival':n.update(label='TransportArrival',sub='R1已落地：只读到达结果',kind='derived',detail='business')
+graphs['ownership']['nodes'].extend([node('task','TripTask','独立ID/目的/居民/生命周期','fact'),node('shipment','Shipment','任务拥有在途货量/价格','fact'),node('routeplan','RoutePlan','每车独立路径/终点站位','fact')])
+graphs['ownership']['edges'].extend([edge('data','task','tasks集合拥有'),edge('vehicle','task','唯一引用；非复制','dash'),edge('task','shipment','仅货运拥有'),edge('vehicle','routeplan','导航拥有'),edge('resident','task','tripId引用','dash')])
+for n in graphs['ownership']['nodes']:
+    if n['id']=='vehicle':n.update(sub='物理状态/Task引用/Plan')
+graphs['classes']['edges']=[e for e in graphs['classes']['edges'] if not (e['a']=='task' and e['b']=='vehicle')]
+graphs['classes']['edges'].extend([edge('vehicle','task','引用同一任务'),edge('task','shipment','货运载荷拥有'),edge('vehicle','routeplan','拥有独立导航'),edge('resident','task','tripId')])
+graphs['global-current']['nodes'].extend([node('task','TripTask + Shipment','R2-A实际任务/货物事实','fact')])
+graphs['global-current']['edges'].extend([edge('world','task','登记/关联/退休'),edge('business','task','读取目的与货物'),edge('people','task','居民tripId引用','dash')])
+for n in graphs['global-current']['nodes']:
+    if n['id']=='save':n.update(label='城市8 / 核心11',sub='独立Tasks/实车/路径/唯一时钟')
+    if n['id']=='logistics':n.update(sub='有向车道/站位候选索引')
+flowdata['current']['name']='R1后续 / R2-A当前默认入口 · 已实现'
+flowdata['current']['stages'][5]['detail']='5tick调度；按有向车道/站位候选索引筛除不可达，再按原商店顺序准入。'
+flowdata['commute']['stages'][2]['detail']='Depart(TripTask)：居民tripId指独立任务，location=-1；车辆→任务索引定位实车。'
+flowdata['freight']['stages'][2]['detail']='可达候选/入口间距/预约通过后扣原库存，货物进入TripTask.Shipment。'
+flowdata['freight']['stages'][1]['detail']='incoming从Tasks重算，车道/站位候选按原商店优先序处理；库存仍是建筑事实。'
+flowdata['freight']['stages'][5]['detail']='全物理提交后业务确认；同健康步骤ACK/退休，重复付款由生命周期拒绝，无永久receipts。'
+flowdata['freight']['stages'][-1]['detail']='成功ACK清Shipment并同时退休任务/车；无永久receipts。'
+flowdata['save']['note']='城市8 / 核心11：独立任务、Shipment、Vehicle关联和Plan，旧格式明确拒绝。'
 payload=dict(commit=COMMIT,baseline=BASELINE,cards=cards,graphs=graphs,flows=flowdata,readings=readingdata,perf=perf,evidence=evidence)
 
 page=r'''<!doctype html>
@@ -282,7 +321,7 @@ function search(){const q=document.getElementById('class-search').value.toLowerC
 document.getElementById('class-search').oninput=search;document.getElementById('module-filter').onchange=search;document.getElementById('class-results').onclick=e=>{const b=e.target.closest('[data-class]');if(b)classView.choose(b.dataset.class);};search();
 function flow(prefix,key){const f=DATA.flows[key];document.getElementById(prefix+'-note').textContent=f.name+' — '+f.note;const host=document.getElementById(prefix+'-flow');host.className='flowlist';host.innerHTML=f.stages.map((s,i)=>`<button class="stage" data-index="${i}"><strong>${i+1} → ${esc(s.name)}</strong><small>${esc(s.detail)}</small></button>`).join('');function select(i){host.querySelectorAll('.stage').forEach((b,n)=>b.classList.toggle('active',i===n));const s=f.stages[i];document.getElementById(prefix+'-detail').innerHTML=`<h3>${i+1} · ${esc(s.name)}</h3><p>${esc(s.detail)}</p>${key==='target'?'<span class="pill">提案未实施；源码展示当前相关边界</span>':''}${sourceHtml(s.source)}`;}host.onclick=e=>{const b=e.target.closest('[data-index]');if(b)select(+b.dataset.index);};select(0);}
 document.getElementById('simulation-mode').onchange=e=>flow('simulation',e.target.value);flow('simulation','current');document.getElementById('business-mode').onchange=e=>flow('business',e.target.value);flow('business','construction');
-const scenes=['居民引用家庭住房和自己的jobId。满足班次、健康、有效岗位后DispatchResident；RoadAccess给车道站位，路线计划包含Lane/Connection。个人进入实际车，tripId关联，不增加虚假人口。','Arrive验证居民与车身份，location变为工厂，符合岗位才atWork。步末到达后从后续步计算实际劳动；没有到岗的人不能提供生产。','工厂扣原料、累计劳动完成商品；商店有需求且可入道才发车。出发时Stock→Vehicle.cargo。当前没有独立Shipment实体，目标方案会拆任务和物理车。','货车真实到达商店，容量足够才卸货、累计成本和工厂收入；原外部经营资金近似明确保留。完成任务清Cargo、退休车，不能再次付款。'];
+const scenes=['居民引用家庭住房和自己的jobId。CitySimulation.RequestCommute通过准入后创建独立TripTask；tripId引用Task ID，车辆引用同一任务，RoadAccess给站位，不增加虚假人口。','Arrive验证居民与taskId，location变为工厂，符合岗位才atWork。步末到达后从后续步计算实际劳动；没有到岗的人不能提供生产。','工厂扣原料、累计劳动完成商品；按可达车道/站位候选与原商店顺序，准入后Stock→TripTask.Shipment。Vehicle只引用任务，不复制货量；物理位置仍依附Plan待R2-B。','货车实际到达商店，容量足够才确认收货/成本/工厂收入；原外部经营资金近似保留。ACK清Shipment，任务和车同边界退休，无永久收据表，不能再次付款。'];
 function scene(i){document.getElementById('scene-detail').textContent=scenes[i];const g=document.getElementById('scene-car');g.setAttribute('transform',`translate(${[0,200,350,480][i]} ${[0,-35,0,35][i]})`);}
 document.querySelectorAll('[data-scene]').forEach(b=>b.onclick=()=>scene(+b.dataset.scene));document.querySelectorAll('[data-object]').forEach(n=>{const select=()=>document.getElementById('scene-object').innerHTML=cardHtml(n.dataset.object);n.onclick=select;n.onkeydown=e=>{if(e.key==='Enter')select();};});scene(0);document.getElementById('scene-object').innerHTML=cardHtml('road');
 function scale(){const n=+document.getElementById('scale').value;document.getElementById('quadratic').textContent=(n*n).toLocaleString()+' 配对';document.getElementById('jobs-count').textContent=(n*n).toLocaleString()+' 比较上界';document.getElementById('local-count').textContent=n.toLocaleString()+' 次';}document.getElementById('scale').onchange=scale;scale();
@@ -340,6 +379,16 @@ r1fields=['version','residents','factories','shops','active_max','mean_ms','p99_
 r1table='<h3>R1真实通勤/多企业配对（不是完整城市FPS）</h3><div class="table-scroll"><table><tr>'+''.join('<th>'+html.escape(v)+'</th>' for v in r1fields)+'</tr>'+''.join('<tr>'+''.join('<td>'+html.escape(row[v])+'</td>' for v in r1fields)+'</tr>' for row in r1rows)+'</table></div><p>同源码夹具、20步热身+200测量步。3000居民峰值1500活动车，非3000辆车；产量/交付一致。after P99约131ms、GC约6.65MB/步，物流匹配/派车/寻路仍需归因。源码0c49201，原始轻量CSV见Results/R1。</p>'
 page=page.replace('<div id="perf-tables"></div>',r1table+'<div id="perf-tables"></div>')
 OUT.mkdir(parents=True,exist_ok=True)
+page=page.replace('HarborCity R1架构 · 实现源码0c49201；初始审查4a47968','HarborCity R1后续 / R2-A架构 · 实现源码5a3dddf；初始审查4a47968')
+page=page.replace('R1实现源码 0c49201 · 分支','R2-A实现源码 5a3dddf · 分支')
+page=page.replace('R1实际改造、验证与剩余风险','R1历史改造与风险（后续进展见上方R2-A）')
+page=page.replace('04 · 模拟更新流程图 ★（R1实际）','04 · 模拟更新流程图 ★（R1后续 / R2-A实际）')
+page=page.replace('没有继续实施R2大重写','已实施有限R2-A任务分离；独立位置/端口仍待后续批次')
+page=page.replace('任务与车仍混合，不是全阶段纯双缓冲','R2-A任务已独立，物理位置仍依附Plan，不是全阶段纯双缓冲')
+page=page.replace('R1不自动授权R2全面重写','R2-A已授权并完成；后续只按可验证模块推进')
+r2=(OUT/'R2TaskModel.md').read_text(encoding='utf-8')
+attribution=(OUT/'R1PerformanceAttribution.md').read_text(encoding='utf-8')
+page=page.replace('<section id="review">','<section id="review"><details open><summary>本轮实际：性能归因与R2-A任务模型（最新）</summary><div class="doccontent">'+markdown(r2)+markdown(attribution)+'</div></details>')
 (OUT/'HarborCityArchitecture.html').write_text(page,encoding='utf-8')
 (OUT/'SourceEvidence.md').write_text('# 固定源码定位证据\n\n审查commit：`'+COMMIT+'`。以下行号由固定源码生成，而非当前工作树。\n\n'+ '\n'.join('## '+e['title']+'\n\n['+e['source']['file']+':'+str(e['source']['line'])+']('+e['source']['url']+')\n\n方法/语句：`'+e['source']['token']+'`\n' for e in evidence),encoding='utf-8')
 print(f'Created {OUT / "HarborCityArchitecture.html"}; {len(cards)} class cards, {len(graphs)} graphs, {len(flowdata)} flows; pinned {COMMIT}')
