@@ -31,7 +31,7 @@ namespace HarborCity
         int startJunction;Point startPoint;bool building,oneWay;int origin,destination;float speed=1;
         long previousTick;int lastSteps;
         string notice="原工厂劳动→生产→新交通实车运输→原商店库存/支付。居民通勤、市政、分区、换道、行人尚未接回。";
-        string SavePath=>Path.Combine(Application.persistentDataPath,session==null?"harbor-road-core-v2.hcrc":"harbor-city-core-v1.hcity");
+        string SavePath=>Path.Combine(Application.persistentDataPath,session==null?"harbor-road-core-v3.hcrc":"harbor-city-core-v2.hcity");
         static Vector3 V(Point p)=>new Vector3((float)p.x,(float)p.y,(float)p.z);
         void Start()
         {
@@ -149,6 +149,7 @@ namespace HarborCity
             try
             {
                 session.Advance(2);var actor=world.Vehicles.First();Point first=world.Position(actor);session.Advance(.5);if(Point.Distance(first,world.Position(actor))<1)throw new Exception("Truck did not physically move");
+                Point beforeEdit=world.Position(actor);world.SplitRoad(1,1);world.SplitRoad(2,1);RenderRoads();if(Point.Distance(beforeEdit,world.Position(actor))>1e-8)throw new Exception("Access edit moved truck");
                 var restored=CityCoreSave.Read(CityCoreSave.Write(session));for(int i=0;i<300;i++){session.Advance(.05);restored.Advance(.05);session.Validate();}
                 if(Convert.ToBase64String(CityCoreSave.Write(session))!=Convert.ToBase64String(CityCoreSave.Write(restored)))throw new Exception("Integrated save differs");
                 if(session.City.Factory(1).sold==0||session.City.Factory(1).sold!=world.Delivered||session.City.Goods(2)!=world.Delivered||session.City.roads.edges.Count!=0||session.City.traffic.trips.Count!=0)throw new Exception("Business loop/legacy engine invariant failed");

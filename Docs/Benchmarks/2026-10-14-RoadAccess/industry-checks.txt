@@ -1,0 +1,5 @@
+﻿
+﻿
+﻿PASS 244 integrated industry checks; original labour/inventory/finance, real RoadCore transport, exact new city save, interruption and full unloading.
+2,4,2,3,4,300,0.004928,0.007800,0.013000,2479,15,0.001671
+﻿

@@ -8,12 +8,12 @@ namespace HarborCity.RoadCore
     public interface ITransportBusiness
     {
         bool Exists(int endpoint);
-        int Junction(int endpoint);
         bool Depart(Vehicle vehicle);
         bool Deliver(Vehicle vehicle);
     }
+    internal interface IJunctionEndpointProvider {int Junction(int endpoint);}
     // Synthetic ledger used by isolated traffic fixtures, never by the integrated city.
-    internal sealed class DepotBusiness:ITransportBusiness
+    internal sealed class DepotBusiness:ITransportBusiness,IJunctionEndpointProvider
     {
         readonly Dictionary<int,Depot> depots;
         public DepotBusiness(Dictionary<int,Depot> depots){this.depots=depots;}

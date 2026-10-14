@@ -5,7 +5,6 @@ using HarborCity.RoadCore;
 
 namespace HarborCity
 {
-    [Serializable] public sealed class CityCoreEndpoint {public int building,junction;}
     [Serializable] public sealed class CityCoreBusinessData
     {
         public int version=1,money,day,nextBuilding;
@@ -13,7 +12,6 @@ namespace HarborCity
         public List<BuildingSaveData> buildings;
         public List<BuildingSaveData> retiredBuildings=new List<BuildingSaveData>();
         public HouseholdState society;
-        public List<CityCoreEndpoint> endpoints=new List<CityCoreEndpoint>();
         public List<int> receipts=new List<int>();
         public double retiredFactoryWages;
         public List<IndustrialExposure> residualIndustry;
@@ -22,13 +20,11 @@ namespace HarborCity
     public sealed class CityCoreIndustryBusiness:ITransportBusiness
     {
         readonly CityModel city;
-        readonly Dictionary<int,int> endpoints=new Dictionary<int,int>();
         readonly HashSet<int> receipts=new HashSet<int>();
-        public CityCoreIndustryBusiness(CityModel city,IEnumerable<CityCoreEndpoint> entrances,IEnumerable<int> completed=null)
-        {this.city=city;foreach(var access in entrances)endpoints.Add(access.building,access.junction);if(completed!=null)foreach(int id in completed)if(!receipts.Add(id))throw new ArgumentException("Duplicate receipt");}
+        public CityCoreIndustryBusiness(CityModel city,IEnumerable<int> completed=null)
+        {this.city=city;if(completed!=null)foreach(int id in completed)if(!receipts.Add(id))throw new ArgumentException("Duplicate receipt");}
         public IEnumerable<int> Receipts {get {foreach(int id in receipts)yield return id;}}
-        public bool Exists(int id)=>endpoints.ContainsKey(id)&&city.GetBuilding(id)!=null&&!city.GetBuilding(id).abandoned&&!city.GetBuilding(id).burned;
-        public int Junction(int id)=>endpoints[id];
+        public bool Exists(int id)=>city.GetBuilding(id)!=null&&!city.GetBuilding(id).abandoned&&!city.GetBuilding(id).burned;
         public bool Depart(Vehicle v)
         {
             if(!(city.GetBuilding(v.origin) is IndustrialBuilding factory)||!(city.GetBuilding(v.destination) is CommercialBuilding shop)||!Exists(v.origin)||!Exists(v.destination)||factory.Stock<v.cargo||shop.Stock+v.cargo>32||v.price!=FactoryState.SalePrice)return false;
@@ -51,19 +47,20 @@ namespace HarborCity
         public CityModel City {get;}
         public World Transport {get;}
         public CityCoreIndustryBusiness Business {get;}
-        readonly List<CityCoreEndpoint> endpoints;
         readonly List<CityBuilding> retired=new List<CityBuilding>();
         readonly Action before,after;
         readonly double calendarOffset;
         double dispatchAt;
-        public CityCoreIndustrySession(CityModel city,List<CityCoreEndpoint> endpoints,double calendarOffset=50,WorldData transport=null,IEnumerable<int> receipts=null,double dispatchAt=0,IEnumerable<CityBuilding> retired=null)
+        public CityCoreIndustrySession(CityModel city,double calendarOffset=50,WorldData transport=null,IEnumerable<int> receipts=null,double dispatchAt=0,IEnumerable<CityBuilding> retired=null)
         {
-            City=city;this.endpoints=endpoints.Select(e=>new CityCoreEndpoint{building=e.building,junction=e.junction}).ToList();this.calendarOffset=calendarOffset;this.dispatchAt=dispatchAt;
+            City=city;this.calendarOffset=calendarOffset;this.dispatchAt=dispatchAt;
             if(retired!=null)this.retired.AddRange(retired);
-            Business=new CityCoreIndustryBusiness(city,this.endpoints,receipts);Transport=transport==null?new World(Business):new World(transport,Business);
+            Business=new CityCoreIndustryBusiness(city,receipts);Transport=transport==null?new World(Business):new World(transport,Business);
             before=BeforeStep;after=SyncCalendar;SyncCalendar();
         }
         public int Advance(double seconds)=>Transport.Advance(seconds,before,after);
+        public string AccessIssue(int building)
+        {var access=Transport.GetAccess(building);return access==null?"缺少道路入口":!access.valid?"入口道路已拆除":(access.use&AccessUse.Freight)==0?"入口不允许货运":"";}
         void SyncCalendar()
         {
             double absolute=calendarOffset+Transport.Clock,seconds=City.society.settings.secondsPerDay;
@@ -99,7 +96,7 @@ namespace HarborCity
             if(building is IndustrialBuilding factory)City.retiredFactoryWages+=factory.factory.wageCosts;
             City.buildings.Remove(building);retired.Add(building);City.SyncJobs();Transport.RefreshEndpoints();
         }
-        public CityCoreBusinessData SnapshotBusiness()=>CityCoreSave.CopyBusiness(new CityCoreBusinessData{money=City.money,day=City.day,nextBuilding=City.nextBuildingId,calendarOffset=calendarOffset,dispatchAt=dispatchAt,society=City.society,buildings=City.buildings.Select(BuildingSaveData.FromBuilding).ToList(),retiredBuildings=retired.Select(BuildingSaveData.FromBuilding).ToList(),endpoints=endpoints.Select(e=>new CityCoreEndpoint{building=e.building,junction=e.junction}).ToList(),receipts=Business.Receipts.OrderBy(id=>id).ToList(),retiredFactoryWages=City.retiredFactoryWages,residualIndustry=City.residualIndustry});
+        public CityCoreBusinessData SnapshotBusiness()=>CityCoreSave.CopyBusiness(new CityCoreBusinessData{money=City.money,day=City.day,nextBuilding=City.nextBuildingId,calendarOffset=calendarOffset,dispatchAt=dispatchAt,society=City.society,buildings=City.buildings.Select(BuildingSaveData.FromBuilding).ToList(),retiredBuildings=retired.Select(BuildingSaveData.FromBuilding).ToList(),receipts=Business.Receipts.OrderBy(id=>id).ToList(),retiredFactoryWages=City.retiredFactoryWages,residualIndustry=City.residualIndustry});
         public void Validate()
         {
             Transport.Validate();Transport.AssertSafety();if(!City.ValidIndustry())throw new InvalidOperationException("Industrial financial/labour invariants failed");
@@ -110,16 +107,15 @@ namespace HarborCity
         public static CityCoreIndustrySession Create()
         {
             var city=new CityModel();city.development.enabled=false;city.nextBuildingId=4;
-            var factory=new IndustrialBuilding{id=1,x=-35,z=-7,entranceX=-35,entranceZ=0};factory.factory.capital=1200;factory.factory.raw=24;factory.factory.imported=24;factory.factory.rawCosts=24*FactoryState.RawPrice;factory.factory.cash=1200-factory.factory.rawCosts;
-            city.buildings.Add(factory);city.buildings.Add(new CommercialBuilding{id=2,x=35,z=-7,entranceX=35,entranceZ=0});city.buildings.Add(new ResidentialBuilding{id=3,x=-30,z=7,housing=HousingKind.Apartment,housingUnits=1});
+            var factory=new IndustrialBuilding{id=1,x=-25,z=-7,entranceX=-25,entranceZ=-3};factory.factory.capital=1200;factory.factory.raw=24;factory.factory.imported=24;factory.factory.rawCosts=24*FactoryState.RawPrice;factory.factory.cash=1200-factory.factory.rawCosts;
+            city.buildings.Add(factory);city.buildings.Add(new CommercialBuilding{id=2,x=25,z=-7,entranceX=25,entranceZ=-3});city.buildings.Add(new ResidentialBuilding{id=3,x=-30,z=7,housing=HousingKind.Apartment,housingUnits=1});
             var family=new Household{id=1,home=3,unit=0,resident=true};city.society.families.Add(family);city.society.nextId=2;
             for(int i=1;i<=4;i++)family.people.Add(new CityResident{id=i,householdId=1,name="工人 "+i,age=30,canWork=true,skill=2});city.society.nextCitizenId=5;city.SyncJobs();
             var jobs=city.society.jobEntities.Where(j=>j.buildingId==1).ToList();for(int i=0;i<4;i++){var worker=family.people[i];city.AssignJob(worker,jobs[i].id);worker.atWork=true;worker.location=1;worker.arrivedDay=1;}
-            var addresses=new List<CityCoreEndpoint>();var session=new CityCoreIndustrySession(city,addresses);
-            // Bind after constructing the network; no legacy RoadNode/Edge is created.
+            var session=new CityCoreIndustrySession(city);
             int a=session.Transport.AddJunction(new Point(-35,0,0)),b=session.Transport.AddJunction(new Point(0,0,0)),c=session.Transport.AddJunction(new Point(35,0,0));
-            session.Transport.AddRoad(a,b,new[]{session.Transport.JunctionPosition(a),new Point(-18,0,0),session.Transport.JunctionPosition(b)});session.Transport.AddRoad(b,c,new[]{session.Transport.JunctionPosition(b),new Point(18,0,0),session.Transport.JunctionPosition(c)});
-            var state=session.Transport.Snapshot();return new CityCoreIndustrySession(city,new List<CityCoreEndpoint>{new CityCoreEndpoint{building=1,junction=a},new CityCoreEndpoint{building=2,junction=c}},50,state);
+            int sourceRoad=session.Transport.AddRoad(a,b,new[]{session.Transport.JunctionPosition(a),new Point(-18,0,0),session.Transport.JunctionPosition(b)}),goalRoad=session.Transport.AddRoad(b,c,new[]{session.Transport.JunctionPosition(b),new Point(18,0,0),session.Transport.JunctionPosition(c)});
+            session.Transport.RegisterAccess(1,Network.LaneId(sourceRoad,false),10,AccessUse.Freight);session.Transport.RegisterAccess(2,Network.LaneId(goalRoad,false),25,AccessUse.Freight);return session;
         }
     }
 }

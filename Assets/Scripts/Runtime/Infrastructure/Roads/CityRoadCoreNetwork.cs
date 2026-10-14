@@ -174,6 +174,29 @@ namespace HarborCity.RoadCore
             }
             return null;
         }
+        public List<long> Route(RoadAccess start,RoadAccess goal)
+        {
+            var first=Get(start.lane);var last=Get(goal.lane);
+            if(!start.valid||!goal.valid||first.IsConnection||last.IsConnection)return null;
+            if(first.Id==last.Id&&goal.distance>=start.distance)return new List<long>{first.Id};
+            var queue=new RouteQueue();var costs=new Dictionary<long,double>(CityRoadKeyComparer.Instance);var parents=new Dictionary<long,long>(CityRoadKeyComparer.Instance);var settled=new HashSet<long>(CityRoadKeyComparer.Instance);
+            double initial=(first.Geometry.Length-start.distance)/first.Speed;costs[first.Id]=initial;parents[first.Id]=0;queue.Push(first.Id,initial);
+            long beforeGoal=0;double goalCost=double.PositiveInfinity;
+            while(queue.Count>0)
+            {
+                var item=queue.Pop();if(item.cost>goalCost)break;if(item.cost!=costs[item.id]||!settled.Add(item.id))continue;
+                var current=Get(item.id);List<Drivable> next;if(!outgoing.TryGetValue(current.To,out next))continue;
+                foreach(var lane in next)
+                {
+                    long link=ConnectionId(current.Id,lane.Id);if(!Contains(link))continue;double prefix=item.cost+Get(link).Geometry.Length/Get(link).Speed;
+                    if(lane.Id==last.Id){double terminal=prefix+goal.distance/lane.Speed;if(terminal<goalCost){goalCost=terminal;beforeGoal=current.Id;}continue;}
+                    if(settled.Contains(lane.Id))continue;double candidate=prefix+lane.Geometry.Length/lane.Speed,old;
+                    if(!costs.TryGetValue(lane.Id,out old)||candidate<old){costs[lane.Id]=candidate;parents[lane.Id]=current.Id;queue.Push(lane.Id,candidate);}
+                }
+            }
+            if(beforeGoal==0)return null;var lanes=new List<long>();for(long id=beforeGoal;id!=0;id=parents[id])lanes.Add(id);lanes.Reverse();lanes.Add(last.Id);
+            var result=new List<long>();for(int i=0;i<lanes.Count;i++){if(i>0)result.Add(ConnectionId(lanes[i-1],lanes[i]));result.Add(lanes[i]);}return result;
+        }
         public void ValidateRoute(List<long> route)
         {
             if(route==null||route.Count==0||Get(route[0]).IsConnection||Get(route[route.Count-1]).IsConnection)throw new ArgumentException("Invalid route ends");
