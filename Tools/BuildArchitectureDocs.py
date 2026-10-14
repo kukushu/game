@@ -303,9 +303,9 @@ flowdata['current']['stages'][7]['detail']='意图读取物理锚点，导航只
 flowdata['save']['note']='城市10 / 核心13：独立位置/冻结模式、任务与导航，旧格式拒绝。'
 # R3-A: actual normal startup is empty terrain, not the diagnostic commuter city.
 for ident,name,module,kind,key,token,fields,description in [
- ('corezoning','CityCoreZoning','Zoning','derived','corezoning','public sealed class CityCoreZoning','world land stamps / versioned plots / surface', 'Saved designations are facts; road-aligned plots and stamp buckets are derived. Building entities remain independent.'),
- ('coregrowth','CityCoreGrowth','Growth','temporary','coregrowth','public sealed class CityCoreGrowth','Zoning / nextGrowth / projects', 'Healthy pre-actor boundary creates timed private projects and registers completed buildings/jobs/access through CityEntities.'),
- ('coreconstruction','CityCoreConstruction','Construction','temporary','coreconstruction','public sealed class CityCoreConstruction','city / entities / world', 'Budget check, atomic RoadEditPlan commit and one debit; failed or stale edits do not spend.'),
+ ('corezoning','CityCoreZoning','Zoning','derived','corezoning','public sealed class CityCoreZoning','世界用途印章 / 版本规划格 / 地形采样', '保存的世界用途是事实；沿路格与空间印章桶为派生。建筑仍是独立实体，不恢复旧格子数据库。'),
+ ('coregrowth','CityCoreGrowth','Growth','temporary','coregrowth','public sealed class CityCoreGrowth','Zoning / nextGrowth / projects', '健康步边界推进私人建设计划，完工后通过CityEntities注册建筑、岗位与入口；演员阶段不增删结构。'),
+ ('coreconstruction','CityCoreConstruction','Construction','temporary','coreconstruction','public sealed class CityCoreConstruction','city / entities / world', '预算检查、RoadEditPlan原子提交和一次扣款；失败/过期编辑不扣费。市政建筑也走实体生命周期。'),
  ('coreutilities','CityCoreUtilities','Utilities','derived','coreutilities','public sealed class CityCoreUtilities','版本 / 原连通管网 / 供给缓存', '读取真实RoadAccess，按实体/路网/管线及负荷变化重建供给；原CityUtilityState为唯一管网事实，不用旧交通图。'),
  ('corepopulation','CityCorePopulation','Population','temporary','corepopulation','public sealed class CityCorePopulation','lastSettledDay / nextEmployment / 实体注册', '每日按有供给空住房迁入，通过实体生命周期注册；个人按技能和可达岗位就业，同home/work估算一次。仍有候选遍历，不是常数查询。')]:
     card(ident,name,module,kind,key,token,fields,'Actual R3-A chain',description,description,'No second editable city or road network.','Healthy structural boundary.','Create/read/rebuild.','CitySimulation / CityEntities / shared network.','Cold planning rebuild costs not yet measured at full-city scale.','Restore population, supplies and consumption next.')
@@ -326,7 +326,7 @@ for n in graphs['global-current']['nodes']:
 graphs['global-current']['nodes'].extend([node('coreutilities','CityCoreUtilities','实际水电排污与容量','derived'),node('corepopulation','CityCorePopulation','实际迁入与个人找工作','temporary')])
 graphs['global-current']['edges'].extend([edge('simulation','coreutilities','供给变更'),edge('simulation','corepopulation','健康边界'),edge('corepopulation','entities','生命周期')])
 flowdata['current']['name']='R3-B实际城市更新流程'
-flowdata['current']['stages'].insert(0,dict(name='Healthy growth boundary',detail='Terrain and zoning readiness; timed proposals/completion; entity and entrance registration before actors. No invented people.',source=ref('coregrowth','internal void Step')))
+flowdata['current']['stages'].insert(0,dict(name='私人建筑生长边界',detail='检查地形与分区准备；按时提案/完工，先注册真实实体和道路入口，不生成虚假人口。',source=ref('coregrowth','internal void Step')))
 growthstage=flowdata['current']['stages'].pop(0);flowdata['current']['stages'].insert(3,growthstage)
 flowdata['current']['stages'].insert(4,dict(name='供给重建边界',detail='实体、路网、管线或负荷改变才重建电、水、排污；旧道路图不参与。',source=ref('coreutilities','public void Refresh')))
 flowdata['current']['stages'].insert(5,dict(name='迁入与就业边界',detail='按日与六秒调度；只有有供给空住房才能迁入，随后个人占具体岗位，负荷改变刷新供给。',source=ref('corepopulation','internal void Step')))
@@ -470,6 +470,8 @@ page=page.replace('<section id="review">','<section id="review"><details open><s
 page=page.replace('居民迁入、持续供给消费、市政、管网、公交和完整经营UI尚未接回。','基础水电排污、居民迁入和个人找工作已接；持续原料、消费、垃圾财政、公交及完整经营UI仍未恢复。')
 page=page.replace('R3-A实现源码 '+COMMIT,'R3-B实现源码 '+COMMIT)
 page=page.replace('当前默认入口仍是迁移中的工业小城','正常入口现在是原地形上的空城建设与实际成长')
+page=page.replace('04 · 模拟更新流程图 ★（R2-B实际）','04 · 模拟更新流程图 ★（R3-B实际）')
+page=page.replace('旧日界；新仅工资游标</td>','R3-B日界迁入、工资游标；生长6秒、就业6秒</td>')
 (OUT/'HarborCityArchitecture.html').write_text(page,encoding='utf-8')
 (OUT/'SourceEvidence.md').write_text('# 固定源码定位证据\n\n审查commit：`'+COMMIT+'`。以下行号由固定源码生成，而非当前工作树。\n\n'+ '\n'.join('## '+e['title']+'\n\n['+e['source']['file']+':'+str(e['source']['line'])+']('+e['source']['url']+')\n\n方法/语句：`'+e['source']['token']+'`\n' for e in evidence),encoding='utf-8')
 print(f'Created {OUT / "HarborCityArchitecture.html"}; {len(cards)} class cards, {len(graphs)} graphs, {len(flowdata)} flows; pinned {COMMIT}')
