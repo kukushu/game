@@ -7,7 +7,7 @@ import subprocess, json, html, re, csv
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'Docs/Architecture'
-COMMIT = '4a4796825f43462f65ee99eb2531656bd1a2678b'
+COMMIT = '0c4920189ef047f30755940f3c087ddbdabea934'
 BASELINE = '110c4eaa24fa69d55b08a5db2a6d19ec6da5dd7f'
 R = 'Assets/Scripts/Runtime/'
 files = {
@@ -44,6 +44,12 @@ files = {
  'fire': R+'Simulation/Services/CityFire.cs',
  'police': R+'Simulation/Services/CityPolice.cs',
  'healthcare': R+'Simulation/Services/CityHealthcare.cs',
+ 'simulation': R+'Simulation/Core/CitySimulation.cs',
+ 'clock': R+'Simulation/Core/CitySimulationClock.cs',
+ 'entities': R+'Simulation/Core/CityEntities.cs',
+ 'production': R+'Simulation/Industry/CityProductionSystem.cs',
+ 'logistics': R+'Simulation/Industry/CityLogisticsSystem.cs',
+ 'boundary': R+'Traffic/CityTransportBoundary.cs',
 }
 sources = {key: subprocess.check_output(['git','show',f'{COMMIT}:{path}'],cwd=ROOT).decode('utf-8-sig') for key,path in files.items()}
 
@@ -80,6 +86,31 @@ card('task','TransportTask（尚无独立类）','Logistics / 当前内嵌Vehicl
 card('people','CityCoreResidents','Residents / 当前桥接系统','temporary','people','public sealed class CityCoreResidents','members / city / transport / PayrollDay / Enabled','AdvanceRequests · Depart · Arrive · Validate','Session组装；成员索引构造一次。','工资游标需存；居民事实仍在原实体。','Member查找字典，不是第二份Resident。','请求派车、到达确认、工资转入储蓄。','每步运行；读档重建索引；动态新增尚未接。','CityModel、World、Job、家庭。','工资/日历/出行与交通回调耦合；单次字典建立漏动态生命周期。','ResidentActivitySystem+due队列，显式到达/工资阶段。')
 card('business','CityCoreIndustryBusiness','Economy ↔ Traffic / 当前回调','temporary','session','public sealed class CityCoreIndustryBusiness','city / receipts / Residents','Exists · Depart · Deliver','Session建立并给World；城市库存唯一。','receipts保证重复交付不重复入账，保存；无第二库存。','Exists为端点可用性查询。','Depart扣库存或改变人状态；Deliver收货/钱或到岗。','同步被World调用；完成收据永不清理。','CityModel、FactoryState、Commercial、Residents。','业务在物理提交中写，reciepts无限增长；商店是外部资金近似。','分ArrivalResult与业务提交协议，账本退休/审计有界。')
 card('save','CityCoreSave + SaveCodec','Save / 当前协议','temporary','save','public static class CityCoreSave','城市magic/version6；核心9；字段反射缓存；SHA256','Write · Read · CopyBusiness','Host写tmp/bak文件，codec只编解码候选。','城市业务切片+World事实；用户旧save不删除。','字段描述缓存、临时字节/重建索引不存。','冷序列化；加载先构造并Validate新Session。','格式不支持明确拒绝，不静默加载。','Session DTO、原BuildingSaveData与核心codec。','反射布局即协议；没完整服务/地图；多重快照内存。','显式CitySnapshot、完整跨域校验、原子活城替换。')
+
+card('simulation','CitySimulation','Simulation / R1已实现','fact','simulation','public sealed class CitySimulation','clock / production / Logistics / residents / transport / Fault','Advance · Step(TimeContext) · RequestCommute · RequestFreight','Session组装；CitySimulation唯一推进城市时间。','唯一tick/欠步量；出错Fault禁止推进/保存半步骤。','日历按offset投影，无第二个city时钟。','按明确阶段驱动领域；交通结束后结算、确认、退休。','创建/新存档恢复；正常World.Advance/Step拒绝旁路。','居民/生产/物流/World/业务结算，尚不是全城Services总控。','仍全额追赶；不是数据库级步骤回滚。','保持阶段边界；R2先复评任务/位置/提交协议，非继续堆玩法。')
+card('clock','SimulationClock / TimeContext','Simulation / R1已实现','fact','clock','public sealed class SimulationClock','tick long / pendingSeconds / .05秒 / TimeContext.Start,End','Request · Commit · Snapshot','正常城CitySimulation拥有，World只引用；隔离夹具拥有独立时钟。','整数tick和未执行时间请求；正常城只在城市DTO保存。','Seconds=tick*.05，步区间由tick派生。','只有调度器调用internal推进，正常traffic不能推进。','暂停输入0不推进；读档恢复欠步量，1×/3×请求分组一致。','无Unity依赖；交通读取TimeContext。','没有追赶工作预算器，长期跨平台浮点确定性未证明。','保持唯一时钟；以后预算器保留债务并报告实际推进，不能丢步。')
+card('entities','CityEntities / CityMember','Entities / R1已实现','derived','entities','public sealed class CityEntities','building/person/family/job字典 / Members / Factories / Shops / Revision','Add/Replace/Remove · MoveResident · SetAvailability · Validate','Session拥有，索引引用原城的同一事实对象。','不复制库存/人；领域结构变更由此唯一支持入口维护。','ID索引与typed只读视图；读档从事实重建。','结构API只在健康边界；SyncJobs冷更新岗位索引。','新增/移除/换家庭立即维护；在途或有未领工资居民删除被拒。','CityModel事实、World派生端点可用性集合。','旧public列表尚未类型级封锁；Validate拒绝绕过编辑，未每步扫描校验。','后续收紧事实容器；不要再建可写复制模型。')
+card('production','CityProductionSystem','Industry / R1已实现','temporary','production','public sealed class CityProductionSystem','city / entities','Step(TimeContext)','CitySimulation拥有生产系统，原FactoryState仍唯一账户/库存。','只实际在岗且有效工作、付薪、原料和空间可加工。','在岗资格/工作区间；没有新增库存副本。','原PayAttendance/ProcessFactoryWork写原事实。','每步运行，步末到岗最早下一步劳动。','CityEntities/原Job与Factory规则。','仍O(P)遍历；新货车环境暴露未接。','R2/R4复评在岗集合与环境积分，不能仅换接口名。')
+card('logistics','CityLogisticsSystem','Logistics / R1已实现','temporary','logistics','public sealed class CityLogisticsSystem','NextDispatchTick / reusable incoming / typed工厂商店视图','Step · CitySimulation.RequestFreight','CitySimulation组装；业务库存不在系统内复制。','下一次调度tick保存；货物仍在Vehicle（R2待拆）。','incoming每调度扫描活车，字典复用。','生成需求并经城市准入/业务确认创建实车。','每5tick调度；准入失败不扣货。','实体视图/World只读任务/CitySimulation。','明确O(V+F*S)；规模P99/GC仍高，不是增量需求系统。','先归因集中派车与路线准备，再考虑需求/预留事件索引。')
+updates={
+ 'session':dict(fields='City / Transport / Simulation / Entities / Residents / Business',methods='Advance → Simulation.Advance · Create · Validate · SnapshotBusiness',facts='保存/组装原业务和交通；不再持独立dispatchAt时钟。',write='已删除BeforeStep/after委托；生产/调度在独立系统。',risk='原退休企业记录仍长寿命；旧CityModel事实容器未拆。',decision='保留组装根，禁止在Session重新堆每步规则。'),
+ 'world':dict(fields='Network / occupancy / reservations / arrivals / timeline只读引用',methods='MoveStep · PrepareTransport · CommitAdmission · AcknowledgeArrival · TryCommit',facts='车辆/路网/入口，正常城clock由CitySimulation持有。',write='正常城无ITransportBusiness回调；只提交物理并产出Arrival。',deps='路网/几何/局部索引/TimeContext；正常运行不查Factory/Household。',risk='仍聚合道路编辑与物理算法；任务/路线/位置仍绑定。'),
+ 'data':dict(fields='coreFormat=10 / network / vehicles / accesses / standaloneClock仅夹具',facts='道路/车/入口事实；城市外部clock只在城市DTO；端点可用性索引不编码。',derived='端点可用性/占用/空间/冲突读档重建。'),
+ 'city':dict(derived='当前城GetBuilding/Job使用CityEntities字典，宏观统计仍原缓存。',write='结构修改支持CityEntities；旧public字段仍过渡风险，非已实现只读CityState。',risk='大量partial/public仍需迁出；绕过结构API会在Validate失败。'),
+ 'building':dict(write='新增/同ID替换/关闭/可用性经CityEntities；直接列表编辑不支持。',risk='Count失效已由当前注册索引消除；未迁移旧入口仍有旧缓存。'),
+ 'resident':dict(owner='原家庭people保存事实；CityEntities.Member引用同一对象。',write='Residents经城市Request准入，Arrive带stepEnd在物理提交后执行。',risk='动态成员映射已维护；出行仍每步O(P)，尚无due队列。'),
+ 'job':dict(methods='SyncJobs · AssignJob · ReleaseJob · CityEntities.Job',risk='当前城Job字典O(1)，结构变更冷重建；原public jobEntities尚未类型级封锁。'),
+ 'people':dict(fields='entities / RequestCommute委托 / PayrollDay / transport查询',owner='Session组装；使用注册的CityEntities.Members视图。',write='AdvanceRequests产生城市请求；Arrive接只读结果，工资在步末日界结算。',risk='固定构造成员缺口已解决；仍每步成员遍历。'),
+ 'business':dict(name='CityCoreIndustryBusiness（城市边界）',fields='city / Residents；已删除永久receipts',methods='Depart · Deliver(TransportArrival)',owner='CitySimulation调用，不再注入交通引擎。',facts='原库存/账户；成功后同边界ACK与退休，不保存半结算。',risk='无完整商店现金/消费/进口；异常Fault停止而非自动rollback。'),
+ 'task':dict(derived='CityLogistics复用incoming；Arrival值记录只描述已到达，不是Task事实。',write='城市发车/结算；交通仅准入、移动、结果、确认退休。'),
+ 'save':dict(fields='城市version7；核心10；唯一clock/tick/debt/NextDispatchTick；SHA256',facts='完整当前切片；端点可用性从Building重建，不存成第二份事实。',risk='反射布局仍临时；管网/分区/市政/地图完整save尚缺。'),
+}
+for c in cards:
+    c.update(updates.get(c['id'],{}))
+for c in cards:
+    if c['id']=='vehicle':c.update(write='World提交物理位置；CitySimulation在全提交之后确认业务，再ACK退休。',deps='Lane/Connection ID与任务关联；交通不调用居民或库存接口。')
+    if c['id']=='business':c.update(life='城市每步在全部物理提交之后处理Arrival；成功ACK后退休，无永久收据集合。',write='只有城市边界调用internal Depart/Deliver，不注入World。')
+    if c['id']=='people':c.update(life='CityEntities新增/移除/换家庭立即更新同对象索引；每步请求、步末到达和日界工资。')
 
 def md_inline(s):
     s=html.escape(s)
@@ -140,10 +171,27 @@ flows={
 flowdata={}
 flow_refs={'host':('host','void Update()'),'session':('session','void BeforeStep()'),'bindings':('bindings','public void RefreshIfChanged()'),'people':('people','public void AdvanceRequests()'),'industry':('industry','public void AdvanceIndustry'),'world':('world','public void Step()'),'changes':('changes','public static int Choose'),'edit':('edit','public bool TryCommit()'),'factory':('industry','public void ProcessFactoryWork'),'vehicle':('world','public sealed class Vehicle'),'connection':('network','long id=ConnectionId'),'construction':('construction','public static RoadEditPlan Connect'),'business':('session','public bool Deliver'),'save':('save','public static byte[] Write'),'network':('network','void Rebuild()'),'legacy':('legacy','void Simulate()'),'development':('development','void BaselineTick()'),'residents':('residents','public sealed class CityResident')}
 flow_refs['city']=('city','public void Tick()')
+flow_refs.update({'session':('simulation','void Step(TimeContext time)'),'business':('session','internal bool Deliver'),'production':('production','internal void Step'),'logistics':('logistics','internal void Step')})
+flows['current']=('R1当前默认入口 · 已实现','CitySimulation唯一tick/欠步量；正常交通不再推进城市时间或回调城市业务。',[
+ ('Update → CitySimulation.Advance','host','真实时间×倍速请求交给城市调度，不再由交通包住业务回调。'),
+ ('TimeContext / 步首日历','session','唯一整数tick产生start/end；World只读取同一时钟。'),
+ ('入口重绑 / 中断恢复','bindings','网络版本变化后原位恢复，不重复扣货或移动居民。'),
+ ('居民活动请求','people','注册成员视图每步O(P)；经CitySimulation准入，不是独立时钟。'),
+ ('CityProductionSystem','production','真实在岗工资/加工；岗位字典O(1)，仍O(P)劳动扫描。'),
+ ('CityLogisticsSystem','logistics','每5tick，复用incoming+typed视图；仍O(V+F*S)。'),
+ ('World.MoveStep：占用/换道','world','源、影子、中断占用；Choose仍顺序修改，未称全阶段双缓冲。'),
+ ('意图 / ID仲裁 / 全部物理提交','world','交通不调用库存/居民/资金逻辑。'),
+ ('TransportArrival → 业务确认','business','带stepEnd，所有车移动后确认到岗/收货/付款；失败保留货物。'),
+ ('Acknowledge / 退休','world','成功才清cargo退休；删除永久receipts，禁止半步骤save。'),
+ ('clock commit / 日历 / 工资','session','扣欠步、tick+1，处理跨日工资；到岗最早下步计工。')])
 for k,(name,note,stages) in flows.items():
     flowdata[k]={'name':name,'note':note,'stages':[{'name':n,'detail':d,'source':ref(*flow_refs[s])} for n,s,d in stages]}
 
 readings=[('host','void Update()','1 · 先看真正入口','理解当前默认是工业迁移小城，以及哪里调用Advance、哪里只渲染。'),('session','void BeforeStep()','2 · 查看真实总流程','理解居民/生产/物流先于交通，识别Session哪些职责需要迁出。'),('city','public sealed partial class CityModel','3 · 事实根与旧领域','结合Building/Household/Resident/Job，别把public字段都当安全API。'),('buildings','public CityBuilding GetBuilding','4 · 注册和索引','看到已有O(1)索引，以及Count失效的漏洞；再读BuildingsChanged。'),('network','public sealed class PhysicalRoad','5 · 物理路与共享几何','再读Rebuild、AddLane、Route；曲线点不等于路口。'),('world','public void Step()','6 · 车辆与阶段','理解route/cursor/distance、占用、stable-ID预约、提交中回调。'),('changes','public static bool TryStart','7 · 双占用换道与冲突','结合Reservations；知道影子派生位置、安全与剩余链约束。'),('people','public void AdvanceRequests()','8 · 实际通勤与工资','读Depart/Arrive；只有到岗才参与加工，了解索引生命周期缺口。'),('industry','public void ProcessFactoryWork','9 · 生产与财务','读PayAttendance/AdvanceIndustry，区分环境历史和旧trips暴露。'),('construction','public static RoadEditPlan Connect','10 · 施工事务','联合World.TryCommit/CityCoreRoadBindings，看候选到活状态唯一提交。'),('save','public static CityCoreIndustrySession Read','11 · 保存与恢复','验证什么真正保存、索引如何重建，哪些全城状态缺失。'),('development','void BaselineTick()','12 · 完整城市迁移参照','再看utilities/waste/zoning/map和各服务，均不是新入口已接。')]
+readings=[r for r in readings if r[0]!='session']
+readings.insert(1,('simulation','void Step(TimeContext time)','2 · R1城市调度','先理解唯一时钟、阶段顺序、物理结束后的业务确认与保存边界。'))
+readings.insert(3,('entities','public sealed class CityEntities','3b · 实体生命周期','原对象不复制；结构API同步ID索引/成员/岗位/端点，绕过旧列表编辑会在Validate失败。'))
+readings=[(k,token,t,('当前城走CityEntities索引；下方Count缓存仅旧入口后备，理解为何要维护生命周期。' if k=='buildings' else w)) for k,token,t,w in readings]
 readingdata=[dict(title=t,why=w,source=ref(k,token)) for k,token,t,w in readings]
 evidence_specs=[
  ('P0 时钟与同步结算','world','public void Step()'),
@@ -169,6 +217,9 @@ evidence_specs=[
  ('模块：观测器不应写事实，却仍读旧交通','analysis','public void ObserveTraffic()'),
  ('模块：生长与日结依赖旧clock/roads','development','void BaselineTick()'),
 ]
+evidence_specs=[e for e in evidence_specs if e[1:] not in [('people','members.Add(person.id'),('session','foreach(var factory in City.buildings.OfType'),('session','readonly HashSet<int> receipts')]]
+evidence_specs.extend([('R1 已实现：成员生命周期','entities','public void AddResident'),('R1 剩余风险：物流F*S','logistics','foreach(var factory in entities.Factories)'),('R1 已实现：物理后结果结算','simulation','foreach(var arrival in transport.Arrivals)'),('R1 已实现：唯一tick/欠步','clock','public sealed class SimulationClock')])
+evidence_specs=[(('R1 已改：正常城市不再调用此独立Step' if t.startswith('P0 时钟') else 'R1 已改：城市岗位字典，旧入口Find后备' if t.startswith('P1 岗位') else 'R1 已改：城市结构索引，旧入口Count缓存后备' if t.startswith('P1 建筑索引') else t),k,token) for t,k,token in evidence_specs]
 evidence=[dict(title=t,source=ref(k,token)) for t,k,token in evidence_specs]
 # The previous grouped ownership node blurred Job storage with household membership.
 graphs['ownership']=dict(cols=3,nodes=[node('session','Session','组装持有，不复制库存','temporary'),node('city','CityModel','建筑/家庭/岗位事实','fact'),node('data','WorldData','World私有事实副本','fact'),node('building','CityBuilding','位置/入口/状态/库存','fact'),node('household','Household','存储people居民对象','fact'),node('road','NetworkData → PhysicalRoad','中心几何/端点/ID','fact'),node('factory','FactoryState','原料/进度/账户/环境历史','fact'),node('resident','CityResident','家庭people包含，jobId仅引用','fact'),node('vehicle','Vehicle','位置/当前任务/在途货物','fact'),node('job','CityJob','society.jobEntities包含','fact'),node('access','RoadAccess','WorldData关联表，不存门口XYZ','fact'),node('network','Network → Drivable','车道/连接/几何/冲突派生','derived'),node('cache','蓝图 / 空间索引','不存档，可版本失效','cache','network'),node('work','占用 / 意图 / 预约','步内重建或复用工作桶','temporary','world')],edges=[edge('session','city','持有'),edge('session','data','经World持有'),edge('city','building','存储拥有'),edge('city','household','存储拥有'),edge('city','job','society包含'),edge('data','road','存储拥有'),edge('data','vehicle','存储拥有'),edge('data','access','存储拥有'),edge('building','factory','拥有'),edge('household','resident','people拥有'),edge('resident','job','jobId引用','dash'),edge('road','network','派生','dash'),edge('network','cache','构建','dash'),edge('vehicle','work','重建占用','dash')])
@@ -176,6 +227,13 @@ perf=[]
 for filename in ['Docs/Benchmarks/2026-10-14-RoadUpgrade/model.csv','Docs/Benchmarks/2026-10-14-TrafficScale/window.csv']:
     with (ROOT/filename).open(encoding='utf-8-sig') as f:perf.append(dict(file=filename,rows=list(csv.DictReader(f))))
 
+graphs['global-current']=dict(cols=3,nodes=[node('session','Session','R1组装根，无BeforeStep总控','temporary'),node('simulation','CitySimulation','唯一推进/阶段/结算边界','fact'),node('clock','SimulationClock','整数tick/欠步量','fact'),node('entities','CityEntities','生命周期/ID索引/只读视图','derived'),node('people','CityCoreResidents','实际请求/到岗/返家/工资','temporary'),node('world','World','只推进物理/产生Arrival','fact'),node('production','CityProductionSystem','真实在岗工资与加工','temporary'),node('logistics','CityLogisticsSystem','5tick匹配；仍O(V+F*S)','temporary'),node('business','City业务结算','不在交通移动中回调','temporary'),node('city','CityModel','原事实唯一；public仍风险','fact'),node('network','Network','车道/连接/几何与冲突','derived'),node('save','城市7 / 核心10','保存tick/debt和全部在途状态','temporary'),node('old','Services/Growth/Utilities','旧代码未接默认新城','inactive','city')],edges=[edge('session','simulation','持有/驱动'),edge('simulation','clock','唯一写入'),edge('world','clock','只读引用'),edge('simulation','world','MoveStep'),edge('simulation','people','活动请求'),edge('simulation','production','劳动积分'),edge('simulation','logistics','到期物流'),edge('simulation','business','结果结算'),edge('entities','city','索引同一对象'),edge('world','network','查询'),edge('save','clock','保存城市时钟'),edge('old','city','尚未迁移','dash')])
+graphs['ownership']['nodes'].extend([node('simulation','CitySimulation','唯一城市步骤写入者','fact'),node('clock','SimulationClock','城市tick+未消耗时间','fact'),node('entities','CityEntities','索引引用同一原事实','derived')])
+graphs['ownership']['edges'].extend([edge('session','simulation','拥有'),edge('simulation','clock','拥有并推进'),edge('data','clock','正常城不保存第二时钟','dash'),edge('entities','city','索引/支持结构写入口','dash')])
+graphs['classes']['edges'].extend([edge('session','simulation','持有'),edge('simulation','clock','唯一推进'),edge('simulation','production','驱动'),edge('simulation','logistics','驱动'),edge('simulation','business','物理后结算'),edge('entities','resident','索引同对象'),edge('entities','job','ID索引')])
+for n in graphs['global-target']['nodes']:
+    if n['id']=='sim':n.update(label='CitySimulation',sub='R1已落地：唯一时钟/阶段',kind='fact',detail='simulation')
+    if n['id']=='arrival':n.update(label='TransportArrival',sub='R1已落地：只读到达结果',kind='derived',detail='business')
 payload=dict(commit=COMMIT,baseline=BASELINE,cards=cards,graphs=graphs,flows=flowdata,readings=readingdata,perf=perf,evidence=evidence)
 
 page=r'''<!doctype html>
@@ -248,6 +306,39 @@ page=page.replace('x="${(x1+x2)/2+4}" y="${(y1+y2)/2-4}"','x="${lx}" y="${ly}"')
 page=page.replace('<details open><summary>展开 ArchitectureReview</summary>','<h3>定位证据与尚未迁移模块</h3><div id="source-evidence"></div><details open><summary>展开 ArchitectureReview</summary>')
 evidence_js="document.getElementById('source-evidence').innerHTML=DATA.evidence.map(e=>`<details><summary>${esc(e.title)}</summary>${sourceHtml(e.source)}</details>`).join('');"
 page=page.replace('</script></body></html>',evidence_js+'</script></body></html>')
+page=page.replace('审查分支 codex/road-core-20261014 · 已推送 4a47968 · 完整游戏基线 110c4ea。未提交道路撤销通过核心检查，未接GUI，单列本地探索。','R1实现源码 0c49201 · 分支 codex/road-core-20261014 · 完整游戏基线110c4ea。撤销已独立提交0729348，尚未接GUI。')
+page=page.replace('13节目录、21', '13节目录、26')
+page=page.replace('推荐方案B：重划城市调度、道路、交通与业务边界，保留正确算法和领域规则。当前RoadCore也接受重新设计，不默认它是最终架构。','R1已落地：CitySimulation唯一tick与阶段、CityEntities生命周期索引、交通全提交后的业务确认。方案B继续以小范围实现和实际验证修正，不将RoadCore当最终答案。')
+page=page.replace('当前Choose会修改换道影子桶，Deliver在逐车位置提交中直接改业务，不能把它描述成完全双缓冲、全阶段无副作用。目标流程改变这两处语义，须用新的安全/到达/资金测试证明正确性。','R1已把业务结算移到全物理提交之后；Choose仍顺序修改换道影子，任务与车仍混合，不是全阶段纯双缓冲。目标due队列、任务/位置分离与端口尚需R2复评。')
+page=page.replace('04 · 模拟更新流程图 ★','04 · 模拟更新流程图 ★（R1实际）')
+page=page.replace('10 · 推荐目标架构（设计提案，未实施）','10 · 目标架构：R1已落地节点与后续提案')
+page=page.replace('图中的核心类关系以固定commit核对。所有提案节点有紫色虚线框；当前旧系统灰色未接入。撤销四个未提交文件已验证并保留，不在本次文档提交中夹带游戏修改。方向性重写等用户理解并确认总体方案后再实施。','类关系/当前所有权/实际流程以R1代码0c49201核对；提案紫色虚线、未接旧系统灰色。R1已获授权并实际验证；没有继续实施R2大重写。撤销已独立提交0729348，尚未接GUI。')
+page=page.replace('核心2700与行业居民477项检查通过','核心2700与行业居民/R1共493项检查通过')
+page=page.replace('没有新录制Unity全城窗口。历史window.csv','R1已重测Unity隔离交通窗口；仍没有完整市政经营窗口。历史window.csv')
+page=page.replace('当前Vehicle，', '当前Vehicle，')
+page=page.replace('DispatchResident；RoadAccess','CitySimulation.RequestCommute；RoadAccess')
+page=page.replace('HarborCity 架构审查 · 源码基准4a47968','HarborCity R1架构 · 实现源码0c49201；初始审查4a47968')
+r1=(OUT/'R1Implementation.md').read_text(encoding='utf-8')
+page=page.replace('<section id="review"><h2>', '<section id="review"><details open><summary>R1实际改造、验证与剩余风险</summary><div class="doccontent">'+markdown(r1)+'</div></details><h2>')
+page=page.replace('<details open><summary>展开 ArchitectureReview</summary>','<details><summary>初始架构审查历史 + R1状态标注</summary>')
+page=page.replace('当前默认入口 · 精确顺序','R1默认入口 · 精确顺序')
+page=page.replace('世界World私有事实副本','World私有事实副本')
+page=page.replace('同步 Deliver 业务回调','输出到达后城市确认')
+page=page.replace('Depart扣货或设置居民tripId；Deliver改业务；成功清cargo并移除活车','城市准入扣货或设置tripId；全物理提交后确认业务，ACK清cargo并退休')
+page=page.replace('buildingLookup已有字典但Count失效不可靠；成员字典只创建时建立','R1 CityEntities维护同对象生命周期与索引；旧public列表仍需后续收紧')
+page=page.replace('<td>居民出行</td><td>每步全成员扫描；重试.25秒</td>','<td>居民出行</td><td>R1每步注册成员扫描；重试.25秒</td>')
+page=page.replace('未来规模属于设计方向，不是已验证产品能力；不承诺永不重构。','未来规模属于设计方向，不是已验证产品能力；R1不自动授权R2全面重写。')
+page=page.replace('N个居民，J=N个岗位线性查找','旧方案：N居民×J=N岗位线性查找')
+page=page.replace('一次查询最坏N×N；真实多次调用/提前命中差异大','旧方案一次查询最坏N×N；R1正常城已改为字典，N次查询平均O(N)')
+page=page.replace('每步家庭成员扫描</td>','R1每步注册成员扫描</td>')
+page=page.replace('只计配对，不含每F重复OfType扫描、寻路与资金查询','只计F×S配对；R1已去掉F×B重复过滤，仍有寻路/资金/准入成本')
+r1rows=[]
+for name in ['city-before.csv','city-after.csv']:
+    with (OUT/'Results/R1'/name).open(encoding='utf-8-sig') as f:
+        for row in csv.DictReader(f):r1rows.append(row)
+r1fields=['version','residents','factories','shops','active_max','mean_ms','p99_ms','allocated_per_step','produced','delivered']
+r1table='<h3>R1真实通勤/多企业配对（不是完整城市FPS）</h3><div class="table-scroll"><table><tr>'+''.join('<th>'+html.escape(v)+'</th>' for v in r1fields)+'</tr>'+''.join('<tr>'+''.join('<td>'+html.escape(row[v])+'</td>' for v in r1fields)+'</tr>' for row in r1rows)+'</table></div><p>同源码夹具、20步热身+200测量步。3000居民峰值1500活动车，非3000辆车；产量/交付一致。after P99约131ms、GC约6.65MB/步，物流匹配/派车/寻路仍需归因。源码0c49201，原始轻量CSV见Results/R1。</p>'
+page=page.replace('<div id="perf-tables"></div>',r1table+'<div id="perf-tables"></div>')
 OUT.mkdir(parents=True,exist_ok=True)
 (OUT/'HarborCityArchitecture.html').write_text(page,encoding='utf-8')
 (OUT/'SourceEvidence.md').write_text('# 固定源码定位证据\n\n审查commit：`'+COMMIT+'`。以下行号由固定源码生成，而非当前工作树。\n\n'+ '\n'.join('## '+e['title']+'\n\n['+e['source']['file']+':'+str(e['source']['line'])+']('+e['source']['url']+')\n\n方法/语句：`'+e['source']['token']+'`\n' for e in evidence),encoding='utf-8')

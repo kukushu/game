@@ -1,4 +1,6 @@
-# 架构决策记录：待确认方案 B
+# 架构决策记录：方案B的R1已实现，R2需复评
+
+2026-10-14：用户已授权R1，代码0c49201实现唯一tick、支持的实体生命周期/索引、物理后业务确认。CitySimulation、TimeContext、CityEntities、Production/Logistics与TransportArrival现为实际类；CityState、独立任务/物理位置、真实端口、due队列与完全只读事实仍为提案。以下ADR保留总体决策，实际边界/复杂度与局限以R1Implementation.md为准，不机械执行原蓝图。
 
 依据：ArchitectureReview.md，审查源码 `4a4796825f43462f65ee99eb2531656bd1a2678b`。本文件的目标类名称均为提案，不代表代码已存在。
 

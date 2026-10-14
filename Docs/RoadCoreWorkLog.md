@@ -135,3 +135,13 @@ PhysicalRoad.direction明确Both/Forward/Backward，反向不交换物理from/to
 重要更正：当前GetBuilding不是List.Find，而是Dictionary+Count失效；同数量替换有悬空索引风险，Job仍Find。原AdvanceIndustry住宅暴露读旧traffic.trips，新车不会计入重型交通；成员索引仅构造，receipts历史增长，Session与World职责继续聚合。现有10000车证据不含完整居民/企业/市政规模。R3明确完整空地建城/市政/财政/供给消费恢复门槛，避免无限留小Demo。
 
 Chrome实际离线file加载：13节、21类卡、4图、7流程、109源码定位，点击/搜索/缩放/流程/场景/规模交互通过，0脚本错误/外部请求，700px无页面级溢出。实际看三份截图并修所有权歧义、字号与边连线。新轻量模型结果在Docs/Architecture/Results；原大型采样/旧save未动。此批仅文档与文档生成/验证工具及开发约定。
+
+## R1已授权并实现（2026-10-14）
+
+先以0729348独立保留通过2700检查的道路Undo内核，仍未接GUI。R1代码0c49201：CitySimulation接真实城市唯一tick/欠步调度；World正常城禁独立Advance/Step，读同一个clock；移除城市ITransportBusiness回调，World输出值类型Arrival，全物理提交后业务确认ACK/退休，删除永久receipts。CityEntities支持建删替换/成员生命周期与岗位索引，GetBuilding/Job当前城O(1)，工厂账户/未领工资/在途人不能静默丢弃。Production/Logistics分模块，后者仍V+FS、前者仍P，未隐藏成接口优化。
+
+493城市+2700核心及保留原全量回归通过；实际Unity默认居民、生产货运换道/拆分、新保存和跨帧视图通过。城7/核心10，新文件名保留旧文件；唯一clock、欠步、NextDispatchTick、工资游标保存；端点可用性从原建筑重建，不保存第二事实。Fault不继续/不保存半步骤；不是崩溃级事务回滚。旧public实体列表仍过渡风险，Validate拒绝绕过；尚非完整只读CityState。
+
+同夹具git archive配对：100/1000/3000实际居民及25/250/750工厂商店，实际产出/交付相同175/1750/5250，峰值活动车50/500/1500。均值0.228→0.039、19.592→0.945、173.516→6.326ms，3000 P99仍130.906ms/6.65MB步；未达大城稳定目标。内核10000步仍约3.5ms，实际Unity隔离交通窗口10000 3×约59.98–59.99FPS/实际2.9988–2.9995，非全城市政经营。
+
+HTML改为R1实代码：26卡、17所有权节点、4图、7流程、116固定源码引用，离线Chrome无错误/外部请求，截图核对；初始审查保留历史并标已修/剩余，AGENTS授权约定同步。详细结果在Docs/Architecture/Results/R1。R1到此验收，先复评R2任务/位置/端口和物流尖峰，不自动全面继续重写。
