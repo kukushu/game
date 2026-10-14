@@ -7,7 +7,10 @@ namespace HarborCity
 {
     [Serializable] public sealed class CityCoreBusinessData
     {
-        public int version=2,money,day,nextBuilding;
+        public int version=3,money,day,nextBuilding;
+        public CityMapState map;
+        public CityZoningState zoning;
+        public CityDevelopmentState development;
         public double calendarOffset=50;
         public SimulationClockData clock=new SimulationClockData();
         public long nextDispatchTick;
@@ -53,6 +56,7 @@ namespace HarborCity
         readonly List<CityBuilding> retired=new List<CityBuilding>();
         public CitySimulation Simulation {get;}
         public CityEntities Entities {get;}
+        public CityCoreConstruction Construction {get;}
         public CityCoreIndustrySession(CityModel city,double calendarOffset=50,WorldData transport=null,SimulationClockData clock=null,long nextDispatchTick=0,IEnumerable<CityBuilding> retired=null,bool commuteEnabled=true,int payrollDay=-1)
         {
             City=city;if(retired!=null)this.retired.AddRange(retired);var timeline=new SimulationClock(clock);
@@ -61,8 +65,11 @@ namespace HarborCity
             Residents=new CityCoreResidents(city,Transport,Entities,commuteEnabled,payrollDay,calendarOffset);Business.Residents=Residents;
             Simulation=new CitySimulation(city,Transport,timeline,Entities,Residents,Business,calendarOffset,nextDispatchTick);
             Entities.Simulation=Simulation;
+            Construction=new CityCoreConstruction(city,Entities,Transport);
         }
         public int Advance(double seconds)=>Simulation.Advance(seconds);
+        public static CityCoreIndustrySession CreateEmpty()
+        {var city=new CityModel();city.development.enabled=true;return new CityCoreIndustrySession(city,calendarOffset:0);}
         public string AccessIssue(int building)
         {var access=Transport.GetAccess(building);return access==null?"缺少道路入口":!access.valid?"入口道路已拆除":(access.use&AccessUse.Freight)==0?"入口不允许货运":"";}
         public void CloseBuilding(int id)
@@ -73,9 +80,10 @@ namespace HarborCity
             if(building is IndustrialBuilding factory)City.retiredFactoryWages+=factory.factory.wageCosts;
             Entities.RemoveBuilding(id);retired.Add(building);foreach(var member in Entities.Members)if(member.Person.location==id)member.Person.atWork=false;
         }
-        public CityCoreBusinessData SnapshotBusiness()=>CityCoreSave.CopyBusiness(new CityCoreBusinessData{money=City.money,day=City.day,nextBuilding=City.nextBuildingId,calendarOffset=Simulation.CalendarOffset,clock=Simulation.ClockSnapshot,nextDispatchTick=Simulation.Logistics.NextDispatchTick,commuteEnabled=Residents.Enabled,payrollDay=Residents.PayrollDay,society=City.society,buildings=City.buildings.Select(BuildingSaveData.FromBuilding).ToList(),retiredBuildings=retired.Select(BuildingSaveData.FromBuilding).ToList(),retiredFactoryWages=City.retiredFactoryWages,residualIndustry=City.residualIndustry});
+        public CityCoreBusinessData SnapshotBusiness()=>CityCoreSave.CopyBusiness(new CityCoreBusinessData{map=City.map,zoning=City.zoning,development=City.development,money=City.money,day=City.day,nextBuilding=City.nextBuildingId,calendarOffset=Simulation.CalendarOffset,clock=Simulation.ClockSnapshot,nextDispatchTick=Simulation.Logistics.NextDispatchTick,commuteEnabled=Residents.Enabled,payrollDay=Residents.PayrollDay,society=City.society,buildings=City.buildings.Select(BuildingSaveData.FromBuilding).ToList(),retiredBuildings=retired.Select(BuildingSaveData.FromBuilding).ToList(),retiredFactoryWages=City.retiredFactoryWages,residualIndustry=City.residualIndustry});
         public void Validate()
         {
+            if(City.map==null||!City.map.Valid()||City.zoning==null||!City.zoning.Valid()||City.development==null)throw new InvalidOperationException("Invalid map/zoning/development facts");
             Simulation.AssertSaveBoundary();Entities.Validate();Transport.Validate();Transport.AssertSafety();Residents.Validate();if(!City.ValidIndustry())throw new InvalidOperationException("Industrial financial/labour invariants failed");
             foreach(var shop in City.buildings.OfType<CommercialBuilding>())if(shop.Stock<0||shop.Stock>32||shop.wholesaleCosts<0)throw new InvalidOperationException("Commercial inventory invalid");
             foreach(var factory in retired.OfType<IndustrialBuilding>())if(Math.Abs(factory.factory.CashError)>1e-6)throw new InvalidOperationException("Retired account mismatch");

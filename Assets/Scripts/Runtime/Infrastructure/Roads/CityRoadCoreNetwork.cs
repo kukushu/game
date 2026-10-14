@@ -100,6 +100,10 @@ namespace HarborCity.RoadCore
         readonly HashSet<int> conflictJunctions=new HashSet<int>();
         readonly Dictionary<int,int> laneCounts=new Dictionary<int,int>();
         readonly Dictionary<int,double> junctionRadii=new Dictionary<int,double>();
+        readonly Dictionary<int,Geometry> centrelines=new Dictionary<int,Geometry>();
+        readonly Dictionary<int,RoadSettings> settings=new Dictionary<int,RoadSettings>();
+        public IEnumerable<int> RoadIds=>centrelines.Keys;
+        public Geometry Centreline(int road)=>centrelines[road];
         ConnectionConflicts connectionConflicts;
         RoadSpatialIndex spatialIndex;
         LaneReachability reachability;
@@ -115,7 +119,7 @@ namespace HarborCity.RoadCore
         public IEnumerable<Drivable> Drivables=>drivables.Values;
         public int RoadCount=>data.roads.Count;
         public int JunctionCount=>data.junctions.Count;
-        public RoadSettings Settings(int roadId){var road=data.roads.Find(r=>r.id==roadId);if(road==null)throw new ArgumentException("Missing road");return new RoadSettings(road);}
+        public RoadSettings Settings(int roadId){if(!settings.TryGetValue(roadId,out var road))throw new ArgumentException("Missing road");return road;}
         public bool HasParallelLanes {get;private set;}
         public Network(NetworkData data){this.data=data??throw new ArgumentNullException(nameof(data));Rebuild();}
         public Drivable Get(long id){Drivable d;if(!drivables.TryGetValue(id,out d))throw new InvalidOperationException("Missing drivable "+id);return d;}
@@ -151,6 +155,7 @@ namespace HarborCity.RoadCore
                 var g=new Geometry(r.points);if(g.Length<.1||!Finite(r.startTangent)||!Finite(r.endTangent)||Point.Distance(r.points[0],junctions[r.from].position)>1e-6||Point.Distance(r.points[r.points.Length-1],junctions[r.to].position)>1e-6)throw new ArgumentException("Road endpoints/tangents disagree with junctions");
                 for(int i=0;i<r.points.Length;i++)if(!Finite(r.points[i])||(i>0&&Point.Distance(r.points[i-1],r.points[i])<1e-8))throw new ArgumentException("Invalid geometry sample");
                 if(r.rightVectors!=null){if(r.rightVectors.Length!=r.points.Length)throw new ArgumentException("Cross-section count mismatch");foreach(var right in r.rightVectors)if(!Finite(right)||Math.Abs(right.y)>1e-9||Point.Distance(right,new Point())>1.000001)throw new ArgumentException("Invalid road cross-section");}
+                centrelines.Add(r.id,g);settings.Add(r.id,new RoadSettings(r));
                 maxR=Math.Max(maxR,r.id);laneCounts.Add(r.id,r.lanes);HasParallelLanes|=r.lanes>1;double radius=(r.lanes-.5)*1.1+1;double prior;junctionRadii.TryGetValue(r.from,out prior);junctionRadii[r.from]=Math.Max(prior,radius);junctionRadii.TryGetValue(r.to,out prior);junctionRadii[r.to]=Math.Max(prior,radius);for(int lane=0;lane<r.lanes;lane++){if(r.direction!=RoadDirection.Backward)AddLane(r,false,lane);if(r.direction!=RoadDirection.Forward)AddLane(r,true,lane);}
             }
             if(data.nextRoad<=maxR||data.nextJunction<=maxJ)throw new ArgumentException("Identity allocator is behind live entities");

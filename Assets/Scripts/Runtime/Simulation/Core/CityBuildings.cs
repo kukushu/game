@@ -9,6 +9,7 @@ namespace HarborCity
     {
         public int id;
         public float x, z, yaw, entranceX, entranceZ;
+        public float groundY,entranceY;
         public float width = 2.9f, depth = 2.9f;
         public int level=1;
         public int upgradeDays,lastUpgradeDay;

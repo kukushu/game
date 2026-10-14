@@ -18,8 +18,8 @@ namespace HarborCity
             if(revision==world.NetworkGeneration)return;bindings.Clear();
             foreach(var building in city.buildings)
             {
-                var access=world.GetAccess(building.id);if(access==null||access.valid)continue;world.Network.Project(new Point(building.entranceX,0,building.entranceZ),4,false,hits);
-                SpatialHit? chosen=null;foreach(var hit in hits)if(Math.Abs(hit.point.y)<.5){if(chosen==null)chosen=hit;if(world.Network.Get(hit.drivable).LaneIndex==access.preferredIndex){chosen=hit;break;}}
+                var access=world.GetAccess(building.id);if(access==null||access.valid)continue;world.Network.Project(new Point(building.entranceX,building.entranceY,building.entranceZ),4,false,hits);
+                SpatialHit? chosen=null;foreach(var hit in hits)if(Math.Abs(hit.point.y-building.entranceY)<.5){if(chosen==null)chosen=hit;if(world.Network.Get(hit.drivable).LaneIndex==access.preferredIndex){chosen=hit;break;}}
                 if(chosen.HasValue)bindings.Add(new AccessBinding(building.id,chosen.Value.drivable,chosen.Value.distance));
             }
             if(bindings.Count>0)world.RebindAccesses(bindings);

@@ -30,7 +30,7 @@ namespace HarborCity
         [NonSerialized] public Func<float,float,float> developmentHeight;
         [NonSerialized] public int residentialDemand,commercialDemand,industrialDemand;
         // Placeholder asset footprints, not the original game's spawn probabilities.
-        static readonly (int width,int depth)[] growthFootprints={(2,2),(3,2),(2,3),(4,3),(3,4),(4,4),(1,2),(1,1),(2,1),(3,3)};
+        internal static readonly (int width,int depth)[] GrowthFootprints={(2,2),(3,2),(2,3),(4,3),(3,4),(4,4),(1,2),(1,1),(2,1),(3,3)};
         public void DevelopmentDemand()
         {
             int vacant=buildings.OfType<ResidentialBuilding>().Sum(b=>HousingCapacity(b.id)-Occupancy(b.id));
@@ -65,9 +65,9 @@ namespace HarborCity
                 int need=use==LandUse.Residential?residentialDemand:use==LandUse.Commercial?commercialDemand:industrialDemand;
                 if(need<=0 || development.projects.Any(p=>p.building.type==use)) continue;
                 bool planned=false;
-                for(int sizeIndex=0;sizeIndex<growthFootprints.Length && !planned;sizeIndex++)
+                for(int sizeIndex=0;sizeIndex<GrowthFootprints.Length && !planned;sizeIndex++)
                 {
-                    var size=growthFootprints[(development.nextProjectId-1+sizeIndex)%growthFootprints.Length];
+                    var size=GrowthFootprints[(development.nextProjectId-1+sizeIndex)%GrowthFootprints.Length];
                     foreach(var first in candidates.Where(c=>c.row==0 && c.available && c.use==use))
                     {
                         var footprint=candidates.Where(c=>c.block==first.block && c.side==first.side && c.row<size.depth && c.column>=first.column && c.column<first.column+size.width).ToList();

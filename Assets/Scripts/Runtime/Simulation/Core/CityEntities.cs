@@ -22,6 +22,7 @@ namespace HarborCity
         public IReadOnlyList<IndustrialBuilding> Factories {get;}
         public IReadOnlyList<CommercialBuilding> Shops {get;}
         public int Revision {get;private set;}
+        public int BuildingRevision {get;private set;}
         internal CitySimulation Simulation;
         internal void StructuralBoundary()
         {if(Simulation!=null&&(Simulation.IsStepping||Simulation.Fault!=null))throw new InvalidOperationException("Structural edits require a healthy city step boundary");}
@@ -44,13 +45,13 @@ namespace HarborCity
         public CityMember Member(int id)=>people.TryGetValue(id,out var m)?m:null;
         public Household Family(int id)=>families.TryGetValue(id,out var h)?h:null;
         public void AddBuilding(CityBuilding b)
-        {StructuralBoundary();if(b==null||b.id<city.nextBuildingId||b.id>=int.MaxValue||buildings.ContainsKey(b.id))throw new ArgumentException("Building ID must be new and monotonic");city.buildings.Add(b);buildings.Add(b.id,b);IndexType(b);city.nextBuildingId=b.id+1;transport.SetEndpointAvailable(b.id,Available(b));Revision++;city.SyncJobs();}
+        {StructuralBoundary();if(b==null||b.id<city.nextBuildingId||b.id>=int.MaxValue||buildings.ContainsKey(b.id))throw new ArgumentException("Building ID must be new and monotonic");city.buildings.Add(b);buildings.Add(b.id,b);IndexType(b);city.nextBuildingId=b.id+1;transport.SetEndpointAvailable(b.id,Available(b));Revision++;BuildingRevision++;city.SyncJobs();}
         public void ReplaceBuilding(CityBuilding b)
-        {StructuralBoundary();var old=b==null?null:Building(b.id);if(old==null||b.Use!=old.Use||old is IndustrialBuilding)throw new ArgumentException("Replacement preserves identity/use; factory accounts need explicit retirement, not replacement");if(old is CommercialBuilding shop&&b is CommercialBuilding next&&(shop.Stock!=next.Stock||shop.wholesaleCosts!=next.wholesaleCosts))throw new ArgumentException("Replacement cannot discard inventory/finance");int at=city.buildings.IndexOf(old);city.buildings[at]=b;buildings[b.id]=b;UnindexType(old);IndexType(b);transport.SetEndpointAvailable(b.id,Available(b));Revision++;city.SyncJobs();transport.RefreshEndpoints();}
+        {StructuralBoundary();var old=b==null?null:Building(b.id);if(old==null||b.Use!=old.Use||old is IndustrialBuilding)throw new ArgumentException("Replacement preserves identity/use; factory accounts need explicit retirement, not replacement");if(old is CommercialBuilding shop&&b is CommercialBuilding next&&(shop.Stock!=next.Stock||shop.wholesaleCosts!=next.wholesaleCosts))throw new ArgumentException("Replacement cannot discard inventory/finance");int at=city.buildings.IndexOf(old);city.buildings[at]=b;buildings[b.id]=b;UnindexType(old);IndexType(b);transport.SetEndpointAvailable(b.id,Available(b));Revision++;BuildingRevision++;city.SyncJobs();transport.RefreshEndpoints();}
         internal CityBuilding RemoveBuilding(int id)
-        {StructuralBoundary();var b=Building(id);if(b==null)throw new ArgumentException("Missing building");city.buildings.Remove(b);buildings.Remove(id);UnindexType(b);transport.SetEndpointAvailable(id,false);Revision++;city.SyncJobs();transport.RefreshEndpoints();return b;}
+        {StructuralBoundary();var b=Building(id);if(b==null)throw new ArgumentException("Missing building");city.buildings.Remove(b);buildings.Remove(id);UnindexType(b);transport.SetEndpointAvailable(id,false);Revision++;BuildingRevision++;city.SyncJobs();transport.RefreshEndpoints();return b;}
         public void SetAvailability(int id,bool abandoned,bool burned)
-        {StructuralBoundary();var b=Building(id);if(b==null)throw new ArgumentException("Missing building");b.abandoned=abandoned;b.burned=burned;transport.SetEndpointAvailable(id,Available(b));Revision++;city.SyncJobs();transport.RefreshEndpoints();}
+        {StructuralBoundary();var b=Building(id);if(b==null)throw new ArgumentException("Missing building");b.abandoned=abandoned;b.burned=burned;transport.SetEndpointAvailable(id,Available(b));Revision++;BuildingRevision++;city.SyncJobs();transport.RefreshEndpoints();}
         public void AddFamily(Household h)
         {StructuralBoundary();if(h==null||h.id<city.society.nextId||h.id>=int.MaxValue||families.ContainsKey(h.id)||h.people.Count!=0)throw new ArgumentException("Add empty new family first");families.Add(h.id,h);city.society.families.Add(h);city.society.nextId=h.id+1;Revision++;}
         public void AddResident(int familyId,CityResident p)
