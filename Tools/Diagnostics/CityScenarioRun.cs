@@ -43,12 +43,13 @@ static class CityScenarioRun
     static void Require(bool ok,string message){if(!ok)throw new InvalidOperationException(message);}
     static int Main(string[] args)
     {
-        string output=args.Length>1?args[1]:"Temp/CityScenarios/latest";Directory.CreateDirectory(output);CityCoreIndustrySession s=null;var wall=Stopwatch.StartNew();
+        string output=args.Length>1?args[1]:"Temp/CityScenarios/latest";Directory.CreateDirectory(output);CityCoreIndustrySession s=null;CityWasteDiagnostics wasteDiagnostic=null;var wall=Stopwatch.StartNew();
         try
         {
             var settings=Json.Deserialize<CityScenarioSettings>(File.ReadAllText(args[0]));settings.Validate();
             Write(Path.Combine(output,"settings.json"),settings);
             bool profile=args.Length>2&&args[2]=="profile";
+            wasteDiagnostic=args.Length>5&&args[5]=="waste"?new CityWasteDiagnostics():null;
             var design=Json.Deserialize<GameDesignData>(File.ReadAllText(args[4]));
             bool loading=args[3]!="-";
             s=loading?Restore(File.ReadAllBytes(args[3])):CityScenarioBuilder.Create(settings,design);
@@ -59,6 +60,8 @@ static class CityScenarioRun
             // All timed runs start from the same saved facts and cold derived caches,
             // whether constructed just now or supplied by --Load.
             s=Restore(initial);
+            s.Simulation.Waste.Diagnostics=wasteDiagnostic;
+            long initialCollected=s.Simulation.Waste.Collected,initialProcessed=s.Simulation.Waste.Processed,initialInTransit=s.Simulation.Waste.InTransit;
             var initialState=State(s);Write(Path.Combine(output,"initial-state.json"),initialState);
             int steps=checked((int)Math.Round(settings.days*s.City.society.settings.secondsPerDay/SimulationClock.StepSeconds));
             int warmup=(int)Math.Round(settings.warmupDays*s.City.society.settings.secondsPerDay/SimulationClock.StepSeconds);
@@ -106,19 +109,26 @@ static class CityScenarioRun
                     if(i==steps/2)
                     {
                         // Fork a real in-flight checkpoint. Replay is outside timed steps and attribution.
-                        long v=Stopwatch.GetTimestamp();CityCoreProfile.Enabled=false;
+                        long v=Stopwatch.GetTimestamp();CityCoreProfile.Enabled=false;s.Simulation.Waste.Diagnostics=null;
                         byte[] checkpoint=CityCoreSave.Write(s);File.WriteAllBytes(Path.Combine(output,"inflight.hcity"),checkpoint);Require(s.Transport.ActiveCount>0,"Checkpoint contains no active vehicles");
                         var a=Restore(checkpoint);var b=Restore(checkpoint);Require(CityCoreSave.Write(a).SequenceEqual(checkpoint),"Read/write checkpoint changed state");
                         for(int j=0;j<2400;j++){a.Advance(.05);b.Advance(.05);}a.Validate();b.Validate();byte[] result=CityCoreSave.Write(a);Require(result.SequenceEqual(CityCoreSave.Write(b)),"Restored continuations differ");
                         // Also compare a live continuation, including derived cache state, with restored state.
                         var live=s;for(int j=0;j<2400;j++)live.Advance(.05);live.Validate();Require(result.SequenceEqual(CityCoreSave.Write(live)),"Live and restored continuations differ");
-                        s=Restore(checkpoint);replayHash=Hash(result);replayChecked=true;restoreMs+=(Stopwatch.GetTimestamp()-v)*1000.0/Stopwatch.Frequency;CityCoreProfile.Enabled=profile;
+                        s=Restore(checkpoint);s.Simulation.Waste.Diagnostics=wasteDiagnostic;replayHash=Hash(result);replayChecked=true;restoreMs+=(Stopwatch.GetTimestamp()-v)*1000.0/Stopwatch.Frequency;CityCoreProfile.Enabled=profile;
                     }
                 }
             }
             s.Validate();byte[] final=CityCoreSave.Write(s);File.WriteAllBytes(Path.Combine(output,"final.hcity"),final);Restore(final);
             Require(s.City.trade.rawDelivered>0&&s.City.consumption.ConsumedGoods>0&&s.Simulation.Waste.Processed>0&&s.Simulation.Finance.TaxesCollected>0&&s.Entities.Buildings.OfType<IndustrialBuilding>().Sum(f=>(long)f.factory.produced)>0,"Required real city activity absent; not a complete scenario pass");
             Require(everWorking&&new[]{TransportPurpose.Work,TransportPurpose.Home,TransportPurpose.Freight,TransportPurpose.Shopping,TransportPurpose.Service}.All(p=>observedPurposes.Contains(p)),"Not all required real city trip purposes/attendance observed");
+            if(wasteDiagnostic!=null)
+            {
+                var stations=wasteDiagnostic.Snapshot();
+                Require(stations.Sum(t=>t.collected)==s.Simulation.Waste.Collected-initialCollected&&stations.Sum(t=>t.processed)==s.Simulation.Waste.Processed-initialProcessed,"Waste measurement counted replay work or missed real activity");
+                Require(stations.Sum(t=>t.delivered)==stations.Sum(t=>t.collected)+initialInTransit-s.Simulation.Waste.InTransit,"Waste arrival measurement disagrees with actual shipments");
+                Write(Path.Combine(output,"waste-diagnostics.json"),new{peakActive=wasteDiagnostic.PeakActive,simulationSeconds=steps*.05,stations});
+            }
             if(profile){File.WriteAllLines(Path.Combine(output,"attribution.csv"),new[]{CityCoreProfile.Header(),CityCoreProfile.Row(s.Simulation.Tick,s.Transport.ActiveCount,routePreparations,GC.CollectionCount(0)-g0,GC.CollectionCount(1)-g1,GC.CollectionCount(2)-g2)});}
             // GC collection counters include diagnostic/replay work; step allocation/time exclude it.
             long workingSet=Process.GetCurrentProcess().WorkingSet64;

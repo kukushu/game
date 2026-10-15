@@ -300,31 +300,34 @@ namespace HarborCity.RoadCore
             data.tasks.Add(v.Task);tasksById.Add(v.Task.id,v.Task);vehiclesByTask.Add(v.Task.id,v);data.nextTask++;EditEpoch++;indexDirty=true;
         }
         internal TransportAdmission PrepareTransport(int origin,int destination,int amount,double price,TransportPurpose purpose,int citizen)
+            =>PrepareTransport(origin,destination,amount,price,purpose,citizen,out _);
+        internal TransportAdmission PrepareTransport(int origin,int destination,int amount,double price,TransportPurpose purpose,int citizen,out TransportRejection rejection)
         {
+            rejection=TransportRejection.None;
 #if CITY_CORE_ATTRIBUTION
             using var observation=HarborCity.RoadCore.CityCoreProfile.Measure(HarborCity.RoadCore.CityCoreProfile.Part.Admission);
 #endif
 
             if(data.nextVehicle>=int.MaxValue||data.nextTask>=int.MaxValue)throw new InvalidOperationException("Vehicle IDs exhausted");
             if(purpose<TransportPurpose.Freight||purpose>TransportPurpose.Service||amount<0||purpose==TransportPurpose.Freight&&amount==0||purpose==TransportPurpose.Service&&(citizen!=0||price!=0||amount!=0)||IsResident(purpose)&&(price!=0||citizen<=0||purpose!=TransportPurpose.Home&&amount!=0)||price<0||double.IsNaN(price)||double.IsInfinity(price))throw new ArgumentOutOfRangeException("Cargo/price");
-            if(origin==destination||!EndpointExists(origin)||!EndpointExists(destination))return null;
-            RoadAccess source=GetAccess(origin),target=GetAccess(destination);if(source!=null&&target!=null){var use=IsResident(purpose)?AccessUse.Resident:AccessUse.Freight;if(!source.valid||!target.valid||(source.use&use)==0||(target.use&use)==0)return null;}
+            if(origin==destination||!EndpointExists(origin)||!EndpointExists(destination)){rejection=TransportRejection.EndpointUnavailable;return null;}
+            RoadAccess source=GetAccess(origin),target=GetAccess(destination);if(source!=null&&target!=null){var use=IsResident(purpose)?AccessUse.Resident:AccessUse.Freight;if(!source.valid||!target.valid||(source.use&use)==0||(target.use&use)==0){rejection=TransportRejection.AccessUnavailable;return null;}}
             // Freight has exactly one saved source lane/station. Physical source
             // blockage is independent of its destination; reject before path search.
-            if(purpose==TransportPurpose.Freight&&FreightSourceBlocked(origin))return null;
+            if(purpose==TransportPurpose.Freight&&FreightSourceBlocked(origin)){rejection=TransportRejection.SourceBlocked;return null;}
             if(purpose==TransportPurpose.Freight&&source!=null&&target!=null&&!Network.CanReach(source,target))
             {
 #if CITY_CORE_ATTRIBUTION
                 CityCoreProfile.Unreachable++;
 #endif
-                return null;
+                rejection=TransportRejection.Unreachable;return null;
             }
-            var blueprint=dispatchRoutes.Get(Network,origin,destination,source,target,purpose!=TransportPurpose.Freight,business as IJunctionEndpointProvider);var route=blueprint.route;double start=blueprint.start,end=blueprint.end;if(route==null||route.Length==0)return null;
+            var blueprint=dispatchRoutes.Get(Network,origin,destination,source,target,purpose!=TransportPurpose.Freight,business as IJunctionEndpointProvider);var route=blueprint.route;double start=blueprint.start,end=blueprint.end;if(route==null||route.Length==0){rejection=TransportRejection.NoRoute;return null;}
             if(indexDirty)Reindex();List<LaneOccupant> bucket;
-            if(occupancy.TryGetValue(route[0],out bucket)){int slot=InsertionSlot(bucket,start);if(slot>0&&bucket[slot-1].distance-start<MinimumSpacing||slot<bucket.Count&&start-bucket[slot].distance<MinimumSpacing)return null;}
+            if(occupancy.TryGetValue(route[0],out bucket)){int slot=InsertionSlot(bucket,start);if(slot>0&&bucket[slot-1].distance-start<MinimumSpacing||slot<bucket.Count&&start-bucket[slot].distance<MinimumSpacing){rejection=TransportRejection.SourceOccupied;return null;}}
             var entry=Network.Get(route[0]);int reservation=start<EntryReservationEnd(entry)-1e-9?entry.From:start>StopDistance(entry)+1e-9?entry.To:0;
             long spawnMovement=reservation==entry.To&&route.Length>1?route[1]:0;
-            if(Network.IsConflictJunction(reservation)&&!reservations.CanReserve(reservation,spawnMovement,data.nextVehicle))return null;
+            if(Network.IsConflictJunction(reservation)&&!reservations.CanReserve(reservation,spawnMovement,data.nextVehicle)){rejection=TransportRejection.JunctionReserved;return null;}
             var task=new TripTask{id=data.nextTask,origin=origin,destination=destination,purpose=purpose,citizenId=citizen,departedAt=Clock,Shipment=purpose==TransportPurpose.Freight||amount>0?new Shipment{remaining=amount,unitPrice=price}:null};
             var v=new Vehicle{id=data.nextVehicle,Task=task,Plan=new RoutePlan{segments=new List<long>(route),EndDistance=end},Position=new VehiclePosition(route[0],start)};
             if(data.vehicles.Count==data.vehicles.Capacity)data.vehicles.Capacity=Math.Max(4,data.vehicles.Capacity*2);

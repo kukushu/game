@@ -1,0 +1,483 @@
+{
+  "scenarioHash": "53B7DCA5B711A1E5325FEE5372F65BAEB879B5604F2C4201D70B0A6C39920D0B",
+  "dirty": [
+    " M Assets/Scripts/Runtime/Simulation/Services/CityCoreWaste.cs",
+    " M Assets/Scripts/Runtime/Traffic/CityRoadCoreWorld.cs",
+    " M Assets/Scripts/Runtime/Traffic/CityTransportBoundary.cs",
+    " M Tools/Diagnostics/CityScenarioRun.cs",
+    " M Tools/RunCityScenario.ps1",
+    "?? Assets/Scripts/Diagnostics/Runtime/CityWasteDiagnostics.cs",
+    "?? Assets/Scripts/Diagnostics/Runtime/CityWasteDiagnostics.cs.meta"
+  ],
+  "profile": false,
+  "mono": [
+    "Mono JIT compiler version 6.13.0 (Visual Studio built mono)",
+    "Copyright (C) Novell, Inc, Xamarin Inc and Contributors. www.mono-project.com",
+    "\tTLS:           __thread",
+    "\tSIGSEGV:       normal",
+    "\tNotification:  Thread + polling",
+    "\tArchitecture:  x86",
+    "\tDisabled:      none",
+    "\tMisc:          softdebug ",
+    "\tInterpreter:   yes",
+    "\tSuspend:       preemptive",
+    "\tGC:            sgen (concurrent by default)"
+  ],
+  "wasteDiagnostics": true,
+  "gitCommit": "facea1de8883f72448f4e1f4ca8897c1cf21939a",
+  "utc": "2026-10-15T15:32:53.4461888Z",
+  "ramBytes": 34188214272,
+  "sourceHashes": [
+    {
+      "hash": "8DD2BAB07346C2F632CAC25E32A824CE8948EADC64BD1085F8C3A732738BE1AF",
+      "path": "Assets\\Scripts\\Runtime\\Observability\\CityAnalysisState.cs"
+    },
+    {
+      "hash": "80808940BF881476B5213EC663C094A7839003B1A33C11C96ABF69CE2AA651B0",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Core\\CityBuildingConditions.cs"
+    },
+    {
+      "hash": "B5CCDA2B4AFD0DBF55F5FF08B266BA69B9A135B2D2438096776052689760F012",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Growth\\CityBuildingGrowth.cs"
+    },
+    {
+      "hash": "6E6BA032CB38E2F1045C7A1D7E3CBEFFCC7C1EF08B3BAF8ECF32D7B3A55932CD",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Core\\CityBuildingProblems.cs"
+    },
+    {
+      "hash": "FE760FAA996943B2F6728FC6D304FE67054A38C1D356AED6DE7850B982979CD4",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Core\\CityBuildings.cs"
+    },
+    {
+      "hash": "083ADB78B3E42FE973D23ACD763A9F56F219F771D286C9A31A6597E7950DDBA2",
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\CityCargoKind.cs"
+    },
+    {
+      "hash": "02AECF6BB6D944F83ADD6A66602D07C6E7581D6C595146C9BEC92C77352525F4",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Core\\CityCoreConstruction.cs"
+    },
+    {
+      "hash": "A829154DA65DE82E27D7061C6B4F893DFE45F3439FB525128B54B66874FE369D",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Economy\\CityCoreConsumption.cs"
+    },
+    {
+      "hash": "CD0C2CD5BB0736F72FE368DCE0222BCD260A1FC324ECBE72EC84ABA52C440BA0",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Economy\\CityCoreFinance.cs"
+    },
+    {
+      "hash": "2C91C0FF73532B6CC28EB7E7383827BE7B3A13D9A173F0283393C8A5F4B9AFA1",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Growth\\CityCoreGrowth.cs"
+    },
+    {
+      "hash": "3B953643B0F19FE5627FE412C8824722AF36235BC31D69D40053E80F1E0CADCC",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Industry\\CityCoreIndustrySession.cs"
+    },
+    {
+      "hash": "9210E18F6A01242225F4B47DCAA14FA184F41C8C4AC70A39659F1D7163DBF607",
+      "path": "Assets\\Scripts\\Runtime\\Observability\\CityCoreObservation.cs"
+    },
+    {
+      "hash": "ED8C31340C47CDB36770A64A803F5C3E0E267E218C5AAAF9C5346F12345B63F3",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Economy\\CityCorePayroll.cs"
+    },
+    {
+      "hash": "CAEE495972171932AB760A12BE1901EA2041DF73F2717825847FBE4208E74955",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Residents\\CityCorePopulation.cs"
+    },
+    {
+      "hash": "836DC24256BF44F4BF06A24E9BBABA43F7BF994047714BBD5595EDCB9B05CF7D",
+      "path": "Assets\\Scripts\\Diagnostics\\Runtime\\CityCoreProfile.cs"
+    },
+    {
+      "hash": "1085E8BB70DA1564FAD93335DC3CAE63B677BD8A1BB6326B5B83654BF1E3E7DC",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Residents\\CityCoreResidents.cs"
+    },
+    {
+      "hash": "6AD768D2919842DAB2C8D8043FE60B99BD24911CE6C91459C7F18A35633C162D",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Core\\CityCoreRoadBindings.cs"
+    },
+    {
+      "hash": "A16B73614914FAE91428C79EBAE5722746415658368A786F6B85BD4FE44CEA00",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Core\\CityCoreSave.cs"
+    },
+    {
+      "hash": "D818D2800C6B5BCC868AFB002B206F6D5A16506EB988D361EA9BDFD7722A0DEC",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Economy\\CityCoreTrade.cs"
+    },
+    {
+      "hash": "B908148DF9ADCDFF270E00FFC83820E5098B35FC44AC0D9D49D197F0FEA07CDB",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Services\\CityCoreUtilities.cs"
+    },
+    {
+      "hash": "CC009CCBF5AE179F2298942B5A1A02C487472D2B376350FD199BC42F638F0E51",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Services\\CityCoreWaste.cs"
+    },
+    {
+      "hash": "D5F9CD2B2BD0702C47AE7B241C93E15761469170828A70064E752E7AB6851182",
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Zoning\\CityCoreZoning.cs"
+    },
+    {
+      "hash": "F142AD9789DE18363445686DBA6624599402825140E74D2F53D364DD84D83C4C",
+      "path": "Assets\\Scripts\\Runtime\\Observability\\CityDailyAnalysis.cs"
+    },
+    {
+      "hash": "6F05BB97765DE4E26A04EF99191E4DD831EF86C2AB87098DD0204189BC68F494",
+      "path": "Assets\\Scripts\\Runtime\\Observability\\CityDashboardPresentation.cs"
+    },
+    {
+      "hash": "5209172467AAD1533D15D935C11D4D10D4343C0020CD5339415F9B1CC858393D",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Services\\CityDeathcare.cs"
+    },
+    {
+      "hash": "AA52448D5F2E3E5B99C9BE5B2572A56CBCA46241D990BFAADB0BB5A3E107465F",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Growth\\CityDevelopment.cs"
+    },
+    {
+      "hash": "DBBA2CA22D43E474F1B7019746A6BC61BCE7E2A384C3A980E366D4703C94A2ED",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Residents\\CityEducation.cs"
+    },
+    {
+      "hash": "ADCD2826EAD20E68AF4A8875E5AAD4F0D6449DAEC31F6944B31A158BDA2970CA",
+      "path": "Assets\\Scripts\\Runtime\\GameData\\CityEmploymentDesign.cs"
+    },
+    {
+      "hash": "DF404EFBE5CD33B3A367912F17B93CEF064E5628024C04F09350114303799F94",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Core\\CityEntities.cs"
+    },
+    {
+      "hash": "A66B6668CF6D778AFAD2395603EEE28F4A9B73A956A6FDDEAD840D293BFA0BF0",
+      "path": "Assets\\Scripts\\Runtime\\GameData\\CityFinanceDesign.cs"
+    },
+    {
+      "hash": "06F73466F52D05502132E389EF431FE34D431090B3C31563B12DB74493E13C1F",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Services\\CityFire.cs"
+    },
+    {
+      "hash": "C620513DB7DA693B3E685794C2CB61F4F6E7044B2B7BD1C35CB648050D9358A1",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Industry\\CityFreightCandidates.cs"
+    },
+    {
+      "hash": "1F065A4D91A9C0098CB27BD0AC90D2988EB660584976CE97D5BAA24427E968CB",
+      "path": "Assets\\Scripts\\Runtime\\GameData\\CityGameDesign.cs"
+    },
+    {
+      "hash": "6F40F1BAA28E8E4CE23C3952F806695C8B1B4E460484D76C07CB259B9B2B3458",
+      "path": "Assets\\Scripts\\Diagnostics\\Runtime\\CityGrowingGridFixture.cs"
+    },
+    {
+      "hash": "636365A3F1D2C6525877B9CBE09CC899EB343BFF6DBF186521DCB84D12403929",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Residents\\CityHealth.cs"
+    },
+    {
+      "hash": "F86C7038DFD2522F9D6784303CB5E102288C8DB1F86A582968E4F6932748B3D4",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Services\\CityHealthcare.cs"
+    },
+    {
+      "hash": "0664E795030FCFE37B27F9E50F45DEB1191A61C22F1E0E96010CC5911EF94FB8",
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\CityHighwayTraffic.cs"
+    },
+    {
+      "hash": "509668DC3A1D34B9224B8139E3B2B3FF870C2B6B00CCF661B769DB6613916904",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Residents\\CityHouseholds.cs"
+    },
+    {
+      "hash": "0BDB74DDF63F7ED8F74C55BC7C0747E1340B560AE6FEC2DD55BAD8A79D4D61F6",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Industry\\CityIndustry.cs"
+    },
+    {
+      "hash": "A4859363356BF0D5695EA99A0590E63E7377B3F77A5203C856379CAE6BDDEAFF",
+      "path": "Assets\\Scripts\\Diagnostics\\Runtime\\CityIntegratedScaleFixture.cs"
+    },
+    {
+      "hash": "1685C3937AA92D0F745B9A3E235B8C31082B1EEE5EC73C0FA72B462AFDEBBEBA",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Residents\\CityJobs.cs"
+    },
+    {
+      "hash": "74BCA67BE16FF0C99B187D55D802C06EA01EEA214B3016AE3C3A752596344C8D",
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\CityJunctions.cs"
+    },
+    {
+      "hash": "BFBE6F4BF7AB5437B40BAD95FDD43CE1B5518A62AA16393E1FEB868967481D7C",
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityLaneConnection.cs"
+    },
+    {
+      "hash": "5CCF5765A62A02905A8ED8649B6584F9119F03640DCD06AB1E336BDA995B89C8",
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityLaneReachability.cs"
+    },
+    {
+      "hash": "3B895CFCC61A4C886336189293DAF38B1C3438E6A020CE81CA581FB5F4830E8C",
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\CityLanes.cs"
+    },
+    {
+      "hash": "9591EBF46250B9E8A413F62D8687D1E7CBDB325C37C803AE2636D998014A951A",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Economy\\CityLoans.cs"
+    },
+    {
+      "hash": "DBFC4543180DA6D7E2038F862D32F8830AC000C3454539B759280FFDD6154441",
+      "path": "Assets\\Scripts\\Runtime\\GameData\\CityLocalization.cs"
+    },
+    {
+      "hash": "EC52FF92FBD2E5A70DFC2BAC93DABB0B7C8BCBFD63B44D7B4E68C068C8414BD6",
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityLogicalRoadRouter.cs"
+    },
+    {
+      "hash": "D5AF55728DD9C83F3EC7C7692EA5FAAFF69E68DF201040D8D7CF1D14F9AC9AB2",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Industry\\CityLogisticsSystem.cs"
+    },
+    {
+      "hash": "4FF12E8CA5B6A6622F90EEF8F8939659DFB890965E717A5C3730DFD8ECC60129",
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Map\\CityMap.cs"
+    },
+    {
+      "hash": "D0331FE6F96E691C4FD92D5F81CA1047F29847CB9FA51EC59D330ACA4AE3B765",
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Map\\CityMapViews.cs"
+    },
+    {
+      "hash": "B1B5AF39701CE13ECD88496B36C913DAEC710EB0FB1E0C401CE8AA82599CE78C",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Core\\CityModel.cs"
+    },
+    {
+      "hash": "CFB5F2E3E7E0395E3D06422F3DAC6608ECC1658C92A2A572BEA8DC9CB4414BA7",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Services\\CityPolice.cs"
+    },
+    {
+      "hash": "8B44AAC9B02E63F601A9D8C3254DA38B1E243AA47E2FD7C8BE86B2BB6793DD4A",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Industry\\CityProductionSystem.cs"
+    },
+    {
+      "hash": "D17EA3540093DC58CA7B90A47E0C3589C7F88D6E7834306FE0812B1EE3D7AB2E",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Residents\\CityResidentAging.cs"
+    },
+    {
+      "hash": "5D2C18719EF9AB47D101435AE67D38142EDD2ECE85B2A947A667A5BB7D5363E7",
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityResidentRouteBounds.cs"
+    },
+    {
+      "hash": "8A104C8982BCBD8CD0175C6DBD97392E60770FA08BDA76D0273579B842E9A045",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Residents\\CityResidents.cs"
+    },
+    {
+      "hash": "D6005DD183065EB77F0DA3E9579266A82FB313F6200C1A02FADCD571495D4C21",
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\Trips\\CityResidentTransport.cs"
+    },
+    {
+      "hash": "536AF64943E7AEE8D4FB0988CAA9F4686F45CC0F418450080333A806A2E04623",
+      "path": "Assets\\Scripts\\Runtime\\GameData\\CityRetailDesign.cs"
+    },
+    {
+      "hash": "B56BFF5A280BB51344F358DB11BAB669F2409BDEBA2D645239B41A147BA6D52D",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Economy\\CityRetailIndex.cs"
+    },
+    {
+      "hash": "8EA8741BB28A4364C23D3C8799B34496602B2A099CE0CED406A7AB8A61A75CD8",
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadClearance.cs"
+    },
+    {
+      "hash": "E435A2F670DE7CBC91D7AD87A38DAE6BE1CAEC3EE3B6FDE89019486D7E5C96A9",
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadCoreAccess.cs"
+    },
+    {
+      "hash": "28EB6B8AFFAC60EFA11859C296A4CEFC12321CB58602606DD598D2EF2D259743",
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadCoreAccessRouting.cs"
+    },
+    {
+      "hash": "18DB03B406CC319C9C51A4E7743BB21DBFFF5F565F7CA04D8B9AE2E120A31A8F",
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\CityRoadCoreBusiness.cs"
+    },
+    {
+      "hash": "F641C39631E7195999CE47CDCF870CA7B1F3CD694675FC4CB66DED254F9986C7",
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadCoreConstruction.cs"
+    },
+    {
+      "hash": "A5DE2E5AB5A98ADAF8FFC40C5DC4DD3572080E4EA5DDE1CC4FD05AEDD5A540A4",
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\CityRoadCoreDispatchRoutes.cs"
+    },
+    {
+      "hash": "B5FE638013B7F7530147FBBDEA682BBCC2581041BC534DCC9B1BE8ADCD212A78",
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadCoreEdit.cs"
+    },
+    {
+      "hash": "916ED391E78089A9E5A2266249F6DA196ABF1F946E96B8EEED03FF28FC6A6FA3",
+      "path": "Assets\\Scripts\\Diagnostics\\Runtime\\CityRoadCoreFixtures.cs"
+    },
+    {
+      "hash": "DEC4BB6D265100C94CB196046B6CFF0054A904EBC5E7483FAC6AD781EF0AA060",
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadCoreHistory.cs"
+    },
+    {
+      "hash": "BBD19D57004FCBCF23B5FB7E53112ADD089CFBC51910A78FBDE582B108B66E23",
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\CityRoadCoreLaneChanges.cs"
+    },
+    {
+      "hash": "224F50AED6F99E05781399F866944FC6B3B7048047761E351976C3F2208FB9AD",
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\CityRoadCoreLaneOccupant.cs"
+    },
+    {
+      "hash": "5FA61B615481907486E8AFCB91671E902CF4CF201388A3ACF67F256FF3DB38B4",
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\CityRoadCoreLostOccupancy.cs"
+    },
+    {
+      "hash": "AFDFDB2C085FB86877C618A1F2070100B1DD55EC3E2874E3F708B7DD3F3D47AE",
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadCoreNetwork.cs"
+    },
+    {
+      "hash": "C03A35B87108DF0DA24E290648A76F686B13F3538EC13E717219FCC7FBC66EB0",
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\CityRoadCoreReservations.cs"
+    },
+    {
+      "hash": "55402F0791177B0B8334ADE659D9E54AD96693FD9DDCABC85170B4AFFF31E09D",
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadCoreSave.cs"
+    },
+    {
+      "hash": "394FE50FA56F5F12DD57070F947A8C27B76C332E54317F2E7A74DB24920665D0",
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadCoreSpatial.cs"
+    },
+    {
+      "hash": "C5285C1ADFED4670BC536422AB063AB1B4EFE04FAD1AC768A5EAFBCA388CD33C",
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\CityRoadCoreWorld.cs"
+    },
+    {
+      "hash": "083930D8E040A21AC43EB9329523CEC39E1C78DF202C977D47A805EC10820F7D",
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadDirection.cs"
+    },
+    {
+      "hash": "B85AC80C528C8605C5BBB0CEEC60DF2652379EFF4462A4E9BEB260112E91E4A3",
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadElevation.cs"
+    },
+    {
+      "hash": "93E65E6C20DB9D5596B1EC0E91907A71E29DEB66A92E3F5A36603A67ACBFAC43",
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadGeometry.cs"
+    },
+    {
+      "hash": "652D75DF2F4E18249DF63B1D7C8086C5D87CFB89F3DA274B4FE13E97D2CB33FD",
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadKeyComparer.cs"
+    },
+    {
+      "hash": "BCAECBA2C5205848FDB9FB7B4161CFEC5E167E6C2C4E032F8D091B3E4369ED82",
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoads.cs"
+    },
+    {
+      "hash": "42ABCB5A90D7F900F444E1FB993D29D738FEBEA0C4A3033F7E19776390486821",
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadTopology.cs"
+    },
+    {
+      "hash": "8E760E3903D192DC500E5CAEB57B9CFBDE5E0F4A2A87572D6914133930EC42AF",
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadTopologyBuilder.cs"
+    },
+    {
+      "hash": "442365656C49B26CB0519D211972DB951C2DF47FCAA1D0448A102ECF5A547AFB",
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadTypes.cs"
+    },
+    {
+      "hash": "73DB25E2A354B4CE7A01A221E14AF68049A2BAD73B184E4E6F2E189762C78440",
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadWidth.cs"
+    },
+    {
+      "hash": "E6D21DE8E051EE18005A76F4221D652C85E4FD735ADE0DD84930280E1518BD8C",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Core\\CitySaveData.cs"
+    },
+    {
+      "hash": "3DBF750C9DF886FB9B73BFC8A873C9232397DD9785A5AE999BC941A523AA1BA3",
+      "path": "Assets\\Scripts\\Diagnostics\\Runtime\\CityScenarioBuilder.cs"
+    },
+    {
+      "hash": "BDCA4D02ADD0CBBEE1A17C5D20D4A212FB8F00107BEE6EAC268E84DE94D976B6",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Economy\\CityServiceBudgets.cs"
+    },
+    {
+      "hash": "5865068A8D78087FDFC296E52A4DAB2295BAB434F9CE02BF231A641322C1311A",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Economy\\CityShopAccount.cs"
+    },
+    {
+      "hash": "EB85034E77EDD362760CC147FF91FF0B035EEBA4F2EE24DF21015E520195AD0E",
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\Trips\\CityShopping.cs"
+    },
+    {
+      "hash": "1109460CC6A717D807BD5DD258F505CF9581F1AF28E522B89A340365FE12EE29",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Core\\CitySimulation.cs"
+    },
+    {
+      "hash": "DDEBFE72E08C351F55595661AAFF68DCDEB649F366B24D5B68887731919FC27F",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Core\\CitySimulationClock.cs"
+    },
+    {
+      "hash": "4ED714B574A5A39BA80A568790540DF9060B89E85EF9645D04711427120A4E3D",
+      "path": "Assets\\Scripts\\Runtime\\Observability\\CitySimulationLog.cs"
+    },
+    {
+      "hash": "211D12CA194D34041BF6F4AB55E8A50AAB9C568C1E0F1CD09CA01FBA1182AA5B",
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\CityTraffic.cs"
+    },
+    {
+      "hash": "A7B3220FFB9DD76625BCBBD66C58F2941076495A28E95F9CD3352635936BFFE0",
+      "path": "Assets\\Scripts\\Diagnostics\\Runtime\\CityTrafficAttribution.cs"
+    },
+    {
+      "hash": "2783E0C88162B5E4152B9A22E8349A8C26FD6E445F47AF7D7CAD14912BCD2D14",
+      "path": "Assets\\Scripts\\Diagnostics\\Runtime\\CityTrafficBenchmark.cs"
+    },
+    {
+      "hash": "669545873DBA93230EB24D35E6BA96AB2FB4FCA9E4B091D55E62779CDE2426F8",
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\CityTrafficControls.cs"
+    },
+    {
+      "hash": "51D5C4E42AF95E1DDB1812EFA48E5659D13F7BE78CA31C7EB64E103D1BD92552",
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\CityTrafficIndex.cs"
+    },
+    {
+      "hash": "D6BE73F2AEB2886ABE317D4C4F1940BA43C6CFD835A251BAEE314F5C6D2B54C9",
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\CityTransportBoundary.cs"
+    },
+    {
+      "hash": "600077CA1F0C53D39566E1149FC549436B2814F1C9F3A0B5E136B7215B9246D2",
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\CityTripTask.cs"
+    },
+    {
+      "hash": "B4591A70DAC2B592F21F977DE4C3438FDD6A93F5B3D4ED2C054656DED6DBF3E9",
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Utilities\\CityUtilities.cs"
+    },
+    {
+      "hash": "079636BC89976469B0C925A075B0114041E6FE04101464DD7D6BD2C03CAF4C64",
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Utilities\\CityUtilityNetwork.cs"
+    },
+    {
+      "hash": "BD635E9A17562414FC0DA60CED4D69C8D9E92BA8863C915868965D12A631AB3B",
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\CityVehicleGeometry.cs"
+    },
+    {
+      "hash": "61F68226C10260D622C4B2B058216BA426EDCBA45F4B90C8A9EEE6E373237261",
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\CityVehiclePosition.cs"
+    },
+    {
+      "hash": "A114AF3F072C59940C4F55946CFB3D39041874C2A62471F33E18D6CA49CB3247",
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Services\\CityWaste.cs"
+    },
+    {
+      "hash": "9A20A78419EDADF5091BCE4DDF0C7719CA47B9CCDE7539F78ECF1D4D8F8BEFCB",
+      "path": "Assets\\Scripts\\Runtime\\GameData\\CityWasteDesign.cs"
+    },
+    {
+      "hash": "714E35070C6562174DF2B3249C88019538BA741B4E2467D85A4C4147FF3E5360",
+      "path": "Assets\\Scripts\\Diagnostics\\Runtime\\CityWasteDiagnostics.cs"
+    },
+    {
+      "hash": "0C966F1AD207B6B5347E05EE7B2A061BCA631C712B6DB22E9DA32170772B9EE4",
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\Trips\\CityWasteTransport.cs"
+    },
+    {
+      "hash": "081B0C82E8413D8F8647690C8C55D487158E86427D0851955E9F5A776BA73197",
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Zoning\\CityZoning.cs"
+    },
+    {
+      "hash": "5D309B1AEFCA3A110C028FD56D9DD6300B8228B0D9AAB6038FE5B9010F00197C",
+      "path": "Tools\\Diagnostics\\CityScenarioRun.cs"
+    }
+  ],
+  "cpu": "Intel(R) Core(TM) i5-14600KF",
+  "unity": [
+    "m_EditorVersion: 6000.6.3f1",
+    "m_EditorVersionWithRevision: 6000.6.3f1 (45d8eee7de74)"
+  ],
+  "os": "Microsoft Windows NT 10.0.26200.0",
+  "designAssetHash": "311EB8CCEFC0D9FC0E3D05CCBE302812260F6569A369B50CBF65CF64E12CEB19"
+}

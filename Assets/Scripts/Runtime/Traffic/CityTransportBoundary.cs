@@ -1,5 +1,6 @@
 namespace HarborCity.RoadCore
 {
+    internal enum TransportRejection { None,EndpointUnavailable,AccessUnavailable,SourceBlocked,Unreachable,NoRoute,SourceOccupied,JunctionReserved }
     public readonly struct TransportArrival
     {
         public readonly int id,taskId,origin,destination,citizenId,cargo;

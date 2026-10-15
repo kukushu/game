@@ -33,6 +33,7 @@ namespace HarborCity
         static readonly Comparison<CityBuilding> Priority=(a,b)=>{int order=b.garbage.CompareTo(a.garbage);return order!=0?order:a.id.CompareTo(b.id);};
         public long Generated=>state.totals.generated;public long Collected=>state.totals.collected;public long Processed=>state.totals.processed;
         public int Vehicles=>byVehicle.Count;
+        public CityWasteDiagnostics Diagnostics {get;set;}
         public long Waiting=>Generated-Collected; // Derived from the conserved transfer ledger, not a second editable stock.
         long WaitingInBuildings {get{long sum=0;foreach(var b in entities.Buildings)sum+=b.garbage;foreach(var b in entities.RetiredBuildings)sum+=b.garbage;return sum;}}
         public long Stored {get{RefreshPlants();long sum=0;foreach(var b in plants)sum+=b.stored;foreach(var b in entities.RetiredBuildings)if(b is LandfillBuilding p)sum+=p.stored;return sum;}}
@@ -74,10 +75,13 @@ namespace HarborCity
             using var observation=CityCoreProfile.Measure(CityCoreProfile.Part.Waste);
 #endif
             if(!city.development.enabled||!state.totals.enabled)return;RefreshPlants();
-            foreach(var plant in plants)if(plant.stored>0&&Running(plant))
+            foreach(var plant in plants)
             {
+                Diagnostics?.Plant(plant.id,plant.stored,Running(plant),time.Duration);
+                if(plant.stored<=0||!Running(plant))continue;
                 double progress=plant.processingRemainder+time.Duration*rules.ProcessingPerDay/city.society.settings.secondsPerDay;
                 int amount=(int)Math.Min(plant.stored,Math.Floor(progress));plant.processingRemainder=(float)(progress-amount);plant.stored-=amount;state.totals.processed+=amount;if(plant.stored==0)plant.processingRemainder=0;
+                Diagnostics?.Process(plant.id,amount);
             }
             if(time.Tick<state.nextDispatchTick)return;state.nextDispatchTick=time.Tick+rules.DispatchTicks;if(plants.Count==0)return;
             // Periodic city scan, never per vehicle/physics subquery. Fleet and incoming
@@ -88,13 +92,20 @@ namespace HarborCity
             foreach(var plant in plants)
             {
                 fleets.TryGetValue(plant.id,out int count);reserved.TryGetValue(plant.id,out int incoming);
-                if(count>=rules.Trucks||plant.stored+incoming+rules.Payload>rules.Capacity||!Running(plant))continue;
+                var measured=Diagnostics?.Dispatch(plant.id);if(measured!=null)measured.dispatchChecks++;
+                if(count>=rules.Trucks){if(measured!=null)measured.fleetFull++;continue;}
+                if(plant.stored+incoming+rules.Payload>rules.Capacity){if(measured!=null)measured.storageFull++;continue;}
+                if(!Running(plant)){if(measured!=null)measured.unavailable++;continue;}
+                bool tried=false,admitted=false;
                 foreach(var target in candidates)
                 {
                     if(target.id==plant.id||reservedTargets.Contains(target.id))continue;
-                    var admission=world.PrepareTransport(plant.id,target.id,0,0,TransportPurpose.Service,0);if(admission==null)continue;
-                    world.CheckAdmission(admission);var v=world.CommitAdmission(admission);var mission=new WasteMission{vehicle=v.id,task=v.Task.id,station=plant.id,pickup=target.id};state.missions.Add(mission);byVehicle.Add(v.id,mission);reservedTargets.Add(target.id);break;
+                    tried=true;if(measured!=null)measured.admissionAttempts++;
+                    var admission=world.PrepareTransport(plant.id,target.id,0,0,TransportPurpose.Service,0,out var rejected);if(admission==null){if(measured!=null)measured.rejected[(int)rejected]++;continue;}
+                    world.CheckAdmission(admission);var v=world.CommitAdmission(admission);var mission=new WasteMission{vehicle=v.id,task=v.Task.id,station=plant.id,pickup=target.id};state.missions.Add(mission);byVehicle.Add(v.id,mission);reservedTargets.Add(target.id);admitted=true;
+                    if(measured!=null){measured.dispatched++;Diagnostics.Start(world,mission,v,count+1,state.missions.Count);}break;
                 }
+                if(measured!=null&&!admitted){if(tried)measured.allCandidatesRejected++;else measured.noCandidates++;}
             }
         }
         // Arrival has already passed physics checks. Returning route admission must
@@ -103,15 +114,18 @@ namespace HarborCity
         {
             if(!byVehicle.TryGetValue(arrival.id,out var m)||m.task!=arrival.taskId)throw new InvalidOperationException("Missing waste mission");
             var plant=entities.Building(m.station) as LandfillBuilding;
+            var oldTask=Diagnostics==null?null:world.FindTask(m.task);
             if(m.phase==WastePhase.Pickup)
             {
                 var pickup=entities.Building(m.pickup);int amount=Math.Min(rules.Payload,pickup.garbage);
-                var next=world.PrepareServiceReturn(arrival,m.station,amount);if(next==null)return;
+                var next=world.PrepareServiceReturn(arrival,m.station,amount);if(next==null){var blocked=Diagnostics?.Dispatch(m.station);if(blocked!=null)blocked.returnContinuationRejected++;return;}
                 world.CheckContinuation(next);pickup.garbage-=amount;state.totals.collected+=amount;world.CommitContinuation(next);m.phase=WastePhase.Return;m.task=next.task.id;
+                if(Diagnostics!=null){Diagnostics.Complete(m.station,oldTask,arrival.arrivedAt,amount,false);Diagnostics.Start(world,m,world.FindVehicle(m.vehicle),0,state.missions.Count);}
             }
             else
             {
-                if(plant.stored+arrival.cargo>rules.Capacity)return;plant.stored+=arrival.cargo;world.AcknowledgeArrival(arrival.id);state.missions.Remove(m);byVehicle.Remove(m.vehicle);
+                if(plant.stored+arrival.cargo>rules.Capacity){var blocked=Diagnostics?.Dispatch(m.station);if(blocked!=null)blocked.returnStorageBlocked++;return;}plant.stored+=arrival.cargo;world.AcknowledgeArrival(arrival.id);state.missions.Remove(m);byVehicle.Remove(m.vehicle);
+                Diagnostics?.Complete(m.station,oldTask,arrival.arrivedAt,arrival.cargo,true);
             }
         }
         public void Validate()

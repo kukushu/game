@@ -1,0 +1,21 @@
+{
+  "peakVehicles": 12,
+  "dispatchChecks": 7200,
+  "fleetFullChecks": 6079,
+  "attempts": 1037,
+  "dispatched": 881,
+  "pickups": 875,
+  "returns": 870,
+  "unitsCollected": 6965,
+  "unitsDelivered": 6925,
+  "processed": 6918,
+  "averagePayload": 7.96,
+  "meanOutboundSeconds": 21.275028571428653,
+  "meanReturnSeconds": 25.251724137931046,
+  "meanOutboundRouteDistance": 205.85328032177483,
+  "meanReturnRouteDistance": 266.3828800112991,
+  "meanOutboundFreeflowSeconds": 17.15444002681454,
+  "meanReturnFreeflowSeconds": 22.198573334274936,
+  "emptyProcessingFraction": 0.774756944443896,
+  "fleetFullCheckFraction": 0.8443055555555555
+}
