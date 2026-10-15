@@ -691,6 +691,8 @@ page=page.replace('<section id="review">','<section id="review"><details open><s
 page=page.replace('<section id="review">','<section id="review"><details open><summary>实际规模：3000真实居民十日综合城市与未解决问题</summary><div class="doccontent"><p>既有构造器以八户公寓承载1000家庭/3000成员，2000真实岗位，783建筑；普通CitySimulation十日24000步、在途继续和资金货物守恒通过。真实机动车峰值1151，正常平均0.7763ms/P99 5.6749ms；不是3000辆车，也不是窗口FPS。补测可见繁忙窗口1096实车，3×平均59.34FPS/P99 30.10ms，最大200.35ms；采样版显著增加开销，只用于归因。</p><p>经营仍不健康：垃圾待收34494，曾出现340秒任务，企业合计资金降至3645；没有改参数掩盖。500原夹具完整状态未变。10000居民、动态施工综合压力与自然成长仍未验收。垃圾派车准入集中路由已实测定位到4892次搜索/94MB尖峰。下一步依证据诊断这些真实城市问题，不重写模拟引擎。</p><p><a href="Stage2CityTesting.md">配置、重复命令、状态、性能与模块影响</a></p></div></details>')
 window=(OUT/'Stage2CityWindow.md').read_text(encoding='utf-8-sig')
 page=page.replace('<section id="review">','<section id="review"><details open><summary>实际窗口：同一500人城市正常Player的1×/3×</summary><div class="doccontent">'+markdown(window)+'</div></details>')
+scale=(OUT/'ScaleTargets.md').read_text(encoding='utf-8-sig')
+page=page.replace('<section id="review">','<section id="review"><details open><summary>规模目标：万人城实际构造失败与当前万辆车内核数据</summary><div class="doccontent">'+markdown(scale)+'</div></details>')
 (OUT/'HarborCityArchitecture.html').write_text(page,encoding='utf-8')
 (OUT/'SourceEvidence.md').write_text('# 固定源码定位证据\n\n审查commit：`'+COMMIT+'`。以下行号由固定源码生成，而非当前工作树。\n\n'+ '\n'.join('## '+e['title']+'\n\n['+e['source']['file']+':'+str(e['source']['line'])+']('+e['source']['url']+')\n\n方法/语句：`'+e['source']['token']+'`\n' for e in evidence),encoding='utf-8')
 print(f'Created {OUT / "HarborCityArchitecture.html"}; {len(cards)} class cards, {len(graphs)} graphs, {len(flowdata)} flows; pinned {COMMIT}')

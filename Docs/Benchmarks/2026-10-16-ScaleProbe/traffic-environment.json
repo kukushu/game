@@ -1,0 +1,17 @@
+{
+  "commit": "bc62213e4b557eafe17e3842ee3c70881a61427a",
+  "utc": "2026-10-15T16:24:11.1356667Z",
+  "note": "Headless synthetic World movement only, fixed injected routes, 300 timed steps after 50 warmup steps; not CitySimulation or Unity FPS; queued receiving depot deliberately blocked",
+  "sources": [
+    {
+      "sha256": "B67860855DA2B744B9F4A5FEDD73109C315D8134D485BCB8A15DD680ABDC0AC2",
+      "path": "Tools/Diagnostics/RoadCoreChecks.cs"
+    },
+    {
+      "sha256": "916ED391E78089A9E5A2266249F6DA196ABF1F946E96B8EEED03FF28FC6A6FA3",
+      "path": "Assets/Scripts/Diagnostics/Runtime/CityRoadCoreFixtures.cs"
+    }
+  ],
+  "command": "./Tools/VerifyRoadCore.ps1 -Results Temp/RoadCore/scale-question-20261016.csv",
+  "cpu": "Intel(R) Core(TM) i5-14600KF"
+}
