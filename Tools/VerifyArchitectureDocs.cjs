@@ -14,8 +14,8 @@ const {chromium}=require(packagePath);
  await page.goto(pathToFileURL(path.join(root,'Docs/Architecture/HarborCityArchitecture.html')).href);
  await page.locator('#ownergraph svg .node').first().waitFor();
  assert.equal(await page.locator('section').count(),13);
- assert.equal(await page.locator('#classgraph .node').count(),60);
- assert.equal(await page.locator('#ownergraph .node').count(),39);
+ assert.equal(await page.locator('#classgraph .node').count(),62);
+ assert.equal(await page.locator('#ownergraph .node').count(),40);
  await page.locator('#ownergraph [data-id="data"]').click();
  assert.match(await page.locator('#ownergraph aside').innerText(),/WorldData/);
  await page.locator('#ownergraph [data-zoom="+"]').click();
@@ -46,7 +46,7 @@ const {chromium}=require(packagePath);
  assert.match(await page.locator('#simulation-note').innerText(),/未运行/);
  await page.locator('#simulation-mode').selectOption('current');
  assert.equal(await page.locator('#simulation-flow .stage').count(),21);
- for(const value of ['construction','commute','freight','save','inspection']){
+ for(const value of ['construction','commute','freight','save','inspection','roadediting']){
  await page.locator('#business-mode').selectOption(value);assert(await page.locator('#business-flow .stage').count()>=6);
  await page.locator('#business-flow .stage').last().click();assert(await page.locator('#business-detail pre').count()>0);
  }
