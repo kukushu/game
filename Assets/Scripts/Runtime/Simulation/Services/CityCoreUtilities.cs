@@ -17,6 +17,9 @@ namespace HarborCity
         {
             if(!city.development.enabled)return;
             if(!dirty&&entityVersion==entities.Revision&&roadVersion==world.NetworkGeneration&&ReferenceEquals(power,city.utilities.electricity)&&ReferenceEquals(water,city.utilities.water)&&powerVersion==power.revision&&waterVersion==water.revision)return;
+#if CITY_CORE_ATTRIBUTION
+            using var rebuildObservation=CityCoreProfile.Measure(CityCoreProfile.Part.UtilityRebuild);
+#endif
             city.RecalculateUtilities();dirty=false;entityVersion=entities.Revision;roadVersion=world.NetworkGeneration;power=city.utilities.electricity;water=city.utilities.water;powerVersion=power.revision;waterVersion=water.revision;
         }
         public void SetBudget(CityServiceKind kind,int percent)

@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+#if CITY_CORE_ATTRIBUTION
+using HarborCity.RoadCore;
+#endif
 
 namespace HarborCity
 {
@@ -109,9 +112,18 @@ namespace HarborCity
                         {adjacency[b.id].Add(other.id);adjacency[other.id].Add(b.id);}
             }
             var touched=new Dictionary<int,List<int>>();
+            {
+#if CITY_CORE_ATTRIBUTION
+            using var powerCoverageObservation=CityCoreProfile.Measure(CityCoreProfile.Part.UtilityPowerCoverage);
+#endif
+            var coverage=new CityUtilityCoverage(powerNet);var candidates=new List<UtilityEdge>();var covered=new HashSet<int>();
             foreach(var b in buildings)
-                foreach(var component in powerNet.edges.Where(e=>LineDistance(b,powerNet,e)<=ElectricityReach).Select(e=>components[e.a]).Distinct())
-                {if(!touched.ContainsKey(component))touched[component]=new List<int>();touched[component].Add(b.id);}
+            {
+                coverage.Query(b,ElectricityReach,candidates);covered.Clear();
+                foreach(var edge in candidates)if(LineDistance(b,powerNet,edge)<=ElectricityReach)
+                {int component=components[edge.a];if(!covered.Add(component))continue;if(!touched.ContainsKey(component))touched[component]=new List<int>();touched[component].Add(b.id);}
+            }
+            }
             foreach(var group in touched.Values)for(int i=1;i<group.Count;i++)
             {adjacency[group[0]].Add(group[i]);adjacency[group[i]].Add(group[0]);}
             var visited=new HashSet<int>();power=0;
@@ -125,9 +137,18 @@ namespace HarborCity
             }
             var waterNet=utilities.water;var pipeComponents=waterNet.Components();water=0;
             var pipeBuildings=new Dictionary<int,List<int>>();var countedSources=new HashSet<int>();var countedDrains=new HashSet<int>();
+            {
+#if CITY_CORE_ATTRIBUTION
+            using var waterCoverageObservation=CityCoreProfile.Measure(CityCoreProfile.Part.UtilityWaterCoverage);
+#endif
+            var coverage=new CityUtilityCoverage(waterNet);var candidates=new List<UtilityEdge>();var covered=new HashSet<int>();
             foreach(var b in buildings)
-                foreach(int component in waterNet.edges.Where(e=>LineDistance(b,waterNet,e)<=(b.Use==LandUse.Water || b.Use==LandUse.Sewage?1:PipeReach)).Select(e=>pipeComponents[e.a]).Distinct())
-                {if(!pipeBuildings.ContainsKey(component))pipeBuildings[component]=new List<int>();pipeBuildings[component].Add(b.id);}
+            {
+                float reach=b.Use==LandUse.Water||b.Use==LandUse.Sewage?1:PipeReach;coverage.Query(b,reach,candidates);covered.Clear();
+                foreach(var edge in candidates)if(LineDistance(b,waterNet,edge)<=reach)
+                {int component=pipeComponents[edge.a];if(!covered.Add(component))continue;if(!pipeBuildings.ContainsKey(component))pipeBuildings[component]=new List<int>();pipeBuildings[component].Add(b.id);}
+            }
+            }
             foreach(var pair in pipeBuildings)
             {
                 var group=pair.Value;

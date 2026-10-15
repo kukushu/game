@@ -1,0 +1,17 @@
+{
+  "exitCode": 0,
+  "note": "OS-observed process-tree memory sampled ~1s; may miss shorter peaks; progress watchdog is file growth, not proof of model health. Forced termination cannot guarantee an in-memory failure save; latest flushed timeline and prior checkpoints retained.",
+  "peakPrivateBytes": 363458560,
+  "peakWorkingSetBytes": 444133376,
+  "processes": {
+    "30272": "mono",
+    "43420": "conhost",
+    "48500": "mono",
+    "46356": "pwsh"
+  },
+  "maxMemoryGB": 8.0,
+  "wallSeconds": 162.4138232,
+  "timeoutSeconds": 600,
+  "terminatedBy": null,
+  "stallSeconds": 120
+}
