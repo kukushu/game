@@ -15,6 +15,48 @@ namespace HarborCity
         Func<float,float,float> height;float geometryExtent;
         readonly List<CityBuilding> projectPoses=new List<CityBuilding>();
         sealed class Stamp {internal ZoneDesignation fact;internal CityBuilding pose;}
+        readonly struct PlotClaim
+        {
+            internal readonly CityBuilding pose;internal readonly double x,z;
+            internal PlotClaim(CityBuilding pose)
+            {this.pose=pose;double angle=pose.yaw*Math.PI/180,c=Math.Abs(Math.Cos(angle)),s=Math.Abs(Math.Sin(angle));x=(pose.width*c+pose.depth*s)/2;z=(pose.width*s+pose.depth*c)/2;}
+            internal bool CouldOverlap(PlotClaim other)=>Math.Abs((double)pose.x-other.pose.x)<=x+other.x+.0001&&Math.Abs((double)pose.z-other.pose.z)<=z+other.z+.0001;
+        }
+        // Cold derived index, rebuilt only with occupancy. Centre buckets contain
+        // each pose once; query extent includes the largest actual footprint.
+        // Original entity order chooses the same first hit, independent of buckets.
+        sealed class OccupancyIndex
+        {
+            struct Entry {internal PlotClaim claim;internal int order,owner;}
+            readonly Dictionary<(int,int),List<Entry>> buckets=new Dictionary<(int,int),List<Entry>>();
+            double maxX,maxZ;int next;
+            internal void Add(CityBuilding pose,int owner)
+            {
+                var claim=new PlotClaim(pose);maxX=Math.Max(maxX,claim.x);maxZ=Math.Max(maxZ,claim.z);
+                var key=((int)Math.Floor(pose.x/16),(int)Math.Floor(pose.z/16));
+                if(!buckets.TryGetValue(key,out var list))buckets.Add(key,list=new List<Entry>());
+                list.Add(new Entry{claim=claim,order=next++,owner=owner});
+            }
+            internal bool Find(CityBuilding pose,out int owner)
+            {
+                owner=-1;if(buckets.Count==0)return false;var claim=new PlotClaim(pose);int first=int.MaxValue;
+                int loX=(int)Math.Floor((pose.x-claim.x-maxX-.0001)/16),hiX=(int)Math.Floor((pose.x+claim.x+maxX+.0001)/16);
+                int loZ=(int)Math.Floor((pose.z-claim.z-maxZ-.0001)/16),hiZ=(int)Math.Floor((pose.z+claim.z+maxZ+.0001)/16);
+                for(int x=loX;x<=hiX;x++)for(int z=loZ;z<=hiZ;z++)if(buckets.TryGetValue((x,z),out var list))foreach(var entry in list)
+                {
+                    if(entry.order>=first)continue;
+#if CITY_CORE_ATTRIBUTION
+                    CityCoreProfile.ZoningCandidatePairs++;
+#endif
+                    if(!claim.CouldOverlap(entry.claim))continue;
+#if CITY_CORE_ATTRIBUTION
+                    CityCoreProfile.ZoningExactOverlaps++;
+#endif
+                    if(pose.Overlaps(entry.claim.pose)){first=entry.order;owner=entry.owner;}
+                }
+                return first!=int.MaxValue;
+            }
+        }
         readonly Dictionary<(int,int),List<Stamp>> stamps=new Dictionary<(int,int),List<Stamp>>();
         public bool Ready=>height!=null;
         public CityCoreZoning(CityModel city,CityEntities entities,World world){this.city=city;this.entities=entities;this.world=world;view=cells.AsReadOnly();}
@@ -31,16 +73,34 @@ namespace HarborCity
 #endif
             // One derived cache, three distinct invalidation causes. Building or
             // project edits cannot change static road/terrain geometry.
-            if(geometry)RebuildGeometry();
-            if(land)RefreshLandUse();
-            if(occupancy)RefreshOccupancy();
+            if(geometry)
+            {
+#if CITY_CORE_ATTRIBUTION
+                using var part=CityCoreProfile.Measure(CityCoreProfile.Part.ZoningGeometry);
+#endif
+                RebuildGeometry();
+            }
+            if(land)
+            {
+#if CITY_CORE_ATTRIBUTION
+                using var part=CityCoreProfile.Measure(CityCoreProfile.Part.ZoningLandUse);
+#endif
+                RefreshLandUse();
+            }
+            if(occupancy)
+            {
+#if CITY_CORE_ATTRIBUTION
+                using var part=CityCoreProfile.Measure(CityCoreProfile.Part.ZoningOccupancy);
+#endif
+                RefreshOccupancy();
+            }
             roads=world.NetworkGeneration;geometryExtent=city.map.buildHalfSize;
             buildings=entities.BuildingRevision;zones=city.zoning.revision;projects=city.development.revision;
             return view;
         }
         void RebuildGeometry()
         {
-            cells.Clear();byKey.Clear();var claimed=new Dictionary<(int,int),List<ZoneCell>>();float size=CityZoningState.CellSize;
+            cells.Clear();byKey.Clear();var claimed=new Dictionary<(int,int),List<PlotClaim>>();float size=CityZoningState.CellSize;
             foreach(int id in world.Network.RoadIds.OrderBy(id=>id))
             {
                 var settings=world.Network.Settings(id);var g=world.Network.Centreline(id);bool reverse=settings.direction==RoadDirection.Backward;var lane=world.Network.Get(Network.LaneId(id,reverse));
@@ -53,10 +113,20 @@ namespace HarborCity
                     {
                         float offset=side*(width/2+CityModel.BuildingSetback+(row+.5f)*size),yaw=(-(float)(Math.Atan2(dz,dx)*180/Math.PI)+(side<0?180:0)+360)%360;
                         var pose=new ResidentialBuilding{x=(float)centre.x-dz*offset,z=(float)centre.z+dx*offset,yaw=yaw,width=size-.04f,depth=size-.04f};
-                        if(!CanPlace(pose,false))continue;int bx=(int)Math.Floor(pose.x/size),bz=(int)Math.Floor(pose.z/size);bool overlaps=false;
-                        for(int x=bx-2;x<=bx+2;x++)for(int z=bz-2;z<=bz+2;z++)if(claimed.TryGetValue((x,z),out var nearby)&&nearby.Any(c=>pose.Overlaps(c.pose)))overlaps=true;
+                        if(!CanPlace(pose,false))continue;int bx=(int)Math.Floor(pose.x/size),bz=(int)Math.Floor(pose.z/size);bool overlaps=false;var claim=new PlotClaim(pose);
+                        for(int x=bx-2;x<=bx+2&&!overlaps;x++)for(int z=bz-2;z<=bz+2&&!overlaps;z++)if(claimed.TryGetValue((x,z),out var nearby))foreach(var other in nearby)
+                        {
+#if CITY_CORE_ATTRIBUTION
+                            CityCoreProfile.ZoningCandidatePairs++;
+#endif
+                            if(!claim.CouldOverlap(other))continue;
+#if CITY_CORE_ATTRIBUTION
+                            CityCoreProfile.ZoningExactOverlaps++;
+#endif
+                            if(pose.Overlaps(other.pose)){overlaps=true;break;}
+                        }
                         if(overlaps)continue;var cell=new ZoneCell{key=ZoneCell.Key(pose),block="core:"+id,column=column,row=row,side=side,pose=pose,available=true};if(byKey.ContainsKey(cell.key))continue;
-                        cells.Add(cell);byKey.Add(cell.key,cell);if(!claimed.TryGetValue((bx,bz),out var bucket))claimed.Add((bx,bz),bucket=new List<ZoneCell>());bucket.Add(cell);
+                        cells.Add(cell);byKey.Add(cell.key,cell);if(!claimed.TryGetValue((bx,bz),out var bucket))claimed.Add((bx,bz),bucket=new List<PlotClaim>());bucket.Add(claim);
                     }
                 }
             }
@@ -77,11 +147,10 @@ namespace HarborCity
         void RefreshOccupancy()
         {
             projectPoses.Clear();foreach(var project in city.development.projects)projectPoses.Add(project.building.ToBuilding());
+            var index=new OccupancyIndex();foreach(var building in entities.Buildings)index.Add(building,building.id);foreach(var pose in projectPoses)index.Add(pose,-1);
             foreach(var cell in cells)
             {
-                cell.available=true;cell.occupiedBuilding=-1;
-                foreach(var building in entities.Buildings)if(cell.pose.Overlaps(building)){cell.available=false;cell.occupiedBuilding=building.id;break;}
-                if(cell.available)foreach(var pose in projectPoses)if(cell.pose.Overlaps(pose)){cell.available=false;break;}
+                cell.available=!index.Find(cell.pose,out int owner);cell.occupiedBuilding=owner;
             }
         }
         public int Paint(IEnumerable<ZoneCell> selection,LandUse use)

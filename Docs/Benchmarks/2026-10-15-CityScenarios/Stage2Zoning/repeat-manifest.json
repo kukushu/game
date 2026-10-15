@@ -1,0 +1,12 @@
+{
+  "before": {
+    "executableSha256": "23eb9d0562b0a9732712f733dd2eaf60bc22d457a7a802961152bd4e09c3c7d8",
+    "parentRun": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\CityScenarios\\stage2-jobs-after",
+    "environmentReference": "../Stage2Jobs/after-environment.json"
+  },
+  "after": {
+    "executableSha256": "7e55b601fc35631dae501533366a532aed8d3c4de0d514f22187234cc9190038",
+    "parentRun": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\CityScenarios\\stage2-zoning-index-after",
+    "environmentReference": "after-environment.json"
+  }
+}
