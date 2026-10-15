@@ -1,0 +1,7 @@
+{
+  "wallSeconds": 11.1743215,
+  "inputHash": "E0918FE9430CD6497805E89442D4176CB9FD3AAA2E3DE4E3654A1A12595911BA",
+  "peakWorkingSetBytes": 97669120,
+  "terminatedBy": null,
+  "note": "Cold diagnostic 1200-step continuation, not a performance benchmark"
+}

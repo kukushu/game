@@ -1,0 +1,1 @@
+{"schema":1,"name":"mature-avenues-10000-large-flat","mode":"mature","layout":"grid","population":10000,"seed":7919,"gridRadius":6,"streetSpacing":48,"days":10,"warmupDays":2,"openingPublicGrant":10000000,"householdsPerResidentialBuilding":8,"diagnosticBuildHalfSize":312,"lanesPerDirection":2,"seedRoadNetwork":true}

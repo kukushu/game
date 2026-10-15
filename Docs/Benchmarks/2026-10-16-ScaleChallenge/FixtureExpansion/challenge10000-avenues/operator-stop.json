@@ -1,0 +1,6 @@
+{
+  "reason": "Explicitly stopped interactive per-stroke fixture construction after measured superlinear cost; next attempt will seed a validated static mature network, not skip simulation",
+  "pid": 34476,
+  "lastProgress": "{\"phase\":\"roads\",\"ms\":49372.2814,\"allocated\":1508809040,\"roads\":200,\"buildings\":0,\"residents\":0}",
+  "utc": "2026-10-15T17:24:16.8948281Z"
+}
