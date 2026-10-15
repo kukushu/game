@@ -7,10 +7,13 @@ import subprocess, json, html, re, csv
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'Docs/Architecture'
-COMMIT = 'da34ac2'
+COMMIT = 'fdfc21a'
 BASELINE = '110c4eaa24fa69d55b08a5db2a6d19ec6da5dd7f'
 R = 'Assets/Scripts/Runtime/'
 files = {
+ 'finance':R+'Simulation/Economy/CityCoreFinance.cs',
+ 'financerules':R+'GameData/CityFinanceDesign.cs',
+ 'financepanel':R+'Presentation/UI/HarborCityFinancePanel.cs',
  'buildingviews':R+'Presentation/World/HarborCityBuildingViews.cs',
  'payroll':R+'Simulation/Economy/CityCorePayroll.cs',
  'retail':R+'Simulation/Economy/CityCoreConsumption.cs',
@@ -405,6 +408,31 @@ for n in graphs['ownership']['nodes']:
 for filename in ['Docs/Architecture/Results/R3ZoningCache/paired-before.csv','Docs/Architecture/Results/R3ZoningCache/paired-after.csv','Docs/Architecture/Results/R3ZoningCache/normal-window.csv']:
     with (ROOT/filename).open(encoding='utf-8-sig') as f:perf.append(dict(file=filename,rows=list(csv.DictReader(f))))
 evidence.extend([dict(title='生长尖峰与分配采样',source=ref('corezoning','void RebuildGeometry()')),dict(title='占用不再重建几何',source=ref('corezoning','void RefreshOccupancy()'))])
+for c in cards:
+    if c['id']=='save':c.update(fields='城市15 / 业务7 / 设计3 / 道路核心15；维护计提、实际纳税和捕获贷款条款',facts='财政账本核对唯一city.money，合同不保存第二日界；完整在途与配置共同恢复。',risk='旧格式拒绝；垃圾、完整服务和观察仍未恢复。')
+    if c['id']=='design':c.update(fields='Economy / Employment / Retail / Production / Finance冻结规则')
+for ident,name,kind,key,token,fields,owner,facts in [
+ ('finance','CityCoreFinance','temporary','finance','public sealed class CityCoreFinance','现金变动账 / Tax / Loan / 维护计提','CitySimulation持有；经济域写国库与纳税关系。','余额只有city.money；工资后评估实际转税，贷款捕获条款，维护按固定时间累计。'),
+ ('treasury','TreasuryData','fact','finance','public sealed class TreasuryData','opening / publicWorks / taxes / loans / maintenanceAccrued','Finance私有运行账；公共Snapshot是冷副本。','不是第二余额；收支与唯一现金及纳税人/合同核对。'),
+ ('loan','CityLoan / CoreLoanData','fact','loans','[Serializable] public sealed class CityLoan','稳定ID / captured principal,total,days / paid','city.loans.contracts真实合同；CoreLoanData只为保存副本。','无假银行建筑；不依赖车辆或场景；旧游标不作为第二时间保存。'),
+ ('financerules','FinanceRules / LoanTerms','fact','financerules','public sealed class FinanceRules','默认资金/政策 / 税基 / 费率 / 报价','CityGameDesign不可变配置组，绝非运行余额。','新城从统一资产冻结；现城合同不随作者资源改价。'),
+ ('financepanel','HarborCityFinancePanel','derived','financepanel','public sealed class HarborCityFinancePanel','打开/滚动/提示 / 当前模型绑定','表现层拥有；只读财政查询，提交命令。','不算利息或税款，不写实体；模态阻止建设穿透，加载重绑避免旧城引用。')]:
+    card(ident,name,'Economy' if ident!='financepanel' else 'Presentation',kind,key,token,fields,'R3-C3实际',owner,facts,'费用索引/宏观显示可重建。','财政或服务明确命令，单线程健康边界。','真实步骤计提/日界结算/保存/合同完成。','数据配置、实体和道路公开查询；不读交通内部布局。','税基/节奏仍为明确近似，大城待验；现金int有范围限制。','优先恢复垃圾与完整观察，不扩大银行产业。')
+    graphs['classes']['nodes'].append(node(ident,name,fields,kind));evidence.append(dict(title=name,source=ref(key,token)))
+graphs['classes']['edges'].extend([edge('simulation','finance','计提与日结'),edge('finance','treasury','唯一账本写入'),edge('finance','loan','信用/偿还'),edge('finance','financerules','只读冻结规则'),edge('coreutilities','finance','建设支付预检/提交'),edge('coreconstruction','finance','成功建设才付款'),edge('financepanel','finance','查询/财政命令'),edge('financepanel','coreutilities','预算命令')])
+graphs['ownership']['nodes'].extend([node('treasury','Treasury ledger','Finance私有；无第二现金余额','fact'),node('loanlist','Loan collection','city.loans中的唯一集合','fact','loan'),node('loan','CityLoan','捕获条款 / 已付 / 稳定ID','fact')]);graphs['ownership']['edges'].extend([edge('simulation','treasury','Finance拥有'),edge('treasury','city','核对唯一money','dash'),edge('city','loanlist','保存唯一集合'),edge('loanlist','loan','拥有合同')])
+graphs['global-current']['nodes'].append(node('finance','CityCoreFinance','固定时间计提 / 实际税款 / 合同','temporary'));graphs['global-current']['edges'].append(edge('simulation','finance','时间与阶段调度'))
+for n in graphs['global-current']['nodes']:
+    if n['id']=='old':n.update(label='垃圾 / 信号行人 / 完整UI',sub='仍待逐系统接回真实城市')
+    if n['id']=='save':n.update(label='城市15 / 业务7 / 设计3',sub='财政、在途、规则完整保存')
+flowdata['current']['name']='R3-C3实际城市流程'
+# Correct ordering: consumption executes after production, before logistics.
+stages=flowdata['current']['stages'];retail=next(x for x in stages if x['name']=='居民零售购物');stages.remove(retail);stages.insert(next(i for i,x in enumerate(stages) if x['name']=='CityLogisticsSystem'),retail)
+stages.insert(next(i for i,x in enumerate(stages) if x['name']=='CityProductionSystem'),dict(name='实际时间维护计提',detail='版本未变O(1)读取费率；按固定Duration累计维护负债，不按渲染帧或日结瞬间预算收费。',source=ref('finance','internal void Accrue')))
+stages.append(dict(name='财政日结',detail='工资已进入家庭→实际税款转入国库→支付计提维护和合同应付；完整预检、账本核对。',source=ref('finance','internal void SettleDay')))
+flowdata['save']['note']='城市15 / 核心15 / 设计3：财政计提、唯一现金账、捕获合同与真实纳税、原完整在途；旧格式明确拒绝。'
+for filename in ['Docs/Architecture/Results/R3Fiscal/paired-before.csv','Docs/Architecture/Results/R3Fiscal/paired-after.csv','Docs/Architecture/Results/R3Fiscal/native-window.csv']:
+    with (ROOT/filename).open(encoding='utf-8-sig') as f:perf.append(dict(file=filename,rows=list(csv.DictReader(f))))
 payload=dict(commit=COMMIT,baseline=BASELINE,cards=cards,graphs=graphs,flows=flowdata,readings=readingdata,perf=perf,evidence=evidence)
 
 page=r'''<!doctype html>
@@ -555,6 +583,9 @@ views=(OUT/'R3Views.md').read_text(encoding='utf-8')
 page=page.replace('<section id="review">','<section id="review"><details open><summary>最新边界修正：独立增量建筑视图</summary><div class="doccontent">'+markdown(views)+'</div></details>')
 measured=(OUT/'R3GrowingProfile.md').read_text(encoding='utf-8')+'\n\n'+(OUT/'R3ZoningCache.md').read_text(encoding='utf-8')
 page=page.replace('<section id="review">','<section id="review"><details open><summary>最新实测与实现：分区几何生命周期、尖峰与分配修正</summary><div class="doccontent">'+markdown(measured)+'</div></details>')
+fiscal=(OUT/'R3Fiscal.md').read_text(encoding='utf-8')
+page=page.replace('<section id="review">','<section id="review"><details open><summary>最新实际：国库、真实纳税、维护计提、贷款与模块影响</summary><div class="doccontent">'+markdown(fiscal)+'</div></details>')
+page=page.replace('R3-C2实现源码 '+COMMIT,'R3-C3实现源码 '+COMMIT).replace('垃圾财政、公交及完整经营UI仍未恢复。','基础财政已接；垃圾、公交及完整经营UI仍未恢复。').replace('04 · 模拟更新流程图 ★（R3-C2实际）','04 · 模拟更新流程图 ★（R3-C3实际）')
 (OUT/'HarborCityArchitecture.html').write_text(page,encoding='utf-8')
 (OUT/'SourceEvidence.md').write_text('# 固定源码定位证据\n\n审查commit：`'+COMMIT+'`。以下行号由固定源码生成，而非当前工作树。\n\n'+ '\n'.join('## '+e['title']+'\n\n['+e['source']['file']+':'+str(e['source']['line'])+']('+e['source']['url']+')\n\n方法/语句：`'+e['source']['token']+'`\n' for e in evidence),encoding='utf-8')
 print(f'Created {OUT / "HarborCityArchitecture.html"}; {len(cards)} class cards, {len(graphs)} graphs, {len(flowdata)} flows; pinned {COMMIT}')

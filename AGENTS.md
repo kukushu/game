@@ -1,5 +1,8 @@
 # 开发约定
 
+- 最新R3-C3 864b50e / fdfc21a：正常城财政由CityCoreFinance拥有，city.money唯一余额，建设/管线费用经预检成功才记账。固定Tick计提维护，工资日界后真实转税/还贷；预算命令属Utilities，不能让财政反向依赖服务管理器形成循环。城15/业务7/设计3/核15；借款捕获条款、计提和纳税事实保存，旧文件不删。旧SettleLoans/HouseholdTick不得在正常入口再结算。
+- 财政税基/提前结清/日结等仍明确近似；菜单只提交命令，42本地化Key/Finance强类型配置。Trace新城事件必须用CitySimulation的tick/时间和真实道路版本，不能用旧traffic.clock=0；日志全产品接口仍待恢复。下一批优先垃圾实车运输/处理，再观察UI和完整服务，不扩人生玩法。
+
 - 最新63f009a/da34ac2：真实综合城市Profiling证实分区重建是主要尖峰；几何/用途/占用已分开失效，同城12000步完整保存相同，均值0.0561→0.0146ms，分配15.2→3.44KB。2228城市检查、6000步采样开关状态、原地形Unity通过。Unity分配线程计数不可用时必须报告-1，不得把0当无分配；用原始Profiler层级导出。后续优先财政/垃圾/必要经营UI，不无限扩独立交通。
 
 - R3-D1 b532733：HarborCityBuildingViews独占稳定ID显示对象，结构变化增量创建/删除；只读CityEntities.Buildings，RenderBuildings不再整城销毁。19建筑20次同步对象不重建、完整模拟保存未变；原0B计数已证实Unity不支持，须标未知并用Profiler层级测分配；区域/道路显示与TerrainData适配仍过渡。
