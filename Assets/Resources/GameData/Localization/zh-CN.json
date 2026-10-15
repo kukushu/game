@@ -388,6 +388,82 @@
     {
       "key": "ui.inspect.not_workforce",
       "text": "非劳动力，无岗位"
+    },
+    {
+      "key": "road.edit_missing",
+      "text": "此道路已不存在，请重新选择。"
+    },
+    {
+      "key": "road.edit_stale",
+      "text": "道路方案已过期，请重试。"
+    },
+    {
+      "key": "road.reverse_oneway",
+      "text": "请先将道路设为单行，再反向。"
+    },
+    {
+      "key": "ui.road.open",
+      "text": "选择道路 / 升级 / 拆除"
+    },
+    {
+      "key": "ui.road.close",
+      "text": "结束道路编辑"
+    },
+    {
+      "key": "ui.road.choose",
+      "text": "点击要修改的道路；黄色线是选中路段。"
+    },
+    {
+      "key": "ui.road.no_hit",
+      "text": "没有选中道路，请靠近路面点击。"
+    },
+    {
+      "key": "ui.road.summary",
+      "text": "道路 #{0} · 长度 {1} · 每方向 {2} 车道 · {3}"
+    },
+    {
+      "key": "ui.road.direction.both",
+      "text": "双向"
+    },
+    {
+      "key": "ui.road.direction.forward",
+      "text": "正向单行"
+    },
+    {
+      "key": "ui.road.direction.backward",
+      "text": "反向单行"
+    },
+    {
+      "key": "ui.road.narrow",
+      "text": "改为每方向 1 车道"
+    },
+    {
+      "key": "ui.road.wide",
+      "text": "改为每方向 2 车道"
+    },
+    {
+      "key": "ui.road.toggle",
+      "text": "切换单行 / 双向"
+    },
+    {
+      "key": "ui.road.reverse",
+      "text": "反向选中单行道路"
+    },
+    {
+      "key": "ui.road.remove",
+      "text": "拆除选中路段"
+    },
+    {
+      "key": "ui.road.removed",
+      "text": "道路已拆除；受影响车辆保留原位和任务。"
+    },
+    {
+      "key": "ui.road.changed",
+      "text": "道路修改成功，实际费用 {0}。"
+    },
+    {
+      "key": "road.widen_obstructed",
+      "text": "拓宽会占用建筑 #{0}；自动拆迁安置尚未恢复，城市未修改。"
     }
   ]
 }

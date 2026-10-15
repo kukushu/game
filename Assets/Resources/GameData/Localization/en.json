@@ -388,6 +388,82 @@
     {
       "key": "ui.inspect.not_workforce",
       "text": "Outside the workforce; no job"
+    },
+    {
+      "key": "road.edit_missing",
+      "text": "This road no longer exists. Select another road."
+    },
+    {
+      "key": "road.edit_stale",
+      "text": "The road plan is stale. Try again."
+    },
+    {
+      "key": "road.reverse_oneway",
+      "text": "Make the road one-way before reversing it."
+    },
+    {
+      "key": "ui.road.open",
+      "text": "Select / upgrade / demolish roads"
+    },
+    {
+      "key": "ui.road.close",
+      "text": "Finish road editing"
+    },
+    {
+      "key": "ui.road.choose",
+      "text": "Select a road. The yellow line marks the selected logical road."
+    },
+    {
+      "key": "ui.road.no_hit",
+      "text": "No road selected. Click nearer the road surface."
+    },
+    {
+      "key": "ui.road.summary",
+      "text": "Road #{0} · length {1} · {2} lanes per direction · {3}"
+    },
+    {
+      "key": "ui.road.direction.both",
+      "text": "two-way"
+    },
+    {
+      "key": "ui.road.direction.forward",
+      "text": "forward one-way"
+    },
+    {
+      "key": "ui.road.direction.backward",
+      "text": "backward one-way"
+    },
+    {
+      "key": "ui.road.narrow",
+      "text": "Change to 1 lane per direction"
+    },
+    {
+      "key": "ui.road.wide",
+      "text": "Change to 2 lanes per direction"
+    },
+    {
+      "key": "ui.road.toggle",
+      "text": "Toggle one-way / two-way"
+    },
+    {
+      "key": "ui.road.reverse",
+      "text": "Reverse selected one-way road"
+    },
+    {
+      "key": "ui.road.remove",
+      "text": "Demolish selected road"
+    },
+    {
+      "key": "ui.road.removed",
+      "text": "Road removed. Interrupted vehicles retain their positions and tasks."
+    },
+    {
+      "key": "ui.road.changed",
+      "text": "Road updated. Actual cost: {0}."
+    },
+    {
+      "key": "road.widen_obstructed",
+      "text": "Widening overlaps building #{0}. Automatic demolition/relocation is not yet restored; the city is unchanged."
     }
   ]
 }

@@ -1,0 +1,2 @@
+road_id,build_cost,upgrade_cost,upgrade_tool_ms,direction_tool_ms,remove_tool_ms,save_equal
+12,750,750,8.8556,14.8857,9.0508,True

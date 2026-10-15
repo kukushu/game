@@ -123,6 +123,7 @@ namespace HarborCity.RoadCore
         public IEnumerable<Drivable> Drivables=>drivables.Values;
         public int RoadCount=>data.roads.Count;
         public int JunctionCount=>data.junctions.Count;
+        public bool ContainsRoad(int roadId)=>settings.ContainsKey(roadId);
         public RoadSettings Settings(int roadId){if(!settings.TryGetValue(roadId,out var road))throw new ArgumentException("Missing road");return road;}
         public bool HasParallelLanes {get;private set;}
         public Network(NetworkData data){this.data=data??throw new ArgumentNullException(nameof(data));Rebuild();}

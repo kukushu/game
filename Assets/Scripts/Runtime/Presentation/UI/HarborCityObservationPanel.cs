@@ -17,6 +17,7 @@ namespace HarborCity
         public bool BlocksInput(Vector2 screen)=> (selected!=0||showIssues)&&Bounds.Contains(new Vector2(screen.x,Screen.height-screen.y));
         public void Bind(CityCoreIndustrySession current)
         {if(ReferenceEquals(session,current))return;session=current;query=current==null?null:new CityCoreObservation(current);selected=family=issuePage=0;showIssues=false;scroll=Vector2.zero;shown=null;issues=null;refreshed=-1;entityRevision=roadRevision=-1;}
+        public void Close(){selected=family=0;showIssues=false;}
         public void Select(int id){selected=id;family=0;refreshed=-1;}
         public void SelectFamily(int id){family=id;}
         public void Pick(float x,float z){if(query!=null)Select(query.Pick(x,z));}

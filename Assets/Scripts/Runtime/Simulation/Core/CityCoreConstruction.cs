@@ -13,6 +13,21 @@ namespace HarborCity
         {entities.StructuralBoundary();paid=Quote(plan);finance.CheckSpend(paid);if(!plan.TryCommit())return false;finance.SpendApproved(paid);return true;}
         public void RemoveRoad(int id)
         {entities.StructuralBoundary();finance.CheckSpend(40);world.RemoveRoad(id);finance.SpendApproved(40);}
+        // UI sends a stable road ID, never holds a prepared plan across frames.
+        // Build and validate the candidate at this healthy boundary, then pay once.
+        public int UpgradeRoad(int id,int lanes,RoadDirection direction)
+        {
+            entities.StructuralBoundary();if(!world.Network.ContainsRoad(id))throw new CityRuleException("road.edit_missing");
+            var settings=world.Network.Settings(id);if(settings.lanes==lanes&&settings.direction==direction)return 0;var plan=world.PlanUpgradeRoad(id,lanes,settings.speed,direction);
+            if(lanes>settings.lanes)foreach(var b in entities.Buildings)if(CityRoadClearance.Intersects(plan.Preview,b,selectionHits))throw new CityRuleException("road.widen_obstructed",b.id);
+            if(!Commit(plan,out int paid))throw new CityRuleException("road.edit_stale");return paid;
+        }
+        public int PickRoad(Point point,double radius=2.5)
+        {
+            world.Network.Project(point,radius,false,selectionHits);
+            foreach(var hit in selectionHits){var lane=world.Network.Get(hit.drivable);if(!lane.IsConnection)return lane.RoadId;}return 0;
+        }
+        readonly System.Collections.Generic.List<SpatialHit> selectionHits=new System.Collections.Generic.List<SpatialHit>();
         public int PlaceFacility(LandUse use,float x,float z,float yaw,CityCoreZoning zoning)
         {
             entities.StructuralBoundary();if(use!=LandUse.Power&&use!=LandUse.Water&&use!=LandUse.Sewage&&use!=LandUse.Landfill)throw new ArgumentException("Unsupported facility");

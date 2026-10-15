@@ -1,0 +1,1 @@
+PASS native actual growing city: non-first street selected/highlighted, paid widening, one-way/reverse actual reachability, unrelated traffic unchanged, exact in-flight edited save continuation, selected removal and stale-selection rejection. Tool timings include view callbacks. Programmatic tool commands; no manual mouse click acceptance claimed.
