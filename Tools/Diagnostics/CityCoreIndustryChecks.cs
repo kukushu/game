@@ -9,6 +9,7 @@ public static class CityCoreIndustryChecks
     static void Check(bool condition,string message){checks++;if(!condition)throw new Exception(message);}
     public static void Main(string[] args)
     {
+        ZoningCacheTests();
         ReachabilityTests();
         FreightCandidateTests();
         TaskTests();
@@ -51,6 +52,21 @@ public static class CityCoreIndustryChecks
         interrupted.Transport.AddRoad(1,2,new[]{interrupted.Transport.JunctionPosition(1),new Point(-18,0,0),interrupted.Transport.JunctionPosition(2)},lanes:2);interrupted.Advance(.05);Check(car.status==VehicleStatus.Active&&car.Task.citizenId==rider.id&&rider.tripId==car.Task.id&&Point.Distance(before,interrupted.Transport.Position(car))<.7,"Repaired road did not recover same citizen/car without jump");interrupted.Advance(6);interrupted.Validate();Check(rider.atWork&&interrupted.City.Factory(1).produced>0,"Recovered commute did not resume actual labour");
     }
     static CommercialBuilding AsShop(this CityBuilding b)=>(CommercialBuilding)b;
+    static void ZoningCacheTests()
+    {
+        var s=CityGrowingGridFixture.Create();Func<float,float,float> height=(x,z)=>2;
+        Action verify=()=>{
+            var clone=CityCoreSave.Read(CityCoreSave.Write(s));clone.Simulation.Growth.Zoning.SetSurface(height);
+            Func<ZoneCell,string> key=c=>c.key+"/"+c.block+"/"+c.column+"/"+c.row+"/"+c.side+"/"+(int)c.use+"/"+c.available+"/"+c.occupiedBuilding+"/"+c.pose.groundY.ToString("R",System.Globalization.CultureInfo.InvariantCulture);
+            Check(s.Simulation.Growth.Zoning.Cells().Select(key).SequenceEqual(clone.Simulation.Growth.Zoning.Cells().Select(key)),"Incremental zoning differs from fresh saved-world reconstruction");
+        };
+        verify();s.Transport.SplitRoadAt(1,s.Transport.Network.Centreline(1).Length*.5);verify();
+        for(int i=0;i<800;i++){s.Advance(.05);if(i%80==0)verify();}verify();
+        var zone=s.Simulation.Growth.Zoning;var first=zone.Cells().First();int id=s.Entities.Buildings[0].id;var original=s.Entities.Building(id);var replacement=BuildingSaveData.FromBuilding(original).ToBuilding();replacement.width+=.1f;s.Entities.ReplaceBuilding(replacement);verify();
+        Check(ReferenceEquals(first,zone.Cells().First()),"Building-only edit rebuilt static plot geometry");
+        var brush=zone.Cells().First(c=>c.available);zone.Paint(new[]{brush},LandUse.Residential);verify();zone.Paint(new[]{brush},LandUse.Empty);verify();
+        height=(x,z)=>2.3f;zone.SetSurface(height);verify();height=(x,z)=>2;zone.SetSurface(height);verify();
+    }
     static void ReachabilityTests()
     {
         // Compare the structural filter with actual routing, including same-lane

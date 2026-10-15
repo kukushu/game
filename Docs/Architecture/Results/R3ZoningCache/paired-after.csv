@@ -1,0 +1,2 @@
+steps,population,buildings,roads,day,active_peak,mean_ms,p95_ms,p99_ms,max_ms,allocated_per_step,consumed,retail_payments
+12000,30,26,13,6,34,0.014561,0.023500,0.042400,6.836900,3443,33,1980
