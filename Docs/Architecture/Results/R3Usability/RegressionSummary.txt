@@ -1,0 +1,6 @@
+23437 integrated city/resident checks passed.
+3218 RoadCore direction/topology/safety/edit/freight/save checks passed.
+10000 indexed job-query allocation checks passed.
+6000 paired attribution on/off city steps passed.
+Unity original-terrain Trading validation passed (command-driven, distinct from mouse acceptance).
+Construction validation failed at commute/work/return assertion both on baseline b8f2a6f and this batch; preserved, not relaxed.

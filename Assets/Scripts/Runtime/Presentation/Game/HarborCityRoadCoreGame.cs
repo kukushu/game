@@ -23,13 +23,50 @@ namespace HarborCity
             if(FindAnyObjectByType<HarborCityRoadCoreGame>()==null)new GameObject("Harbor City Road Core").AddComponent<HarborCityRoadCoreGame>();
 #endif
         }
-        World world;CityCoreIndustrySession session;Camera cameraView; Material roadMaterial,carMaterial;
+        World world;CityCoreIndustrySession session;Camera cameraView; Material roadMaterial,carMaterial,waterLineMaterial;
         CityLandscape landscape;LandUse zoneTool=LandUse.Empty;int shownBuildings=-1,shownZones=-1,shownNetwork=-1;
         LandUse facilityTool=LandUse.Empty;UtilityKind? utilityTool;float facilityYaw;
         bool outsideTool;
         CityLocalization localization;HarborCityFinancePanel financePanel;HarborCityObservationPanel observation;HarborCityRoadEditor roadEditor;
         readonly List<GameObject> utilityViews=new List<GameObject>();
         HarborCityConstructionCamera constructionCamera;
+        HarborCityConstructionPreview constructionPreview;
+        Vector2 menuScroll;string previewText="";double previewDue;Point previewPoint,previewStart;
+        bool previewAnchored,previewOneWay,previewWide;int previewVersion=-1,previewMoney;
+        Rect MenuBounds=>new Rect(8,8,Math.Min(Screen.width-16,780),Math.Min(440,Math.Max(180,Screen.height-80)));
+        bool BlocksWorldInput(Vector2 p)=>MenuBounds.Contains(new Vector2(p.x,Screen.height-p.y))||financePanel.BlocksInput(p)||observation.BlocksInput(p)||roadEditor.BlocksInput(p);
+        void ResetGesture(){hasStart=false;previewText="";previewVersion=-1;constructionPreview.Hide();}
+        void CancelTool(){roadEditor.Clear();building=hasStart=outsideTool=false;zoneTool=facilityTool=LandUse.Empty;utilityTool=null;constructionPreview.Hide();previewText="";previewVersion=-1;notice=localization.Get("ui.build.cancelled");}
+        Point[] RoadStroke(Point end)
+        {
+            if(Point.Distance(startPoint,end)<4)throw new CityRuleException("ui.build.too_short");
+            var centre=new Point[9];for(int i=0;i<centre.Length;i++){centre[i]=Point.Lerp(startPoint,end,i/8.0);if(landscape!=null){centre[i].y=landscape.Height((float)centre[i].x,(float)centre[i].z);if(centre[i].y<=.15)throw new CityRuleException("ui.build.water");}}
+            return centre;
+        }
+        string RoadError(Exception error)
+        {
+            if(error is CityRuleException)return localization.Error(error);
+            // Existing core validation exceptions have no typed reason yet.
+            // Translate known diagnostics here, without coupling physics to UI.
+            if(error.Message=="Invalid lane access")return localization.Get("ui.build.access_conflict");
+            if(error.Message.StartsWith("New stroke overlaps an existing road",StringComparison.Ordinal))return localization.Get("ui.build.overlap");
+            return localization.Get("ui.build.road_error",error.Message);
+        }
+        void Preview(Point p)
+        {
+            bool anchored=hasStart;
+            if(Time.realtimeSinceStartupAsDouble<previewDue&&previewVersion==world.NetworkGeneration&&previewAnchored==anchored&&previewOneWay==oneWay&&previewWide==wide)return;
+            if(previewVersion==world.NetworkGeneration&&previewAnchored==anchored&&previewOneWay==oneWay&&previewWide==wide&&previewMoney==(session?.City.money??0)&&Point.Distance(previewPoint,p)<.05&&Point.Distance(previewStart,startPoint)<.05)return;
+            previewDue=Time.realtimeSinceStartupAsDouble+.12;previewPoint=p;previewStart=startPoint;previewAnchored=anchored;previewVersion=world.NetworkGeneration;previewOneWay=oneWay;previewWide=wide;previewMoney=session?.City.money??0;
+            Point[] points=null;bool valid=true;
+            try
+            {
+                if(anchored){points=utilityTool.HasValue?new[]{startPoint,p}:RoadStroke(p);if(building){var plan=world.PlanConnectedRoad(points,oneWay,snap:4,lanes:wide?2:1);int quote=session==null?0:session.Construction.CheckRoadPlacement(plan);previewText=localization.Get("ui.build.preview",Point.Distance(startPoint,p).ToString("F1"),quote);}else previewText=localization.Get("ui.build.pipe_end");}
+                else{if(p.y<=.15)throw new CityRuleException("ui.build.water");previewText=localization.Get(utilityTool.HasValue?"ui.build.pipe_start":"ui.build.choose_start");}
+            }
+            catch(Exception e){valid=false;previewText=building?RoadError(e):localization.Error(e);if(anchored&&points==null)points=new[]{startPoint,p};}
+            constructionPreview.Show(anchored?startPoint:p,anchored,points,valid,utilityTool.HasValue ? .28f : wide?4:2,landscape==null?null:landscape.Height);
+        }
         readonly List<GameObject> zones=new List<GameObject>();Material[] zoneMaterials;
         readonly Dictionary<int,Transform> cars=new Dictionary<int,Transform>();
         readonly HashSet<int> visibleIds=new HashSet<int>();readonly List<int> expiredIds=new List<int>();
@@ -46,6 +83,7 @@ namespace HarborCity
             foreach(var c in FindObjectsByType<Camera>(FindObjectsSortMode.None))c.gameObject.SetActive(false);
             cameraView=new GameObject("Road core camera").AddComponent<Camera>();cameraView.transform.position=new Vector3(0,90,-65);cameraView.transform.LookAt(Vector3.zero);cameraView.backgroundColor=new Color(.12f,.18f,.16f);cameraView.farClipPlane=3000;
             var shader=Resources.Load<Shader>("RoadCore");roadMaterial=new Material(shader){color=new Color(.25f,.29f,.32f)};carMaterial=new Material(shader){color=Color.yellow};roadEditor=new HarborCityRoadEditor(localization,roadMaterial);roadEditor.Changed=RenderRoads; // Zones observe NetworkGeneration once in Update; buildings did not move.
+            constructionPreview=new HarborCityConstructionPreview(roadMaterial);waterLineMaterial=new Material(roadMaterial){color=new Color(.15f,.65f,1)};
             var args=Environment.GetCommandLineArgs();
             if(Array.IndexOf(args,"-harbor-core-validate")>=0||Array.IndexOf(args,"-harbor-core-window")>=0||Array.IndexOf(args,"-harbor-city-core-validate")>=0)Application.runInBackground=true;
             if(Array.IndexOf(args,"-harbor-core-validate")>=0){world=new World();int a=world.AddJunction(new Point(-40,0,-15)),b=world.AddJunction(new Point(0,0,-15)),cnode=world.AddJunction(new Point(35,0,20));world.AddRoad(a,b,new[]{world.JunctionPosition(a),new Point(-20,0,-15),world.JunctionPosition(b)});world.AddRoad(b,cnode,new[]{world.JunctionPosition(b),new Point(15,0,-5),world.JunctionPosition(cnode)});origin=world.AddDepot(a,1000);destination=world.AddDepot(cnode,0);}
@@ -97,28 +135,32 @@ namespace HarborCity
             }
             expiredIds.Clear();foreach(var pair in cars)if(!visibleIds.Contains(pair.Key))expiredIds.Add(pair.Key);foreach(int id in expiredIds){Destroy(cars[id].gameObject);cars.Remove(id);}
             }
-            if(constructionCamera!=null&&(Mouse.current==null||!(financePanel.BlocksInput(Mouse.current.position.ReadValue())||observation.BlocksInput(Mouse.current.position.ReadValue())||roadEditor.BlocksInput(Mouse.current.position.ReadValue()))))constructionCamera.Step(Time.deltaTime);
+            if(constructionCamera!=null&&(Mouse.current==null||!(BlocksWorldInput(Mouse.current.position.ReadValue()))))constructionCamera.Step(Time.deltaTime);
             if(Keyboard.current!=null)
             {
                 var k=Keyboard.current;if(constructionCamera==null){Vector3 move=new Vector3((k.dKey.isPressed?1:0)-(k.aKey.isPressed?1:0),0,(k.wKey.isPressed?1:0)-(k.sKey.isPressed?1:0));cameraView.transform.position+=move*Time.deltaTime*35;}
-                if(k.escapeKey.wasPressedThisFrame){roadEditor.Clear();building=false;hasStart=false;zoneTool=facilityTool=LandUse.Empty;utilityTool=null;outsideTool=false;}
+                if(k.escapeKey.wasPressedThisFrame){CancelTool();return;}
             }
-            if(Mouse.current!=null&&financePanel!=null&&financePanel.BlocksInput(Mouse.current.position.ReadValue()))return;
-            if(Mouse.current!=null&&observation!=null&&observation.BlocksInput(Mouse.current.position.ReadValue()))return;
-            if(Mouse.current==null||!Mouse.current.leftButton.wasPressedThisFrame||Mouse.current.position.ReadValue().y>Screen.height-410)return;
-            if(roadEditor.BlocksInput(Mouse.current.position.ReadValue()))return;
+            var mouse=Mouse.current;if(mouse==null)return;
+            bool click=mouse.leftButton.wasPressedThisFrame;
+            if(BlocksWorldInput(mouse.position.ReadValue())){constructionPreview.Hide();previewVersion=-1;return;}
             bool inspecting=!roadEditor.IsSelecting&&!building&&zoneTool==LandUse.Empty&&facilityTool==LandUse.Empty&&!utilityTool.HasValue&&!outsideTool;
-            if(inspecting){int picked=buildingViews?.Pick(cameraView.ScreenPointToRay(Mouse.current.position.ReadValue()))??0;observation?.Select(picked);return;}
-            var ray=cameraView.ScreenPointToRay(Mouse.current.position.ReadValue());Vector3 hit;if(landscape!=null){if(!landscape.Raycast(ray,out hit))return;}else{float enter;if(!new Plane(Vector3.up,Vector3.zero).Raycast(ray,out enter))return;hit=ray.GetPoint(enter);}var p=new Point(hit.x,hit.y,hit.z);
+            if(inspecting){constructionPreview.Hide();if(click){int picked=buildingViews?.Pick(cameraView.ScreenPointToRay(mouse.position.ReadValue()))??0;observation?.Select(picked);}return;}
+            var ray=cameraView.ScreenPointToRay(mouse.position.ReadValue());Vector3 hit;
+            if(landscape!=null){if(!landscape.Raycast(ray,out hit)){constructionPreview.Hide();if(click)notice=localization.Get("ui.build.no_ground");return;}}
+            else{float enter;if(!new Plane(Vector3.up,Vector3.zero).Raycast(ray,out enter)){constructionPreview.Hide();if(click)notice=localization.Get("ui.build.no_ground");return;}hit=ray.GetPoint(enter);}
+            var p=new Point(hit.x,hit.y,hit.z);
+            if(building||utilityTool.HasValue)Preview(p);else constructionPreview.Hide();
+            if(!click)return;
             if(roadEditor.IsSelecting){roadEditor.Pick(p);return;}
             if(outsideTool){try{int id=session.Simulation.Trade.ConnectBorder(p);notice=localization.Get("ui.trade.connected",id);}catch(Exception e){notice=localization.Error(e);}return;}
             if(facilityTool!=LandUse.Empty){try{int id=session.Construction.PlaceFacility(facilityTool,hit.x,hit.z,facilityYaw,session.Simulation.Growth.Zoning);session.Simulation.Utilities.Refresh();notice="已建市政设施 #"+id+"；供水和排污须接管线，设施需要电力。";RenderBuildings();}catch(Exception e){notice=localization.Error(e);}return;}
             if(zoneTool!=LandUse.Empty){var selection=session.Simulation.Growth.Zoning.Cells().Where(c=>(c.pose.x-hit.x)*(c.pose.x-hit.x)+(c.pose.z-hit.z)*(c.pose.z-hit.z)<=9).ToArray();int changed=session.Simulation.Growth.Zoning.Paint(selection,zoneTool==LandUse.Bulldoze?LandUse.Empty:zoneTool);notice="已修改 "+changed+" 格土地用途；私人建筑由城市时钟逐步生长。";RenderZones();return;}
-            if(!hasStart){startPoint=p;hasStart=true;notice="再点击终点；吸附道路内部或端点，同高度交叉自动建路口。Esc 取消。";return;}
-            if(Point.Distance(startPoint,p)<4)return;
+            if(!hasStart){if(p.y<=.15){notice=localization.Get("ui.build.water");return;}startPoint=p;hasStart=true;previewVersion=-1;Preview(p);notice=localization.Get(utilityTool.HasValue?"ui.build.pipe_end":"ui.build.choose_end");return;}
+            if(!utilityTool.HasValue&&Point.Distance(startPoint,p)<4){notice=localization.Get("ui.build.too_short");return;}
             if(utilityTool.HasValue){try{int paid=session.Simulation.Utilities.Build(utilityTool.Value,startPoint,p);hasStart=false;RenderUtilities();notice="已建设管线，花费 "+paid;}catch(Exception e){notice=localization.Error(e);}return;}
-            try{var centre=new Point[9];for(int i=0;i<centre.Length;i++){centre[i]=Point.Lerp(startPoint,p,i/8.0);if(landscape!=null){centre[i].y=landscape.Height((float)centre[i].x,(float)centre[i].z);if(centre[i].y<=.15)throw new InvalidOperationException("当前地面工具不能穿过水面；桥隧高度工具尚未恢复");}}var plan=world.PlanConnectedRoad(centre,oneWay,snap:4,lanes:wide?2:1);int fee=0;if(!(session==null?plan.TryCommit():session.Construction.Commit(plan,out fee)))throw new InvalidOperationException("城市已变化，请重新施工");RenderRoads();notice="已提交道路与引用；建设费用 "+fee;hasStart=false;}
-            catch(Exception e){notice=localization.Error(e);}
+            try{var centre=RoadStroke(p);var plan=world.PlanConnectedRoad(centre,oneWay,snap:4,lanes:wide?2:1);int fee=0;if(session!=null)session.Construction.CheckRoadPlacement(plan);if(!(session==null?plan.TryCommit():session.Construction.Commit(plan,out fee)))throw new CityRuleException("road.edit_stale");hasStart=false;constructionPreview.Hide();previewVersion=-1;previewText="";notice=localization.Get("ui.build.success",fee);try{RenderRoads();}catch(Exception viewError){notice+=localization.Get("ui.build.view_error");Debug.LogException(viewError);}}
+            catch(Exception e){notice=RoadError(e);}
         }
         System.Collections.IEnumerator MeasureIntegratedWindow(string path)
         {
@@ -150,9 +192,8 @@ namespace HarborCity
             foreach(var go in roads){Destroy(go.GetComponent<MeshFilter>().sharedMesh);Destroy(go);}roads.Clear();
             foreach(var d in world.Network.Drivables)
             {
-                var g=new Geometry(d.Geometry.Slice(d.StartDistance,d.EndDistance));if(g.Length<1e-8)continue;var vertices=new Vector3[g.Count*2];var indices=new int[(g.Count-1)*6];
-                for(int i=0;i<g.Count;i++){var t=Network.Tangent(g[Math.Max(0,i-1)],g[Math.Min(g.Count-1,i+1)]);vertices[i*2]=V(Network.Offset(g[i],t,-.5));vertices[i*2+1]=V(Network.Offset(g[i],t,.5));if(i==0)continue;int b=(i-1)*6,a=(i-1)*2;indices[b]=a;indices[b+1]=a+2;indices[b+2]=a+1;indices[b+3]=a+1;indices[b+4]=a+2;indices[b+5]=a+3;}
-                var mesh=new Mesh{name="Shared lane geometry "+d.Id};mesh.vertices=vertices;mesh.triangles=indices;mesh.RecalculateNormals();
+                if(d.TravelLength<1e-8)continue;
+                var mesh=HarborCitySurfaceMesh.Ribbon(d.Geometry,d.StartDistance,d.EndDistance,landscape==null?null:landscape.Height);mesh.name="Shared lane geometry "+d.Id;
                 var go=new GameObject(mesh.name);go.AddComponent<MeshFilter>().sharedMesh=mesh;go.AddComponent<MeshRenderer>().sharedMaterial=roadMaterial;roads.Add(go);
             }
         }
@@ -163,36 +204,40 @@ namespace HarborCity
         }
         void RenderZones()
         {
-            foreach(var go in zones)Destroy(go);zones.Clear();if(session==null||!session.Simulation.Growth.Zoning.Ready)return;
+            foreach(var go in zones){Destroy(go.GetComponent<MeshFilter>().sharedMesh);Destroy(go);}zones.Clear();if(session==null||!session.Simulation.Growth.Zoning.Ready)return;
             if(zoneMaterials==null){zoneMaterials=new Material[4];var colours=new[]{new Color(.35f,.5f,.4f),new Color(.25f,.8f,.4f),new Color(.25f,.65f,1),new Color(1,.7f,.2f)};for(int i=0;i<4;i++)zoneMaterials[i]=new Material(roadMaterial){color=colours[i]};}
-            foreach(var cell in session.Simulation.Growth.Zoning.Cells()){if(cell.occupiedBuilding>=0)continue;var go=GameObject.CreatePrimitive(PrimitiveType.Cube);go.name="Zone "+cell.key;go.transform.position=new Vector3(cell.pose.x,cell.pose.groundY+.03f,cell.pose.z);go.transform.rotation=Quaternion.Euler(0,cell.pose.yaw,0);go.transform.localScale=new Vector3(cell.pose.width,.04f,cell.pose.depth);go.GetComponent<Renderer>().sharedMaterial=zoneMaterials[cell.use==LandUse.Residential?1:cell.use==LandUse.Commercial?2:cell.use==LandUse.Industrial?3:0];Destroy(go.GetComponent<Collider>());zones.Add(go);}
+            foreach(var cell in session.Simulation.Growth.Zoning.Cells()){if(cell.occupiedBuilding>=0)continue;var go=new GameObject("Zone "+cell.key);go.AddComponent<MeshFilter>().sharedMesh=HarborCitySurfaceMesh.Plot(cell.pose,landscape==null?null:landscape.Height);go.AddComponent<MeshRenderer>().sharedMaterial=zoneMaterials[cell.use==LandUse.Residential?1:cell.use==LandUse.Commercial?2:cell.use==LandUse.Industrial?3:0];zones.Add(go);}
         }
         void RenderUtilities()
         {
             foreach(var view in utilityViews)Destroy(view);utilityViews.Clear();if(session==null)return;
-            foreach(var kind in new[]{UtilityKind.Electricity,UtilityKind.Water}){var network=session.City.UtilityNetwork(kind);foreach(var edge in network.edges){var a=network.Node(edge.a);var b=network.Node(edge.b);var go=new GameObject(kind+" line #"+edge.id);var line=go.AddComponent<LineRenderer>();line.sharedMaterial=kind==UtilityKind.Water?roadMaterial:carMaterial;line.startWidth=line.endWidth=.18f;line.positionCount=2;float y0=landscape==null?2:landscape.Height(a.x,a.z),y1=landscape==null?2:landscape.Height(b.x,b.z);line.SetPosition(0,new Vector3(a.x,y0+.15f,a.z));line.SetPosition(1,new Vector3(b.x,y1+.15f,b.z));utilityViews.Add(go);}}
+            foreach(var kind in new[]{UtilityKind.Electricity,UtilityKind.Water}){var network=session.City.UtilityNetwork(kind);foreach(var edge in network.edges){var a=network.Node(edge.a);var b=network.Node(edge.b);var go=new GameObject(kind+" line #"+edge.id);var line=go.AddComponent<LineRenderer>();line.sharedMaterial=kind==UtilityKind.Water?waterLineMaterial:carMaterial;line.startWidth=line.endWidth=kind==UtilityKind.Water?.22f:.14f;int samples=Math.Max(2,(int)Math.Ceiling(Vector2.Distance(new Vector2(a.x,a.z),new Vector2(b.x,b.z)))+1);line.positionCount=samples;for(int i=0;i<samples;i++){float t=i/(float)(samples-1),x=Mathf.Lerp(a.x,b.x,t),z=Mathf.Lerp(a.z,b.z,t);line.SetPosition(i,new Vector3(x,(landscape==null?2:landscape.Height(x,z))+(kind==UtilityKind.Water?.34f:1.4f),z));}utilityViews.Add(go);}}
         }
         void OnGUI()
         {
-            if(world==null)return;GUI.Box(new Rect(8,8,Math.Min(Screen.width-16,1100),398),"");GUILayout.BeginArea(new Rect(20,16,Math.Min(Screen.width-40,1080),385));
-            if(session!=null){GUILayout.BeginHorizontal();if(GUILayout.Button(localization.Get("ui.inspect.open"),GUILayout.Width(180))){building=false;outsideTool=false;hasStart=false;zoneTool=facilityTool=LandUse.Empty;utilityTool=null;roadEditor.Clear();observation.Bind(session);observation.ToggleIssues();}GUILayout.Label(localization.Get("ui.finance.balance",session.Simulation.Finance.Money));if(GUILayout.Button(localization.Get("ui.finance.open"),GUILayout.Width(180)))financePanel.IsOpen=true;GUILayout.EndHorizontal();}
-            GUILayout.Label("HarborCity 城市恢复开发中（尚未恢复完整经营）");GUILayout.Label(notice);
-            if(session!=null&&session.City.development.enabled)GUILayout.Label(localization.Get("ui.trade.summary",session.City.trade.rawDelivered,session.City.trade.goodsExported,session.City.trade.cash.ToString("F0")));
-            if(session!=null&&session.City.development.enabled&&GUILayout.Button(localization.Get("ui.trade.connect"))){roadEditor.Clear();outsideTool=true;building=false;zoneTool=facilityTool=LandUse.Empty;utilityTool=null;hasStart=false;notice=localization.Get("ui.trade.choose");}
-            if(session!=null&&session.City.development.enabled){GUILayout.Label(localization.Get("ui.waste.summary",session.Simulation.Waste.Waiting,session.Simulation.Waste.InTransit,session.Simulation.Waste.Stored,session.Simulation.Waste.Processed,session.Simulation.Waste.Vehicles));GUILayout.BeginHorizontal();foreach(var use in new[]{LandUse.Power,LandUse.Water,LandUse.Sewage,LandUse.Landfill})if(GUILayout.Button(use==LandUse.Power?"电站":use==LandUse.Water?"供水站":use==LandUse.Sewage?"排污口":localization.Get("ui.waste.facility"))){roadEditor.Clear();outsideTool=false;facilityTool=use;zoneTool=LandUse.Empty;utilityTool=null;building=false;hasStart=false;}foreach(var kind in new[]{UtilityKind.Electricity,UtilityKind.Water})if(GUILayout.Button(kind==UtilityKind.Electricity?"电线":"水/排污共用管")){roadEditor.Clear();outsideTool=false;utilityTool=kind;facilityTool=zoneTool=LandUse.Empty;building=false;hasStart=false;}if(GUILayout.Button("设施转向90°"))facilityYaw=(facilityYaw+90)%360;GUILayout.EndHorizontal();GUILayout.Label("用电/容量 "+session.City.demand+"/"+session.City.power+" · 用水/供水 "+session.City.WaterDemand+"/"+session.City.water+" · 排污容量 "+session.City.SewageCapacity+" · 就业 "+session.City.Employed+" / 劳动力 "+(session.City.Employed+session.City.Unemployed));}
-            if(session!=null&&session.City.development.enabled){GUILayout.BeginHorizontal();foreach(var use in new[]{LandUse.Residential,LandUse.Commercial,LandUse.Industrial})if(GUILayout.Button(use==LandUse.Residential?"划住宅区":use==LandUse.Commercial?"划商业区":"划工业区")){roadEditor.Clear();outsideTool=false;zoneTool=use;facilityTool=LandUse.Empty;utilityTool=null;building=false;hasStart=false;}if(GUILayout.Button("清除分区")){roadEditor.Clear();outsideTool=false;zoneTool=LandUse.Bulldoze;facilityTool=LandUse.Empty;utilityTool=null;building=false;hasStart=false;}if(GUILayout.Button("结束划区"))zoneTool=LandUse.Empty;GUILayout.EndHorizontal();GUILayout.Label("城市资金 "+session.City.money+" · 实际居民 "+session.Entities.Members.Count+" · 真实岗位 "+session.City.society.jobEntities.Count+" · 建设项目 "+session.City.development.projects.Count);}
-            GUILayout.Label("活动车辆 "+world.ActiveCount+" · 交付 "+world.Delivered+" · 道路 "+world.Network.RoadCount+" · 拓扑节点 "+world.Network.JunctionCount+" · 模拟秒 "+world.Clock.ToString("F1"));
-            GUILayout.BeginHorizontal();if(GUILayout.Button(building?"结束修路":"修路")){roadEditor.Clear();outsideTool=false;building=!building;zoneTool=facilityTool=LandUse.Empty;utilityTool=null;hasStart=false;}oneWay=GUILayout.Toggle(oneWay,"单行");wide=GUILayout.Toggle(wide,"每方向两车道");if((session==null||!session.City.development.enabled)&&GUILayout.Button("发货 A → B"))notice=(session==null?world.Dispatch(origin,destination,1,5):session.Simulation.RequestFreight(origin,destination))==null?"暂无可用入口/库存/路线":"已发车，库存已扣；到达后才付款";if(GUILayout.Button("1×"))speed=1;if(GUILayout.Button("3×"))speed=3;if(GUILayout.Button("暂停"))speed=0;
+            if(world==null){if(localization==null){var language=Resources.Load<TextAsset>("GameData/Localization/zh-CN");if(language!=null)localization=new CityLocalization(JsonUtility.FromJson<TranslationData>(language.text));}if(localization!=null)GUI.Box(new Rect(8,8,Math.Min(Screen.width-16,760),80),localization.Get("ui.build.restart_play"));return;}if(Event.current.type==EventType.KeyDown&&Event.current.keyCode==KeyCode.Escape){CancelTool();Event.current.Use();}
+            var bounds=MenuBounds;var colour=GUI.color;GUI.color=new Color(.07f,.1f,.12f,1);GUI.DrawTexture(bounds,Texture2D.whiteTexture);GUI.color=colour;GUI.contentColor=Color.white;
+            GUILayout.BeginArea(new Rect(bounds.x+10,bounds.y+8,bounds.width-20,bounds.height-16));menuScroll=GUILayout.BeginScrollView(menuScroll);
+            GUILayout.Label(localization.Get("ui.build.mode",building?localization.Get("ui.build.road_mode"):utilityTool.HasValue?localization.Get("ui.build.pipe_mode"):facilityTool!=LandUse.Empty?localization.Get("ui.build.facility_mode"):zoneTool!=LandUse.Empty?localization.Get("ui.build.zone_mode"):outsideTool?localization.Get("ui.trade.choose"):localization.Get("ui.build.inspect_mode")));
+            GUILayout.Label(building||utilityTool.HasValue?previewText:"",GUILayout.Height(32));
+            GUILayout.BeginHorizontal();if(GUILayout.Button(building?"结束修路":"修路")){roadEditor.Clear();outsideTool=false;building=!building;zoneTool=facilityTool=LandUse.Empty;utilityTool=null;ResetGesture();previewVersion=-1;previewText="";notice=localization.Get(building?"ui.build.choose_start":"ui.build.cancelled");}oneWay=GUILayout.Toggle(oneWay,"单行");wide=GUILayout.Toggle(wide,"每方向两车道");if((session==null||!session.City.development.enabled)&&GUILayout.Button("发货 A → B"))notice=(session==null?world.Dispatch(origin,destination,1,5):session.Simulation.RequestFreight(origin,destination))==null?"暂无可用入口/库存/路线":"已发车，库存已扣；到达后才付款";if(GUILayout.Button("1×"))speed=1;if(GUILayout.Button("3×"))speed=3;if(GUILayout.Button("暂停"))speed=0;
             GUILayout.EndHorizontal();GUILayout.BeginHorizontal();
-            if(session!=null&&GUILayout.Button(localization.Get("ui.road.open"))){building=false;outsideTool=false;hasStart=false;zoneTool=facilityTool=LandUse.Empty;utilityTool=null;observation.Close();roadEditor.Bind(session);roadEditor.Begin();}
+            if(session!=null&&GUILayout.Button(localization.Get("ui.road.open"))){building=false;outsideTool=false;ResetGesture();zoneTool=facilityTool=LandUse.Empty;utilityTool=null;observation.Close();roadEditor.Bind(session);roadEditor.Begin();}
             if(GUILayout.Button("保存"))Save();if(GUILayout.Button("读取"))Load();GUILayout.EndHorizontal();
+            if(session!=null){GUILayout.BeginHorizontal();if(GUILayout.Button(localization.Get("ui.inspect.open"),GUILayout.Width(180))){building=false;outsideTool=false;ResetGesture();zoneTool=facilityTool=LandUse.Empty;utilityTool=null;roadEditor.Clear();observation.Bind(session);observation.ToggleIssues();}GUILayout.Label(localization.Get("ui.finance.balance",session.Simulation.Finance.Money));if(GUILayout.Button(localization.Get("ui.finance.open"),GUILayout.Width(180)))financePanel.IsOpen=true;GUILayout.EndHorizontal();}
+            GUILayout.Label(notice,GUILayout.Height(36));
+            if(session!=null&&session.City.development.enabled)GUILayout.Label(localization.Get("ui.trade.summary",session.City.trade.rawDelivered,session.City.trade.goodsExported,session.City.trade.cash.ToString("F0")));
+            if(session!=null&&session.City.development.enabled&&GUILayout.Button(localization.Get("ui.trade.connect"))){roadEditor.Clear();outsideTool=true;building=false;zoneTool=facilityTool=LandUse.Empty;utilityTool=null;ResetGesture();notice=localization.Get("ui.trade.choose");}
+            if(session!=null&&session.City.development.enabled){GUILayout.Label(localization.Get("ui.waste.summary",session.Simulation.Waste.Waiting,session.Simulation.Waste.InTransit,session.Simulation.Waste.Stored,session.Simulation.Waste.Processed,session.Simulation.Waste.Vehicles));GUILayout.BeginHorizontal();foreach(var use in new[]{LandUse.Power,LandUse.Water,LandUse.Sewage,LandUse.Landfill})if(GUILayout.Button(use==LandUse.Power?"电站":use==LandUse.Water?"供水站":use==LandUse.Sewage?"排污口":localization.Get("ui.waste.facility"))){roadEditor.Clear();outsideTool=false;facilityTool=use;zoneTool=LandUse.Empty;utilityTool=null;building=false;ResetGesture();}foreach(var kind in new[]{UtilityKind.Electricity,UtilityKind.Water})if(GUILayout.Button(kind==UtilityKind.Electricity?"电线":"水/排污共用管")){roadEditor.Clear();outsideTool=false;utilityTool=kind;facilityTool=zoneTool=LandUse.Empty;building=false;ResetGesture();}if(GUILayout.Button("设施转向90°"))facilityYaw=(facilityYaw+90)%360;GUILayout.EndHorizontal();GUILayout.Label("用电/容量 "+session.City.demand+"/"+session.City.power+" · 用水/供水 "+session.City.WaterDemand+"/"+session.City.water+" · 排污容量 "+session.City.SewageCapacity+" · 就业 "+session.City.Employed+" / 劳动力 "+(session.City.Employed+session.City.Unemployed));}
+            if(session!=null&&session.City.development.enabled){GUILayout.BeginHorizontal();foreach(var use in new[]{LandUse.Residential,LandUse.Commercial,LandUse.Industrial})if(GUILayout.Button(use==LandUse.Residential?"划住宅区":use==LandUse.Commercial?"划商业区":"划工业区")){roadEditor.Clear();outsideTool=false;zoneTool=use;facilityTool=LandUse.Empty;utilityTool=null;building=false;ResetGesture();}if(GUILayout.Button("清除分区")){roadEditor.Clear();outsideTool=false;zoneTool=LandUse.Bulldoze;facilityTool=LandUse.Empty;utilityTool=null;building=false;ResetGesture();}if(GUILayout.Button("结束划区"))zoneTool=LandUse.Empty;GUILayout.EndHorizontal();GUILayout.Label("城市资金 "+session.City.money+" · 实际居民 "+session.Entities.Members.Count+" · 真实岗位 "+session.City.society.jobEntities.Count+" · 建设项目 "+session.City.development.projects.Count);}
+            GUILayout.Label("活动车辆 "+world.ActiveCount+" · 交付 "+world.Delivered+" · 道路 "+world.Network.RoadCount+" · 拓扑节点 "+world.Network.JunctionCount+" · 模拟秒 "+world.Clock.ToString("F1"));
             if(session!=null)GUILayout.Label(localization.Get("ui.retail.summary",session.City.consumption.ConsumedGoods,session.City.consumption.RetailPayments.ToString("F0")));
-            foreach(var d in world.Depots)GUILayout.Label("仓库 #"+d.id+" 库存 "+d.stock+" / "+d.capacity+" 现金 "+d.cash.ToString("F0"));GUILayout.Label("WASD移动相机；点击两点修路，Esc取消。新存档："+SavePath);GUILayout.EndArea();
+            foreach(var d in world.Depots)GUILayout.Label("仓库 #"+d.id+" 库存 "+d.stock+" / "+d.capacity+" 现金 "+d.cash.ToString("F0"));GUILayout.Label("WASD移动相机；点击两点修路，Esc取消。新存档："+SavePath);GUILayout.EndScrollView();GUILayout.EndArea();
             if(session!=null&&!session.City.development.enabled){GUI.Box(new Rect(8,250,620,90),"");GUI.Label(new Rect(20,258,600,22),"工厂：原料 "+session.City.Factory(1)?.raw+" 成品 "+session.City.Goods(1)+" 累计生产 "+session.City.Factory(1)?.produced+" 销售 "+session.City.Factory(1)?.sold+" 现金 "+session.City.Factory(1)?.cash.ToString("F2"));GUI.Label(new Rect(20,285,600,22),"商店库存 "+session.City.Goods(2)+" · 原居民 "+session.City.Citizens.Count()+" · 工厂岗位 "+session.City.JobCapacity(1));}
             roadEditor?.Bind(session);roadEditor?.Draw();observation?.Bind(session);observation?.Draw();financePanel?.Draw(session?.Simulation);
         }
         void Save(){try{string tmp=SavePath+".tmp";File.WriteAllBytes(tmp,session==null?SaveCodec.Write(world):CityCoreSave.Write(session));if(File.Exists(SavePath))File.Replace(tmp,SavePath,SavePath+".bak");else File.Move(tmp,SavePath);notice="新格式已保存；旧城市文件未改动";}catch(Exception e){notice=localization.Error(e);}}
-        void Load(){try{var bytes=File.ReadAllBytes(SavePath);var replacement=session==null?SaveCodec.Read(bytes):null;var restored=session==null?null:CityCoreSave.Read(bytes);foreach(var car in cars.Values)Destroy(car.gameObject);cars.Clear();session=restored;world=restored?.Transport??replacement;if(landscape!=null&&session!=null)session.Simulation.Growth.Zoning.SetSurface(landscape.Height);shownBuildings=shownZones=shownNetwork=-1;RenderRoads();RenderBuildings();RenderZones();RenderUtilities();notice="新格式已加载";}catch(Exception e){notice="读取失败："+e.Message;}}
+        void Load(){try{var bytes=File.ReadAllBytes(SavePath);var replacement=session==null?SaveCodec.Read(bytes):null;var restored=session==null?null:CityCoreSave.Read(bytes);foreach(var car in cars.Values)Destroy(car.gameObject);cars.Clear();session=restored;world=restored?.Transport??replacement;CancelTool();observation?.Bind(session);roadEditor?.Bind(session);if(landscape!=null&&session!=null)session.Simulation.Growth.Zoning.SetSurface(landscape.Height);shownBuildings=shownZones=shownNetwork=-1;RenderRoads();RenderBuildings();RenderZones();RenderUtilities();notice="新格式已加载";}catch(Exception e){notice="读取失败："+e.Message;}}
         System.Collections.IEnumerator ValidateNative(string path)
         {
             Directory.CreateDirectory(path);speed=0;yield return null;
@@ -385,6 +430,6 @@ namespace HarborCity
             observation.Close();Exception roadFault=null;yield return HarborCityRoadEditingValidation.Run(session,roadEditor,landscape.Height,path,e=>roadFault=e);if(roadFault!=null){File.AppendAllText(Path.Combine(path,"TradeResult.txt"),"\nFAIL road editor "+roadFault);Application.Quit(1);yield break;}File.AppendAllText(Path.Combine(path,"TradeResult.txt"),"\n"+File.ReadAllText(Path.Combine(path,"RoadEditingResult.txt")));
             session.Validate();yield return new WaitForEndOfFrame();ScreenCapture.CaptureScreenshot(Path.Combine(path,"Trade.png"));yield return null;Application.Quit(0);
         }
-        void OnDestroy(){roadEditor?.Dispose();buildingViews?.Dispose();foreach(var go in roads){if(go!=null){var filter=go.GetComponent<MeshFilter>();if(filter!=null)Destroy(filter.sharedMesh);Destroy(go);}}foreach(var go in zones)if(go!=null)Destroy(go);if(zoneMaterials!=null)foreach(var m in zoneMaterials)Destroy(m);if(roadMaterial!=null)Destroy(roadMaterial);if(carMaterial!=null)Destroy(carMaterial);}
+        void OnDestroy(){constructionPreview?.Dispose();roadEditor?.Dispose();buildingViews?.Dispose();foreach(var go in roads){if(go!=null){var filter=go.GetComponent<MeshFilter>();if(filter!=null)Destroy(filter.sharedMesh);Destroy(go);}}foreach(var go in zones)if(go!=null){Destroy(go.GetComponent<MeshFilter>().sharedMesh);Destroy(go);}if(zoneMaterials!=null)foreach(var m in zoneMaterials)Destroy(m);if(roadMaterial!=null)Destroy(roadMaterial);if(carMaterial!=null)Destroy(carMaterial);if(waterLineMaterial!=null)Destroy(waterLineMaterial);foreach(var view in utilityViews)if(view!=null)Destroy(view);}
     }
 }

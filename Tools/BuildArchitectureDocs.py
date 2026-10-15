@@ -684,6 +684,8 @@ page=page.replace('R3-C4实现源码 '+COMMIT,'R3-D2实现源码 '+COMMIT).repla
 roadediting=(OUT/'R3RoadEditing.md').read_text(encoding='utf-8')
 page=page.replace('<section id="review">','<section id="review"><details open><summary>最新实际：道路选段编辑、施工事务与建筑净空</summary><div class="doccontent">'+markdown(roadediting)+'</div></details>')
 page=page.replace('R3-D2实现源码 '+COMMIT,'R3-D3实现源码 '+COMMIT).replace('04 · 模拟更新流程图 ★（R3-D2实际，观察在模拟之外）','04 · 模拟更新流程图 ★（R3-D3实际，交互在健康边界）')
+# UI usability supplement does not claim that the pinned core diagrams were redesigned.
+page=page.replace('<section id="review">','<section id="review"><details open><summary>当前优先：真实游戏可用性修复（暂停新增功能与重构）</summary><div class="doccontent"><p>已通过真实Editor鼠标完成空城两路交叉、住宅/工业划区、水电排污、居民就业通勤与保存读取。修复输入横带、起点/道路预览、错误反馈与功能性地表显示。核心关系图仍绑定上述固定源码，未据此宣称架构重构。</p><p><a href="R3Usability.md">可用性复现、前后截图、真实鼠标流程、自动测试及未验证项目</a></p><p>旧Construction返家断言在基线与本批均失败；不把Trading程序化验证冒称鼠标验收。Play中脚本热重载尚不支持，必须停止后再编译、重播读取。</p></div></details>')
 (OUT/'HarborCityArchitecture.html').write_text(page,encoding='utf-8')
 (OUT/'SourceEvidence.md').write_text('# 固定源码定位证据\n\n审查commit：`'+COMMIT+'`。以下行号由固定源码生成，而非当前工作树。\n\n'+ '\n'.join('## '+e['title']+'\n\n['+e['source']['file']+':'+str(e['source']['line'])+']('+e['source']['url']+')\n\n方法/语句：`'+e['source']['token']+'`\n' for e in evidence),encoding='utf-8')
 print(f'Created {OUT / "HarborCityArchitecture.html"}; {len(cards)} class cards, {len(graphs)} graphs, {len(flowdata)} flows; pinned {COMMIT}')

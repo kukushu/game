@@ -502,7 +502,7 @@ namespace HarborCity
             // 越小：
             // 地形细节越精确
             // 但渲染开销越高
-            terrain.heightmapPixelError = 2;
+            terrain.heightmapPixelError = .5f; // Keep the displayed ground close to construction/raycast heights.
 
 
             // 超过一定距离后使用较低精度的 basemap

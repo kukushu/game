@@ -1,0 +1,2 @@
+FAIL System.Exception: Actual city commute/work/return loop failed
+  at HarborCity.HarborCityRoadCoreGame+<ValidateConstruction>d__76.MoveNext () [0x00a88] in C:\Users\16934\Documents\unity_game\test\Temp\RoadCoreUnity\Assets\Scripts\Runtime\Presentation\Game\HarborCityRoadCoreGame.cs:321 

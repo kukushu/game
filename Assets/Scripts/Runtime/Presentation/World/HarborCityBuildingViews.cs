@@ -13,6 +13,8 @@ namespace HarborCity
         readonly Dictionary<int,GameObject> views=new Dictionary<int,GameObject>();
         readonly HashSet<int> present=new HashSet<int>();
         readonly List<int> removed=new List<int>();
+        readonly Dictionary<LandUse,Material> useMaterials=new Dictionary<LandUse,Material>();
+        Material ForUse(LandUse use){if(useMaterials.TryGetValue(use,out var result))return result;var colour=use==LandUse.Residential?new Color(.3f,.75f,.45f):use==LandUse.Industrial?new Color(.9f,.65f,.22f):use==LandUse.Commercial?new Color(.3f,.65f,1):use==LandUse.Power?new Color(1,.85f,.25f):use==LandUse.Water?Color.cyan:use==LandUse.Sewage?new Color(.55f,.45f,.8f):new Color(.55f,.65f,.65f);result=new Material(material){color=colour};useMaterials.Add(use,result);return result;}
         readonly Material material;LineRenderer selection;Material selectionMaterial;
         public int Count=>views.Count;
         public int Created {get;private set;}
@@ -38,7 +40,7 @@ namespace HarborCity
                     if(!views.TryGetValue(b.id,out var view))
                     {
                         view=GameObject.CreatePrimitive(PrimitiveType.Cube);
-                        view.name=b.Use+" #"+b.id;view.GetComponent<Renderer>().sharedMaterial=material;
+                        view.name=b.Use+" #"+b.id;view.GetComponent<Renderer>().sharedMaterial=ForUse(b.Use);
                         views.Add(b.id,view);Created++;
                     }
                     var transform=view.transform;
@@ -53,6 +55,6 @@ namespace HarborCity
                 foreach(int id in removed){UnityEngine.Object.Destroy(views[id]);views.Remove(id);Removed++;}
             }
         }
-        public void Dispose(){if(selection!=null)UnityEngine.Object.Destroy(selection.gameObject);if(selectionMaterial!=null)UnityEngine.Object.Destroy(selectionMaterial);foreach(var view in views.Values)UnityEngine.Object.Destroy(view);views.Clear();present.Clear();removed.Clear();}
+        public void Dispose(){if(selection!=null)UnityEngine.Object.Destroy(selection.gameObject);if(selectionMaterial!=null)UnityEngine.Object.Destroy(selectionMaterial);foreach(var view in views.Values)UnityEngine.Object.Destroy(view);views.Clear();present.Clear();removed.Clear();foreach(var m in useMaterials.Values)UnityEngine.Object.Destroy(m);useMaterials.Clear();}
     }
 }

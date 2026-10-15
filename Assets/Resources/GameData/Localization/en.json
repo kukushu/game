@@ -464,6 +464,94 @@
     {
       "key": "road.widen_obstructed",
       "text": "Widening overlaps building #{0}. Automatic demolition/relocation is not yet restored; the city is unchanged."
+    },
+    {
+      "key": "ui.build.cancelled",
+      "text": "Construction cancelled. Select a tool to continue."
+    },
+    {
+      "key": "ui.build.too_short",
+      "text": "Too short: move the endpoint at least 4 units from the start."
+    },
+    {
+      "key": "ui.build.water",
+      "text": "The ground tool cannot build across water. Choose endpoints on land."
+    },
+    {
+      "key": "ui.build.preview",
+      "text": "Road preview · Length {0} · Cost ¥{1}. Click to build; Esc cancels."
+    },
+    {
+      "key": "ui.build.pipe_end",
+      "text": "Pipe preview: click the endpoint to build; Esc cancels."
+    },
+    {
+      "key": "ui.build.choose_start",
+      "text": "Build mode: click a start and an endpoint on the map. Green is valid; red shows the reason."
+    },
+    {
+      "key": "ui.build.choose_end",
+      "text": "Start selected: move the pointer to preview, then click the endpoint. Esc cancels."
+    },
+    {
+      "key": "ui.build.no_ground",
+      "text": "No terrain under the pointer. Move it onto the map."
+    },
+    {
+      "key": "ui.build.success",
+      "text": "Road built for ¥{0}. Select another start to continue."
+    },
+    {
+      "key": "ui.build.mode",
+      "text": "Current tool: {0} · Esc exits"
+    },
+    {
+      "key": "ui.build.road_mode",
+      "text": "Build road"
+    },
+    {
+      "key": "ui.build.pipe_mode",
+      "text": "Build utility line"
+    },
+    {
+      "key": "ui.build.facility_mode",
+      "text": "Place facility"
+    },
+    {
+      "key": "ui.build.zone_mode",
+      "text": "Zone roadside land"
+    },
+    {
+      "key": "ui.build.inspect_mode",
+      "text": "Inspect / select buildings"
+    },
+    {
+      "key": "road.build_obstructed",
+      "text": "Road overlaps building or construction project #{0}. Adjust the road."
+    },
+    {
+      "key": "ui.build.pipe_start",
+      "text": "Utility tool: click a start and endpoint. Connect water/sewage lines to the facility centre."
+    },
+    {
+      "key": "ui.build.restart_play",
+      "text": "Simulation is not initialized (for example after recompiling during Play). Stop Play, restart it and load your save. In-memory worlds do not support script hot reload."
+    },
+    {
+      "key": "ui.build.view_error",
+      "text": " Road committed, but the view failed to refresh. Check the Unity Console."
+    },
+    {
+      "key": "ui.build.access_conflict",
+      "text": "This road would invalidate a nearby building lane access. Move the junction or endpoint farther away; the city is unchanged."
+    },
+    {
+      "key": "ui.build.overlap",
+      "text": "The new road overlaps an existing road. Adjust it or use Select road / Upgrade."
+    },
+    {
+      "key": "ui.build.road_error",
+      "text": "Cannot build this road. Adjust the route. Reason: {0}"
     }
   ]
 }

@@ -9,6 +9,7 @@ public static class CityCoreIndustryChecks
     static void Check(bool condition,string message){checks++;if(!condition)throw new Exception(message);}
     public static void Main(string[] args)
     {
+        RoadPreviewTests();
         RoadEditingTests();
         ObservationTests();
         WasteTests();
@@ -56,6 +57,17 @@ public static class CityCoreIndustryChecks
         interrupted.Transport.AddRoad(1,2,new[]{interrupted.Transport.JunctionPosition(1),new Point(-18,0,0),interrupted.Transport.JunctionPosition(2)},lanes:2);interrupted.Advance(.05);Check(car.status==VehicleStatus.Active&&car.Task.citizenId==rider.id&&rider.tripId==car.Task.id&&Point.Distance(before,interrupted.Transport.Position(car))<.7,"Repaired road did not recover same citizen/car without jump");interrupted.Advance(6);interrupted.Validate();Check(rider.atWork&&interrupted.City.Factory(1).produced>0,"Recovered commute did not resume actual labour");
     }
     static CommercialBuilding AsShop(this CityBuilding b)=>(CommercialBuilding)b;
+    static void RoadPreviewTests()
+    {
+        var s=CityCoreIndustrySession.CreateEmpty();s.Simulation.Growth.Zoning.SetSurface((x,z)=>2);
+        var plan=s.Transport.PlanConnectedRoad(new[]{new Point(-30,2,0),new Point(30,2,0)});var before=CityCoreSave.Write(s);
+        Check(s.Construction.CheckRoadPlacement(plan)>0&&before.SequenceEqual(CityCoreSave.Write(s)),"Road preview mutated road/cash or charged early");
+        Check(s.Construction.CheckRoadPlacement(plan)>0&&before.SequenceEqual(CityCoreSave.Write(s)),"Repeated preview changed city facts");
+        s.Transport.AddJunction(new Point(70,2,0));before=CityCoreSave.Write(s);bool refused=false;try{s.Construction.CheckRoadPlacement(plan);}catch(InvalidOperationException){refused=true;}Check(refused&&before.SequenceEqual(CityCoreSave.Write(s)),"Stale preview mutated facts");
+        var emptyCity=new CityModel{money=0};emptyCity.development.enabled=true;var poor=new CityCoreIndustrySession(emptyCity,calendarOffset:0);poor.Simulation.Growth.Zoning.SetSurface((x,z)=>2);
+        plan=poor.Transport.PlanConnectedRoad(new[]{new Point(-20,2,0),new Point(20,2,0)});before=CityCoreSave.Write(poor);refused=false;try{poor.Construction.CheckRoadPlacement(plan);}catch(CityRuleException){refused=true;}Check(refused&&before.SequenceEqual(CityCoreSave.Write(poor)),"Underfunded preview changed money or roads");
+        var city=CityCoreIndustrySession.Create();var b=city.Entities.Buildings.First();plan=city.Transport.PlanConnectedRoad(new[]{new Point(b.x-6,b.groundY,b.z),new Point(b.x+6,b.groundY,b.z)},snap:0);before=CityCoreSave.Write(city);refused=false;try{city.Construction.CheckRoadPlacement(plan);}catch(CityRuleException e){refused=e.Key=="road.build_obstructed";}Check(refused&&before.SequenceEqual(CityCoreSave.Write(city)),"Obstructed road preview changed buildings, goods, tasks or roads");
+    }
     static void RoadEditingTests()
     {
         var s=CityGrowingGridFixture.Create();int id=s.Transport.Network.RoadIds.Max();Check(id>1,"Selected-road fixture only contains road 1");var geometry=s.Transport.Network.Centreline(id);var hit=geometry.Sample(geometry.Length/2);Check(s.Construction.PickRoad(hit)==id,"Road picker lost non-first logical identity");

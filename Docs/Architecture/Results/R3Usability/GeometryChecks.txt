@@ -1,0 +1,1 @@
+PASS 249 Unity mesh/placement checks: clipped ribbons, upward winding, terrain clearance, elevated geometry preserved, zone height, preview read-only and stale plan rejection. Source: CityUsabilityChecks.Run, GeometryChecksFinal.log in ignored Temp/R3Usability. This is not mouse acceptance.

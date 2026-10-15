@@ -28,6 +28,15 @@ namespace HarborCity
             foreach(var hit in selectionHits){var lane=world.Network.Get(hit.drivable);if(!lane.IsConnection)return lane.RoadId;}return 0;
         }
         readonly System.Collections.Generic.List<SpatialHit> selectionHits=new System.Collections.Generic.List<SpatialHit>();
+        // Cold, read-only placement preflight shared by the cursor and the final
+        // click. A preview never owns or commits live road/cash state.
+        public int CheckRoadPlacement(RoadEditPlan plan)
+        {
+            int price=Quote(plan);finance.CheckSpend(price);
+            foreach(var b in entities.Buildings)if(CityRoadClearance.Intersects(plan.Preview,b,selectionHits))throw new CityRuleException("road.build_obstructed",b.id);
+            foreach(var project in city.development.projects){var b=project.building.ToBuilding();if(CityRoadClearance.Intersects(plan.Preview,b,selectionHits))throw new CityRuleException("road.build_obstructed",b.id);}
+            return price;
+        }
         public int PlaceFacility(LandUse use,float x,float z,float yaw,CityCoreZoning zoning)
         {
             entities.StructuralBoundary();if(use!=LandUse.Power&&use!=LandUse.Water&&use!=LandUse.Sewage&&use!=LandUse.Landfill)throw new ArgumentException("Unsupported facility");

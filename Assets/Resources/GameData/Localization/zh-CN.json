@@ -464,6 +464,94 @@
     {
       "key": "road.widen_obstructed",
       "text": "拓宽会占用建筑 #{0}；自动拆迁安置尚未恢复，城市未修改。"
+    },
+    {
+      "key": "ui.build.cancelled",
+      "text": "已取消施工。可重新选择工具。"
+    },
+    {
+      "key": "ui.build.too_short",
+      "text": "道路/管线过短：请将终点移到距起点至少 4 单位的位置。"
+    },
+    {
+      "key": "ui.build.water",
+      "text": "当前地面工具不能在水面施工；请在陆地选择起终点。"
+    },
+    {
+      "key": "ui.build.preview",
+      "text": "道路预览 · 长度 {0} · 预计费用 ¥{1}；点击提交，Esc 取消。"
+    },
+    {
+      "key": "ui.build.pipe_end",
+      "text": "管线预览：点击终点提交，Esc 取消。"
+    },
+    {
+      "key": "ui.build.choose_start",
+      "text": "修路模式：请在地图上点击起点，再点击终点。绿色可建，红色请查看原因。"
+    },
+    {
+      "key": "ui.build.choose_end",
+      "text": "已选起点：移动鼠标查看预览，再点击终点。Esc 取消。"
+    },
+    {
+      "key": "ui.build.no_ground",
+      "text": "鼠标未命中地形，请将光标移到地图陆地上。"
+    },
+    {
+      "key": "ui.build.success",
+      "text": "道路已建成，费用 ¥{0}。可以继续选择下一段起点。"
+    },
+    {
+      "key": "ui.build.mode",
+      "text": "当前工具：{0} · Esc 退出"
+    },
+    {
+      "key": "ui.build.road_mode",
+      "text": "修路"
+    },
+    {
+      "key": "ui.build.pipe_mode",
+      "text": "铺设管线"
+    },
+    {
+      "key": "ui.build.facility_mode",
+      "text": "建设设施"
+    },
+    {
+      "key": "ui.build.zone_mode",
+      "text": "沿路划区"
+    },
+    {
+      "key": "ui.build.inspect_mode",
+      "text": "观察 / 选择建筑"
+    },
+    {
+      "key": "road.build_obstructed",
+      "text": "道路侵占建筑或施工项目 #{0}，请调整位置。"
+    },
+    {
+      "key": "ui.build.pipe_start",
+      "text": "管线模式：点击起点，再点击终点。供水/排污设施的管线须接到设施中心。"
+    },
+    {
+      "key": "ui.build.restart_play",
+      "text": "模拟未初始化（例如播放中重新编译了脚本）。请先停止 Play，再重新播放并读取存档；当前内存世界不支持脚本热重载。"
+    },
+    {
+      "key": "ui.build.view_error",
+      "text": " 道路已提交，但显示刷新失败，请查看 Unity Console。"
+    },
+    {
+      "key": "ui.build.access_conflict",
+      "text": "道路会破坏附近建筑的车道入口，请将交叉口或终点移远一些；城市未修改。"
+    },
+    {
+      "key": "ui.build.overlap",
+      "text": "新道路与已有道路重叠。请调整路线，或使用“选择道路 / 升级”。"
+    },
+    {
+      "key": "ui.build.road_error",
+      "text": "道路无法施工，请调整路线。原因：{0}"
     }
   ]
 }
