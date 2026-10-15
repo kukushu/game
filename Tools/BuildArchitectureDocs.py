@@ -7,7 +7,7 @@ import subprocess, json, html, re, csv
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'Docs/Architecture'
-COMMIT = 'b532733'
+COMMIT = 'da34ac2'
 BASELINE = '110c4eaa24fa69d55b08a5db2a6d19ec6da5dd7f'
 R = 'Assets/Scripts/Runtime/'
 files = {
@@ -395,6 +395,16 @@ card('buildingviews','HarborCityBuildingViews','Presentation','derived','buildin
 graphs['classes']['nodes'].append(node('buildingviews','HarborCityBuildingViews','稳定ID建筑显示对象','derived'));graphs['classes']['edges'].extend([edge('host','buildingviews','结构修订后同步'),edge('buildingviews','entities','读取，不写模拟')]);evidence.append(dict(title='增量建筑视图',source=ref('buildingviews','public void Sync')))
 for c in cards:
     if c['id']=='host':c.update(facts='Update请求固定模拟推进，随后显示；建筑对象生命周期已移到独立稳定ID视图。',risk='TerrainData高度提供者、低层工具和内嵌测试仍过渡；区域/道路全量冷显示仍待处理。')
+for c in cards:
+    if c['id']=='corezoning':c.update(fields='几何版本 / 用途版本 / 占用版本；单一派生格集合',facts='道路/地形才重建静态格；建筑/项目仅刷新占用，保存事实不变。',risk='占用仍O(格×建筑)，候选仍全扫；TerrainData提供者待独立，不称万人完整城达标。',life='建拆改路/SetSurface失效几何；用途印章刷新；项目/建筑刷新占用；读档可全新重建。')
+    if c['id']=='buildingviews':c.update(risk='旧0B来自失效Unity分配API，已纠正为未知；对象身份与模拟状态独立验证仍成立。')
+for n in graphs['classes']['nodes']:
+    if n['id']=='corezoning':n.update(sub='几何 / 用途 / 占用分开失效')
+for n in graphs['ownership']['nodes']:
+    if n['id']=='plots':n.update(sub='单一派生格集合；三类失效')
+for filename in ['Docs/Architecture/Results/R3ZoningCache/paired-before.csv','Docs/Architecture/Results/R3ZoningCache/paired-after.csv','Docs/Architecture/Results/R3ZoningCache/normal-window.csv']:
+    with (ROOT/filename).open(encoding='utf-8-sig') as f:perf.append(dict(file=filename,rows=list(csv.DictReader(f))))
+evidence.extend([dict(title='生长尖峰与分配采样',source=ref('corezoning','void RebuildGeometry()')),dict(title='占用不再重建几何',source=ref('corezoning','void RefreshOccupancy()'))])
 payload=dict(commit=COMMIT,baseline=BASELINE,cards=cards,graphs=graphs,flows=flowdata,readings=readingdata,perf=perf,evidence=evidence)
 
 page=r'''<!doctype html>
@@ -543,6 +553,8 @@ page=page.replace('R3-C1实现源码 '+COMMIT,'R3-C2实现源码 '+COMMIT).repla
 page=page.replace('有价原料运输和实际商品出口已接；消费、垃圾财政、公交及完整经营UI仍未恢复。','有价原料、实际批发/零售消费与雇主工资已接；垃圾财政、公交及完整经营UI仍未恢复。')
 views=(OUT/'R3Views.md').read_text(encoding='utf-8')
 page=page.replace('<section id="review">','<section id="review"><details open><summary>最新边界修正：独立增量建筑视图</summary><div class="doccontent">'+markdown(views)+'</div></details>')
+measured=(OUT/'R3GrowingProfile.md').read_text(encoding='utf-8')+'\n\n'+(OUT/'R3ZoningCache.md').read_text(encoding='utf-8')
+page=page.replace('<section id="review">','<section id="review"><details open><summary>最新实测与实现：分区几何生命周期、尖峰与分配修正</summary><div class="doccontent">'+markdown(measured)+'</div></details>')
 (OUT/'HarborCityArchitecture.html').write_text(page,encoding='utf-8')
 (OUT/'SourceEvidence.md').write_text('# 固定源码定位证据\n\n审查commit：`'+COMMIT+'`。以下行号由固定源码生成，而非当前工作树。\n\n'+ '\n'.join('## '+e['title']+'\n\n['+e['source']['file']+':'+str(e['source']['line'])+']('+e['source']['url']+')\n\n方法/语句：`'+e['source']['token']+'`\n' for e in evidence),encoding='utf-8')
 print(f'Created {OUT / "HarborCityArchitecture.html"}; {len(cards)} class cards, {len(graphs)} graphs, {len(flowdata)} flows; pinned {COMMIT}')
