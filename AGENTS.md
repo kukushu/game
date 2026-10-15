@@ -1,6 +1,6 @@
 # 开发约定
 
-- 最新R3-C4：CityCoreWaste拥有服务阶段/累计，建筑持garbage/场内库存，Shipment独占在途；同Vehicle/Position到站后预检返程再装载，换Task不换位置。旧任务统一边界退休，不逐次扫描全任务；断路保留原位/货物，停电停处理。城市16/业务8/设计4/核心15；正常垃圾固定100%设定，旧garbageBudget未接，不误称已支持。只读统计不得每OnGUI扫全城；冷Validate必须逐实体独立核对守恒。
+- 最新R3-C4 b1cdb03：CityCoreWaste拥有服务阶段/累计，建筑持garbage/场内库存，Shipment独占在途；同Vehicle/Position到站后预检返程再装载，换Task不换位置。旧任务统一边界退休，不逐次扫描全任务；断路保留原位/货物，停电停处理。城市16/业务8/设计4/核心15；正常垃圾固定100%设定，旧garbageBudget未接，不误称已支持。只读统计不得每OnGUI扫全城；冷Validate必须逐实体独立核对守恒。
 - 22406城市/3218核心/6000采样开关及原回归、原地形Unity通过；数据见R3Waste.md。下一批城市观察/问题定位与其余市政，继续恢复完整可玩城，不扩独立交通。设计资源按Waste分组；新UI集中45本地化Key。
 
 - 最新R3-C3 864b50e / fdfc21a：正常城财政由CityCoreFinance拥有，city.money唯一余额，建设/管线费用经预检成功才记账。固定Tick计提维护，工资日界后真实转税/还贷；预算命令属Utilities，不能让财政反向依赖服务管理器形成循环。城15/业务7/设计3/核15；借款捕获条款、计提和纳税事实保存，旧文件不删。旧SettleLoans/HouseholdTick不得在正常入口再结算。

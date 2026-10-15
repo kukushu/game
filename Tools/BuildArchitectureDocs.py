@@ -7,10 +7,12 @@ import subprocess, json, html, re, csv
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'Docs/Architecture'
-COMMIT = 'fdfc21a'
+COMMIT = 'b1cdb03'
 BASELINE = '110c4eaa24fa69d55b08a5db2a6d19ec6da5dd7f'
 R = 'Assets/Scripts/Runtime/'
 files = {
+ 'corewaste':R+'Simulation/Services/CityCoreWaste.cs',
+ 'wasterules':R+'GameData/CityWasteDesign.cs',
  'finance':R+'Simulation/Economy/CityCoreFinance.cs',
  'financerules':R+'GameData/CityFinanceDesign.cs',
  'financepanel':R+'Presentation/UI/HarborCityFinancePanel.cs',
@@ -433,6 +435,39 @@ stages.append(dict(name='财政日结',detail='工资已进入家庭→实际税
 flowdata['save']['note']='城市15 / 核心15 / 设计3：财政计提、唯一现金账、捕获合同与真实纳税、原完整在途；旧格式明确拒绝。'
 for filename in ['Docs/Architecture/Results/R3Fiscal/paired-before.csv','Docs/Architecture/Results/R3Fiscal/paired-after.csv','Docs/Architecture/Results/R3Fiscal/native-window.csv']:
     with (ROOT/filename).open(encoding='utf-8-sig') as f:perf.append(dict(file=filename,rows=list(csv.DictReader(f))))
+# R3-C4: implemented service lifecycle, not a hypothetical fleet framework.
+for ident,name,kind,key,token,fields,owner,facts in [
+ ('corewaste','CityCoreWaste','temporary','corewaste','public sealed class CityCoreWaste','generation / pickup-return / treatment / conservation','CitySimulation持有服务模块；不归World或视图。','建筑garbage、场内stored和Shipment分别持唯一库存；任务只运输。'),
+ ('wastestate','WasteServiceData','fact','corewaste','public sealed class WasteServiceData','totals / daily cursor / next dispatch tick / missions','Waste私有运行状态；Snapshot冷复制。','city.waste指向同一totals；保存不复制另一份累计事实。'),
+ ('wastemission','WasteMission','fact','corewaste','public sealed class WasteMission','vehicle / task / station / pickup / phase','服务模块唯一集合拥有；byVehicle为可重建逆索引。','不保存cargo；空去程和载货返程始终同一Vehicle与Position。'),
+ ('wasterules','WasteRules','fact','wasterules','public sealed class WasteRules','price / fleet / payload / capacity / processing / generation','CityGameDesign的冻结服务配置组。','作者资产与运行库存分开；存档固定当前规则。'),
+ ('continuation','ServiceContinuation','derived','boundary','internal sealed class ServiceContinuation','owner / epoch / same vehicle / next task / next plan','交通预检的短命准备结果，不是第二位置或持久任务。','先从当前车道距离求返程，再由业务同步装载并提交；失败不扣垃圾。')]:
+    card(ident,name,'Services' if ident!='continuation' else 'Traffic',kind,key,token,fields,'Step / Arrive / Validate / Snapshot' if ident=='corewaste' else '单一事实或预检结果',owner,facts,'车队/入场预留、候选和UI待收量为派生。','CitySimulation健康固定边界或服务命令；表现只读。','真实建场→产生→空去程→原车装载返场→处理/退休；在途保存。','实体/冻结规则/交通准入和到达；没有GameObject依赖。','周期调度最坏F*B；垃圾预算/多站路线/健康反馈与大型完整城市未验证。','必要真实闭环已接，下一批城市观察与其余市政，不无限扩引擎。')
+    graphs['classes']['nodes'].append(node(ident,name,fields,kind));evidence.append(dict(title=name,source=ref(key,token)))
+graphs['classes']['edges'].extend([edge('simulation','corewaste','固定时间与到达'),edge('corewaste','wastestate','唯一服务事实'),edge('wastestate','wastemission','拥有集合'),edge('corewaste','wasterules','只读规则'),edge('corewaste','continuation','预检后装载'),edge('continuation','world','原车换任务与导航'),edge('wastemission','task','引用当前Task ID'),edge('wastemission','vehicle','引用同车ID'),edge('corewaste','shipment','只交接载荷'),edge('coreconstruction','wasterules','建设费用只读规则')])
+graphs['ownership']['nodes'].extend([node('wastestate','WasteServiceData','垃圾累计 / 调度游标','fact'),node('wastemissions','Waste mission collection','服务拥有唯一阶段集合','fact','wastemission'),node('wastemission','WasteMission','只引用车/任务/建筑；不复制货物','fact')])
+graphs['ownership']['edges'].extend([edge('simulation','wastestate','Waste模块拥有'),edge('wastestate','wastemissions','唯一集合'),edge('wastemissions','wastemission','拥有'),edge('wastemission','task','当前Task ID','dash'),edge('wastemission','vehicle','同一Vehicle ID','dash'),edge('wastestate','building','库存仍归建筑；冷守恒核对','dash')])
+graphs['global-current']['nodes'].append(node('corewaste','CityCoreWaste','垃圾产生 / 实车收运 / 场内处理','temporary'));graphs['global-current']['edges'].extend([edge('simulation','corewaste','固定阶段'),edge('corewaste','world','运输准入与到达')])
+for n in graphs['global-current']['nodes']:
+    if n['id']=='old':n.update(label='其余服务 / 信号行人 / 完整UI',sub='垃圾闭环已接；其余仍待接回')
+    if n['id']=='save':n.update(label='城市16 / 业务8 / 设计4',sub='服务阶段、在途、库存与规则保存')
+for c in cards:
+    if c['id']=='design':c.update(fields='Economy / Employment / Retail / Production / Finance / Waste冻结规则')
+    if c['id']=='task':c.update(life='通常到达退休；Service到站后原车换新Task，再统一边界退休旧段。')
+    if c['id']=='world':c.update(risk='静态冷施工和局部服务返程寻路仍有成本；服务库存不归World。')
+flowdata['current']['name']='R3-C4实际城市流程'
+stages=flowdata['current']['stages']
+stages.insert(next(i for i,x in enumerate(stages) if x['name'].startswith('World.MoveStep')),dict(name='垃圾场内处理与派车',detail='有实际水电/入口才运转；固定时间处理已有库存，按周期由任务推导车队/容量并派空车。',source=ref('corewaste','internal void Step')))
+for x in stages:
+    if x['name'].startswith('clock commit'):x.update(name='clock commit / 日历',detail='唯一时钟提交，日历由模拟时间推导；渲染帧不参与事实。')
+    if x['name'].startswith('Acknowledge'):x.update(detail='普通任务/返场卸载才清cargo并退休车辆；服务去程只替换新段Task，旧段在统一边界退休。禁止半步保存。')
+    if x['name'].startswith('TransportArrival'):x.update(detail='物理全部提交以后确认业务；服务车先预检从当前位置返程，再把垃圾交给Shipment，同车换Task而不换位置。')
+idx=next(i for i,x in enumerate(stages) if x['name']=='财政日结')
+stages[idx:idx]=[dict(name='实际垃圾日界',detail='真实住户/出勤分钟聚合；在Payroll清零前生成，库存与累计同步。',source=ref('corewaste','internal void GenerateDay')),dict(name='真实工资日结',detail='实际公司已付工资进入家庭，再清除日出勤；不从岗位容量创造现金。',source=ref('payroll','internal void SettleDay'))]
+flowdata['save']['note']='城市16 / 核心15 / 设计4：服务阶段、唯一库存、原车任务、财政、真实消费及冻结规则保存；旧城市格式拒绝且不删文件。'
+for filename in ['Docs/Architecture/Results/R3Waste/paired-before.csv','Docs/Architecture/Results/R3Waste/paired-after.csv','Docs/Architecture/Results/R3Waste/native-window.csv','Docs/Architecture/Results/R3WasteProfile/modules.csv']:
+    with (ROOT/filename).open(encoding='utf-8-sig') as f:perf.append(dict(file=filename,rows=list(csv.DictReader(f))))
+
 payload=dict(commit=COMMIT,baseline=BASELINE,cards=cards,graphs=graphs,flows=flowdata,readings=readingdata,perf=perf,evidence=evidence)
 
 page=r'''<!doctype html>
@@ -586,6 +621,9 @@ page=page.replace('<section id="review">','<section id="review"><details open><s
 fiscal=(OUT/'R3Fiscal.md').read_text(encoding='utf-8')
 page=page.replace('<section id="review">','<section id="review"><details open><summary>最新实际：国库、真实纳税、维护计提、贷款与模块影响</summary><div class="doccontent">'+markdown(fiscal)+'</div></details>')
 page=page.replace('R3-C2实现源码 '+COMMIT,'R3-C3实现源码 '+COMMIT).replace('垃圾财政、公交及完整经营UI仍未恢复。','基础财政已接；垃圾、公交及完整经营UI仍未恢复。').replace('04 · 模拟更新流程图 ★（R3-C2实际）','04 · 模拟更新流程图 ★（R3-C3实际）')
+waste=(OUT/'R3Waste.md').read_text(encoding='utf-8')
+page=page.replace('<section id="review">','<section id="review"><details open><summary>最新实际：垃圾往返服务、原车换任务与守恒</summary><div class="doccontent">'+markdown(waste)+'</div></details>')
+page=page.replace('R3-C3实现源码 '+COMMIT,'R3-C4实现源码 '+COMMIT).replace('基础财政已接；垃圾、公交及完整经营UI仍未恢复。','基础财政和垃圾真实收运处理已接；其余市政、公交及完整经营UI仍未恢复。').replace('04 · 模拟更新流程图 ★（R3-C3实际）','04 · 模拟更新流程图 ★（R3-C4实际）')
 (OUT/'HarborCityArchitecture.html').write_text(page,encoding='utf-8')
 (OUT/'SourceEvidence.md').write_text('# 固定源码定位证据\n\n审查commit：`'+COMMIT+'`。以下行号由固定源码生成，而非当前工作树。\n\n'+ '\n'.join('## '+e['title']+'\n\n['+e['source']['file']+':'+str(e['source']['line'])+']('+e['source']['url']+')\n\n方法/语句：`'+e['source']['token']+'`\n' for e in evidence),encoding='utf-8')
 print(f'Created {OUT / "HarborCityArchitecture.html"}; {len(cards)} class cards, {len(graphs)} graphs, {len(flowdata)} flows; pinned {COMMIT}')
