@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Collections.Generic;
 
@@ -10,10 +10,10 @@ namespace HarborCity
         public const int RawCapacity=24, GoodsCapacity=24;
         public const float LabourPerItem=60;
         public const int StartingCash=1200, RawPrice=8, SalePrice=45, ProcessingCost=2;
-        public double cash, capital, salesRevenue, rawCosts, wageCosts, productionCosts, unpaidWages;
+        public double cash, capital, salesRevenue, rawCosts, wageCosts, productionCosts, unpaidWages,taxCosts;
         public int sold;
-        public double Profit => salesRevenue-rawCosts-wageCosts-productionCosts;
-        public double CashError => cash-(capital+salesRevenue-rawCosts-wageCosts-productionCosts);
+        public double Profit => salesRevenue-rawCosts-wageCosts-productionCosts-taxCosts;
+        public double CashError => cash-(capital+salesRevenue-rawCosts-wageCosts-productionCosts-taxCosts);
         public int raw, produced, consumed, imported, shipped, discardedBatches;
         public bool processing;
         public float progress;
@@ -174,7 +174,7 @@ namespace HarborCity
                 if(f==null) continue;
                 employerPayroll+=f.wageCosts;
                 if((f.sold<0 || Math.Abs(f.CashError)>.0001)) return false;
-                foreach(double n in new[]{f.cash,f.capital,f.salesRevenue,f.rawCosts,f.wageCosts,f.productionCosts,f.unpaidWages}) if(!FinanceNumber(n)) return false;
+                foreach(double n in new[]{f.cash,f.capital,f.salesRevenue,f.rawCosts,f.wageCosts,f.productionCosts,f.unpaidWages,f.taxCosts}) if(!FinanceNumber(n)) return false;
                 if(f.raw<0 || f.raw>FactoryState.RawCapacity || f.produced<0 || f.consumed<0 || f.imported<0 || f.shipped<0 || f.discardedBatches<0
                     || f.consumed!=f.produced+(f.processing?1:0)+f.discardedBatches
                     || f.progress<0 || f.progress>=(entities!=null&&development.enabled?entities.Production.LabourMinutesPerItem:FactoryState.LabourPerItem) || !f.processing && f.progress!=0

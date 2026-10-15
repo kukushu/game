@@ -31,7 +31,7 @@
     },
     {
       "key": "ui.stage.current",
-      "text": "Construction, private growth, utilities, migration, employment and paid external freight are active. Consumption, waste and finance are still being restored."
+      "text": "Construction, zoning, utilities, real jobs/trips, materials/goods/consumption and finances are active. Waste, full services and management tools are still being restored."
     },
     {
       "key": "building.close_wait_transport",
@@ -44,6 +44,130 @@
     {
       "key": "ui.retail.summary",
       "text": "Consumed {0} items · Retail payments ¥{1}"
+    },
+    {
+      "key": "finance.insufficient_funds",
+      "text": "Insufficient funds."
+    },
+    {
+      "key": "finance.balance_limit",
+      "text": "Balance or record limit reached."
+    },
+    {
+      "key": "finance.invalid_tax",
+      "text": "Use a 0–29% residential, commercial or industrial tax."
+    },
+    {
+      "key": "finance.invalid_budget",
+      "text": "Electricity and water budgets support 50–150%."
+    },
+    {
+      "key": "finance.invalid_loan",
+      "text": "Loan offer or contract is unavailable."
+    },
+    {
+      "key": "finance.loan_active",
+      "text": "This loan is still outstanding."
+    },
+    {
+      "key": "ui.finance.title",
+      "text": "City finances"
+    },
+    {
+      "key": "ui.finance.close",
+      "text": "Close"
+    },
+    {
+      "key": "ui.finance.open",
+      "text": "Finances / taxes / loans"
+    },
+    {
+      "key": "ui.finance.balance",
+      "text": "Treasury ¥{0}"
+    },
+    {
+      "key": "ui.finance.summary",
+      "text": "Treasury ¥{0} · Last day: tax +{1} / upkeep −{2} / debt payment −{3} · Debt {4}"
+    },
+    {
+      "key": "ui.finance.assessment_note",
+      "text": "Tax assessments are approximate; only available money is transferred. Uncollected assessments {0} (not arrears debt)."
+    },
+    {
+      "key": "ui.finance.zone.residential",
+      "text": "Residential tax"
+    },
+    {
+      "key": "ui.finance.zone.commercial",
+      "text": "Commercial tax"
+    },
+    {
+      "key": "ui.finance.zone.industrial",
+      "text": "Industrial tax"
+    },
+    {
+      "key": "ui.finance.service.electricity",
+      "text": "Electricity budget"
+    },
+    {
+      "key": "ui.finance.service.water",
+      "text": "Water / sewage budget"
+    },
+    {
+      "key": "ui.finance.loan.0",
+      "text": "Silver Sunset Bank"
+    },
+    {
+      "key": "ui.finance.loan.1",
+      "text": "Global Credit"
+    },
+    {
+      "key": "ui.finance.loan.2",
+      "text": "Pyramid Capital"
+    },
+    {
+      "key": "ui.finance.loan_offer",
+      "text": "{0} · Principal ¥{1} / total ¥{2} / {3} game days"
+    },
+    {
+      "key": "ui.finance.borrow",
+      "text": "Borrow"
+    },
+    {
+      "key": "ui.finance.repay",
+      "text": "Repay early ¥{0}"
+    },
+    {
+      "key": "ui.finance.grant",
+      "text": "Development test: add ¥100000"
+    },
+    {
+      "key": "ui.finance.upkeep_rate",
+      "text": "Current upkeep ¥{0}/day · Accrued ¥{1} (simulation time and actual budget)"
+    },
+    {
+      "key": "finance.event.grant",
+      "text": "Development funding credited"
+    },
+    {
+      "key": "finance.event.tax",
+      "text": "Zone tax adjusted"
+    },
+    {
+      "key": "finance.event.borrow",
+      "text": "Loan credited"
+    },
+    {
+      "key": "finance.event.repay",
+      "text": "Loan repaid early"
+    },
+    {
+      "key": "finance.event.day",
+      "text": "Fiscal daily settlement"
+    },
+    {
+      "key": "finance.event.budget",
+      "text": "Service budget adjusted"
     }
   ]
 }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using HarborCity.RoadCore;
 namespace HarborCity
 {
@@ -10,6 +10,7 @@ namespace HarborCity
         int entityVersion=-1,roadVersion=-1,powerVersion=-1,waterVersion=-1;
         CityUtilityNetwork power,water;
         bool dirty=true;
+        internal CityCoreFinance Finance;
         public CityCoreUtilities(CityModel city,CityEntities entities,World world){this.city=city;this.entities=entities;this.world=world;}
         public void Invalidate(){dirty=true;}
         public void Refresh()
@@ -18,13 +19,19 @@ namespace HarborCity
             if(!dirty&&entityVersion==entities.Revision&&roadVersion==world.NetworkGeneration&&ReferenceEquals(power,city.utilities.electricity)&&ReferenceEquals(water,city.utilities.water)&&powerVersion==power.revision&&waterVersion==water.revision)return;
             city.RecalculateUtilities();dirty=false;entityVersion=entities.Revision;roadVersion=world.NetworkGeneration;power=city.utilities.electricity;water=city.utilities.water;powerVersion=power.revision;waterVersion=water.revision;
         }
+        public void SetBudget(CityServiceKind kind,int percent)
+        {
+            entities.StructuralBoundary();if(!city.development.enabled||percent<50||percent>150||(kind!=CityServiceKind.Electricity&&kind!=CityServiceKind.Water))throw new CityRuleException("finance.invalid_budget");
+            if(city.ServiceBudget(kind)==percent)return;if(kind==CityServiceKind.Electricity)city.development.electricityBudget=percent;else city.development.waterBudget=percent;Invalidate();Refresh();city.Trace("finance.budget_policy","finance.event.budget",new CityLogDetail{origin=(int)kind,amount=percent});
+        }
         public int Build(UtilityKind kind,Point from,Point to)
         {
             entities.StructuralBoundary();var network=city.UtilityNetwork(kind);var candidate=network.Plan(new RoadNode{x=(float)from.x,z=(float)from.z},new RoadNode{x=(float)to.x,z=(float)to.z},out string error);if(candidate==null)throw new InvalidOperationException(error);
-            double quoted=Math.Ceiling(Point.Distance(new Point(from.x,0,from.z),new Point(to.x,0,to.z))*(kind==UtilityKind.Electricity?15:10));if(quoted>int.MaxValue||city.money<quoted)throw new InvalidOperationException("管线建设资金不足");
-            if(kind==UtilityKind.Electricity)city.utilities.electricity=candidate;else city.utilities.water=candidate;int paid=(int)quoted;city.money-=paid;Refresh();return paid;
+            double quoted=Math.Ceiling(Point.Distance(new Point(from.x,0,from.z),new Point(to.x,0,to.z))*(kind==UtilityKind.Electricity?15:10));if(quoted>int.MaxValue)throw new InvalidOperationException("管线建设资金不足");
+            int paid=(int)quoted;Finance.CheckSpend(paid);
+            if(kind==UtilityKind.Electricity)city.utilities.electricity=candidate;else city.utilities.water=candidate;Finance.SpendApproved(paid);Refresh();return paid;
         }
         public bool Remove(UtilityKind kind,int edge)
-        {entities.StructuralBoundary();if(city.money<40||!city.UtilityNetwork(kind).Remove(edge))return false;city.money-=40;Refresh();return true;}
+        {entities.StructuralBoundary();if(city.money<40)return false;Finance.CheckSpend(40);if(!city.UtilityNetwork(kind).Remove(edge))return false;Finance.SpendApproved(40);Refresh();return true;}
     }
 }

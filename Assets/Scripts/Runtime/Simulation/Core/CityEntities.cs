@@ -25,6 +25,7 @@ namespace HarborCity
         public IReadOnlyList<CityMember> Members {get;}
         public IReadOnlyList<IndustrialBuilding> Factories {get;}
         public IReadOnlyList<CommercialBuilding> Shops {get;}
+        internal int RoadRevision=>transport.NetworkGeneration;
         public int Revision {get;private set;}
         public int BuildingRevision {get;private set;}
         internal CitySimulation Simulation;

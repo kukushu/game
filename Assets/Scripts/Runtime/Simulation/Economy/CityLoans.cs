@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Collections.Generic;
 
@@ -16,6 +16,7 @@ namespace HarborCity
     [Serializable] public sealed class CityLoan
     {
         public int id,offerId,takenDay,paid;
+        public int principal,total,days;
     }
     [Serializable] public sealed class CityLoanState
     {
@@ -25,14 +26,11 @@ namespace HarborCity
     public sealed partial class CityModel
     {
         public CityLoanState loans=new CityLoanState();
-        // CS1 published catalogue. Calendar pacing and early-payoff calculation
-        // still need original-game comparison; current simulation settles daily.
-        public static readonly IReadOnlyList<CityLoanOffer> LoanOffers=Array.AsReadOnly(new[]{
-            new CityLoanOffer(0,"银色夕阳银行",20000,5,52),
-            new CityLoanOffer(1,"全球信贷公司",60000,10,260),
-            new CityLoanOffer(2,"金字塔投资",200000,15,520)});
+        // Legacy reference UI uses the same authored defaults. The normal core
+        // uses frozen FinanceRules and captured contracts; pacing is provisional.
+        public static readonly IReadOnlyList<CityLoanOffer> LoanOffers=Array.AsReadOnly(LoanDefinition.Defaults().Select((d,i)=>new CityLoanOffer(d.id,new[]{"银色夕阳银行","全球信贷公司","金字塔投资"}[i],d.principal,d.interestPercent,d.days/7)).ToArray());
         public static CityLoanOffer LoanOffer(int id)=>id>=0 && id<LoanOffers.Count?LoanOffers[id]:null;
-        public int LoanRemaining(CityLoan loan)=>LoanOffer(loan.offerId).Total-loan.paid;
+        public int LoanRemaining(CityLoan loan)=>(loan.total>0?loan.total:LoanOffer(loan.offerId).Total)-loan.paid;
         public CityLoan ActiveLoan(int offer)=>loans.contracts.FirstOrDefault(l=>l.offerId==offer && LoanRemaining(l)>0);
         public int LoanDebt=>loans.contracts.Sum(LoanRemaining);
         int ScheduledPaid(CityLoan loan,int onDay)

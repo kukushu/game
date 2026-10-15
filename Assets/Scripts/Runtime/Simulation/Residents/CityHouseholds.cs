@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -15,7 +15,7 @@ namespace HarborCity
         public int wagePaid, rentPaid, livingPaid, travelPaid;
         public int evaluatedDay,shoppingDay=-1;
         public int openingSavings,retailPaid;
-        public long incomeReceived;
+        public long incomeReceived,taxPaid;
         public string reason="等待住房和工作";
         public List<HouseholdOption> options=new List<HouseholdOption>();
         public List<CityResident> people=new List<CityResident>();

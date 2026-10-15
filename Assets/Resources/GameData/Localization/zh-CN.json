@@ -31,7 +31,7 @@
     },
     {
       "key": "ui.stage.current",
-      "text": "空地建设、分区生长、水电排污、迁入就业与有价对外货运已接入；消费、垃圾及财政继续恢复中。"
+      "text": "空地建设、分区生长、水电排污、真实就业通勤、原料/商品/消费与财政已接入；垃圾、完整服务和管理工具继续恢复中。"
     },
     {
       "key": "building.close_wait_transport",
@@ -44,6 +44,130 @@
     {
       "key": "ui.retail.summary",
       "text": "实际消费 {0} 件 · 零售付款 ¥{1}"
+    },
+    {
+      "key": "finance.insufficient_funds",
+      "text": "资金不足。"
+    },
+    {
+      "key": "finance.balance_limit",
+      "text": "资金或记录达到支持上限。"
+    },
+    {
+      "key": "finance.invalid_tax",
+      "text": "税率应为0–29%，仅支持住宅、商业和工业。"
+    },
+    {
+      "key": "finance.invalid_budget",
+      "text": "当前支持电力和水务预算50–150%。"
+    },
+    {
+      "key": "finance.invalid_loan",
+      "text": "贷款类型或合同不可用。"
+    },
+    {
+      "key": "finance.loan_active",
+      "text": "这笔贷款尚未还清。"
+    },
+    {
+      "key": "ui.finance.title",
+      "text": "城市财政"
+    },
+    {
+      "key": "ui.finance.close",
+      "text": "关闭"
+    },
+    {
+      "key": "ui.finance.open",
+      "text": "财政 / 税收 / 贷款"
+    },
+    {
+      "key": "ui.finance.balance",
+      "text": "城市资金 ¥{0}"
+    },
+    {
+      "key": "ui.finance.summary",
+      "text": "资金 ¥{0} · 上次日结税收 +{1} / 维护 −{2} / 还贷 −{3} · 剩余债务 {4}"
+    },
+    {
+      "key": "ui.finance.assessment_note",
+      "text": "评估税基为近似；只收取实际资金。累计未收评估额 {0}（暂不形成欠税债务）。"
+    },
+    {
+      "key": "ui.finance.zone.residential",
+      "text": "住宅税率"
+    },
+    {
+      "key": "ui.finance.zone.commercial",
+      "text": "商业税率"
+    },
+    {
+      "key": "ui.finance.zone.industrial",
+      "text": "工业税率"
+    },
+    {
+      "key": "ui.finance.service.electricity",
+      "text": "电力预算"
+    },
+    {
+      "key": "ui.finance.service.water",
+      "text": "供水 / 排污预算"
+    },
+    {
+      "key": "ui.finance.loan.0",
+      "text": "银色夕阳银行"
+    },
+    {
+      "key": "ui.finance.loan.1",
+      "text": "全球信贷公司"
+    },
+    {
+      "key": "ui.finance.loan.2",
+      "text": "金字塔投资"
+    },
+    {
+      "key": "ui.finance.loan_offer",
+      "text": "{0} · 借入 ¥{1} / 总还款 ¥{2} / {3} 游戏日"
+    },
+    {
+      "key": "ui.finance.borrow",
+      "text": "借入贷款"
+    },
+    {
+      "key": "ui.finance.repay",
+      "text": "提前还清 ¥{0}"
+    },
+    {
+      "key": "ui.finance.grant",
+      "text": "开发测试：增加 ¥100000"
+    },
+    {
+      "key": "ui.finance.upkeep_rate",
+      "text": "当前维护 ¥{0}/日 · 已计提待日结 ¥{1}（按实际模拟时间与预算累计）"
+    },
+    {
+      "key": "finance.event.grant",
+      "text": "开发测试资金入账"
+    },
+    {
+      "key": "finance.event.tax",
+      "text": "调整分区税率"
+    },
+    {
+      "key": "finance.event.borrow",
+      "text": "贷款入账"
+    },
+    {
+      "key": "finance.event.repay",
+      "text": "贷款提前结清"
+    },
+    {
+      "key": "finance.event.day",
+      "text": "财政日结"
+    },
+    {
+      "key": "finance.event.budget",
+      "text": "调整服务预算"
     }
   ]
 }

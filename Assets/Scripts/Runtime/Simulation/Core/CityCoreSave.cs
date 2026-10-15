@@ -13,7 +13,7 @@ namespace HarborCity
     // Save is a cold path; reflection preserves every original business scalar's exact bits.
     public static class CityCoreSave
     {
-        const int Magic=0x48434932,Version=14,MaximumCount=1000000;
+        const int Magic=0x48434932,Version=15,MaximumCount=1000000;
         static readonly Dictionary<Type,FieldInfo[]> fields=new Dictionary<Type,FieldInfo[]>();
         static FieldInfo[] Fields(Type type)
         {FieldInfo[] result;if(!fields.TryGetValue(type,out result)){result=type.GetFields(BindingFlags.Public|BindingFlags.Instance).Where(f=>!f.IsNotSerialized).OrderBy(f=>f.Name,StringComparer.Ordinal).ToArray();fields.Add(type,result);}return result;}
@@ -57,12 +57,13 @@ namespace HarborCity
             byte[] digest;using(var sha=SHA256.Create())digest=sha.ComputeHash(bytes,0,bytes.Length-32);for(int i=0;i<32;i++)if(digest[i]!=bytes[bytes.Length-32+i])throw new InvalidDataException("Corrupted city-core save");
             using(var stream=new MemoryStream(bytes,0,bytes.Length-32,false))using(var reader=new BinaryReader(stream))
             {
-                reader.ReadInt32();reader.ReadInt32();var data=(CityCoreBusinessData)Get(reader,typeof(CityCoreBusinessData));if(data.version!=6)throw new InvalidDataException("Unsupported business version");
+                reader.ReadInt32();reader.ReadInt32();var data=(CityCoreBusinessData)Get(reader,typeof(CityCoreBusinessData));if(data.version!=7)throw new InvalidDataException("Unsupported business version");
+                if(data.treasury==null||data.loans==null)throw new InvalidDataException("Missing fiscal facts");
                 if(data.design==null)throw new InvalidDataException("Missing saved design profile");
                 int count=reader.ReadInt32();if(count<0||count>stream.Length-stream.Position)throw new InvalidDataException("Truncated transport state");byte[] core=reader.ReadBytes(count);if(stream.Position!=stream.Length)throw new InvalidDataException("Trailing city save data");
-                var city=new CityModel{consumption=new CityConsumptionState(data.consumption),trade=new CityTradeState(data.trade),utilities=data.utilities,map=data.map,zoning=data.zoning,development=data.development,money=data.money,day=data.day,nextBuildingId=data.nextBuilding,society=data.society,residualIndustry=data.residualIndustry,buildings=data.buildings.Select(b=>b.ToBuilding()).ToList()};
+                var city=new CityModel{loans=new CityLoanState{nextId=data.loans.nextId,contracts=data.loans.contracts,lastSettledDay=data.treasury.lastSettledDay},consumption=new CityConsumptionState(data.consumption),trade=new CityTradeState(data.trade),utilities=data.utilities,map=data.map,zoning=data.zoning,development=data.development,money=data.money,day=data.day,nextBuildingId=data.nextBuilding,society=data.society,residualIndustry=data.residualIndustry,buildings=data.buildings.Select(b=>b.ToBuilding()).ToList()};
                 var timeline=new SimulationClock(data.clock);var transport=SaveCodec.Read(core,timeline,city.buildings.Where(b=>!b.abandoned&&!b.burned).Select(b=>b.id).Concat(city.trade.connections.Where(c=>c.active).Select(c=>c.id)));
-                var session=new CityCoreIndustrySession(city,data.calendarOffset,transport.Snapshot(),data.clock,data.nextDispatchTick,data.retiredBuildings.Select(b=>b.ToBuilding()),data.commuteEnabled,data.payrollDay,data.design);session.Validate();return session;
+                var session=new CityCoreIndustrySession(city,data.calendarOffset,transport.Snapshot(),data.clock,data.nextDispatchTick,data.retiredBuildings.Select(b=>b.ToBuilding()),data.commuteEnabled,data.payrollDay,data.design,data.treasury);session.Validate();return session;
             }
         }
     }

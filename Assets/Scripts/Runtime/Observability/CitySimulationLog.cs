@@ -9,7 +9,7 @@ namespace HarborCity
     [Serializable] public sealed class CityLogEvent
     {
         public int schema=1;
-        public long seq;
+        public long seq,tick;
         public string session, utc, type, level, message;
         public int day, householdId=-1, citizenId=-1, jobId=-1, buildingId=-1, tripId=-1, roadRevision;
         public float minute, simulationSeconds;
@@ -32,7 +32,7 @@ namespace HarborCity
             if(logSink==null && analysis==null) return;
             var entry=new CityLogEvent {type=type,message=message,data=data,householdId=household,citizenId=citizen,
                 jobId=job,buildingId=building,tripId=trip,level=level,day=day,minute=society==null?0:ResidentMinute,
-                simulationSeconds=traffic?.clock??0,roadRevision=roads?.revision??0};
+                tick=entities?.Simulation?.Tick??0,simulationSeconds=entities?.Simulation!=null?(float)entities.Simulation.Seconds:traffic?.clock??0,roadRevision=entities?.RoadRevision??roads?.revision??0};
             if(analysis!=null) try {analysis.ObserveEvent(entry);} catch(Exception ex) {analysis.Fail(ex);}
             // Observability must never break a simulation transaction.
             try {logSink?.Invoke(entry);} catch { }

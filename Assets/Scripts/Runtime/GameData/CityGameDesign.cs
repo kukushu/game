@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace HarborCity
 {
@@ -14,12 +14,13 @@ namespace HarborCity
     [Serializable]
     public sealed class GameDesignData
     {
-        public int schemaVersion=2,contentVersion=2;
+        public int schemaVersion=3,contentVersion=3;
         public string profile="core-economy";
         public EconomyDefinition economy=new EconomyDefinition();
         public EmploymentDefinition employment=new EmploymentDefinition();
         public RetailDefinition retail=new RetailDefinition();
         public ProductionDefinition production=new ProductionDefinition();
+        public FinanceDefinition finance=new FinanceDefinition();
     }
 
     // Authoring DTOs never become mutable live rules. The running city owns this
@@ -55,13 +56,14 @@ namespace HarborCity
         public EmploymentRules Employment {get;}
         public RetailRules Retail {get;}
         public ProductionRules Production {get;}
+        public FinanceRules Finance {get;}
         public CityGameDesign(GameDesignData definition)
         {
-            if(definition==null||definition.schemaVersion!=2||definition.contentVersion<1||string.IsNullOrWhiteSpace(definition.profile))throw new ArgumentException("Unsupported design profile");
+            if(definition==null||definition.schemaVersion!=3||definition.contentVersion<1||string.IsNullOrWhiteSpace(definition.profile))throw new ArgumentException("Unsupported design profile");
             contentVersion=definition.contentVersion;profile=definition.profile;Economy=new EconomyRules(definition.economy);
-            Employment=new EmploymentRules(definition.employment);Retail=new RetailRules(definition.retail);Production=new ProductionRules(definition.production);
+            Employment=new EmploymentRules(definition.employment);Retail=new RetailRules(definition.retail);Production=new ProductionRules(definition.production);Finance=new FinanceRules(definition.finance);
         }
-        public GameDesignData Snapshot()=>new GameDesignData{schemaVersion=2,contentVersion=contentVersion,profile=profile,economy=Economy.Snapshot(),employment=Employment.Snapshot(),retail=Retail.Snapshot(),production=Production.Snapshot()};
+        public GameDesignData Snapshot()=>new GameDesignData{schemaVersion=3,contentVersion=contentVersion,profile=profile,economy=Economy.Snapshot(),employment=Employment.Snapshot(),retail=Retail.Snapshot(),production=Production.Snapshot(),finance=Finance.Snapshot()};
     }
 
     public sealed class CityRuleException:InvalidOperationException
