@@ -1,0 +1,7 @@
+{
+  "source": "recovered from retained telemetry after supervisor JSON serialization failed on numeric process dictionary keys; child report passed",
+  "exitCode": null,
+  "peakWorkingSetBytes": 252223488,
+  "peakPrivateBytes": 174575616,
+  "sampledWallSeconds": 30.332
+}

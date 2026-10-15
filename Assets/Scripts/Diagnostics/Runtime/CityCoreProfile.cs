@@ -16,7 +16,7 @@ namespace HarborCity.RoadCore
         public static bool Enabled;
         public static bool AllocationAvailable {get;}=ProbeAllocationCounter();
         static bool ProbeAllocationCounter(){long before=GC.GetAllocatedBytesForCurrentThread();var probe=new byte[128];GC.KeepAlive(probe);return GC.GetAllocatedBytesForCurrentThread()>before;}
-        public static long Unreachable,SourceBlocked,CacheFlushes,ZoningCandidatePairs,ZoningExactOverlaps;
+        public static long Unreachable,SourceBlocked,CacheFlushes,CacheHits,CacheEvictions,ZoningCandidatePairs,ZoningExactOverlaps;
         public static readonly long[] Calls=new long[PartCount],Ticks=new long[PartCount],SelfTicks=new long[PartCount],Bytes=new long[PartCount],SelfBytes=new long[PartCount];
         struct Frame {public int part;public long start,bytes,children,childBytes;}
         static readonly Frame[] stack=new Frame[64];static int depth;
@@ -50,10 +50,10 @@ namespace HarborCity.RoadCore
             }
         }
         public static Scope Measure(Part part)=>new Scope(part);
-        public static void Reset(){if(depth!=0)throw new InvalidOperationException("Cannot reset nested sample");Unreachable=SourceBlocked=CacheFlushes=ZoningCandidatePairs=ZoningExactOverlaps=0;Array.Clear(Calls,0,PartCount);Array.Clear(Ticks,0,PartCount);Array.Clear(SelfTicks,0,PartCount);Array.Clear(Bytes,0,PartCount);Array.Clear(SelfBytes,0,PartCount);if(!AllocationAvailable)for(int i=0;i<PartCount;i++)Bytes[i]=SelfBytes[i]=-1;}
+        public static void Reset(){if(depth!=0)throw new InvalidOperationException("Cannot reset nested sample");Unreachable=SourceBlocked=CacheFlushes=CacheHits=CacheEvictions=ZoningCandidatePairs=ZoningExactOverlaps=0;Array.Clear(Calls,0,PartCount);Array.Clear(Ticks,0,PartCount);Array.Clear(SelfTicks,0,PartCount);Array.Clear(Bytes,0,PartCount);Array.Clear(SelfBytes,0,PartCount);if(!AllocationAvailable)for(int i=0;i<PartCount;i++)Bytes[i]=SelfBytes[i]=-1;}
         public static string Header()
-        {var b=new StringBuilder("tick,active,route_preparations,gc0,gc1,gc2,unreachable,source_blocked,cache_flushes,allocation_counter_supported,zoning_candidate_pairs,zoning_exact_overlaps");foreach(Part p in Enum.GetValues(typeof(Part)))b.Append(',').Append(p).Append("_ms,").Append(p).Append("_self_ms,").Append(p).Append("_calls,").Append(p).Append("_bytes,").Append(p).Append("_self_bytes");return b.ToString();}
+        {var b=new StringBuilder("tick,active,route_preparations,gc0,gc1,gc2,unreachable,source_blocked,cache_flushes,cache_hits,cache_evictions,allocation_counter_supported,zoning_candidate_pairs,zoning_exact_overlaps");foreach(Part p in Enum.GetValues(typeof(Part)))b.Append(',').Append(p).Append("_ms,").Append(p).Append("_self_ms,").Append(p).Append("_calls,").Append(p).Append("_bytes,").Append(p).Append("_self_bytes");return b.ToString();}
         public static string Row(long tick,int active,long routes,int gc0,int gc1,int gc2)
-        {var b=new StringBuilder();b.Append(tick).Append(',').Append(active).Append(',').Append(routes).Append(',').Append(gc0).Append(',').Append(gc1).Append(',').Append(gc2).Append(',').Append(Unreachable).Append(',').Append(SourceBlocked).Append(',').Append(CacheFlushes).Append(',').Append(AllocationAvailable?1:0).Append(',').Append(ZoningCandidatePairs).Append(',').Append(ZoningExactOverlaps);for(int i=0;i<PartCount;i++)b.Append(',').Append((Ticks[i]*1000.0/Stopwatch.Frequency).ToString("F6",CultureInfo.InvariantCulture)).Append(',').Append((SelfTicks[i]*1000.0/Stopwatch.Frequency).ToString("F6",CultureInfo.InvariantCulture)).Append(',').Append(Calls[i]).Append(',').Append(Bytes[i]).Append(',').Append(SelfBytes[i]);return b.ToString();}
+        {var b=new StringBuilder();b.Append(tick).Append(',').Append(active).Append(',').Append(routes).Append(',').Append(gc0).Append(',').Append(gc1).Append(',').Append(gc2).Append(',').Append(Unreachable).Append(',').Append(SourceBlocked).Append(',').Append(CacheFlushes).Append(',').Append(CacheHits).Append(',').Append(CacheEvictions).Append(',').Append(AllocationAvailable?1:0).Append(',').Append(ZoningCandidatePairs).Append(',').Append(ZoningExactOverlaps);for(int i=0;i<PartCount;i++)b.Append(',').Append((Ticks[i]*1000.0/Stopwatch.Frequency).ToString("F6",CultureInfo.InvariantCulture)).Append(',').Append((SelfTicks[i]*1000.0/Stopwatch.Frequency).ToString("F6",CultureInfo.InvariantCulture)).Append(',').Append(Calls[i]).Append(',').Append(Bytes[i]).Append(',').Append(SelfBytes[i]);return b.ToString();}
     }
 }
