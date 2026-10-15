@@ -14,8 +14,8 @@ const {chromium}=require(packagePath);
  await page.goto(pathToFileURL(path.join(root,'Docs/Architecture/HarborCityArchitecture.html')).href);
  await page.locator('#ownergraph svg .node').first().waitFor();
  assert.equal(await page.locator('section').count(),13);
- assert.equal(await page.locator('#classgraph .node').count(),57);
- assert.equal(await page.locator('#ownergraph .node').count(),37);
+ assert.equal(await page.locator('#classgraph .node').count(),60);
+ assert.equal(await page.locator('#ownergraph .node').count(),39);
  await page.locator('#ownergraph [data-id="data"]').click();
  assert.match(await page.locator('#ownergraph aside').innerText(),/WorldData/);
  await page.locator('#ownergraph [data-zoom="+"]').click();
@@ -46,7 +46,7 @@ const {chromium}=require(packagePath);
  assert.match(await page.locator('#simulation-note').innerText(),/未运行/);
  await page.locator('#simulation-mode').selectOption('current');
  assert.equal(await page.locator('#simulation-flow .stage').count(),21);
- for(const value of ['construction','commute','freight','save']){
+ for(const value of ['construction','commute','freight','save','inspection']){
  await page.locator('#business-mode').selectOption(value);assert(await page.locator('#business-flow .stage').count()>=6);
  await page.locator('#business-flow .stage').last().click();assert(await page.locator('#business-detail pre').count()>0);
  }
@@ -69,7 +69,7 @@ const {chromium}=require(packagePath);
  await page.setViewportSize({width:700,height:1000});await page.locator('#ownership').scrollIntoViewIfNeeded();
  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),'Horizontal page overflow at 700px');
  assert.deepEqual(errors,[]);assert(requests.every(u=>u.startsWith('file:')),'External dependency requested');
- const result={passed:true,offline:true,sections:13,classCards:data.cards.length,ownershipNodes:data.graphs.ownership.nodes.length,graphs:4,flows:7,sourceReferences:sources.length,pageErrors:errors,externalRequests:requests.filter(u=>!u.startsWith('file:')),screenshots:['ownership.png','classes.png','simulation.png']};
+ const result={passed:true,offline:true,sections:13,classCards:data.cards.length,ownershipNodes:data.graphs.ownership.nodes.length,graphs:Object.keys(data.graphs).length,flows:Object.keys(data.flows).length,sourceReferences:sources.length,pageErrors:errors,externalRequests:requests.filter(u=>!u.startsWith('file:')),screenshots:['ownership.png','classes.png','simulation.png']};
  fs.writeFileSync(path.join(dir,'browser-validation.json'),JSON.stringify(result,null,2));console.log(JSON.stringify(result));
  } finally {await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
