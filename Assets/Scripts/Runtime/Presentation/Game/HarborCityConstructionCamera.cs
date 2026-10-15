@@ -14,6 +14,7 @@ namespace HarborCity
         Vector3 Anchor(Vector2 pointer){var ray=camera.ScreenPointToRay(pointer);return landscape.Raycast(ray,out var hit)?hit:focus;}
         void Pan(Vector2 from,Vector2 to)
         {var plane=new Plane(Vector3.up,Anchor(from));var a=camera.ScreenPointToRay(from);var b=camera.ScreenPointToRay(to);if(plane.Raycast(a,out float da)&&plane.Raycast(b,out float db)){focus+=a.GetPoint(da)-b.GetPoint(db);Apply();}}
+        public void Focus(float x,float z){focus=new Vector3(x,0,z);Apply();}
         public void Step(float dt)
         {
             if(!Application.isFocused){panning=rotating=false;return;}var keyboard=Keyboard.current;

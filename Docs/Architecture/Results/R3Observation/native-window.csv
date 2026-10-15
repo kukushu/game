@@ -1,0 +1,3 @@
+rate,frames,fps,frame_p95_ms,frame_p99_ms,actual_rate,gc_frame_mean_bytes,steps,active_peak,residents,roads,buildings,raw_delivered,goods_exported,service_active_peak
+1,241,60.004,16.859,16.981,0.9959,36536,80,3,12,11,18,48,0,3
+3,240,59.995,16.832,17.039,2.9998,46780,240,3,12,11,18,48,0,3

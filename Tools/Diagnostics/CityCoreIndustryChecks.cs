@@ -9,6 +9,7 @@ public static class CityCoreIndustryChecks
     static void Check(bool condition,string message){checks++;if(!condition)throw new Exception(message);}
     public static void Main(string[] args)
     {
+        ObservationTests();
         WasteTests();
         FiscalTests();
         ZoningCacheTests();
@@ -54,6 +55,19 @@ public static class CityCoreIndustryChecks
         interrupted.Transport.AddRoad(1,2,new[]{interrupted.Transport.JunctionPosition(1),new Point(-18,0,0),interrupted.Transport.JunctionPosition(2)},lanes:2);interrupted.Advance(.05);Check(car.status==VehicleStatus.Active&&car.Task.citizenId==rider.id&&rider.tripId==car.Task.id&&Point.Distance(before,interrupted.Transport.Position(car))<.7,"Repaired road did not recover same citizen/car without jump");interrupted.Advance(6);interrupted.Validate();Check(rider.atWork&&interrupted.City.Factory(1).produced>0,"Recovered commute did not resume actual labour");
     }
     static CommercialBuilding AsShop(this CityBuilding b)=>(CommercialBuilding)b;
+    static void ObservationTests()
+    {
+        var s=CityCoreIndustrySession.Create();var family=s.City.society.families[0];s.Entities.AddResident(family.id,new CityResident{id=5,age=7,name="Child",canWork=false,location=3});
+        ((ResidentialBuilding)s.Entities.Building(3)).housingUnits=8;var query=new CityCoreObservation(s);var a=family.people[0];var b=family.people[1];a.lastCommute=45;b.lastCommute=60;a.observedHome=b.observedHome=3;a.observedWork=b.observedWork=1;
+        byte[] before=CityCoreSave.Write(s);var report=query.Read(3);Check(report.residents==5&&report.workforce==4&&report.employed==4&&report.families[0].commuteSamples==2&&report.families[0].averageCommute==52.5&&report.families[0].longestCommute==60,"Observation used children/household sum as employment/commute status");
+        Check(report.occupied==1&&report.units==8&&report.problems==CityObservedProblem.None,"Ordinary vacancy was invented as a problem");
+        Check(query.Pick(s.Entities.Building(3).x,s.Entities.Building(3).z)==3&&query.Read(999)==null,"Building selection did not use current real entity bounds/identity");
+        for(int i=0;i<100;i++){query.Read(1);query.Read(2);query.Read(3);query.Issues();}Check(before.SequenceEqual(CityCoreSave.Write(s)),"Read-only city observation changed simulation/save");
+        report.families[0].savings=-1;report.families[0].members[0].workplace=999;Check(family.savings>=0&&s.City.Workplace(a)==1,"Observation DTO exposed live economic/citizen state");
+        s.Advance(.05);report=query.Read(3);var travelling=report.families[0].members.First(p=>p.task>0);var v=s.Transport.FindTaskVehicle(travelling.task);Check(travelling.vehicle==v.id&&travelling.destination==1&&travelling.origin==3,"Observation confused Task ID and Vehicle ID or missed actual destination");
+        s.Transport.RemoveRoad(1);report=query.Read(3);Check((report.problems&CityObservedProblem.Road)!=0&&report.strandedCount>0&&report.families[0].members.First(p=>p.task>0).stranded,"Dynamic road interruption not observable");var clone=CityCoreSave.Read(CityCoreSave.Write(s));Check(new CityCoreObservation(clone).Read(3).strandedCount==report.strandedCount,"Restored observation read stale city/vehicle state");
+        var quiet=CityGrowingGridFixture.Create();var empty=quiet.Entities.Buildings.First();var original=CityCoreSave.Write(quiet);var snapshot=new CityCoreObservation(quiet).Read(empty.id);Check(snapshot.jobs==0&&snapshot.filledJobs==0&&original.SequenceEqual(CityCoreSave.Write(quiet)),"Service observation invented employment or mutated utilities");
+    }
     static void WasteTests()
     {
         var definition=new GameDesignData();definition.waste.payload=3;definition.waste.trucks=2;

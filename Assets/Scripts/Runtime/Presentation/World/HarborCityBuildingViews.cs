@@ -13,12 +13,20 @@ namespace HarborCity
         readonly Dictionary<int,GameObject> views=new Dictionary<int,GameObject>();
         readonly HashSet<int> present=new HashSet<int>();
         readonly List<int> removed=new List<int>();
-        readonly Material material;
+        readonly Material material;LineRenderer selection;Material selectionMaterial;
         public int Count=>views.Count;
         public int Created {get;private set;}
         public int Removed {get;private set;}
         public HarborCityBuildingViews(Material material){this.material=material;}
         public GameObject Instance(int id)=>views.TryGetValue(id,out var view)?view:null;
+        public int Pick(Ray ray)
+        {int id=0;float closest=float.PositiveInfinity;foreach(var entry in views)if(entry.Value!=null&&entry.Value.GetComponent<Renderer>().bounds.IntersectRay(ray,out float distance)&&distance<closest){closest=distance;id=entry.Key;}return id;}
+        public void Select(int id)
+        {
+            if(id==0||!views.TryGetValue(id,out var view)){if(selection!=null)selection.enabled=false;return;}
+            if(selection==null){var go=new GameObject("Selected building outline");selection=go.AddComponent<LineRenderer>();selectionMaterial=new Material(material){color=Color.white};selection.sharedMaterial=selectionMaterial;selection.positionCount=4;selection.loop=true;selection.startWidth=selection.endWidth=.12f;}
+            selection.enabled=true;var t=view.transform;for(int i=0;i<4;i++)selection.SetPosition(i,t.TransformPoint(new Vector3(i==0||i==3?-.52f:.52f,.53f,i<2?-.52f:.52f)));
+        }
         public void Sync(IReadOnlyList<CityBuilding> buildings)
         {
             using(syncSample.Auto())
@@ -45,6 +53,6 @@ namespace HarborCity
                 foreach(int id in removed){UnityEngine.Object.Destroy(views[id]);views.Remove(id);Removed++;}
             }
         }
-        public void Dispose(){foreach(var view in views.Values)UnityEngine.Object.Destroy(view);views.Clear();present.Clear();removed.Clear();}
+        public void Dispose(){if(selection!=null)UnityEngine.Object.Destroy(selection.gameObject);if(selectionMaterial!=null)UnityEngine.Object.Destroy(selectionMaterial);foreach(var view in views.Values)UnityEngine.Object.Destroy(view);views.Clear();present.Clear();removed.Clear();}
     }
 }

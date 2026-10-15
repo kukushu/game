@@ -180,6 +180,214 @@
     {
       "key": "waste.close_not_empty",
       "text": "建筑仍有垃圾，请先完成收运和处理再拆除。"
+    },
+    {
+      "key": "ui.inspect.close",
+      "text": "关闭观察"
+    },
+    {
+      "key": "ui.inspect.open",
+      "text": "观察城市 / 建筑问题"
+    },
+    {
+      "key": "ui.inspect.yes",
+      "text": "是"
+    },
+    {
+      "key": "ui.inspect.no",
+      "text": "否"
+    },
+    {
+      "key": "ui.inspect.healthy",
+      "text": "当前已接入项目无异常"
+    },
+    {
+      "key": "ui.inspect.issues",
+      "text": "建筑问题：{0} 栋 · 点击定位"
+    },
+    {
+      "key": "ui.inspect.building",
+      "text": "{1} #{0} · 采样 Tick {2}"
+    },
+    {
+      "key": "ui.inspect.garbage",
+      "text": "待收垃圾 {0} · 场内 {1}"
+    },
+    {
+      "key": "ui.inspect.jobs",
+      "text": "本建筑岗位占用 {0}/{1} · 实际在岗 {2}"
+    },
+    {
+      "key": "ui.inspect.transport",
+      "text": "关联运输 {0} · 道路中断 {1}"
+    },
+    {
+      "key": "ui.inspect.inventory",
+      "text": "原料 {0} · 商品 {1} · 企业资金 {2} · 在岗人员今日劳动 {3} 分钟"
+    },
+    {
+      "key": "ui.inspect.housing",
+      "text": "入住 {0}/{1} 套 · 居民 {2}"
+    },
+    {
+      "key": "ui.inspect.workforce",
+      "text": "就业 / 劳动力 {0}/{1}"
+    },
+    {
+      "key": "ui.inspect.family",
+      "text": "查看家庭 #{0} · 第 {1} 套 · {2} 人"
+    },
+    {
+      "key": "ui.inspect.savings",
+      "text": "家庭资金 {0}"
+    },
+    {
+      "key": "ui.inspect.no_commute",
+      "text": "尚无当前住房与岗位的实际通勤样本"
+    },
+    {
+      "key": "ui.inspect.commute",
+      "text": "实际通勤平均 {0} · 最长 {1} 分钟 · {2} 样本"
+    },
+    {
+      "key": "ui.inspect.person",
+      "text": "居民 #{0} {1} · {2} 岁 · 劳动力 {3}"
+    },
+    {
+      "key": "ui.inspect.work",
+      "text": "岗位 #{0} · 工作建筑 #{1} · 岗位日工资 {2} · 在岗 {3}"
+    },
+    {
+      "key": "ui.inspect.locate_work",
+      "text": "定位此成员工作建筑"
+    },
+    {
+      "key": "ui.inspect.journey",
+      "text": "车辆 #{0} / 任务 #{1} · #{2} → #{3} · {4} · 中断 {5}"
+    },
+    {
+      "key": "ui.inspect.location",
+      "text": "当前建筑 #{0} · 携带商品 {1}"
+    },
+    {
+      "key": "ui.inspect.problem.road",
+      "text": "道路未接通"
+    },
+    {
+      "key": "ui.inspect.problem.electricity",
+      "text": "缺电"
+    },
+    {
+      "key": "ui.inspect.problem.water",
+      "text": "缺水"
+    },
+    {
+      "key": "ui.inspect.problem.sewage",
+      "text": "排污不足"
+    },
+    {
+      "key": "ui.inspect.problem.garbage",
+      "text": "垃圾积压"
+    },
+    {
+      "key": "ui.inspect.problem.abandoned",
+      "text": "废弃/烧毁"
+    },
+    {
+      "key": "ui.inspect.trip.work",
+      "text": "上班"
+    },
+    {
+      "key": "ui.inspect.trip.home",
+      "text": "返家"
+    },
+    {
+      "key": "ui.inspect.trip.shopping",
+      "text": "购物"
+    },
+    {
+      "key": "ui.inspect.use.empty",
+      "text": "空地"
+    },
+    {
+      "key": "ui.inspect.use.road",
+      "text": "道路"
+    },
+    {
+      "key": "ui.inspect.use.residential",
+      "text": "住宅"
+    },
+    {
+      "key": "ui.inspect.use.commercial",
+      "text": "商业"
+    },
+    {
+      "key": "ui.inspect.use.industrial",
+      "text": "工业"
+    },
+    {
+      "key": "ui.inspect.use.power",
+      "text": "电站"
+    },
+    {
+      "key": "ui.inspect.use.water",
+      "text": "供水站"
+    },
+    {
+      "key": "ui.inspect.use.park",
+      "text": "公园"
+    },
+    {
+      "key": "ui.inspect.use.bulldoze",
+      "text": "拆除"
+    },
+    {
+      "key": "ui.inspect.use.sewage",
+      "text": "排污口"
+    },
+    {
+      "key": "ui.inspect.use.landfill",
+      "text": "垃圾处理场"
+    },
+    {
+      "key": "ui.inspect.use.clinic",
+      "text": "诊所"
+    },
+    {
+      "key": "ui.inspect.use.elementaryschool",
+      "text": "小学"
+    },
+    {
+      "key": "ui.inspect.use.firehouse",
+      "text": "消防站"
+    },
+    {
+      "key": "ui.inspect.use.policestation",
+      "text": "警局"
+    },
+    {
+      "key": "ui.inspect.use.highschool",
+      "text": "高中"
+    },
+    {
+      "key": "ui.inspect.use.university",
+      "text": "大学"
+    },
+    {
+      "key": "ui.inspect.use.cemetery",
+      "text": "墓地"
+    },
+    {
+      "key": "ui.inspect.page",
+      "text": "第 {0}/{1} 页"
+    },
+    {
+      "key": "ui.inspect.unemployed",
+      "text": "目前没有工作"
+    },
+    {
+      "key": "ui.inspect.not_workforce",
+      "text": "非劳动力，无岗位"
     }
   ]
 }
