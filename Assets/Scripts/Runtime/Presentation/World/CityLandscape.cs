@@ -57,9 +57,13 @@ namespace HarborCity
         }
 
 
-        public void Build()
+        float? builtFlat;
+        public void Build()=>BuildSurface(null);
+        public void BuildDiagnosticFlat(float height)=>BuildSurface(height);
+        void BuildSurface(float? flat)
         {
-            if(terrain!=null && terrain.terrainData.heightmapResolution==Resolution && terrain.terrainData.size.x==HalfSize*2)return;
+            if(builtFlat==flat && terrain!=null && terrain.terrainData.heightmapResolution==Resolution && terrain.terrainData.size.x==HalfSize*2)return;
+            builtFlat=flat;
             // A live script reload can retain the old Terrain. Replace it before rebuilding city meshes.
             if(terrain!=null)
             {
@@ -177,7 +181,7 @@ namespace HarborCity
                     //
                     // 最后 Clamp01 保证范围一定在 0~1
                     heights[z, x] = Mathf.Clamp01(
-                        (Elevation(wx, wz) - BaseHeight)
+                        ((flat??Elevation(wx, wz)) - BaseHeight)
                         / HeightRange
                     );
                 }

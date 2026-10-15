@@ -74,6 +74,11 @@ namespace HarborCity
         HarborCityBuildingViews buildingViews;
         bool hasStart;Point startPoint;bool building,oneWay,wide;int origin,destination;float speed=1;
         long previousTick;int lastSteps;
+        internal CityCoreIndustrySession ScenarioSession=>session;
+        internal int ScenarioSteps=>lastSteps;
+        internal int ScenarioVehicleViews=>cars.Count;
+        internal int ScenarioBuildingViews=>buildingViews?.Count??0;
+        internal void ScenarioRate(float rate){speed=rate;previousTick=System.Diagnostics.Stopwatch.GetTimestamp();}
         string notice="原工厂劳动→生产→新交通实车运输→原商店库存/支付。居民实际通勤已接入；市政、分区、信号灯和行人尚未接回。";
         string SavePath=>Path.Combine(Application.persistentDataPath,session==null?"harbor-road-core-v15.hcrc":"harbor-city-core-v16.hcity");
         static Vector3 V(Point p)=>new Vector3((float)p.x,(float)p.y,(float)p.z);
@@ -87,6 +92,18 @@ namespace HarborCity
             var args=Environment.GetCommandLineArgs();
             if(Array.IndexOf(args,"-harbor-core-validate")>=0||Array.IndexOf(args,"-harbor-core-window")>=0||Array.IndexOf(args,"-harbor-city-core-validate")>=0)Application.runInBackground=true;
             if(Array.IndexOf(args,"-harbor-core-validate")>=0){world=new World();int a=world.AddJunction(new Point(-40,0,-15)),b=world.AddJunction(new Point(0,0,-15)),cnode=world.AddJunction(new Point(35,0,20));world.AddRoad(a,b,new[]{world.JunctionPosition(a),new Point(-20,0,-15),world.JunctionPosition(b)});world.AddRoad(b,cnode,new[]{world.JunctionPosition(b),new Point(15,0,-5),world.JunctionPosition(cnode)});origin=world.AddDepot(a,1000);destination=world.AddDepot(cnode,0);}
+            else if(Array.IndexOf(args,"-harbor-city-scenario-window")>=0)
+            {
+                int index=Array.IndexOf(args,"-harbor-city-scenario-window");
+                session=CityCoreSave.Read(File.ReadAllBytes(args[index+1]));world=session.Transport;
+                foreach(int id in world.Network.RoadIds){var geometry=world.Network.Centreline(id);for(int i=0;i<geometry.Count;i++)if(Math.Abs(geometry[i].y-2)>1e-6)throw new InvalidOperationException("Scenario window accepts only the captured flat-height-2 city fixture");}
+                landscape=new GameObject("Scenario flat landscape").AddComponent<CityLandscape>();landscape.BuildDiagnosticFlat(2);
+                session.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);
+                constructionCamera=new HarborCityConstructionCamera(cameraView,landscape);
+                cameraView.transform.position=new Vector3(0,260,-185);cameraView.transform.LookAt(new Vector3(0,2,0));
+                RenderBuildings();RenderZones();RenderUtilities();notice=localization.Get("ui.stage.current");speed=0;Application.runInBackground=true;
+                var probe=gameObject.AddComponent<HarborCityScenarioWindowProbe>();probe.Configure(this,args[index+1],args[index+2],float.Parse(args[index+3],System.Globalization.CultureInfo.InvariantCulture));
+            }
             else if(args.Any(a=>a.StartsWith("-harbor-",StringComparison.Ordinal)&&a!="-harbor-city-construction-validate"&&a!="-harbor-city-trade-validate"&&a!="-harbor-city-growing-profile")){session=CityCoreIndustrySession.Create();world=session.Transport;origin=1;destination=2;RenderBuildings();}
             else {session=CityCoreIndustrySession.CreateEmpty(HarborCityEconomyAsset.Load());world=session.Transport;var land=new GameObject("City landscape");land.transform.SetParent(transform);landscape=land.AddComponent<CityLandscape>();landscape.Build();session.Simulation.Growth.Zoning.SetSurface(landscape.Height);constructionCamera=new HarborCityConstructionCamera(cameraView,landscape);notice=localization.Get("ui.stage.current");}
             RenderRoads();

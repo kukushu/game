@@ -1,0 +1,16 @@
+{
+  "1x": {
+    "frames": 3600,
+    "completedTicks": 1200,
+    "tickDeltaEqualsEveryFrameSteps": true,
+    "vehicleViewsMatchActualVehiclesEachRecordedFrame": true,
+    "result": "PASS normal host visible Player, loaded captured flat mature city; not mouse construction acceptance. GC pauses not measured."
+  },
+  "3x": {
+    "frames": 3600,
+    "completedTicks": 3602,
+    "tickDeltaEqualsEveryFrameSteps": true,
+    "vehicleViewsMatchActualVehiclesEachRecordedFrame": true,
+    "result": "PASS normal host visible Player, loaded captured flat mature city; not mouse construction acceptance. GC pauses not measured."
+  }
+}

@@ -1,0 +1,680 @@
+{
+  "playerHash": "4C93A4BB060A12B9044AB2103835DD1565AEC9AA8381372FA84FBBC14A19B989",
+  "unity": [
+    "m_EditorVersion: 6000.6.3f1",
+    "m_EditorVersionWithRevision: 6000.6.3f1 (45d8eee7de74)"
+  ],
+  "targetFps": 60,
+  "inputHash": "28E81D20D0D809BF8D93782FBA2E52CC57DEF8A8D669FC7E5DCE8BDC5122A8D8",
+  "utc": "2026-10-15T15:55:32.4023838Z",
+  "resolution": "1440x900",
+  "measureSeconds": 60,
+  "dirty": [
+    " M Assets/Scripts/Diagnostics/Runtime/CityScenarioBuilder.cs",
+    " M Assets/Scripts/Runtime/Presentation/Game/HarborCityRoadCoreGame.cs",
+    " M Assets/Scripts/Runtime/Presentation/World/CityLandscape.cs",
+    " M Tools/Diagnostics/CityScenarioChecks.cs",
+    " M Tools/Diagnostics/CityScenarioRun.cs",
+    " M Tools/VerifyCityScenario.ps1",
+    "?? Assets/Scripts/Diagnostics/Runtime/HarborCityScenarioWindowProbe.cs",
+    "?? Assets/Scripts/Diagnostics/Runtime/HarborCityScenarioWindowProbe.cs.meta",
+    "?? Tools/RunCityScenarioWindow.ps1",
+    "?? Tools/Scenarios/mature-grid-3000.json"
+  ],
+  "vsync": 0,
+  "commit": "5c7a1ba00b29848818ba22f65f52aa380f21c76a",
+  "warmupSeconds": 8,
+  "os": "Microsoft Windows NT 10.0.26200.0",
+  "cpu": "Intel(R) Core(TM) i5-14600KF",
+  "capturedPlayerCloneSourceHashes": [
+    {
+      "path": "Assets\\Scripts\\Diagnostics\\Runtime\\CityCoreProfile.cs",
+      "sha256": "836dc24256bf44f4bf06a24e9bbaba43f7bf994047714bbd5595edcb9b05cf7d"
+    },
+    {
+      "path": "Assets\\Scripts\\Diagnostics\\Runtime\\CityGrowingGridFixture.cs",
+      "sha256": "6f40f1baa28e8e4ce23c3952f806695c8b1b4e460484d76c07cb259b9b2b3458"
+    },
+    {
+      "path": "Assets\\Scripts\\Diagnostics\\Runtime\\CityIntegratedScaleFixture.cs",
+      "sha256": "a4859363356bf0d5695ea99a0590e63e7377b3f77a5203c856379cae6bddeaff"
+    },
+    {
+      "path": "Assets\\Scripts\\Diagnostics\\Runtime\\CityRoadCoreFixtures.cs",
+      "sha256": "916ed391e78089a9e5a2266249f6da196abf1f946e96b8eeed03ff28fc6a6fa3"
+    },
+    {
+      "path": "Assets\\Scripts\\Diagnostics\\Runtime\\CityScenarioBuilder.cs",
+      "sha256": "b6f712b6c8e169fa466f93b83f70ce63f3caaa29d2fc6c3dcc2116e462414f5b"
+    },
+    {
+      "path": "Assets\\Scripts\\Diagnostics\\Runtime\\CityTrafficAttribution.cs",
+      "sha256": "7ccecda6462cd1214bb3e9295704f10ee7619127795b77685af9aab613d67a0d"
+    },
+    {
+      "path": "Assets\\Scripts\\Diagnostics\\Runtime\\CityTrafficBenchmark.cs",
+      "sha256": "475c6095ff099059bef409ed4590f8cc7fa854b5d5119aed49b4733b41032e11"
+    },
+    {
+      "path": "Assets\\Scripts\\Diagnostics\\Runtime\\CityWasteDiagnostics.cs",
+      "sha256": "714e35070c6562174df2b3249c88019538ba741b4e2467d85a4c4147ff3e5360"
+    },
+    {
+      "path": "Assets\\Scripts\\Diagnostics\\Runtime\\HarborCityRoadEditingValidation.cs",
+      "sha256": "877ad8e32f288eac945cbbf75bf5e15dd142db77cc723c303d3dee7d676ff978"
+    },
+    {
+      "path": "Assets\\Scripts\\Diagnostics\\Runtime\\HarborCityRoadTopologyValidation.cs",
+      "sha256": "596b8b4bfe3c5d5408ad929e5dfb50ddae97009844da8772199a6aa51b726e32"
+    },
+    {
+      "path": "Assets\\Scripts\\Diagnostics\\Runtime\\HarborCityScenarioWindowProbe.cs",
+      "sha256": "b1fb86dfe0b6839309c224dcdd1e13418dadc6bc292825131b8777dd9dd48fc0"
+    },
+    {
+      "path": "Assets\\Scripts\\Diagnostics\\Runtime\\HarborCityStandaloneValidation.cs",
+      "sha256": "722dc6188c696f46c72caf9e70761cb47316140c1bd19beb66402b1d438c32a1"
+    },
+    {
+      "path": "Assets\\Scripts\\Diagnostics\\Runtime\\HarborCityWindowPerformance.cs",
+      "sha256": "d53b6b4c10f41e399078f66d1454c5807dfbd0e3c2f21a49658fc4ae28c9288b"
+    },
+    {
+      "path": "Assets\\Scripts\\Editor\\CityBuildingChecks.cs",
+      "sha256": "6cfbcaf04070d0b8439ae6a5503aa14c60bb953c05066f86df098d2ccbde18a4"
+    },
+    {
+      "path": "Assets\\Scripts\\Editor\\CityCodeLayoutChecks.cs",
+      "sha256": "812aa8dc7dfcfc3bb690d4a7ff6125a9b0cd9e0f69bc74f108a2e07c087ef1bf"
+    },
+    {
+      "path": "Assets\\Scripts\\Editor\\CityDashboardVisualPreview.cs",
+      "sha256": "d269c6d065af302a286506ca9df4b725c7be1dcc569d31bb550bbd3ff052ede9"
+    },
+    {
+      "path": "Assets\\Scripts\\Editor\\CityHouseholdChecks.cs",
+      "sha256": "c2472d8b9aaa8a28daf645816521c3019c89528463508f726bfb55e4ce56f03b"
+    },
+    {
+      "path": "Assets\\Scripts\\Editor\\CityLandscapeChecks.cs",
+      "sha256": "91445bd5f37b1ca38bb1c66723bf02fd3edd00022b8908a04777262a4222a77a"
+    },
+    {
+      "path": "Assets\\Scripts\\Editor\\CityObservabilityChecks.cs",
+      "sha256": "3b3ac01def662755762f2fa51ad099a7327b958752257fda8dc381ea61823356"
+    },
+    {
+      "path": "Assets\\Scripts\\Editor\\CityRoadChecks.cs",
+      "sha256": "d2c44296e14c86d20f275a279573a77c220da1d57b804086add32764e3ab22ec"
+    },
+    {
+      "path": "Assets\\Scripts\\Editor\\CityTrafficBenchmarkBuild.cs",
+      "sha256": "299a7e50599eaa78db1f2430d160dfe5eb7413004cc95fe4c74cf3c032a35148"
+    },
+    {
+      "path": "Assets\\Scripts\\Editor\\CityTrafficChecks.cs",
+      "sha256": "dddf6ca1964987ff8c74546d171e47d823c4aab94fa4939cdf1cbda1f93bb703"
+    },
+    {
+      "path": "Assets\\Scripts\\Editor\\CityTrafficProfilerCapture.cs",
+      "sha256": "c0cd328165f62af72ee274268209b983689ab4d599b563895ac03e8dcdacf5f6"
+    },
+    {
+      "path": "Assets\\Scripts\\Editor\\CityTrafficReplayChecks.cs",
+      "sha256": "316157fe30f4125888402f881a7c75717eda5cf51ba25c44a8024f601d44294e"
+    },
+    {
+      "path": "Assets\\Scripts\\Editor\\CityUsabilityChecks.cs",
+      "sha256": "4552c7f15beb43e2a47f6784c6dc207151e83a24c4daa4f7863813199a7b92ec"
+    },
+    {
+      "path": "Assets\\Scripts\\Editor\\CityZoningChecks.cs",
+      "sha256": "a4a37bc1cb8f7a1368b4a6adef3695c024a5627df4cbaa18d4c57c1bbdc1721b"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\GameData\\CityEmploymentDesign.cs",
+      "sha256": "adcd2826ead20e68af4a8875e5aad4f0d6449daec31f6944b31a158bda2970ca"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\GameData\\CityFinanceDesign.cs",
+      "sha256": "a66b6668cf6d778afad2395603eee28f4a9b73a956a6fddead840d293bfa0bf0"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\GameData\\CityGameDesign.cs",
+      "sha256": "1f065a4d91a9c0098cb27bd0ac90d2988eb660584976ce97d5baa24427e968cb"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\GameData\\CityLocalization.cs",
+      "sha256": "dbfc4543180da6d7e2038f862d32f8830ac000c3454539b759280ffdd6154441"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\GameData\\CityRetailDesign.cs",
+      "sha256": "536af64943e7aee8d4fb0988caa9f4686f45cc0f418450080333a806a2e04623"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\GameData\\CityWasteDesign.cs",
+      "sha256": "9a20a78419edadf5091bce4ddf0c7719ca47b9ccde7539f78ecf1d4d8f8befcb"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\GameData\\HarborCityEconomyAsset.cs",
+      "sha256": "d957cb0126e42125d06fa0ddb7db1131b8ea6af5da25a575a5df2974a8a27ae4"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Map\\CityMap.cs",
+      "sha256": "1676e04c4a3ee9bacaf4aca490b123802d1c3aa47fff36a2a0f849bba80ade55"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Map\\CityMapViews.cs",
+      "sha256": "d0331fe6f96e691c4fd92d5f81ca1047f29847cb9fa51ec59d330aca4ae3b765"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityLaneConnection.cs",
+      "sha256": "bfbe6f4bf7ab5437b40bad95fdd43ce1b5518a62aa16393e1feb868967481d7c"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityLaneReachability.cs",
+      "sha256": "5ccf5765a62a02905a8ed8649b6584f9119f03640dcd06ab1e336bda995b89c8"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityLogicalRoadRouter.cs",
+      "sha256": "b877f300ac06fa38391374a16b343de20b80d687af3c96f3c35c90d46156ab63"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityResidentRouteBounds.cs",
+      "sha256": "5d2c18719ef9ab47d101435ae67d38142edd2ece85b2a947a667a5bb7d5363e7"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadClearance.cs",
+      "sha256": "8ea8741bb28a4364c23d3c8799b34496602b2a099ce0ced406a7ab8a61a75cd8"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadCoreAccess.cs",
+      "sha256": "e435a2f670de7cbc91d7ad87a38dae6be1caec3ee3b6fde89019486d7e5c96a9"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadCoreAccessRouting.cs",
+      "sha256": "28eb6b8affac60efa11859c296a4cefc12321cb58602606dd598d2ef2d259743"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadCoreConstruction.cs",
+      "sha256": "f641c39631e7195999ce47cdcf870ca7b1f3cd694675fc4cb66ded254f9986c7"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadCoreEdit.cs",
+      "sha256": "b5fe638013b7f7530147fbbdea682bbcc2581041bc534dcc9b1be8adcd212a78"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadCoreHistory.cs",
+      "sha256": "dec4bb6d265100c94cb196046b6cff0054a904ebc5e7483fac6ad781ef0aa060"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadCoreNetwork.cs",
+      "sha256": "afdfdb2c085fb86877c618a1f2070100b1dd55ec3e2874e3f708b7dd3f3d47ae"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadCoreSave.cs",
+      "sha256": "55402f0791177b0b8334ade659d9e54ad96693fd9ddcabc85170b4afff31e09d"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadCoreSpatial.cs",
+      "sha256": "394fe50fa56f5f12dd57070f947a8c27b76c332e54317f2e7a74db24920665d0"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadDirection.cs",
+      "sha256": "3ae2d8f78f7a521b62ae58513bfeccca548bdfd7e75041b4ac25de5069f47725"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadElevation.cs",
+      "sha256": "af08940c5596da9cf964eddb0e4ebb6df9528d02c2bbed5a64ed743f3fed5405"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadGeometry.cs",
+      "sha256": "fc85a93b32af5147489b0b15abd812aa0653c1f7361d4c489c68096f671702af"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadKeyComparer.cs",
+      "sha256": "87b24d4322916460de897d123e6d340869f936d5989eed38fe770180806800a9"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoads.cs",
+      "sha256": "5f3f7c16cb35e841aa723d6d94c9d682cdb3ed7c327742f3380351e8c3b2dfa3"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadTopology.cs",
+      "sha256": "1f861a4212f38fc8aa13a099fe92411ac98b6cf4e9fccf15081074721615b705"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadTopologyBuilder.cs",
+      "sha256": "9e357ac73c207390b70a8c9a28491d1ce31552ee851640d9c22874100d234595"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadTypes.cs",
+      "sha256": "0eec8d17512dd6bd99be4805d75fc644767b134c466ee57c5e75874653f95afc"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadWidth.cs",
+      "sha256": "ff6a56fe0f9ca9a449ab48f6118b5742d97d5ddfb0ab41a90b17038abf593146"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Utilities\\CityUtilities.cs",
+      "sha256": "b4591a70dac2b592f21f977de4c3438fdd6a93f5b3d4ed2c054656ded6dbf3e9"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Utilities\\CityUtilityNetwork.cs",
+      "sha256": "700e77e5804951a15ad7a1e6a11ae5f72103a8e3f0803318d13c2d1eef39732e"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Zoning\\CityCoreZoning.cs",
+      "sha256": "d5f9cd2b2bd0702c47ae7b241c93e15761469170828a70064e752e7ab6851182"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Infrastructure\\Zoning\\CityZoning.cs",
+      "sha256": "40db96857a4739217d2f317d9b89d6ab42224a2ad7d2ad2770c746097ecf7dad"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Observability\\CityAnalysisState.cs",
+      "sha256": "8dd2bab07346c2f632cac25e32a824ce8948eadc64bd1085f8c3a732738be1af"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Observability\\CityCoreObservation.cs",
+      "sha256": "9210e18f6a01242225f4b47dcaa14fa184f41c8c4ac70a39659f1d7163dbf607"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Observability\\CityDailyAnalysis.cs",
+      "sha256": "9ec9e252e92b4b1ff081b42ee8c4ab9027da7626dc341cbe26b49f2ef9802343"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Observability\\CityDashboardPresentation.cs",
+      "sha256": "8a3d1f477926c8b0ecf20ed43246582674eb3a4a1f05ce23dc38b2ec6d075fc8"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Observability\\CitySimulationLog.cs",
+      "sha256": "4ed714b574a5a39ba80a568790540df9060b89e85ef9645d04711427120a4e3d"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Presentation\\Game\\HarborCityConstructionCamera.cs",
+      "sha256": "547bf1022e13e5e34f7e62110342b6900720458c6c5df7def4d95f993a76eb91"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Presentation\\Game\\HarborCityGame.cs",
+      "sha256": "dffa99a5588bd2651113bf6df246c12651aa4bf376435c9ccd69f71b6a8f33dd"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Presentation\\Game\\HarborCityRoadCoreGame.cs",
+      "sha256": "3e35bda6ca0c4ab7ba275fa524dda05e148139fff41863b0e7cc79eb834e1caf"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Presentation\\Tools\\HarborCityBuildingTool.cs",
+      "sha256": "b5b3e741e802c1a883ad13240080902f8e1d258cd550ad6274184037e613e2d4"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Presentation\\Tools\\HarborCityConstructionPreview.cs",
+      "sha256": "035c7566f9733cac7f92bc0072d625b173222c24a158b77a514384a18cb6b228"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Presentation\\Tools\\HarborCityRoadTool.cs",
+      "sha256": "45e3428072230201352de0a7ec1061ddb21a803175815dbcc33e44cf7c48e568"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Presentation\\Tools\\HarborCityUtilityTool.cs",
+      "sha256": "5eae2959e1338c4bd2433baeaf22b6f96fdf476d36ff6793b00a8a501bb48620"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Presentation\\Tools\\HarborCityZoningTool.cs",
+      "sha256": "e7d54ba9933f685ac95654c8a85a53fa052f50f7e049a265f2b50ee0d6d52df6"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Presentation\\Traffic\\HarborCityTrafficControlView.cs",
+      "sha256": "27575da5d8c2f2469c9e5ffb13835fe475b7297424cd59d1e962ee427a794e3a"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCityCommuteView.cs",
+      "sha256": "93f5b476a3aa4a99e6e0cbc386526bfaf0fa13b5e450f59841bdedcc7d28877e"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCityDashboard.cs",
+      "sha256": "5a908a72f6b05c83a06a40929d665a35259435e8002bdd252bd69c67f1672175"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCityDashboardVisuals.cs",
+      "sha256": "e508e629252ed20bd9188b425a57de1bdb7f62c06805b9dfde24213c76bce251"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCityDeathcareUI.cs",
+      "sha256": "2be7c056c1284094fdba67bd719b6af0c2fdaefaa986935b5bfc4e5e902b65dc"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCityEconomyUI.cs",
+      "sha256": "83773723b1f7fea255c986de316fe251961e290cd42c879af0bb1ff0573ab459"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCityEducationUI.cs",
+      "sha256": "cacc50d90bcca4ce1c1e630f804dca7cedd05a644bee0505e9a0a5d66d9c4e31"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCityFinancePanel.cs",
+      "sha256": "a7fa6bd0a8382e9541c669c5712fc20ee543505721fbdfd7a8472c582c28eb12"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCityFireUI.cs",
+      "sha256": "5dd49895466556a5fcb53e5e7777c597ada80a4710583b9184ef38219de6f43f"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCityHealthcareUI.cs",
+      "sha256": "3d66affdf9dd231d8d9c4a6ebf96fd697a80c7a79d204b34cc51a0d4b19a9594"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCityInfoViews.cs",
+      "sha256": "bca55bace3cd12c1399c2f482cb9028afa89cf16f4a923c5165e2d4ea7cdfc51"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCityLogging.cs",
+      "sha256": "74c85a2956c38ed234d3dca7220dab79f9b22e6de808de6b3a3d5280d2567585"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCityObservationPanel.cs",
+      "sha256": "16c2305bc486108cc25d9ef06bc5f23eb4828e01e3439b0c8cd3e8d48ccb976e"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCityPoliceUI.cs",
+      "sha256": "3b903b0833f5bd653a88c9280d895ab8ba8c36fc0996c4f2d28741c3f3b43f5d"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCityProblemUI.cs",
+      "sha256": "bfa8c95b1fc89f741706c73ba8cd09b8931b346c25d8c840c83d8bb826127df0"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCityResidentView.cs",
+      "sha256": "49bd4ec502164129ccbd7f1ac30a4dfa088bfde5d9e1f7ee566f6336a85c9f84"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCityRoadEditor.cs",
+      "sha256": "0cce42ae76d59c4c509720b4de0840e016890ea4badac951841f2fdf763fa9d9"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCitySimulationUI.cs",
+      "sha256": "50fac84dc001ae0f5a6fcee6f410dd953ce7409c2c44ba730ce4d6ed1e5f8e17"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCityWasteUI.cs",
+      "sha256": "247c51b56577373cc3f3fe6584a31d53c35c3e3ee6c9bd8c5dffbc29f6a6a239"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Presentation\\World\\CityLandscape.cs",
+      "sha256": "2eca3b1b58630aa7970983edbe533c7c509bf48a1a35ea0dbe743ac7f1751f36"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Presentation\\World\\CityRoadView.cs",
+      "sha256": "5a47930b4ede1e8e8123e9d6470d0d4d322ed1b35eed1204f341a7db614b3b40"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Presentation\\World\\HarborCityBuildingViews.cs",
+      "sha256": "9cd90f512e6f39ceaa8f3049b0b1b690d01911f1ad155b3517056909878cbcfc"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Presentation\\World\\HarborCityDevelopmentView.cs",
+      "sha256": "6b3cdb3cb2f75b7e31b8fb1567e029f7e83b28cc73b58d9a35f0872988e6844e"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Presentation\\World\\HarborCityMapBoundary.cs",
+      "sha256": "bdf0b7631c3631099572592e9e178f68f1c9fd3b2fe6545e7651627aa4056fa2"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Presentation\\World\\HarborCitySurfaceMesh.cs",
+      "sha256": "1ee590251276b23e67fd16401c4e3533989534dffdf34fd888eee7eb212775f7"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Core\\CityBuildingConditions.cs",
+      "sha256": "b476de93e2675cc98c848aeaa2f48ffad39922b0d3abf325f835819af62a5f3a"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Core\\CityBuildingProblems.cs",
+      "sha256": "e0ce56bd831acb1fcdb31699616040badd81cc932a2b4ec7e91d438a64b5e298"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Core\\CityBuildings.cs",
+      "sha256": "fe760faa996943b2f6728fc6d304fe67054a38c1d356aed6de7850b982979cd4"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Core\\CityCoreConstruction.cs",
+      "sha256": "02aecf6bb6d944f83add6a66602d07c6e7581d6c595146c9bec92c77352525f4"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Core\\CityCoreRoadBindings.cs",
+      "sha256": "6ad768d2919842dab2c8d8043fe60b99bd24911ce6c91459c7f18a35633c162d"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Core\\CityCoreSave.cs",
+      "sha256": "a16b73614914fae91428c79ebae5722746415658368a786f6b85bd4fe44cea00"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Core\\CityEntities.cs",
+      "sha256": "df404efbe5cd33b3a367912f17b93cef064e5628024c04f09350114303799f94"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Core\\CityModel.cs",
+      "sha256": "b1b5af39701ce13ecd88496b36c913daec710eb0fb1e0c401ce8aa82599ce78c"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Core\\CitySaveData.cs",
+      "sha256": "e6d21de8e051ee18005a76f4221d652c85e4fd735ade0dd84930280e1518bd8c"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Core\\CitySimulation.cs",
+      "sha256": "1109460cc6a717d807bd5dd258f505cf9581f1af28e522b89a340365fe12ee29"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Core\\CitySimulationClock.cs",
+      "sha256": "ddebfe72e08c351f55595661aaff68dcdeb649f366b24d5b68887731919fc27f"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Economy\\CityCoreConsumption.cs",
+      "sha256": "a829154da65de82e27d7061c6b4f893dfe45f3439fb525128b54b66874fe369d"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Economy\\CityCoreFinance.cs",
+      "sha256": "cd0c2cd5bb0736f72fe368dce0222bcd260a1fc324ecbe72ec84aba52c440ba0"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Economy\\CityCorePayroll.cs",
+      "sha256": "ed8c31340c47cdb36770a64a803f5c3e0e267e218c5aaaf9c5346f12345b63f3"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Economy\\CityCoreTrade.cs",
+      "sha256": "d818d2800c6b5bcc868afb002b206f6d5a16506eb988d361ea9bdfd7722a0dec"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Economy\\CityLoans.cs",
+      "sha256": "9591ebf46250b9e8a413f62d8687d1e7cbdb325c37c803ae2636d998014a951a"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Economy\\CityRetailIndex.cs",
+      "sha256": "b56bff5a280bb51344f358db11bab669f2409bdeba2d645239b41a147ba6d52d"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Economy\\CityServiceBudgets.cs",
+      "sha256": "bdca4d02add0cbbee1a17c5d20d4a212fb8f00107bee6eac268e84de94d976b6"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Economy\\CityShopAccount.cs",
+      "sha256": "5865068a8d78087fdfc296e52a4dab2295bab434f9ce02bf231a641322c1311a"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Growth\\CityBuildingGrowth.cs",
+      "sha256": "b5ccda2b4afd0dbf55f5ff08b266ba69b9a135b2d2438096776052689760f012"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Growth\\CityCoreGrowth.cs",
+      "sha256": "2c91c0ff73532b6cc28eb7e7383827be7b3a13d9a173f0283393c8a5f4b9afa1"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Growth\\CityDevelopment.cs",
+      "sha256": "aa52448d5f2e3e5b99c9be5b2572a56cbca46241d990bfaadb0bb5a3e107465f"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Industry\\CityCoreIndustrySession.cs",
+      "sha256": "3b953643b0f19fe5627fe412c8824722af36235bc31d69d40053e80f1e0cadcc"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Industry\\CityFreightCandidates.cs",
+      "sha256": "c620513db7da693b3e685794c2cb61f4f6e7044b2b7bd1c35cb648050d9358a1"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Industry\\CityIndustry.cs",
+      "sha256": "0bdb74ddf63f7ed8f74c55bc7c0747e1340b560ae6fec2dd55bad8a79d4d61f6"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Industry\\CityLogisticsSystem.cs",
+      "sha256": "d5af55728dd9c83f3ec7c7692ea5faaff69e68df201040d8d7cf1d14f9ac9ab2"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Industry\\CityProductionSystem.cs",
+      "sha256": "8b44aac9b02e63f601a9d8c3254da38b1e243aa47e2fd7c8be86b2bb6793dd4a"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Residents\\CityCorePopulation.cs",
+      "sha256": "caee495972171932ab760a12be1901ea2041df73f2717825847fbe4208e74955"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Residents\\CityCoreResidents.cs",
+      "sha256": "1085e8bb70da1564fad93335dc3cae63b677bd8a1bb6326b5b83654bf1e3e7dc"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Residents\\CityEducation.cs",
+      "sha256": "73e09491fff95d35e48d5b915f7528aac068aa2754eb0f6d7860e3c9119ec776"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Residents\\CityHealth.cs",
+      "sha256": "636365a3f1d2c6525877b9cbe09cc899eb343bff6dbf186521dcb84d12403929"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Residents\\CityHouseholds.cs",
+      "sha256": "509668dc3a1d34b9224b8139e3b2b3ff870c2b6b00ccf661b769db6613916904"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Residents\\CityJobs.cs",
+      "sha256": "1685c3937aa92d0f745b9a3e235b8c31082b1eee5ec73c0fa72b462afdebbeba"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Residents\\CityResidentAging.cs",
+      "sha256": "05afc9948783eca22314155f9f882fbe4779a78797fe11acfa564233a6f9d860"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Residents\\CityResidents.cs",
+      "sha256": "8a104c8982bcbd8cd0175c6dbd97392e60770fa08bda76d0273579b842e9a045"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Services\\CityCoreUtilities.cs",
+      "sha256": "b908148df9adcdff270e00ffc83820e5098b35fc44ac0d9d49d197f0fea07cdb"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Services\\CityCoreWaste.cs",
+      "sha256": "cc009ccbf5ae179f2298942b5a1a02c487472d2b376350fd199bc42f638f0e51"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Services\\CityDeathcare.cs",
+      "sha256": "5f9df8debabb67e7eec14d48a8add85443b4afaf9de74ed790095b947e300894"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Services\\CityFire.cs",
+      "sha256": "06f73466f52d05502132e389ef431fe34d431090b3c31563b12db74493e13c1f"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Services\\CityHealthcare.cs",
+      "sha256": "1328001f639f7f0e7db6c75bec0a1bb519de123bc37dda1055a8aa4c4287d9be"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Services\\CityPolice.cs",
+      "sha256": "fb425c3599f4cca24eb5c3030862d9eca97fa64ccefe54977de7f9b2ea88280f"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Simulation\\Services\\CityWaste.cs",
+      "sha256": "d9285b91f8dad398ef617063e472d72d97be58875440529402199ebe4c4ed59a"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\CityCargoKind.cs",
+      "sha256": "083adb78b3e42fe973d23acd763a9f56f219f771d286c9a31a6597e7950ddba2"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\CityHighwayTraffic.cs",
+      "sha256": "059f0f5551052ef44e033db91ef82b3615b831f1e63289f2cb043ce7091e7345"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\CityJunctions.cs",
+      "sha256": "664b23e3dae26c6a4d0961f467348a5911b66a94459914bf8b6a596f43cb9164"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\CityLanes.cs",
+      "sha256": "1e5ef61f13b19eacb82ad467eece93e5e8facad581b930f059fc92bbfe90c71e"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\CityRoadCoreBusiness.cs",
+      "sha256": "18db03b406cc319c9c51a4e7743bb21dbfff5f565f7ca04d8b9ae2e120a31a8f"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\CityRoadCoreDispatchRoutes.cs",
+      "sha256": "a5de2e5ab5a98adaf8ffc40c5dc4dd3572080e4ea5dde1cc4fd05aedd5a540a4"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\CityRoadCoreLaneChanges.cs",
+      "sha256": "bbd19d57004fcbcf23b5fb7e53112add089cfbc51910a78fbde582b108b66e23"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\CityRoadCoreLaneOccupant.cs",
+      "sha256": "224f50aed6f99e05781399f866944fc6b3b7048047761e351976c3f2208fb9ad"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\CityRoadCoreLostOccupancy.cs",
+      "sha256": "5fa61b615481907486e8afcb91671e902cf4cf201388a3acf67f256ff3db38b4"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\CityRoadCoreReservations.cs",
+      "sha256": "c03a35b87108df0da24e290648a76f686b13f3538ec13e717219fcc7fbc66eb0"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\CityRoadCoreWorld.cs",
+      "sha256": "c5285c1adfed4670bc536422ab063ab1b4efe04fad1ac768a5eafbca388cd33c"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\CityTraffic.cs",
+      "sha256": "211d12ca194d34041bf6f4ab55e8a50aab9c568c1e0f1cd09ca01fba1182aa5b"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\CityTrafficControls.cs",
+      "sha256": "4957309ac611786adf99743fb168433e41519b93a201817e9510249c8611996a"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\CityTrafficIndex.cs",
+      "sha256": "97bd0c4ed685bbf9f2ab6b2c23baf25e3d5d5169c1a1a46152de9c5021528516"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\CityTransportBoundary.cs",
+      "sha256": "d6be73f2aeb2886abe317d4c4f1940ba43c6cfd835a251baee314f5c6d2b54c9"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\CityTripTask.cs",
+      "sha256": "600077ca1f0c53d39566e1149fc549436b2814f1c9f3a0b5e136b7215b9246d2"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\CityVehicleGeometry.cs",
+      "sha256": "425abda141ff82cce1a1a270c8faf3c6169046b1e789c62393ac4fef76c94d39"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\CityVehiclePosition.cs",
+      "sha256": "61f68226c10260d622c4b2b058216ba426edcba45f4b90c8a9eee6e373237261"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\Trips\\CityResidentTransport.cs",
+      "sha256": "d6005dd183065eb77f0da3e9579266a82fb313f6200c1a02fadcd571495d4c21"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\Trips\\CityShopping.cs",
+      "sha256": "ebcc4fd8ea540436f0b2dfb7dbc7bfeda7981f952293f4f694e5eed47f394aa7"
+    },
+    {
+      "path": "Assets\\Scripts\\Runtime\\Traffic\\Trips\\CityWasteTransport.cs",
+      "sha256": "4848190ae9cfd43d5b60ef42f5f6af6afed08daeb67624f1c67c4cc91ae7d067"
+    }
+  ],
+  "sourceCaptureNote": "Captured unchanged player clone after runs, not the later original-directory worktree; player binary hash and dirty source status preserved. No claim of a clean pre-existing commit."
+}
