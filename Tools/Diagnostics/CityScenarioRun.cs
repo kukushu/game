@@ -138,7 +138,7 @@ static class CityScenarioRun
                 timedSimulationMs=samples.Sum(),hostWallSeconds=wall.Elapsed.TotalSeconds,validationMs,restoreMs,
                 stepCollections,gcCollectionsIncludingDiagnostics=new[]{GC.CollectionCount(0)-g0,GC.CollectionCount(1)-g1,GC.CollectionCount(2)-g2},managedMemoryBytes=GC.GetTotalMemory(false),workingSetBytes=workingSet>0?(long?)workingSet:null,
                 replayChecked,replayHash,everWorking,observedPurposes=observedPurposes.Select(p=>p.ToString()).OrderBy(p=>p).ToArray(),initialHash=Hash(initial),finalHash=Hash(final),initial=initialState,final=State(s),operationalWarnings=warnings.OrderBy(w=>w).ToArray(),gcPauseMs=(object)null,
-                limitations=new[]{"No Unity rendering/FPS measurement in this run","Retired task count derived from monotonic task allocator minus current store; historical failures unavailable","No explicit departure queue; waiting count unavailable","Passing invariants does not prove economically sustainable city","Mode A, bottleneck layout, 3000/10000 integrated populations pending"}});
+                limitations=new[]{"No Unity rendering/FPS measurement in this run","Retired task count derived from monotonic task allocator minus current store; historical failures unavailable","No explicit departure queue; waiting count unavailable","Passing invariants does not prove economically sustainable city","This run covers only the declared population/configuration; Mode A, bottleneck layout and 10000 integrated residents are not verified"}});
             return 0;
         }
         catch(Exception e)

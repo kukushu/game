@@ -1,0 +1,30 @@
+{
+  "measureSeconds": 60,
+  "vsync": 0,
+  "os": "Microsoft Windows NT 10.0.26200.0",
+  "resolution": "1440x900",
+  "inputPath": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\CityScenarios\\stage2-grid3000-normal\\initial.hcity",
+  "commit": "e3880b372fdfee1ccf82f6f4548ee6e25078ff52",
+  "dirty": [
+    " M Assets/Scripts/Diagnostics/Runtime/CityScenarioBuilder.cs",
+    " M Docs/Architecture/CityScenarioTesting.md",
+    " M Docs/Architecture/Stage2CityTesting.md",
+    " M Tools/BuildArchitectureDocs.py",
+    " M Tools/Diagnostics/CityScenarioChecks.cs",
+    " M Tools/Diagnostics/CityScenarioRun.cs",
+    " M Tools/VerifyCityScenario.ps1",
+    "?? Docs/Benchmarks/2026-10-15-CityScenarios/Stage2Scale3000/",
+    "?? Docs/Benchmarks/2026-10-15-CityScenarios/Stage2Window3000/",
+    "?? Tools/Scenarios/mature-grid-3000.json"
+  ],
+  "warmupSeconds": 8,
+  "inputHash": "36603FF78637AEE94C0FED97893BFF2ECE4BD326DB944C6DD0D294C159570DA5",
+  "unity": [
+    "m_EditorVersion: 6000.6.3f1",
+    "m_EditorVersionWithRevision: 6000.6.3f1 (45d8eee7de74)"
+  ],
+  "targetFps": 60,
+  "utc": "2026-10-15T16:10:23.2776960Z",
+  "cpu": "Intel(R) Core(TM) i5-14600KF",
+  "playerHash": "4C93A4BB060A12B9044AB2103835DD1565AEC9AA8381372FA84FBBC14A19B989"
+}

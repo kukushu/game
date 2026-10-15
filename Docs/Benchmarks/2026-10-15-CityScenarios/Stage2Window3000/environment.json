@@ -1,0 +1,28 @@
+{
+  "resolution": "1440x900",
+  "unity": [
+    "m_EditorVersion: 6000.6.3f1",
+    "m_EditorVersionWithRevision: 6000.6.3f1 (45d8eee7de74)"
+  ],
+  "playerHash": "4C93A4BB060A12B9044AB2103835DD1565AEC9AA8381372FA84FBBC14A19B989",
+  "measureSeconds": 60,
+  "dirty": [
+    " M Assets/Scripts/Diagnostics/Runtime/CityScenarioBuilder.cs",
+    " M Docs/Architecture/Stage2CityTesting.md",
+    " M Tools/Diagnostics/CityScenarioChecks.cs",
+    " M Tools/Diagnostics/CityScenarioRun.cs",
+    " M Tools/VerifyCityScenario.ps1",
+    "?? Docs/Benchmarks/2026-10-15-CityScenarios/Stage2Scale3000/",
+    "?? Docs/Benchmarks/2026-10-15-CityScenarios/Stage2Window3000/",
+    "?? Tools/Scenarios/mature-grid-3000.json"
+  ],
+  "inputPath": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\CityScenarios\\stage2-grid3000-normal\\inflight.hcity",
+  "vsync": 0,
+  "inputHash": "FA4982B5670C74BD0C93F2E80DE8FD7F3AD5B60AF0514C7227FFD52676BCCA82",
+  "cpu": "Intel(R) Core(TM) i5-14600KF",
+  "utc": "2026-10-15T16:07:05.6961888Z",
+  "warmupSeconds": 8,
+  "os": "Microsoft Windows NT 10.0.26200.0",
+  "commit": "e3880b372fdfee1ccf82f6f4548ee6e25078ff52",
+  "targetFps": 60
+}

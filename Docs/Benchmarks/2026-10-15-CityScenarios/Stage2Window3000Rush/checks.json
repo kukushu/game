@@ -1,0 +1,16 @@
+{
+  "1x": {
+    "frames": 3597,
+    "completedTicks": 1200,
+    "tickDeltaEqualsEveryFrameSteps": true,
+    "vehicleViewsMatchActualVehiclesEachRecordedFrame": true,
+    "verificationCommand": "python Tools/VerifyCityScenarioWindow.py Temp/CityScenarios/stage2-window3000-rush"
+  },
+  "3x": {
+    "frames": 3562,
+    "completedTicks": 3601,
+    "tickDeltaEqualsEveryFrameSteps": true,
+    "vehicleViewsMatchActualVehiclesEachRecordedFrame": true,
+    "verificationCommand": "python Tools/VerifyCityScenarioWindow.py Temp/CityScenarios/stage2-window3000-rush"
+  }
+}
