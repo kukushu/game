@@ -41,18 +41,32 @@ namespace HarborCity
             // not once per job and not in the fixed vehicle loop.
             var vacant=new Dictionary<int,List<CityJob>>();foreach(var job in city.society.jobEntities)if(job.occupiedCitizenId<0&&city.JobFunded(job)&&city.BuildingAccess(job.buildingId)){if(!vacant.TryGetValue(job.buildingId,out var slots))vacant.Add(job.buildingId,slots=new List<CityJob>());slots.Add(job);}
             var distances=new Dictionary<(int,int),double>();bool assigned=false;
+            if(vacant.Count==0)return false;
+            var bounds=new ResidentRouteBounds(world);var candidates=new List<JobCandidate>(vacant.Count);
             foreach(var member in entities.Members)
             {
                 var p=member.Person;var h=member.Family;if(!h.resident||p.dead||!p.canWork||p.jobId>=0||p.tripId!=0||p.atWork)continue;CityJob best=null;double nearest=double.PositiveInfinity;
+                candidates.Clear();
                 foreach(var pair in vacant)
                 {
                     CityJob candidate=null;foreach(var job in pair.Value)if(job.occupiedCitizenId<0&&job.requiredSkill<=p.skill&&(candidate==null||job.id<candidate.id))candidate=job;if(candidate==null)continue;
-                    var key=(h.home,pair.Key);if(!distances.TryGetValue(key,out double seconds)){seconds=world.EstimateResidentSeconds(h.home,pair.Key);distances.Add(key,seconds);}if(double.IsInfinity(seconds))continue;
+                    candidates.Add(new JobCandidate{job=candidate,bound=bounds.Seconds(h.home,pair.Key)});
+                }
+                candidates.Sort(JobCandidate.Compare);
+                foreach(var option in candidates)
+                {
+                    if(option.bound>nearest)break;
+                    var candidate=option.job;var key=(h.home,candidate.buildingId);if(!distances.TryGetValue(key,out double seconds)){seconds=world.EstimateResidentSeconds(h.home,candidate.buildingId);distances.Add(key,seconds);}if(double.IsInfinity(seconds))continue;
                     if(seconds<nearest||seconds==nearest&&(best==null||candidate.id<best.id)){nearest=seconds;best=candidate;}
                 }
                 if(best!=null)assigned|=city.AssignJob(p,best.id);
             }
             return assigned;
+        }
+        struct JobCandidate
+        {
+            internal CityJob job;internal double bound;
+            internal static readonly Comparison<JobCandidate> Compare=(a,b)=>{int c=a.bound.CompareTo(b.bound);return c!=0?c:a.job.id.CompareTo(b.job.id);};
         }
         public void UpdateStatistics(){int population=0;foreach(var m in entities.Members)if(m.Family.resident&&!m.Person.dead)population++;city.population=population;city.jobs=city.society.jobEntities.Count;}
     }
