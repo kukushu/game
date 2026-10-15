@@ -1,0 +1,1 @@
+{"schema":1,"name":"mature-grid-100000-large-flat","mode":"mature","layout":"grid","population":100000,"seed":7919,"gridRadius":16,"streetSpacing":48,"days":10,"warmupDays":2,"openingPublicGrant":100000000,"householdsPerResidentialBuilding":8,"diagnosticBuildHalfSize":792}

@@ -97,10 +97,10 @@ namespace HarborCity
                 int index=Array.IndexOf(args,"-harbor-city-scenario-window");
                 session=CityCoreSave.Read(File.ReadAllBytes(args[index+1]));world=session.Transport;
                 foreach(int id in world.Network.RoadIds){var geometry=world.Network.Centreline(id);for(int i=0;i<geometry.Count;i++)if(Math.Abs(geometry[i].y-2)>1e-6)throw new InvalidOperationException("Scenario window accepts only the captured flat-height-2 city fixture");}
-                landscape=new GameObject("Scenario flat landscape").AddComponent<CityLandscape>();landscape.BuildDiagnosticFlat(2);
+                landscape=new GameObject("Scenario flat landscape").AddComponent<CityLandscape>();landscape.BuildDiagnosticFlat(2,session.City.map.terrainHalfSize);
                 session.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);
                 constructionCamera=new HarborCityConstructionCamera(cameraView,landscape);
-                cameraView.transform.position=new Vector3(0,260,-185);cameraView.transform.LookAt(new Vector3(0,2,0));
+                float mapScale=session.City.map.buildHalfSize/CityMapState.BuildHalfSize;cameraView.transform.position=new Vector3(0,260*mapScale,-185*mapScale);cameraView.transform.LookAt(new Vector3(0,2,0));
                 RenderBuildings();RenderZones();RenderUtilities();notice=localization.Get("ui.stage.current");speed=0;Application.runInBackground=true;
                 var probe=gameObject.AddComponent<HarborCityScenarioWindowProbe>();probe.Configure(this,args[index+1],args[index+2],float.Parse(args[index+3],System.Globalization.CultureInfo.InvariantCulture));
             }

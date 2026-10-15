@@ -104,7 +104,7 @@ namespace HarborCity
                 {
                     if(p==null || p.id<1 || p.id>=development.nextProjectId || !ids.Add(p.id) || p.building==null || !CityZoningState.ZoneUse(p.building.type)
                         || !FiniteDevelopment(p.started) || !FiniteDevelopment(p.completeAt) || p.started<0 || p.completeAt<=p.started
-                        || p.cells==null || p.cells.Count<1 || p.cells.Count>16 || p.cells.Any(k=>!ZoneCell.ValidKey(k) || !keys.Add(k))) return false;
+                        || p.cells==null || p.cells.Count<1 || p.cells.Count>16 || p.cells.Any(k=>!ZoneCell.ValidKey(k,map.buildHalfSize) || !keys.Add(k))) return false;
                     var b=p.building.ToBuilding();if(b.upgradeDays!=0 || b.lastUpgradeDay!=0 || b.crime!=0 || b.burning || b.burned || b.fireDamage!=0 || b.fireIntensity!=0 || b.garbage!=0 || b.outageDays!=0 || b.abandoned || b.abandonedDay!=0 || b.level!=1 || b.id!=0 || !FiniteDevelopment(b.x) || !FiniteDevelopment(b.z) || !FiniteDevelopment(b.yaw)
                         || !FiniteDevelopment(b.entranceX) || !FiniteDevelopment(b.entranceZ)
                         || !ValidGrowthDimension(b.width) || !ValidGrowthDimension(b.depth) || p.cells.Count!=GrowthCells(b.width)*GrowthCells(b.depth) || Math.Abs(b.x)>BuildHalfSize || Math.Abs(b.z)>BuildHalfSize

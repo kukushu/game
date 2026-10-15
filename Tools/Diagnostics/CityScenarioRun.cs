@@ -41,9 +41,21 @@ static class CityScenarioRun
     static CityCoreIndustrySession Restore(byte[] bytes)
     {var s=CityCoreSave.Read(bytes);s.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);s.Validate();return s;}
     static void Require(bool ok,string message){if(!ok)throw new InvalidOperationException(message);}
+    sealed class BuildObservation
+    {
+        readonly string output;readonly Stopwatch timer=Stopwatch.StartNew();readonly long allocated=GC.GetAllocatedBytesForCurrentThread();
+        public CityCoreIndustrySession Latest;public string Phase;
+        public BuildObservation(string output){this.output=output;}
+        public void Observe(string phase,CityCoreIndustrySession session)
+        {
+            Latest=session;Phase=phase;
+            File.AppendAllText(Path.Combine(output,"build-timeline.jsonl"),Json.Serialize(new{phase,ms=timer.Elapsed.TotalMilliseconds,allocated=GC.GetAllocatedBytesForCurrentThread()-allocated,roads=session.Transport.Network.RoadCount,buildings=session.Entities.Buildings.Count,residents=session.Entities.Members.Count})+Environment.NewLine);
+            Console.WriteLine("Build "+phase+" buildings "+session.Entities.Buildings.Count+" residents "+session.Entities.Members.Count);
+        }
+    }
     static int Main(string[] args)
     {
-        string output=args.Length>1?args[1]:"Temp/CityScenarios/latest";Directory.CreateDirectory(output);CityCoreIndustrySession s=null;CityWasteDiagnostics wasteDiagnostic=null;var wall=Stopwatch.StartNew();
+        string output=args.Length>1?args[1]:"Temp/CityScenarios/latest";Directory.CreateDirectory(output);CityCoreIndustrySession s=null;CityWasteDiagnostics wasteDiagnostic=null;var wall=Stopwatch.StartNew();var construction=new BuildObservation(output);
         try
         {
             var settings=Json.Deserialize<CityScenarioSettings>(File.ReadAllText(args[0]));settings.Validate();
@@ -52,11 +64,13 @@ static class CityScenarioRun
             wasteDiagnostic=args.Length>5&&args[5]=="waste"?new CityWasteDiagnostics():null;
             var design=Json.Deserialize<GameDesignData>(File.ReadAllText(args[4]));
             bool loading=args[3]!="-";
-            s=loading?Restore(File.ReadAllBytes(args[3])):CityScenarioBuilder.Create(settings,design);
+            long initAt=Stopwatch.GetTimestamp(),initBytes=GC.GetAllocatedBytesForCurrentThread();
+            s=loading?Restore(File.ReadAllBytes(args[3])):CityScenarioBuilder.Create(settings,design,construction.Observe);
+            Write(Path.Combine(output,"initialization.json"),new{loading,ms=(Stopwatch.GetTimestamp()-initAt)*1000.0/Stopwatch.Frequency,allocated=GC.GetAllocatedBytesForCurrentThread()-initBytes});
             Require(s.Entities.Members.Count==settings.population,"Loaded population does not match declared scenario");
             Write(Path.Combine(output,"effective-design.json"),s.Simulation.Design.Snapshot());
             byte[] initial=CityCoreSave.Write(s);File.WriteAllBytes(Path.Combine(output,"initial.hcity"),initial);
-            if(!loading){var repeated=CityCoreSave.Write(CityScenarioBuilder.Create(settings,design));Require(initial.SequenceEqual(repeated),"Same seed/settings did not reproduce initial city");}
+            if(!loading){var repeated=CityCoreSave.Write(CityScenarioBuilder.Create(settings,design,construction.Observe));Require(initial.SequenceEqual(repeated),"Same seed/settings did not reproduce initial city");}
             // All timed runs start from the same saved facts and cold derived caches,
             // whether constructed just now or supplied by --Load.
             s=Restore(initial);
@@ -138,13 +152,13 @@ static class CityScenarioRun
                 timedSimulationMs=samples.Sum(),hostWallSeconds=wall.Elapsed.TotalSeconds,validationMs,restoreMs,
                 stepCollections,gcCollectionsIncludingDiagnostics=new[]{GC.CollectionCount(0)-g0,GC.CollectionCount(1)-g1,GC.CollectionCount(2)-g2},managedMemoryBytes=GC.GetTotalMemory(false),workingSetBytes=workingSet>0?(long?)workingSet:null,
                 replayChecked,replayHash,everWorking,observedPurposes=observedPurposes.Select(p=>p.ToString()).OrderBy(p=>p).ToArray(),initialHash=Hash(initial),finalHash=Hash(final),initial=initialState,final=State(s),operationalWarnings=warnings.OrderBy(w=>w).ToArray(),gcPauseMs=(object)null,
-                limitations=new[]{"No Unity rendering/FPS measurement in this run","Retired task count derived from monotonic task allocator minus current store; historical failures unavailable","No explicit departure queue; waiting count unavailable","Passing invariants does not prove economically sustainable city","This run covers only the declared population/configuration; Mode A, bottleneck layout and 10000 integrated residents are not verified"}});
+                limitations=new[]{"No Unity rendering/FPS measurement in this run","Retired task count derived from monotonic task allocator minus current store; historical failures unavailable","No explicit departure queue; waiting count unavailable","Passing invariants does not prove economically sustainable city","This run covers only the declared population/configuration; Mode A natural growth, other seeds/layouts and larger populations are not verified by this run"}});
             return 0;
         }
         catch(Exception e)
         {
-            Write(Path.Combine(output,"failure.json"),new{status="failed",exception=e.ToString(),wallSeconds=wall.Elapsed.TotalSeconds});
-            if(s!=null)try{File.WriteAllBytes(Path.Combine(output,"failure.hcity"),CityCoreSave.Write(s));}catch(Exception save){File.WriteAllText(Path.Combine(output,"failure-save-error.txt"),save.ToString());}
+            Write(Path.Combine(output,"failure.json"),new{status="failed",exception=e.ToString(),wallSeconds=wall.Elapsed.TotalSeconds,constructionPhase=construction.Phase});
+            if(s!=null||construction.Latest!=null)try{File.WriteAllBytes(Path.Combine(output,"failure.hcity"),CityCoreSave.Write(s??construction.Latest));}catch(Exception save){File.WriteAllText(Path.Combine(output,"failure-save-error.txt"),save.ToString());}
             Console.Error.WriteLine(e);return 1;
         }
         finally{CityCoreProfile.Enabled=false;}

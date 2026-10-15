@@ -34,10 +34,10 @@ namespace HarborCity
             {var a=Node(e.a);var b=Node(e.b);var q=CityRoads.Lerp(a,b,CityRoads.Projection(p,a,b));if(CityRoads.Length(q,p)<distance){best=q;distance=CityRoads.Length(q,p);}}
             return best;
         }
-        public CityUtilityNetwork Plan(RoadNode from,RoadNode to,out string error)
+        public CityUtilityNetwork Plan(RoadNode from,RoadNode to,out string error,float buildExtent=CityModel.BuildHalfSize)
         {
             error="";
-            if(from==null || to==null || !Position(from) || !Position(to) || CityRoads.Length(from,to)<.4f) {error="连接点无效、超界或线段过短";return null;}
+            if(from==null || to==null || !Position(from,buildExtent) || !Position(to,buildExtent) || CityRoads.Length(from,to)<.4f) {error="连接点无效、超界或线段过短";return null;}
             if(nodes.Count>=19990 || edges.Count>=39990 || nextNode>int.MaxValue-100 || nextEdge>int.MaxValue-100) {error="管线数量已达上限";return null;}
             var copy=Copy();var crosses=new List<RoadNode>{from,to};float dx=to.x-from.x,dz=to.z-from.z,length=CityRoads.Length(from,to);
             foreach(var e in edges)
@@ -63,7 +63,7 @@ namespace HarborCity
             crosses=crosses.OrderBy(p=>CityRoads.Projection(p,from,to)).ToList();var unique=new List<RoadNode>();
             foreach(var p in crosses)if(unique.Count==0 || CityRoads.Length(p,unique[unique.Count-1])>.08f)unique.Add(p);
             for(int i=1;i<unique.Count;i++)copy.AddEdge(copy.AddNode(unique[i-1]),copy.AddNode(unique[i]));
-            copy.revision++;if(!copy.Valid()){error="管线几何校验失败";return null;}return copy;
+            copy.revision++;if(!copy.Valid(buildExtent)){error="管线几何校验失败";return null;}return copy;
         }
         public bool Remove(int id)
         {int count=edges.RemoveAll(e=>e.id==id);if(count==0)return false;revision++;return true;}
@@ -84,17 +84,17 @@ namespace HarborCity
             }
             return components;
         }
-        public bool Valid()
+        public bool Valid(float buildExtent=CityModel.BuildHalfSize)
         {
             if(nodes==null || edges==null || nodes.Count>20000 || edges.Count>40000 || nextNode<1 || nextEdge<1) return false;
             var ids=new HashSet<int>();var lines=new HashSet<int>();var pairs=new HashSet<string>();
-            foreach(var n in nodes)if(n==null || n.id<1 || n.id>=nextNode || !ids.Add(n.id) || !Position(n) || n.y!=0)return false;
+            foreach(var n in nodes)if(n==null || n.id<1 || n.id>=nextNode || !ids.Add(n.id) || !Position(n,buildExtent) || n.y!=0)return false;
             lookup=null;
             foreach(var e in edges)if(e==null || e.id<1 || e.id>=nextEdge || !lines.Add(e.id) || !ids.Contains(e.a) || !ids.Contains(e.b) || e.a==e.b
                 || !pairs.Add(Math.Min(e.a,e.b)+":"+Math.Max(e.a,e.b)) || CityRoads.Length(Node(e.a),Node(e.b))<.08f)return false;
             return true;
         }
-        static bool Position(RoadNode p)=>!float.IsNaN(p.x) && !float.IsNaN(p.z) && !float.IsInfinity(p.x) && !float.IsInfinity(p.z)
-            && Math.Abs(p.x)<=CityModel.BuildHalfSize && Math.Abs(p.z)<=CityModel.BuildHalfSize;
+        static bool Position(RoadNode p,float buildExtent)=>!float.IsNaN(p.x) && !float.IsNaN(p.z) && !float.IsInfinity(p.x) && !float.IsInfinity(p.z)
+            && Math.Abs(p.x)<=buildExtent && Math.Abs(p.z)<=buildExtent;
     }
 }

@@ -52,7 +52,7 @@ namespace HarborCity
             Trace("road.created","道路施工成功",new CityLogDetail {amount=plan.cost,count=plan.stroke,origin=plan.start.id,destination=plan.end.id,x=plan.end.x,z=plan.end.z}); return true;
         }
 
-        public bool Valid()=>map!=null && map.Valid() && day>0 && ValidDevelopment() && utilities!=null && utilities.Valid() && waste!=null && waste.Valid() && ValidBuildings() && roads!=null && roads.Valid() && zoning!=null && zoning.Valid() && CityTraffic.Valid(this) && ValidHouseholds() && ValidFire() && ValidPolice() && ValidBuildingGrowth() && ValidResidentAging() && ValidDeathcare() && ValidLoans();
+        public bool Valid()=>map!=null && map.Valid() && day>0 && ValidDevelopment() && utilities!=null && utilities.Valid(map.buildHalfSize) && waste!=null && waste.Valid() && ValidBuildings() && roads!=null && roads.Valid() && zoning!=null && zoning.Valid(map.buildHalfSize) && CityTraffic.Valid(this) && ValidHouseholds() && ValidFire() && ValidPolice() && ValidBuildingGrowth() && ValidResidentAging() && ValidDeathcare() && ValidLoans();
         public static CityModel Create()
         {
             var city=new CityModel();city.development.enabled=true;city.roads.nodes.Add(new RoadNode{id=CityRoads.Entrance,x=-52.5f,z=1.5f});

@@ -7,7 +7,7 @@ namespace HarborCity
     [Serializable] public sealed class CityUtilityState
     {
         public CityUtilityNetwork electricity=new CityUtilityNetwork(),water=new CityUtilityNetwork();
-        public bool Valid()=>electricity!=null && water!=null && electricity.Valid() && water.Valid();
+        public bool Valid(float buildExtent=CityModel.BuildHalfSize)=>electricity!=null && water!=null && electricity.Valid(buildExtent) && water.Valid(buildExtent);
     }
     public sealed class BuildingSupply
     {
@@ -55,7 +55,7 @@ namespace HarborCity
         public CityUtilityNetwork UtilityNetwork(UtilityKind kind)=>kind==UtilityKind.Electricity?utilities.electricity:utilities.water;
         public bool BuildUtility(UtilityKind kind,RoadNode from,RoadNode to,out string error)
         {
-            var plan=UtilityNetwork(kind).Plan(from,to,out error);if(plan==null)return false;
+            var plan=UtilityNetwork(kind).Plan(from,to,out error,map.buildHalfSize);if(plan==null)return false;
             int cost=(int)Math.Ceiling(CityRoads.Length(from,to)*(kind==UtilityKind.Electricity?15:10));
             if(money<cost){error="资金不足";return false;}
             if(kind==UtilityKind.Electricity)utilities.electricity=plan;else utilities.water=plan;

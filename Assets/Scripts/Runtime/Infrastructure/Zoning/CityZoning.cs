@@ -23,12 +23,12 @@ namespace HarborCity
         public List<ZoneDesignation> designations=new List<ZoneDesignation>();
         [NonSerialized] public int revision;
         public static bool ZoneUse(LandUse use)=>use==LandUse.Residential || use==LandUse.Commercial || use==LandUse.Industrial;
-        public bool Valid()
+        public bool Valid(float buildExtent=CityModel.BuildHalfSize)
         {
             if(mapId!=MapId || cellSize!=CellSize || nextId<1 || designations==null || designations.Count>400000) return false;
             var ids=new HashSet<int>();var keys=new HashSet<string>();
             return designations.All(d=>d!=null && d.id>0 && d.id<nextId && ids.Add(d.id)
-                && ZoneUse(d.use) && ZoneCell.ValidKey(d.key) && keys.Add(d.key));
+                && ZoneUse(d.use) && ZoneCell.ValidKey(d.key,buildExtent) && keys.Add(d.key));
         }
     }
     public sealed class ZoneCell
@@ -43,13 +43,13 @@ namespace HarborCity
             var values=new[]{Math.Round(b.x,3),Math.Round(b.z,3),Math.Round(b.yaw,3)%360};
             return string.Join(":",values.Select(v=>(v==0?0:v).ToString("F3",CultureInfo.InvariantCulture)));
         }
-        public static bool ValidKey(string key)
+        public static bool ValidKey(string key,float buildExtent=CityModel.BuildHalfSize)
         {
             if(key==null || key.Length>64) return false;
             var parts=key.Split(':');if(parts.Length!=3) return false;
             var values=new float[3];
             for(int i=0;i<3;i++) if(!float.TryParse(parts[i],NumberStyles.Float,CultureInfo.InvariantCulture,out values[i]) || float.IsNaN(values[i]) || float.IsInfinity(values[i])) return false;
-            return Math.Abs(values[0])<=CityModel.BuildHalfSize && Math.Abs(values[1])<=CityModel.BuildHalfSize && values[2]>=0 && values[2]<360;
+            return Math.Abs(values[0])<=buildExtent && Math.Abs(values[1])<=buildExtent && values[2]>=0 && values[2]<360;
         }
     }
     public sealed partial class CityModel

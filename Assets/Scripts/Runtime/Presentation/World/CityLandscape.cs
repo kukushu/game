@@ -59,10 +59,10 @@ namespace HarborCity
 
         float? builtFlat;
         public void Build()=>BuildSurface(null);
-        public void BuildDiagnosticFlat(float height)=>BuildSurface(height);
-        void BuildSurface(float? flat)
+        public void BuildDiagnosticFlat(float height,float terrainExtent=CityMapState.TerrainHalfSize)=>BuildSurface(height,terrainExtent);
+        void BuildSurface(float? flat,float extent=HalfSize)
         {
-            if(builtFlat==flat && terrain!=null && terrain.terrainData.heightmapResolution==Resolution && terrain.terrainData.size.x==HalfSize*2)return;
+            if(builtFlat==flat && terrain!=null && terrain.terrainData.heightmapResolution==Resolution && terrain.terrainData.size.x==extent*2)return;
             builtFlat=flat;
             // A live script reload can retain the old Terrain. Replace it before rebuilding city meshes.
             if(terrain!=null)
@@ -109,12 +109,12 @@ namespace HarborCity
                 // y = 64
                 // z = 240
                 //
-                // HalfSize = 240
+                // extent = 240
                 // HeightRange = 64
                 size = new Vector3(
-                    HalfSize * 2,
+                    extent * 2,
                     HeightRange,
-                    HalfSize * 2
+                    extent * 2
                 ),
 
                 // 地表纹理权重图分辨率
@@ -149,15 +149,15 @@ namespace HarborCity
                     // x = 512     -> wx = +120
                     float wx =
                         x / (float)(Resolution - 1)
-                        * HalfSize * 2
-                        - HalfSize;
+                        * extent * 2
+                        - extent;
 
 
                     // z 方向同理
                     float wz =
                         z / (float)(Resolution - 1)
-                        * HalfSize * 2
-                        - HalfSize;
+                        * extent * 2
+                        - extent;
 
 
                     // Elevation(wx, wz)
@@ -478,9 +478,9 @@ namespace HarborCity
             // -240 ~ +240
             obj.transform.localPosition =
                 new Vector3(
-                    -HalfSize,
+                    -extent,
                     BaseHeight,
-                    -HalfSize
+                    -extent
                 );
 
 

@@ -1,0 +1,9 @@
+{
+  "terminatedBy": null,
+  "timeoutSeconds": 180,
+  "wallSeconds": 76.081187,
+  "note": "OS sampled ~1s; initial and raw simulation files remain outside user saves",
+  "maxMemoryGB": 8.0,
+  "peakWorkingSetBytes": 1055916032,
+  "rate": 3
+}

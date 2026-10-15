@@ -1,0 +1,1 @@
+{"schema":1,"population":10000,"seed":7919,"gridRadius":3,"streetSpacing":48,"days":10,"warmupDays":2,"name":"mature-grid-10000-probe","mode":"mature","layout":"grid","openingPublicGrant":10000000,"householdsPerResidentialBuilding":8}

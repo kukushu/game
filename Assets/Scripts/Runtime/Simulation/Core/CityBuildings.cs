@@ -290,6 +290,6 @@ namespace HarborCity
             }
             buildingLookup=null;return true;
         }
-        static bool FinitePosition(float value) => !float.IsNaN(value) && !float.IsInfinity(value) && Math.Abs(value)<=BuildHalfSize;
+        bool FinitePosition(float value) => !float.IsNaN(value) && !float.IsInfinity(value) && Math.Abs(value)<=map.buildHalfSize;
     }
 }

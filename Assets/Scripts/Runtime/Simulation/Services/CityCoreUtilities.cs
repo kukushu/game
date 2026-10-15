@@ -26,7 +26,7 @@ namespace HarborCity
         }
         public int Build(UtilityKind kind,Point from,Point to)
         {
-            entities.StructuralBoundary();var network=city.UtilityNetwork(kind);var candidate=network.Plan(new RoadNode{x=(float)from.x,z=(float)from.z},new RoadNode{x=(float)to.x,z=(float)to.z},out string error);if(candidate==null)throw new InvalidOperationException(error);
+            entities.StructuralBoundary();var network=city.UtilityNetwork(kind);var candidate=network.Plan(new RoadNode{x=(float)from.x,z=(float)from.z},new RoadNode{x=(float)to.x,z=(float)to.z},out string error,city.map.buildHalfSize);if(candidate==null)throw new InvalidOperationException(error);
             double quoted=Math.Ceiling(Point.Distance(new Point(from.x,0,from.z),new Point(to.x,0,to.z))*(kind==UtilityKind.Electricity?15:10));if(quoted>int.MaxValue)throw new InvalidOperationException("管线建设资金不足");
             int paid=(int)quoted;Finance.CheckSpend(paid);
             if(kind==UtilityKind.Electricity)city.utilities.electricity=candidate;else city.utilities.water=candidate;Finance.SpendApproved(paid);Refresh();return paid;

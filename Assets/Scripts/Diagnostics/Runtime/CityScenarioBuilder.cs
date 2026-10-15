@@ -12,27 +12,31 @@ namespace HarborCity
         public string name="mature-grid-500",mode="mature",layout="grid";
         public int openingPublicGrant=1000000;
         public int householdsPerResidentialBuilding=1;
+        public float diagnosticBuildHalfSize=CityMapState.BuildHalfSize;
         public void Validate()
         {
-            if(householdsPerResidentialBuilding<1||householdsPerResidentialBuilding>8||schema!=1||population<3||population>10000||gridRadius<2||gridRadius>3||streetSpacing<24||streetSpacing*gridRadius>144||days<1||days>120||warmupDays<0||warmupDays>=days||openingPublicGrant<0||layout!="grid"||mode!="mature")throw new ArgumentException("Unsupported scenario settings; mature grid and residential density must fit the current build area");
+            if(householdsPerResidentialBuilding<1||householdsPerResidentialBuilding>8||schema!=1||population<3||population>100000||gridRadius<2||gridRadius>24||streetSpacing<24||streetSpacing*gridRadius>diagnosticBuildHalfSize-24||!CityMapState.DiagnosticFlat(diagnosticBuildHalfSize).Valid()||days<1||days>120||warmupDays<0||warmupDays>=days||openingPublicGrant<0||layout!="grid"||mode!="mature")throw new ArgumentException("Unsupported scenario settings; mature grid and residential density must fit the current build area");
         }
     }
     public static class CityScenarioBuilder
     {
-        public static CityCoreIndustrySession Create(CityScenarioSettings settings,GameDesignData design=null)
+        public static CityCoreIndustrySession Create(CityScenarioSettings settings,GameDesignData design=null,Action<string,CityCoreIndustrySession> progress=null)
         {
-            settings.Validate();var s=CityCoreIndustrySession.CreateEmpty(design);var city=s.City;var zoning=s.Simulation.Growth.Zoning;zoning.SetSurface(Flat);
+            settings.Validate();var s=CityCoreIndustrySession.CreateEmpty(design);var city=s.City;if(settings.diagnosticBuildHalfSize!=CityMapState.BuildHalfSize)city.map=CityMapState.DiagnosticFlat(settings.diagnosticBuildHalfSize);var zoning=s.Simulation.Growth.Zoning;zoning.SetSurface(Flat);
+            progress?.Invoke("empty",s);
             if(settings.openingPublicGrant>0)s.Simulation.Finance.GrantDevelopmentFunds(settings.openingPublicGrant);
-            int r=settings.gridRadius,spacing=settings.streetSpacing;
-            for(int z=-r;z<=r;z++)for(int x=-r;x<r;x++)Road(s,x*spacing,z*spacing,(x+1)*spacing,z*spacing);
-            for(int x=-r;x<=r;x++)for(int z=-r;z<r;z++)Road(s,x*spacing,z*spacing,x*spacing,(z+1)*spacing);
-            Road(s,-167,0,-r*spacing,0);s.Simulation.Trade.ConnectBorder(new Point(-167,2,0));
+            int r=settings.gridRadius,spacing=settings.streetSpacing;int roadsBuilt=0;
+            for(int z=-r;z<=r;z++)for(int x=-r;x<r;x++){Road(s,x*spacing,z*spacing,(x+1)*spacing,z*spacing);if(++roadsBuilt%25==0)progress?.Invoke("roads",s);}
+            for(int x=-r;x<=r;x++)for(int z=-r;z<r;z++){Road(s,x*spacing,z*spacing,x*spacing,(z+1)*spacing);if(++roadsBuilt%25==0)progress?.Invoke("roads",s);}
+            float border=1-settings.diagnosticBuildHalfSize;Road(s,border,0,-r*spacing,0);s.Simulation.Trade.ConnectBorder(new Point(border,2,0));
+            progress?.Invoke("road-network-complete",s);
             // Connected infrastructure, not all-city supply flags.
             foreach(var kind in new[]{UtilityKind.Electricity,UtilityKind.Water})
             {
                 for(int z=-r;z<=r;z++)Line(s,kind,-r*spacing,z*spacing,r*spacing,z*spacing);
                 for(int x=-r;x<=r;x++)Line(s,kind,x*spacing,-r*spacing,x*spacing,r*spacing);
             }
+            progress?.Invoke("utility-backbones-complete",s);
             int households=(settings.population+2)/3,workers=settings.population-settings.population/3;
             int jobsPerPair=s.Simulation.Design.Employment.SlotsPerLevel*2;
             int pairs=(workers+jobsPerPair-1)/jobsPerPair;
@@ -50,7 +54,8 @@ namespace HarborCity
                     if(!zoning.CanPlace(b)||!zoning.Entrance(b).HasValue)continue;
                     s.Construction.PlaceFacility(use,b.x,b.z,b.yaw,zoning);cursor++;
                     // A water producer needs the physical pipe at its centre.
-                    if(use==LandUse.Water||use==LandUse.Sewage){var access=zoning.Entrance(b).Value;double dx=access.point.x-b.x,dz=access.point.z-b.z,length=Math.Sqrt(dx*dx+dz*dz);Line(s,UtilityKind.Water,b.x,b.z,(float)(access.point.x+dx/length),(float)(access.point.z+dz/length));}return;
+                    if(use==LandUse.Water||use==LandUse.Sewage)ConnectPipe(s,b,zoning.Entrance(b).Value.point);
+                    if(s.Entities.Buildings.Count%25==0)progress?.Invoke("facilities",s);return;
                 }
                 throw new InvalidOperationException("Scenario lacks legal facility frontage: "+use);
             };
@@ -67,7 +72,7 @@ namespace HarborCity
                     if(b is ResidentialBuilding home){home.housingUnits=settings.householdsPerResidentialBuilding;home.askingRent=0;}
                     if(b is IndustrialBuilding f){f.factory.capital=s.Simulation.Design.Production.InitialFactoryCash;f.factory.cash=f.factory.capital;}
                     if(b is CommercialBuilding shop){shop.Account.Capital=s.Simulation.Design.Retail.InitialShopCash;shop.Account.Cash=shop.Account.Capital;}
-                    s.Transport.CheckNewAccess(b.id,access.Value.drivable,access.Value.distance);s.Entities.AddBuilding(b);s.Transport.RegisterAccess(b.id,access.Value.drivable,access.Value.distance);cursor++;return b;
+                    s.Transport.CheckNewAccess(b.id,access.Value.drivable,access.Value.distance);s.Entities.AddBuilding(b);s.Transport.RegisterAccess(b.id,access.Value.drivable,access.Value.distance);cursor++;if(s.Entities.Buildings.Count%25==0)progress?.Invoke("business-and-housing",s);return b;
                 }
                 throw new InvalidOperationException("Scenario lacks legal building frontage; requested population not silently reduced");
             };
@@ -77,12 +82,26 @@ namespace HarborCity
             {
                 if(i%settings.householdsPerResidentialBuilding==0)residence=building(LandUse.Residential);
                 var home=residence;var family=new Household{id=city.society.nextId,home=home.id,unit=i%settings.householdsPerResidentialBuilding,resident=true,savings=700,openingSavings=700,rent=0};s.Entities.AddFamily(family);
-                int count=Math.Min(3,remaining);for(int k=0;k<count;k++){int id=city.society.nextCitizenId;s.Entities.AddResident(family.id,new CityResident{id=id,name="Scenario "+id,age=k==2?10:30,canWork=k<2,skill=2,location=home.id});}remaining-=count;
+                int count=Math.Min(3,remaining);for(int k=0;k<count;k++){int id=city.society.nextCitizenId;s.Entities.AddResident(family.id,new CityResident{id=id,name="Scenario "+id,age=k==2?10:30,canWork=k<2,skill=2,location=home.id});}remaining-=count;if(i%100==0)progress?.Invoke("households",s);
             }
             s.Simulation.Utilities.Invalidate();s.Simulation.Utilities.Refresh();s.Simulation.Population.UpdateStatistics();
             foreach(var b in s.Entities.Buildings)if(!city.Supply(b.id).Complete)throw new InvalidOperationException("Scenario initial supply incomplete at building "+b.id+" "+b.Use+" ("+b.x+","+b.z+") "+city.Supply(b.id).Problem+" power="+city.power+" water="+city.water+" drain="+city.SewageCapacity);
             if(s.Entities.Members.Count!=settings.population||s.Entities.Members.Any(m=>m.Person.atWork||m.Person.tripId!=0))throw new InvalidOperationException("Scenario invented activity or wrong population");
-            s.Validate();return s;
+            progress?.Invoke("validate",s);s.Validate();progress?.Invoke("complete",s);return s;
+        }
+        // Fixture-only pipe planning: reuse the already connected backbone/branch instead
+        // of drawing an overlapping second segment. The normal planner remains authority.
+        static void ConnectPipe(CityCoreIndustrySession s,CityBuilding b,Point access)
+        {
+            var net=s.City.utilities.water;var from=new RoadNode{x=b.x,z=b.z};
+            double dx=access.x-b.x,dz=access.z-b.z,length=Math.Sqrt(dx*dx+dz*dz);
+            var original=new RoadNode{x=(float)(access.x+dx/length),z=(float)(access.z+dz/length)};
+            if(net.Plan(from,original,out _,s.City.map.buildHalfSize)!=null){Line(s,UtilityKind.Water,b.x,b.z,original.x,original.z);return;}
+            RoadNode closest=null;float distance=float.MaxValue;
+            foreach(var edge in net.edges){var a=net.Node(edge.a);var z=net.Node(edge.b);var point=CityRoads.Lerp(a,z,CityRoads.Projection(from,a,z));float d=CityRoads.Length(from,point);if(d<distance){distance=d;closest=point;}}
+            if(closest==null)throw new InvalidOperationException("Scenario has no existing pipe to connect");
+            if(distance<.4f){s.Simulation.Utilities.Invalidate();s.Simulation.Utilities.Refresh();if(s.City.Supply(b.id).Complete)return;throw new InvalidOperationException("Existing pipe near facility does not provide actual complete supply");}
+            Line(s,UtilityKind.Water,b.x,b.z,closest.x,closest.z);
         }
         public static float Flat(float x,float z)=>2;
         static void Road(CityCoreIndustrySession s,float ax,float az,float bx,float bz)
