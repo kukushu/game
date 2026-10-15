@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using System.Globalization;
@@ -59,11 +59,12 @@ public static class CityR1ScaleBenchmark
             var business=session.SnapshotBusiness();if(business.development.enabled)throw new Exception("Shared legacy performance fixture must disable private development");
             var tradeField=typeof(CityCoreBusinessData).GetField("trade");if(tradeField!=null){var data=tradeField.GetValue(business);foreach(string name in new[]{"rawDispatched","rawDelivered","goodsExported"})if((int)data.GetType().GetField(name).GetValue(data)!=0)throw new Exception("Common fixture unexpectedly uses trade");}
             var put=typeof(CityCoreSave).GetMethod("Put",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic);
-            foreach(var field in typeof(CityCoreBusinessData).GetFields().Where(f=>!f.IsNotSerialized&&f.Name!="version"&&f.Name!="utilities"&&f.Name!="trade"&&f.Name!="design"&&f.Name!="consumption"&&f.Name!="retiredFactoryWages"&&f.Name!="treasury"&&f.Name!="loans").OrderBy(f=>f.Name,StringComparer.Ordinal))
+            foreach(var field in typeof(CityCoreBusinessData).GetFields().Where(f=>!f.IsNotSerialized&&f.Name!="version"&&f.Name!="utilities"&&f.Name!="trade"&&f.Name!="design"&&f.Name!="consumption"&&f.Name!="retiredFactoryWages"&&f.Name!="treasury"&&f.Name!="loans"&&f.Name!="waste").OrderBy(f=>f.Name,StringComparer.Ordinal))
             {
                 if(field.Name!="development"){Common(writer,field.FieldType,field.GetValue(business));continue;}
                 writer.Write(true);foreach(var nested in typeof(CityDevelopmentState).GetFields().Where(f=>!f.IsNotSerialized&&f.Name!="nextEmployment").OrderBy(f=>f.Name,StringComparer.Ordinal))Common(writer,nested.FieldType,nested.GetValue(business.development));
             }
+            var wasteField=typeof(CityCoreBusinessData).GetField("waste");if(wasteField!=null){var waste=wasteField.GetValue(business);var totals=waste.GetType().GetField("totals").GetValue(waste);foreach(string key in new[]{"generated","collected","processed","lost","transferred"})if(Convert.ToInt64(totals.GetType().GetField(key).GetValue(totals))!=0)throw new Exception("Disabled common fixture generated waste");if(((System.Collections.ICollection)waste.GetType().GetField("missions").GetValue(waste)).Count!=0)throw new Exception("Disabled common fixture dispatched services");}
             var world=session.Transport;writer.Write(world.Clock);writer.Write(world.Delivered);writer.Write(world.Vehicles.Count);
             foreach(var v in world.Vehicles)
             {

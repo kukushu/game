@@ -14,8 +14,35 @@ public static class RoadCoreChecks
     {
         return HarborCity.CityRoadCoreFixtures.Create(count,congested);
     }
+    static void ServiceTests()
+    {
+        var clock=new SimulationClock();var w=new World(new WorldData{externalBusiness=true},clock,new[]{1,2});
+        int a=w.AddJunction(new Point(0,0,0)),b=w.AddJunction(new Point(60,0,0)),c=w.AddJunction(new Point(60,0,40)),d=w.AddJunction(new Point(0,0,40));
+        int road=w.AddRoad(a,b,new[]{w.JunctionPosition(a),w.JunctionPosition(b)},lanes:2);w.AddRoad(b,c,new[]{w.JunctionPosition(b),w.JunctionPosition(c)},lanes:2);int target=w.AddRoad(c,d,new[]{w.JunctionPosition(c),w.JunctionPosition(d)},lanes:2);w.AddRoad(d,a,new[]{w.JunctionPosition(d),w.JunctionPosition(a)},lanes:2);
+        w.RegisterAccess(1,Network.LaneId(road,false),30);w.RegisterAccess(2,Network.LaneId(target,false),30);
+        Reject(()=>w.PrepareTransport(1,2,1,0,TransportPurpose.Service,0),"Service spawned loaded without domain pickup");Reject(()=>w.PrepareTransport(1,2,0,0,TransportPurpose.Service,10),"Service impersonated citizen");
+        var admission=w.PrepareTransport(1,2,0,0,TransportPurpose.Service,0);Check(admission!=null,"Service routing missing");var v=w.CommitAdmission(admission);Check(w.TryChangeLane(v.id,1),"Service actor could not use existing safe lane change");
+        for(int i=0;i<2000&&w.Arrivals.Count==0;i++){clock.Request(.05);w.MoveStep(clock.Context);clock.Commit(true);}
+        Check(w.Arrivals.Count==1,"Service did not physically reach pickup");var arrival=w.Arrivals[0];Point before=w.Position(v);var physical=v.Position;int oldTask=v.Task.id,id=v.id;
+        var history=new RoadEditHistory(w);history.Execute(()=>w.RemoveRoad(road));byte[] waiting=SaveCodec.Write(w);
+        Check(w.PrepareServiceReturn(arrival,1,3)==null&&Convert.ToBase64String(waiting)==Convert.ToBase64String(SaveCodec.Write(w))&&v.Task.Cargo==0&&Point.Distance(before,w.Position(v))<1e-8,"Unreachable return loaded/lost waste or moved service car");Check(history.Undo(),"Pickup return road restore failed");
+        byte[] unchanged=SaveCodec.Write(w);var continuation=w.PrepareServiceReturn(arrival,1,3);Check(continuation!=null&&Convert.ToBase64String(unchanged)==Convert.ToBase64String(SaveCodec.Write(w)),"Return preparation mutated facts");
+        // A newer movement boundary invalidates a prepared admission even at rest.
+        clock.Request(.05);w.MoveStep(clock.Context);clock.Commit(true);byte[] afterStep=SaveCodec.Write(w);bool stale=false;try{w.CommitContinuation(continuation);}catch(InvalidOperationException){stale=true;}Check(stale&&Convert.ToBase64String(afterStep)==Convert.ToBase64String(SaveCodec.Write(w)),"Stale continuation partially committed");
+        var next=w.PrepareServiceReturn(w.Arrivals[0],1,3);w.CommitContinuation(next);w.RetireCompleted();w.Validate();w.AssertSafety();
+        Check(v.id==id&&ReferenceEquals(physical,v.Position)&&Point.Distance(before,w.Position(v))<1e-9&&v.Task.id!=oldTask&&v.Task.Shipment.kind==HarborCity.CargoKind.Waste&&v.Task.Cargo==3&&w.FindTask(oldTask)==null&&w.FindTaskVehicle(v.Task.id)==v&&w.ActiveCount==1,"Pickup changed physical actor or left duplicate task authority");
+        stale=false;try{w.CheckArrival(arrival);}catch(InvalidOperationException){stale=true;}Check(stale,"Old pickup arrival could be applied twice");
+        var cloneClock=clock.Copy();var clone=SaveCodec.Read(SaveCodec.Write(w),cloneClock,new[]{1,2});
+        for(int i=0;i<2000&&w.ActiveCount>0;i++)
+        {
+            clock.Request(.05);cloneClock.Request(.05);w.MoveStep(clock.Context);clone.MoveStep(cloneClock.Context);clock.Commit(true);cloneClock.Commit(true);
+            foreach(var x in w.Arrivals)w.AcknowledgeArrival(x.id);foreach(var x in clone.Arrivals)clone.AcknowledgeArrival(x.id);w.RetireCompleted();clone.RetireCompleted();w.AssertSafety();clone.AssertSafety();Check(Convert.ToBase64String(SaveCodec.Write(w))==Convert.ToBase64String(SaveCodec.Write(clone)),"Service return save diverged");
+        }
+        Check(w.ActiveCount==0&&w.Delivered==3&&w.Tasks.Count==0,"Service return did not retire exactly once");
+    }
     static void Tests()
     {
+        ServiceTests();
         PositionTests();
         PortTests();
         var w=new World();int a=w.AddJunction(new Point(0,0,0)),b=w.AddJunction(new Point(30,3,0)),c=w.AddJunction(new Point(50,3,20));

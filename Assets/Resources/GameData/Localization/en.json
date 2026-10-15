@@ -27,11 +27,11 @@
     },
     {
       "key": "ui.trade.summary",
-      "text": "Delivered materials {0} · Exported goods {1} · Outside cash {2}"
+      "text": "Delivered materials {0} \u00b7 Exported goods {1} \u00b7 Outside cash {2}"
     },
     {
       "key": "ui.stage.current",
-      "text": "Construction, zoning, utilities, real jobs/trips, materials/goods/consumption and finances are active. Waste, full services and management tools are still being restored."
+      "text": "Construction, zoning, growth, utilities, jobs, commuting, trade, consumption, treasury and real waste collection/treatment are connected. Other services and full management tools are being restored."
     },
     {
       "key": "building.close_wait_transport",
@@ -43,7 +43,7 @@
     },
     {
       "key": "ui.retail.summary",
-      "text": "Consumed {0} items · Retail payments ¥{1}"
+      "text": "Consumed {0} items \u00b7 Retail payments \u00a5{1}"
     },
     {
       "key": "finance.insufficient_funds",
@@ -55,11 +55,11 @@
     },
     {
       "key": "finance.invalid_tax",
-      "text": "Use a 0–29% residential, commercial or industrial tax."
+      "text": "Use a 0\u201329% residential, commercial or industrial tax."
     },
     {
       "key": "finance.invalid_budget",
-      "text": "Electricity and water budgets support 50–150%."
+      "text": "Electricity and water budgets support 50\u2013150%."
     },
     {
       "key": "finance.invalid_loan",
@@ -83,11 +83,11 @@
     },
     {
       "key": "ui.finance.balance",
-      "text": "Treasury ¥{0}"
+      "text": "Treasury \u00a5{0}"
     },
     {
       "key": "ui.finance.summary",
-      "text": "Treasury ¥{0} · Last day: tax +{1} / upkeep −{2} / debt payment −{3} · Debt {4}"
+      "text": "Treasury \u00a5{0} \u00b7 Last day: tax +{1} / upkeep \u2212{2} / debt payment \u2212{3} \u00b7 Debt {4}"
     },
     {
       "key": "ui.finance.assessment_note",
@@ -127,7 +127,7 @@
     },
     {
       "key": "ui.finance.loan_offer",
-      "text": "{0} · Principal ¥{1} / total ¥{2} / {3} game days"
+      "text": "{0} \u00b7 Principal \u00a5{1} / total \u00a5{2} / {3} game days"
     },
     {
       "key": "ui.finance.borrow",
@@ -135,15 +135,15 @@
     },
     {
       "key": "ui.finance.repay",
-      "text": "Repay early ¥{0}"
+      "text": "Repay early \u00a5{0}"
     },
     {
       "key": "ui.finance.grant",
-      "text": "Development test: add ¥100000"
+      "text": "Development test: add \u00a5100000"
     },
     {
       "key": "ui.finance.upkeep_rate",
-      "text": "Current upkeep ¥{0}/day · Accrued ¥{1} (simulation time and actual budget)"
+      "text": "Current upkeep \u00a5{0}/day \u00b7 Accrued \u00a5{1} (simulation time and actual budget)"
     },
     {
       "key": "finance.event.grant",
@@ -168,6 +168,18 @@
     {
       "key": "finance.event.budget",
       "text": "Service budget adjusted"
+    },
+    {
+      "key": "ui.waste.facility",
+      "text": "Waste treatment"
+    },
+    {
+      "key": "ui.waste.summary",
+      "text": "Waste: awaiting {0} \u00b7 in transit {1} \u00b7 stored {2} \u00b7 processed {3} \u00b7 trucks {4}"
+    },
+    {
+      "key": "waste.close_not_empty",
+      "text": "Collect and process the remaining waste before demolition."
     }
   ]
 }

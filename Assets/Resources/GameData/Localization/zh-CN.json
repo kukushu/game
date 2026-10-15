@@ -31,7 +31,7 @@
     },
     {
       "key": "ui.stage.current",
-      "text": "空地建设、分区生长、水电排污、真实就业通勤、原料/商品/消费与财政已接入；垃圾、完整服务和管理工具继续恢复中。"
+      "text": "空地建设、分区生长、水电排污、就业通勤、原料/商品/消费、财政与垃圾收运处理已接入；其余服务和完整管理工具继续恢复中。"
     },
     {
       "key": "building.close_wait_transport",
@@ -168,6 +168,18 @@
     {
       "key": "finance.event.budget",
       "text": "调整服务预算"
+    },
+    {
+      "key": "ui.waste.facility",
+      "text": "垃圾处理场"
+    },
+    {
+      "key": "ui.waste.summary",
+      "text": "垃圾：待收 {0} · 在途 {1} · 场内 {2} · 已处理 {3} · 服务车 {4}"
+    },
+    {
+      "key": "waste.close_not_empty",
+      "text": "建筑仍有垃圾，请先完成收运和处理再拆除。"
     }
   ]
 }

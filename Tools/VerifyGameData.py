@@ -1,4 +1,4 @@
-﻿"""Check authored resources and new localizable keys; no Unity or network needed."""
+"""Check authored resources and new localizable keys; no Unity or network needed."""
 from pathlib import Path
 import json, re, string
 
@@ -31,7 +31,7 @@ asset = (folder / 'Economy/DefaultEconomy.asset').read_text(encoding='utf-8-sig'
 guid = re.search(r'guid: ([0-9a-f]{32})', asset).group(1)
 meta = (root / 'Assets/Scripts/Runtime/GameData/HarborCityEconomyAsset.cs.meta').read_text(encoding='utf-8-sig')
 assert 'guid: ' + guid in meta
-for filename, classes in [('CityGameDesign.cs', ['EconomyDefinition']), ('CityEmploymentDesign.cs', ['EmploymentDefinition']), ('CityFinanceDesign.cs', ['FinanceDefinition']), ('CityRetailDesign.cs', ['RetailDefinition', 'ProductionDefinition'])]:
+for filename, classes in [('CityGameDesign.cs', ['EconomyDefinition']), ('CityEmploymentDesign.cs', ['EmploymentDefinition']), ('CityFinanceDesign.cs', ['FinanceDefinition']), ('CityWasteDesign.cs', ['WasteDefinition']), ('CityRetailDesign.cs', ['RetailDefinition', 'ProductionDefinition'])]:
     source = (root / 'Assets/Scripts/Runtime/GameData' / filename).read_text(encoding='utf-8-sig')
     for cls in classes:
         definition = source.split('public sealed class ' + cls)[1].split('}')[0]
@@ -42,3 +42,5 @@ print(f'PASS typed asset binding; {len(languages)} languages, {len(languages["zh
 for offer in range(3):
     assert 'ui.finance.loan.'+str(offer) in languages['zh-CN']
 assert re.findall(r'^\s+- id: (\d+)', asset, re.M)==['0','1','2'], 'Authored loan IDs missing/duplicated'
+
+assert not re.search(r"[^ \n] +(?:economy|employment|retail|production|finance|waste):", asset), "Merged YAML section header"

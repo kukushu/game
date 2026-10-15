@@ -48,6 +48,18 @@ namespace HarborCity
             }
             session.Simulation.Utilities.Refresh();session.Validate();return session;
         }
+        public static int PlaceWasteFacility(CityCoreIndustrySession session)
+        {
+            var zoning=session.Simulation.Growth.Zoning;
+            foreach(var cell in zoning.Cells().Where(c=>c.available).OrderBy(c=>Math.Abs(c.pose.x+95)+Math.Abs(c.pose.z)).ToArray())
+            {
+                var lot=CityModel.NewBuilding(LandUse.Landfill);lot.x=cell.pose.x;lot.z=cell.pose.z;lot.yaw=cell.pose.yaw;
+                if(!zoning.CanPlace(lot)||!zoning.Entrance(lot).HasValue)continue;
+                int id=session.Construction.PlaceFacility(LandUse.Landfill,lot.x,lot.z,lot.yaw,zoning);session.Simulation.Utilities.Refresh();
+                if(!session.City.Supply(id).Complete)throw new InvalidOperationException("Waste fixture facility lacks actual utilities");return id;
+            }
+            throw new InvalidOperationException("No legal waste facility lot in fixture");
+        }
         static void Build(CityCoreIndustrySession s,Func<float,float,float> height,float ax,float az,float bx,float bz,int lanes)
         {
             var points=new Point[9];for(int i=0;i<points.Length;i++){float t=i/8f,x=ax+(bx-ax)*t,z=az+(bz-az)*t;points[i]=new Point(x,height(x,z),z);}

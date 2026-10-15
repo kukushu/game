@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 #if UNITY_5_3_OR_NEWER
 using Unity.Profiling;
@@ -7,7 +7,7 @@ using Unity.Profiling;
 namespace HarborCity.RoadCore
 {
     public enum VehicleStatus { Active,Delivered,Stranded }
-    public enum TransportPurpose { Freight,Work,Home,Shopping }
+    public enum TransportPurpose { Freight,Work,Home,Shopping,Service }
     [Serializable] public sealed class Depot
     {
         public int id {get;internal set;} public int junction {get;internal set;}
@@ -272,6 +272,33 @@ namespace HarborCity.RoadCore
         =>DispatchTask(origin,destination,amount,price,TransportPurpose.Freight,0);
         public Vehicle DispatchResident(int citizen,int origin,int destination,bool returning=false)
         {if(citizen<=0)throw new ArgumentOutOfRangeException(nameof(citizen));return DispatchTask(origin,destination,0,0,returning?TransportPurpose.Home:TransportPurpose.Work,citizen);}
+        public static bool IsResident(TransportPurpose purpose)=>purpose==TransportPurpose.Work||purpose==TransportPurpose.Home||purpose==TransportPurpose.Shopping;
+        // A service stop changes navigation and the leg task, never physical position.
+        // Only empty outbound service legs can load waste. No generic cargo rewriting.
+        internal ServiceContinuation PrepareServiceReturn(TransportArrival arrival,int destination,int amount)
+        {
+            CheckArrival(arrival);var v=FindVehicle(arrival.id);
+            if(v.Task.purpose!=TransportPurpose.Service||v.Task.Shipment!=null||amount<1)throw new ArgumentException("Invalid service pickup");
+            if(data.nextTask>=int.MaxValue)throw new InvalidOperationException("Task IDs exhausted");
+            var target=GetAccess(destination);if(!EndpointExists(destination)||target==null||!target.valid||(target.use&AccessUse.Freight)==0||Network.Get(v.Current).IsConnection||v.changeTarget!=0)return null;
+            // FromLane may choose the destination curb, but never a different source.
+            var route=AccessRouting.FromLane(Network,v.Current,v.distance,target,true,out double end);if(route==null)return null;
+            var task=new TripTask{id=data.nextTask,origin=arrival.destination,destination=destination,purpose=TransportPurpose.Service,departedAt=arrival.arrivedAt,Shipment=new Shipment{kind=CargoKind.Waste,remaining=amount}};
+            return new ServiceContinuation(this,EditEpoch,v,arrival.taskId,task,new RoutePlan{segments=route,EndDistance=end});
+        }
+        internal void CheckContinuation(ServiceContinuation continuation)
+        {
+            if(continuation==null||continuation.owner!=this||continuation.epoch!=EditEpoch||continuation.vehicle.Task.id!=continuation.previousTask||continuation.task.id!=data.nextTask)throw new InvalidOperationException("Stale service continuation");
+        }
+        internal void CommitContinuation(ServiceContinuation continuation)
+        {
+            CheckContinuation(continuation);var v=continuation.vehicle;var previous=v.Task;
+            // Arrival settlement is synchronous. All route checks preceded the domain
+            // pickup; retirement has no callback or physics movement in this commit.
+            tasksById.Remove(previous.id);vehiclesByTask.Remove(previous.id);previous.state=TripState.Completed; // RetireCompleted compacts once for the whole settlement boundary.
+            v.Task=continuation.task;v.Plan=continuation.plan;v.cursor=0;
+            data.tasks.Add(v.Task);tasksById.Add(v.Task.id,v.Task);vehiclesByTask.Add(v.Task.id,v);data.nextTask++;EditEpoch++;indexDirty=true;
+        }
         internal TransportAdmission PrepareTransport(int origin,int destination,int amount,double price,TransportPurpose purpose,int citizen)
         {
 #if CITY_CORE_ATTRIBUTION
@@ -279,9 +306,9 @@ namespace HarborCity.RoadCore
 #endif
 
             if(data.nextVehicle>=int.MaxValue||data.nextTask>=int.MaxValue)throw new InvalidOperationException("Vehicle IDs exhausted");
-            if(purpose<TransportPurpose.Freight||purpose>TransportPurpose.Shopping||amount<0||purpose==TransportPurpose.Freight&&amount==0||purpose!=TransportPurpose.Freight&&(price!=0||citizen<=0||purpose!=TransportPurpose.Home&&amount!=0)||price<0||double.IsNaN(price)||double.IsInfinity(price))throw new ArgumentOutOfRangeException("Cargo/price");
+            if(purpose<TransportPurpose.Freight||purpose>TransportPurpose.Service||amount<0||purpose==TransportPurpose.Freight&&amount==0||purpose==TransportPurpose.Service&&(citizen!=0||price!=0||amount!=0)||IsResident(purpose)&&(price!=0||citizen<=0||purpose!=TransportPurpose.Home&&amount!=0)||price<0||double.IsNaN(price)||double.IsInfinity(price))throw new ArgumentOutOfRangeException("Cargo/price");
             if(origin==destination||!EndpointExists(origin)||!EndpointExists(destination))return null;
-            RoadAccess source=GetAccess(origin),target=GetAccess(destination);if(source!=null&&target!=null){var use=purpose==TransportPurpose.Freight?AccessUse.Freight:AccessUse.Resident;if(!source.valid||!target.valid||(source.use&use)==0||(target.use&use)==0)return null;}
+            RoadAccess source=GetAccess(origin),target=GetAccess(destination);if(source!=null&&target!=null){var use=IsResident(purpose)?AccessUse.Resident:AccessUse.Freight;if(!source.valid||!target.valid||(source.use&use)==0||(target.use&use)==0)return null;}
             // Freight has exactly one saved source lane/station. Physical source
             // blockage is independent of its destination; reject before path search.
             if(purpose==TransportPurpose.Freight&&FreightSourceBlocked(origin))return null;
@@ -616,11 +643,11 @@ namespace HarborCity.RoadCore
                 if(access.valid){var lane=Network.Get(access.lane);if(lane.IsConnection||access.distance<lane.StartDistance||access.distance>lane.EndDistance||double.IsNaN(access.distance)||double.IsInfinity(access.distance))throw new ArgumentException("Invalid lane access");}
                 else if(access.lane!=0||access.distance!=0)throw new ArgumentException("Invalid access retains dangling road reference");
             }
-            var taskIds=new HashSet<int>();int maxTask=0;foreach(var task in data.tasks){if(task.id<=0||!taskIds.Add(task.id)||task.state<TripState.InTransit||task.state>TripState.Completed||task.purpose==TransportPurpose.Freight&&task.Shipment==null||task.purpose!=TransportPurpose.Freight&&task.purpose!=TransportPurpose.Home&&task.Shipment!=null||task.purpose==TransportPurpose.Home&&task.Shipment!=null&&(task.Shipment.kind!=CargoKind.Goods||task.Price!=0))throw new ArgumentException("Invalid task identity/payload/state");if(task.Shipment!=null&&(task.Shipment.kind<CargoKind.Goods||task.Shipment.kind>CargoKind.Waste||!data.externalBusiness&&task.Shipment.kind!=CargoKind.Goods))throw new ArgumentException("Invalid shipment kind");maxTask=Math.Max(maxTask,task.id);}
+            var taskIds=new HashSet<int>();int maxTask=0;foreach(var task in data.tasks){if(task.id<=0||!taskIds.Add(task.id)||task.state<TripState.InTransit||task.state>TripState.Completed||task.purpose==TransportPurpose.Freight&&task.Shipment==null||task.purpose!=TransportPurpose.Freight&&task.purpose!=TransportPurpose.Home&&task.purpose!=TransportPurpose.Service&&task.Shipment!=null||task.purpose==TransportPurpose.Service&&task.Shipment!=null&&(task.Shipment.kind!=CargoKind.Waste||task.Price!=0)||task.purpose==TransportPurpose.Home&&task.Shipment!=null&&(task.Shipment.kind!=CargoKind.Goods||task.Price!=0))throw new ArgumentException("Invalid task identity/payload/state");if(task.Shipment!=null&&(task.Shipment.kind<CargoKind.Goods||task.Shipment.kind>CargoKind.Waste||!data.externalBusiness&&task.Shipment.kind!=CargoKind.Goods))throw new ArgumentException("Invalid shipment kind");maxTask=Math.Max(maxTask,task.id);}
             var assigned=new HashSet<int>();var ids=new HashSet<int>();foreach(var v in data.vehicles)
             {
                 if(v.Task==null||!assigned.Add(v.Task.id)||!tasksById.TryGetValue(v.Task.id,out var stored)||!ReferenceEquals(stored,v.Task)||(v.Task.state==TripState.Completed)!=(v.status==VehicleStatus.Delivered))throw new ArgumentException("Invalid task assignment/lifecycle");
-                if(v.Task.purpose<TransportPurpose.Freight||v.Task.purpose>TransportPurpose.Shopping||v.Task.purpose==TransportPurpose.Freight&&v.Task.citizenId!=0||v.Task.purpose!=TransportPurpose.Freight&&(v.Task.citizenId<=0||v.Task.purpose!=TransportPurpose.Home&&v.Task.Cargo!=0||v.Task.Price!=0)||v.Task.departedAt<0||v.Task.departedAt>Clock||double.IsNaN(v.Task.departedAt)||double.IsInfinity(v.Task.departedAt))throw new ArgumentException("Invalid transport purpose/owner/time");
+                if(v.Task.purpose<TransportPurpose.Freight||v.Task.purpose>TransportPurpose.Service||v.Task.purpose==TransportPurpose.Freight&&v.Task.citizenId!=0||v.Task.purpose==TransportPurpose.Service&&(v.Task.citizenId!=0||v.Task.Price!=0)||IsResident(v.Task.purpose)&&(v.Task.citizenId<=0||v.Task.purpose!=TransportPurpose.Home&&v.Task.Cargo!=0||v.Task.Price!=0)||v.Task.departedAt<0||v.Task.departedAt>Clock||double.IsNaN(v.Task.departedAt)||double.IsInfinity(v.Task.departedAt))throw new ArgumentException("Invalid transport purpose/owner/time");
                 if(!data.externalBusiness&&v.Task.purpose!=TransportPurpose.Freight)throw new ArgumentException("Synthetic depots cannot own residents");
                 if(v.id<=0||!ids.Add(v.id)||v.status!=VehicleStatus.Stranded&&(!EndpointExists(v.Task.origin)||!EndpointExists(v.Task.destination))||v.Task.Cargo<0||v.Task.Price<0||double.IsNaN(v.Task.Price)||double.IsInfinity(v.Task.Price)||v.status<VehicleStatus.Active||v.status>VehicleStatus.Stranded)throw new ArgumentException("Invalid vehicle");maxV=Math.Max(maxV,v.id);
                 if(v.Plan.segments==null||v.Plan.segments.Count==0||v.cursor<0||v.cursor>=v.Plan.segments.Count||v.distance<0||double.IsNaN(v.distance)||double.IsInfinity(v.distance))throw new ArgumentException("Invalid vehicle cursor");

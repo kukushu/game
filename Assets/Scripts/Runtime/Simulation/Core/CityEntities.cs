@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using HarborCity.RoadCore;
 
@@ -71,7 +71,7 @@ namespace HarborCity
         public void AddBuilding(CityBuilding b)
         {StructuralBoundary();if(b==null||b.id<city.nextBuildingId||b.id>=int.MaxValue||buildings.ContainsKey(b.id))throw new ArgumentException("Building ID must be new and monotonic");city.buildings.Add(b);buildings.Add(b.id,b);IndexType(b);city.nextBuildingId=b.id+1;transport.SetEndpointAvailable(b.id,Available(b));Revision++;BuildingRevision++;city.SyncJobs();}
         public void ReplaceBuilding(CityBuilding b)
-        {StructuralBoundary();var old=b==null?null:Building(b.id);if(old==null||b.Use!=old.Use||old is IndustrialBuilding)throw new ArgumentException("Replacement preserves identity/use; factory accounts need explicit retirement, not replacement");if(old is CommercialBuilding shop&&b is CommercialBuilding next){if(shop.Stock!=next.Stock||shop.wholesaleCosts!=next.wholesaleCosts)throw new ArgumentException("Replacement cannot discard inventory/finance");next.Account=shop.Account;}int at=city.buildings.IndexOf(old);city.buildings[at]=b;buildings[b.id]=b;UnindexType(old);IndexType(b);transport.SetEndpointAvailable(b.id,Available(b));Revision++;BuildingRevision++;city.SyncJobs();transport.RefreshEndpoints();}
+        {StructuralBoundary();var old=b==null?null:Building(b.id);if(old==null||b.Use!=old.Use||old is IndustrialBuilding)throw new ArgumentException("Replacement preserves identity/use; factory accounts need explicit retirement, not replacement");if(old.garbage!=b.garbage||old is LandfillBuilding landfill&&(!(b is LandfillBuilding nextPlant)||landfill.stored!=nextPlant.stored||landfill.processingRemainder!=nextPlant.processingRemainder))throw new ArgumentException("Replacement cannot discard waste inventory");if(old is CommercialBuilding shop&&b is CommercialBuilding next){if(shop.Stock!=next.Stock||shop.wholesaleCosts!=next.wholesaleCosts)throw new ArgumentException("Replacement cannot discard inventory/finance");next.Account=shop.Account;}int at=city.buildings.IndexOf(old);city.buildings[at]=b;buildings[b.id]=b;UnindexType(old);IndexType(b);transport.SetEndpointAvailable(b.id,Available(b));Revision++;BuildingRevision++;city.SyncJobs();transport.RefreshEndpoints();}
         internal CityBuilding RemoveBuilding(int id)
         {StructuralBoundary();var b=Building(id);if(b==null)throw new ArgumentException("Missing building");city.buildings.Remove(b);buildings.Remove(id);UnindexType(b);retired.Add(b);transport.SetEndpointAvailable(id,false);Revision++;BuildingRevision++;city.SyncJobs();transport.RefreshEndpoints();return b;}
         public void SetAvailability(int id,bool abandoned,bool burned)

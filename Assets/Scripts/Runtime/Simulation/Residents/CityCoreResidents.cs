@@ -69,7 +69,7 @@ namespace HarborCity
         }
         public void Validate()
         {
-            var owned=new HashSet<int>();foreach(var task in transport.Vehicles)if(task.Task.purpose!=TransportPurpose.Freight){var member=entities.Member(task.Task.citizenId);if(member==null||!owned.Add(task.Task.citizenId)||member.Person.tripId!=task.Task.id||member.Person.atWork||member.Person.location!=-1)throw new InvalidOperationException("Resident/vehicle ownership mismatch");}
+            var owned=new HashSet<int>();foreach(var task in transport.Vehicles)if(World.IsResident(task.Task.purpose)){var member=entities.Member(task.Task.citizenId);if(member==null||!owned.Add(task.Task.citizenId)||member.Person.tripId!=task.Task.id||member.Person.atWork||member.Person.location!=-1)throw new InvalidOperationException("Resident/vehicle ownership mismatch");}
             foreach(var member in entities.Members){var p=member.Person;if(p.tripId!=0){var task=transport.FindTaskVehicle(p.tripId);if(task==null||task.Task.citizenId!=p.id)throw new InvalidOperationException("Dangling resident trip");}}
         }
     }

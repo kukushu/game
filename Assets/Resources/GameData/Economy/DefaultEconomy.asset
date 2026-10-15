@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: DefaultEconomy
   m_EditorClassIdentifier:
   definition:
-    schemaVersion: 3
-    contentVersion: 3
+    schemaVersion: 4
+    contentVersion: 4
     profile: core-economy
     economy:
       rawUnitPrice: 8
@@ -47,7 +47,8 @@ MonoBehaviour:
     production:
       initialFactoryCash: 1200
       unitProcessingCost: 2
-      labourMinutesPerItem: 60    finance:
+      labourMinutesPerItem: 60
+    finance:
       startingTreasury: 65000
       defaultResidentialTax: 9
       defaultCommercialTax: 9
@@ -60,6 +61,7 @@ MonoBehaviour:
       electricityMaintenance: 90
       waterMaintenance: 65
       sewageMaintenance: 65
+      wasteMaintenance: 160
       roadMaintenancePerLaneUnit: 0.030476190476190476
       utilityMaintenancePerUnit: 0.03333333333333333
       loans:
@@ -75,3 +77,12 @@ MonoBehaviour:
         principal: 200000
         interestPercent: 15
         days: 3640
+    waste:
+      constructionPrice: 4000
+      capacity: 3200
+      trucks: 3
+      payload: 8
+      processingPerDay: 256
+      dispatchIntervalSeconds: 2
+      residentialPerPersonDay: 1
+      workMinutesPerUnit: 240

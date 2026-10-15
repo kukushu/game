@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using HarborCity;
 using HarborCity.RoadCore;
@@ -9,6 +9,7 @@ public static class CityCoreIndustryChecks
     static void Check(bool condition,string message){checks++;if(!condition)throw new Exception(message);}
     public static void Main(string[] args)
     {
+        WasteTests();
         FiscalTests();
         ZoningCacheTests();
         ReachabilityTests();
@@ -53,6 +54,47 @@ public static class CityCoreIndustryChecks
         interrupted.Transport.AddRoad(1,2,new[]{interrupted.Transport.JunctionPosition(1),new Point(-18,0,0),interrupted.Transport.JunctionPosition(2)},lanes:2);interrupted.Advance(.05);Check(car.status==VehicleStatus.Active&&car.Task.citizenId==rider.id&&rider.tripId==car.Task.id&&Point.Distance(before,interrupted.Transport.Position(car))<.7,"Repaired road did not recover same citizen/car without jump");interrupted.Advance(6);interrupted.Validate();Check(rider.atWork&&interrupted.City.Factory(1).produced>0,"Recovered commute did not resume actual labour");
     }
     static CommercialBuilding AsShop(this CityBuilding b)=>(CommercialBuilding)b;
+    static void WasteTests()
+    {
+        var definition=new GameDesignData();definition.waste.payload=3;definition.waste.trucks=2;
+        var s=CityGrowingGridFixture.Create(design:definition);int plantId=CityGrowingGridFixture.PlaceWasteFacility(s);
+        var plant=(LandfillBuilding)s.Entities.Building(plantId);Check(s.Simulation.Waste.Generated==0&&s.Transport.Tasks.All(t=>t.purpose!=TransportPurpose.Service),"Waste appeared without actual activity");
+        int outbound=0,returning=0,transitions=0;bool edited=false,savedOut=false,savedReturn=false,paused=false;
+        var positions=new System.Collections.Generic.Dictionary<int,Point>();
+        for(int i=0;i<16000;i++)
+        {
+            foreach(var v in s.Transport.Vehicles)if(v.Task.purpose==TransportPurpose.Service)positions[v.id]=s.Transport.Position(v);
+            s.Advance(.05);
+            foreach(var v in s.Transport.Vehicles.Where(v=>v.Task.purpose==TransportPurpose.Service).ToArray())
+            {
+                if(v.Task.Shipment==null){outbound++;if(!savedOut){var clone=CityCoreSave.Read(CityCoreSave.Write(s));clone.Simulation.Growth.Zoning.SetSurface((x,z)=>2);for(int k=0;k<40;k++){clone.Advance(.05);s.Advance(.05);}Check(CityCoreSave.Write(s).SequenceEqual(CityCoreSave.Write(clone)),"Empty service outbound save diverged");savedOut=true;break;}}
+                else
+                {
+                    returning++;Check(v.Task.Shipment.kind==CargoKind.Waste&&v.Task.Cargo<=3&&v.Task.citizenId==0,"Service payload or citizen authority wrong");
+                    if(positions.TryGetValue(v.id,out Point previous))Check(Point.Distance(previous,s.Transport.Position(v))<=1,"Pickup teleported vehicle to another curb");
+                    if(!savedReturn)
+                    {
+                        int id=v.id,task=v.Task.id;var before=s.Transport.Position(v);int road=s.Transport.Network.Get(v.Current).RoadId;
+                        var history=new RoadEditHistory(s.Transport);history.Execute(()=>s.Transport.RemoveRoad(road));Check(v.status==VehicleStatus.Stranded&&v.Task.id==task&&Point.Distance(before,s.Transport.Position(v))<1e-8,"Demolition lost service cargo/location/task");
+                        var blocked=CityCoreSave.Read(CityCoreSave.Write(s));blocked.Simulation.Growth.Zoning.SetSurface((x,z)=>2);blocked.Advance(.05);blocked.Validate();Check(blocked.Transport.FindVehicle(id).Task.Cargo==v.Task.Cargo,"Stranded service save lost waste");
+                        Check(history.Undo(),"Service road restore failed");s.Advance(.05);Check(v.status==VehicleStatus.Active&&Point.Distance(before,s.Transport.Position(v))<=1,"Restored service car jumped");edited=true;
+                        var clone=CityCoreSave.Read(CityCoreSave.Write(s));clone.Simulation.Growth.Zoning.SetSurface((x,z)=>2);for(int k=0;k<80;k++){clone.Advance(.05);s.Advance(.05);Check(CityCoreSave.Write(s).SequenceEqual(CityCoreSave.Write(clone)),"Loaded waste return continuation diverged");}savedReturn=true;transitions++;break;
+                    }
+                }
+            }
+            if(!paused&&s.Simulation.Waste.Stored>0)
+            {
+                var stopped=CityCoreSave.Read(CityCoreSave.Write(s));stopped.Simulation.Growth.Zoning.SetSurface((x,z)=>2);var source=stopped.Entities.Buildings.First(b=>b.Use==LandUse.Power);stopped.Entities.SetAvailability(source.id,true,false);stopped.Simulation.Utilities.Refresh();Check(!stopped.City.Supply(plantId).Complete,"Power failure fixture still supplies processor");long processed=stopped.Simulation.Waste.Processed;stopped.Advance(2);stopped.Validate();Check(stopped.Simulation.Waste.Processed==processed&&stopped.Simulation.Waste.BalanceError==0,"Unpowered treatment destroyed waste");paused=true;
+            }
+            if(i%20==0){s.Validate();Check(s.Simulation.Waste.BalanceError==0,"Generated/collected/processed waste not conserved");}
+        }
+        Check(s.City.population>0&&s.City.trade.rawDelivered>0&&s.City.consumption.ConsumedGoods>0&&s.Simulation.Waste.Generated>0&&s.Simulation.Waste.Collected>0&&s.Simulation.Waste.Processed>0&&outbound>0&&returning>0&&savedOut&&savedReturn&&paused&&edited&&transitions>0,"Multi-day city did not complete real waste pickup/return/processing alongside economy");
+        var state=s.Simulation.Waste.Snapshot();state.totals.generated=0;Check(s.Simulation.Waste.Generated>0,"Waste snapshot leaked mutable facts");
+        // Empty plant cannot bank disposal credit; no inventory may be destroyed by closing.
+        bool refused=false;var target=s.Entities.Buildings.FirstOrDefault(b=>b.garbage>0);if(target!=null){var bytes=CityCoreSave.Write(s);try{s.CloseBuilding(target.id);}catch(CityRuleException e){refused=e.Key=="waste.close_not_empty";}Check(refused&&bytes.SequenceEqual(CityCoreSave.Write(s)),"Closing dirty building lost waste or partially changed state");}
+        var loaded=CityCoreSave.Read(CityCoreSave.Write(s));loaded.Simulation.Growth.Zoning.SetSurface((x,z)=>2);Check(loaded.Simulation.Design.Waste.Payload==3,"Saved waste rules not frozen");
+        Console.WriteLine("WASTE generated="+s.Simulation.Waste.Generated+" collected="+s.Simulation.Waste.Collected+" processed="+s.Simulation.Waste.Processed+" waiting="+s.Simulation.Waste.Waiting+" active="+s.Simulation.Waste.Vehicles);
+    }
     static void FiscalTests()
     {
         var prorated=CityGrowingGridFixture.Create();int fullRate=prorated.Simulation.Finance.QuoteMaintenance();for(int i=0;i<1200;i++)prorated.Advance(.05);var mid=CityCoreSave.Read(CityCoreSave.Write(prorated));mid.Simulation.Growth.Zoning.SetSurface((x,z)=>2);prorated.Simulation.Utilities.SetBudget(CityServiceKind.Water,50);mid.Simulation.Utilities.SetBudget(CityServiceKind.Water,50);int halfRate=prorated.Simulation.Finance.QuoteMaintenance();for(int i=0;i<1200;i++){prorated.Advance(.05);mid.Advance(.05);}Check(prorated.Simulation.Finance.LastMaintenance==(fullRate+halfRate)/2&&CityCoreSave.Write(prorated).SequenceEqual(CityCoreSave.Write(mid)),"Maintenance ignored actual operating time/budget or lost saved accrual");

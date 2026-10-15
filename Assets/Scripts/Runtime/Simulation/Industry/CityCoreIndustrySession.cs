@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using HarborCity.RoadCore;
@@ -7,12 +7,13 @@ namespace HarborCity
 {
     [Serializable] public sealed class CityCoreBusinessData
     {
-        public int version=7,money,day,nextBuilding;
+        public int version=8,money,day,nextBuilding;
         public CityUtilityState utilities;
         public CityTradeData trade;
         public GameDesignData design;
         public ConsumptionData consumption;
         public TreasuryData treasury;
+        public WasteServiceData waste;
         public CoreLoanData loans;
         public CityMapState map;
         public CityZoningState zoning;
@@ -68,15 +69,15 @@ namespace HarborCity
         public CitySimulation Simulation {get;}
         public CityEntities Entities {get;}
         public CityCoreConstruction Construction {get;}
-        public CityCoreIndustrySession(CityModel city,double calendarOffset=50,WorldData transport=null,SimulationClockData clock=null,long nextDispatchTick=0,IEnumerable<CityBuilding> retired=null,bool commuteEnabled=true,int payrollDay=-1,GameDesignData design=null,TreasuryData treasury=null)
+        public CityCoreIndustrySession(CityModel city,double calendarOffset=50,WorldData transport=null,SimulationClockData clock=null,long nextDispatchTick=0,IEnumerable<CityBuilding> retired=null,bool commuteEnabled=true,int payrollDay=-1,GameDesignData design=null,TreasuryData treasury=null,WasteServiceData waste=null)
         {
             var rules=new CityGameDesign(design??new GameDesignData());City=city;var timeline=new SimulationClock(clock);
             Business=new CityCoreIndustryBusiness(city);Transport=new World(transport??new WorldData{externalBusiness=true},timeline,city.buildings.Where(b=>!b.abandoned&&!b.burned).Select(b=>b.id).Concat(city.trade.connections.Where(c=>c.active).Select(c=>c.id)));Entities=new CityEntities(city,Transport,rules.Employment,rules.Production,retired);
             double absolute=calendarOffset+timeline.Seconds;City.day=1+(int)Math.Floor(absolute/City.society.settings.secondsPerDay);City.society.dayElapsed=(float)(absolute%City.society.settings.secondsPerDay);
             Residents=new CityCoreResidents(city,Transport,Entities,commuteEnabled,calendarOffset);Business.Residents=Residents;
-            Simulation=new CitySimulation(city,Transport,timeline,Entities,Residents,Business,calendarOffset,nextDispatchTick,rules,payrollDay,treasury);
+            Simulation=new CitySimulation(city,Transport,timeline,Entities,Residents,Business,calendarOffset,nextDispatchTick,rules,payrollDay,treasury,waste);
             Entities.Simulation=Simulation;
-            Business.Economy=Simulation.Design.Economy;Business.Trade=Simulation.Trade;Construction=new CityCoreConstruction(city,Entities,Transport,Simulation.Finance);
+            Business.Economy=Simulation.Design.Economy;Business.Trade=Simulation.Trade;Construction=new CityCoreConstruction(city,Entities,Transport,Simulation.Finance,Simulation.Design.Waste);
         }
         public int Advance(double seconds)=>Simulation.Advance(seconds);
         public static CityCoreIndustrySession CreateEmpty(GameDesignData design=null)
@@ -87,6 +88,7 @@ namespace HarborCity
         {
             Entities.StructuralBoundary();
             var building=City.GetBuilding(id);if(building==null)throw new ArgumentException("Missing business building");
+            if(building.garbage>0||building is LandfillBuilding dump&&dump.stored>0)throw new CityRuleException("waste.close_not_empty");
             if(building is ResidentialBuilding&&City.society.families.Any(h=>h.resident&&h.home==id))throw new InvalidOperationException("Occupied housing requires an explicit relocation policy; no residents were removed");
             // Closing a business with outstanding trips or people on site is a
             // deliberate deferred operation, not teleportation/cargo cancellation.
@@ -94,12 +96,12 @@ namespace HarborCity
             foreach(var member in Entities.Members)if(member.Person.location==id)throw new CityRuleException("building.close_wait_residents");
             Entities.RemoveBuilding(id);
         }
-        public CityCoreBusinessData SnapshotBusiness()=>CityCoreSave.CopyBusiness(new CityCoreBusinessData{treasury=Simulation.Finance.Snapshot(),loans=new CoreLoanData{nextId=City.loans.nextId,contracts=City.loans.contracts},consumption=City.consumption.Snapshot(),design=Simulation.Design.Snapshot(),trade=City.trade.Snapshot(),utilities=City.utilities,map=City.map,zoning=City.zoning,development=City.development,money=City.money,day=City.day,nextBuilding=City.nextBuildingId,calendarOffset=Simulation.CalendarOffset,clock=Simulation.ClockSnapshot,nextDispatchTick=Simulation.Logistics.NextDispatchTick,commuteEnabled=Residents.Enabled,payrollDay=Simulation.Payroll.PaidDay,society=City.society,buildings=City.buildings.Select(BuildingSaveData.FromBuilding).ToList(),retiredBuildings=Entities.RetiredBuildings.Select(BuildingSaveData.FromBuilding).ToList(),residualIndustry=City.residualIndustry});
+        public CityCoreBusinessData SnapshotBusiness()=>CityCoreSave.CopyBusiness(new CityCoreBusinessData{waste=Simulation.Waste.Snapshot(),treasury=Simulation.Finance.Snapshot(),loans=new CoreLoanData{nextId=City.loans.nextId,contracts=City.loans.contracts},consumption=City.consumption.Snapshot(),design=Simulation.Design.Snapshot(),trade=City.trade.Snapshot(),utilities=City.utilities,map=City.map,zoning=City.zoning,development=City.development,money=City.money,day=City.day,nextBuilding=City.nextBuildingId,calendarOffset=Simulation.CalendarOffset,clock=Simulation.ClockSnapshot,nextDispatchTick=Simulation.Logistics.NextDispatchTick,commuteEnabled=Residents.Enabled,payrollDay=Simulation.Payroll.PaidDay,society=City.society,buildings=City.buildings.Select(BuildingSaveData.FromBuilding).ToList(),retiredBuildings=Entities.RetiredBuildings.Select(BuildingSaveData.FromBuilding).ToList(),residualIndustry=City.residualIndustry});
         public void Validate()
         {
             if(City.utilities==null||!City.utilities.Valid()||float.IsNaN(City.development.nextEmployment)||float.IsInfinity(City.development.nextEmployment)||City.development.nextEmployment<0)throw new InvalidOperationException("Invalid utilities/population schedule");
             if(City.map==null||!City.map.Valid()||City.zoning==null||!City.zoning.Valid()||City.development==null)throw new InvalidOperationException("Invalid map/zoning/development facts");
-            Simulation.AssertSaveBoundary();Simulation.Finance.Validate();Simulation.Trade.Validate();Simulation.Consumption.Validate();Entities.Validate();Transport.Validate();Transport.AssertSafety();Residents.Validate();if(!City.ValidIndustry())throw new InvalidOperationException("Industrial financial/labour invariants failed");
+            Simulation.AssertSaveBoundary();Simulation.Finance.Validate();Simulation.Waste.Validate();Simulation.Trade.Validate();Simulation.Consumption.Validate();Entities.Validate();Transport.Validate();Transport.AssertSafety();Residents.Validate();if(!City.ValidIndustry())throw new InvalidOperationException("Industrial financial/labour invariants failed");
             foreach(var shop in City.buildings.OfType<CommercialBuilding>())if(shop.Stock<0||shop.Stock>32||shop.wholesaleCosts<0)throw new InvalidOperationException("Commercial inventory invalid");
             foreach(var factory in Entities.RetiredBuildings.OfType<IndustrialBuilding>())if(Math.Abs(factory.factory.CashError)>1e-6)throw new InvalidOperationException("Retired account mismatch");
         }

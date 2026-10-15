@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 namespace HarborCity
 {
@@ -12,7 +12,7 @@ namespace HarborCity
         public int startingTreasury=65000;
         public int defaultResidentialTax=9,defaultCommercialTax=9,defaultIndustrialTax=9,defaultElectricityBudget=100,defaultWaterBudget=100;
         public int residentialAssessmentPerPerson=18,commercialAssessmentPerWorker=160,industrialAssessmentPerWorker=180;
-        public int electricityMaintenance=90,waterMaintenance=65,sewageMaintenance=65;
+        public int electricityMaintenance=90,waterMaintenance=65,sewageMaintenance=65,wasteMaintenance=160;
         public double roadMaintenancePerLaneUnit=.32/1.5/7,utilityMaintenancePerUnit=1.0/30;
         public LoanDefinition[] loans=LoanDefinition.Defaults();
     }
@@ -32,12 +32,12 @@ namespace HarborCity
         public double RoadRate=>d.roadMaintenancePerLaneUnit;public double UtilityRate=>d.utilityMaintenancePerUnit;
         internal FinanceRules(FinanceDefinition data)
         {
-            if(data==null||data.startingTreasury<0||new[]{data.defaultResidentialTax,data.defaultCommercialTax,data.defaultIndustrialTax}.Any(n=>n<0||n>29)||new[]{data.defaultElectricityBudget,data.defaultWaterBudget}.Any(n=>n<50||n>150)||new[]{data.residentialAssessmentPerPerson,data.commercialAssessmentPerWorker,data.industrialAssessmentPerWorker,data.electricityMaintenance,data.waterMaintenance,data.sewageMaintenance}.Any(n=>n<0||n>1000000)||!ValidRate(data.roadMaintenancePerLaneUnit)||!ValidRate(data.utilityMaintenancePerUnit)||data.loans==null||data.loans.Length!=3)throw new ArgumentException("Invalid fiscal design");
+            if(data==null||data.startingTreasury<0||new[]{data.defaultResidentialTax,data.defaultCommercialTax,data.defaultIndustrialTax}.Any(n=>n<0||n>29)||new[]{data.defaultElectricityBudget,data.defaultWaterBudget}.Any(n=>n<50||n>150)||new[]{data.residentialAssessmentPerPerson,data.commercialAssessmentPerWorker,data.industrialAssessmentPerWorker,data.electricityMaintenance,data.waterMaintenance,data.sewageMaintenance,data.wasteMaintenance}.Any(n=>n<0||n>1000000)||!ValidRate(data.roadMaintenancePerLaneUnit)||!ValidRate(data.utilityMaintenancePerUnit)||data.loans==null||data.loans.Length!=3)throw new ArgumentException("Invalid fiscal design");
             loans=data.loans.Select(x=>new LoanTerms(x)).OrderBy(x=>x.Id).ToArray();if(loans.Where((x,i)=>x.Id!=i).Any())throw new ArgumentException("Loan quote IDs must be 0,1,2");Loans=Array.AsReadOnly(loans);
-            d=new FinanceDefinition{startingTreasury=data.startingTreasury,defaultResidentialTax=data.defaultResidentialTax,defaultCommercialTax=data.defaultCommercialTax,defaultIndustrialTax=data.defaultIndustrialTax,defaultElectricityBudget=data.defaultElectricityBudget,defaultWaterBudget=data.defaultWaterBudget,residentialAssessmentPerPerson=data.residentialAssessmentPerPerson,commercialAssessmentPerWorker=data.commercialAssessmentPerWorker,industrialAssessmentPerWorker=data.industrialAssessmentPerWorker,electricityMaintenance=data.electricityMaintenance,waterMaintenance=data.waterMaintenance,sewageMaintenance=data.sewageMaintenance,roadMaintenancePerLaneUnit=data.roadMaintenancePerLaneUnit,utilityMaintenancePerUnit=data.utilityMaintenancePerUnit,loans=loans.Select(x=>x.Snapshot()).ToArray()};
+            d=new FinanceDefinition{startingTreasury=data.startingTreasury,defaultResidentialTax=data.defaultResidentialTax,defaultCommercialTax=data.defaultCommercialTax,defaultIndustrialTax=data.defaultIndustrialTax,defaultElectricityBudget=data.defaultElectricityBudget,defaultWaterBudget=data.defaultWaterBudget,residentialAssessmentPerPerson=data.residentialAssessmentPerPerson,commercialAssessmentPerWorker=data.commercialAssessmentPerWorker,industrialAssessmentPerWorker=data.industrialAssessmentPerWorker,electricityMaintenance=data.electricityMaintenance,waterMaintenance=data.waterMaintenance,sewageMaintenance=data.sewageMaintenance,wasteMaintenance=data.wasteMaintenance,roadMaintenancePerLaneUnit=data.roadMaintenancePerLaneUnit,utilityMaintenancePerUnit=data.utilityMaintenancePerUnit,loans=loans.Select(x=>x.Snapshot()).ToArray()};
         }
         static bool ValidRate(double x)=>!double.IsNaN(x)&&!double.IsInfinity(x)&&x>=0&&x<=1000000;
-        public int FacilityMaintenance(LandUse use)=>use==LandUse.Power?d.electricityMaintenance:use==LandUse.Water?d.waterMaintenance:use==LandUse.Sewage?d.sewageMaintenance:0;
-        internal FinanceDefinition Snapshot()=>new FinanceDefinition{startingTreasury=d.startingTreasury,defaultResidentialTax=d.defaultResidentialTax,defaultCommercialTax=d.defaultCommercialTax,defaultIndustrialTax=d.defaultIndustrialTax,defaultElectricityBudget=d.defaultElectricityBudget,defaultWaterBudget=d.defaultWaterBudget,residentialAssessmentPerPerson=d.residentialAssessmentPerPerson,commercialAssessmentPerWorker=d.commercialAssessmentPerWorker,industrialAssessmentPerWorker=d.industrialAssessmentPerWorker,electricityMaintenance=d.electricityMaintenance,waterMaintenance=d.waterMaintenance,sewageMaintenance=d.sewageMaintenance,roadMaintenancePerLaneUnit=RoadRate,utilityMaintenancePerUnit=UtilityRate,loans=loans.Select(x=>x.Snapshot()).ToArray()};
+        public int FacilityMaintenance(LandUse use)=>use==LandUse.Power?d.electricityMaintenance:use==LandUse.Water?d.waterMaintenance:use==LandUse.Sewage?d.sewageMaintenance:use==LandUse.Landfill?d.wasteMaintenance:0;
+        internal FinanceDefinition Snapshot()=>new FinanceDefinition{startingTreasury=d.startingTreasury,defaultResidentialTax=d.defaultResidentialTax,defaultCommercialTax=d.defaultCommercialTax,defaultIndustrialTax=d.defaultIndustrialTax,defaultElectricityBudget=d.defaultElectricityBudget,defaultWaterBudget=d.defaultWaterBudget,residentialAssessmentPerPerson=d.residentialAssessmentPerPerson,commercialAssessmentPerWorker=d.commercialAssessmentPerWorker,industrialAssessmentPerWorker=d.industrialAssessmentPerWorker,electricityMaintenance=d.electricityMaintenance,waterMaintenance=d.waterMaintenance,sewageMaintenance=d.sewageMaintenance,wasteMaintenance=d.wasteMaintenance,roadMaintenancePerLaneUnit=RoadRate,utilityMaintenancePerUnit=UtilityRate,loans=loans.Select(x=>x.Snapshot()).ToArray()};
     }
 }

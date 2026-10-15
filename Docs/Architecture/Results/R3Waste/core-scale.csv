@@ -1,0 +1,7 @@
+scenario,active,steps,mean_ms,p95_ms,p99_ms,allocated_bytes_per_step,simulated_seconds,wall_seconds
+spaced-twenty-corridors,1000,300,0.38776,0.41460,0.53400,1408.2,15,0.11654
+queued-three-approach-merge,1000,300,0.36537,0.38730,0.43440,384.1,15,0.10964
+spaced-twenty-corridors,3000,300,1.21476,1.33390,1.43150,1408.1,15,0.36447
+queued-three-approach-merge,3000,300,1.13522,1.19570,1.27740,384.1,15,0.34060
+spaced-twenty-corridors,10000,300,4.30573,4.52660,4.71990,2272.2,15,1.29178
+queued-three-approach-merge,10000,300,4.16456,4.38710,4.53300,384.1,15,1.24942
