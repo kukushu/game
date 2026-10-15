@@ -1,5 +1,8 @@
 # 开发约定
 
+- 自动化城市测试第一批：Tools/RunCityScenario.ps1 / CityScenarioBuilder使用正常CitySimulation，模式B成熟城500人/167户/282建筑/85道路，30日72000步。固定seed与实际GameData，计时前同一初始保存冷恢复；正常/采样独立运行，日常Validate及在途2400步三方完整状态对照。报告raw在Temp/CityScenarios，轻量证据Docs/Benchmarks/2026-10-15-CityScenarios，命令/口径见Docs/Architecture/CityScenarioTesting.md。守恒通过≠经营健康：垃圾积压、冷寻路/分区尖峰已发现。3000/10000居民、模式A自然成长、此平地城Unity窗口/鼠标及动态施工仍未验证，旧独立车辆基准不可替代。未知GC暂停/WorkingSet/FPS不得填0，不覆盖历史结果或用户存档。后续按本任务分阶段推进，不据此恢复无关功能重构。
+
+
 ## 长期工程原则（2026-10-15 开发经验沉淀）
 
 判断标准：让变化发生在应该发生的地方，让复杂性来自城市世界，而不是混乱的代码组织。以下适用于后续每批开发；是持续执行的约束，不代表当前工程已经全面达标。历史里程碑描述当时状态，当前状态以较新记录和实际源码为准。

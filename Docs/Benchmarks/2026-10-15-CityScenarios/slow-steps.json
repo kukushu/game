@@ -1,0 +1,762 @@
+[
+  {
+    "tick": 1,
+    "ms": 2351.1001,
+    "allocated": 868763992,
+    "phase": "warmup",
+    "parts": [
+      {
+        "name": "Step",
+        "ms": 2350.5915,
+        "calls": 1,
+        "bytes": 868763992
+      },
+      {
+        "name": "Residents",
+        "ms": 16.8177,
+        "calls": 1,
+        "bytes": 7002016
+      },
+      {
+        "name": "Job",
+        "ms": 0.2628,
+        "calls": 2504,
+        "bytes": 0
+      },
+      {
+        "name": "Production",
+        "ms": 0.8178,
+        "calls": 1,
+        "bytes": 584
+      },
+      {
+        "name": "Logistics",
+        "ms": 0.0031,
+        "calls": 1,
+        "bytes": 48
+      },
+      {
+        "name": "Dispatch",
+        "ms": 6.3257,
+        "calls": 1,
+        "bytes": 47536
+      },
+      {
+        "name": "RouteLookup",
+        "ms": 1900.0729,
+        "calls": 8628,
+        "bytes": 689434504
+      },
+      {
+        "name": "RouteSearch",
+        "ms": 1868.3663,
+        "calls": 33781,
+        "bytes": 686796840
+      },
+      {
+        "name": "Admission",
+        "ms": 2.9649,
+        "calls": 1,
+        "bytes": 46944
+      },
+      {
+        "name": "Occupancy",
+        "ms": 0.1325,
+        "calls": 1,
+        "bytes": 0
+      },
+      {
+        "name": "Movement",
+        "ms": 0.7955,
+        "calls": 1,
+        "bytes": 224
+      },
+      {
+        "name": "Settlement",
+        "ms": 0.3696,
+        "calls": 1,
+        "bytes": 192
+      },
+      {
+        "name": "Growth",
+        "ms": 414.9086,
+        "calls": 1,
+        "bytes": 174785032
+      },
+      {
+        "name": "Utilities",
+        "ms": 0.0021,
+        "calls": 1,
+        "bytes": 0
+      },
+      {
+        "name": "Population",
+        "ms": 1900.4673,
+        "calls": 1,
+        "bytes": 686926712
+      },
+      {
+        "name": "Consumption",
+        "ms": 0.4364,
+        "calls": 1,
+        "bytes": 0
+      },
+      {
+        "name": "Trade",
+        "ms": 7.6691,
+        "calls": 1,
+        "bytes": 48760
+      },
+      {
+        "name": "Payroll",
+        "ms": 0.3032,
+        "calls": 1,
+        "bytes": 0
+      },
+      {
+        "name": "ZoningRebuild",
+        "ms": 408.7749,
+        "calls": 1,
+        "bytes": 174751696
+      },
+      {
+        "name": "GrowthSearch",
+        "ms": 2.4213,
+        "calls": 1,
+        "bytes": 1896
+      },
+      {
+        "name": "Placement",
+        "ms": 50.6298,
+        "calls": 18240,
+        "bytes": 7702104
+      },
+      {
+        "name": "Finance",
+        "ms": 1.318,
+        "calls": 1,
+        "bytes": 200
+      },
+      {
+        "name": "FinanceAccrual",
+        "ms": 0.7954,
+        "calls": 1,
+        "bytes": 120
+      },
+      {
+        "name": "Waste",
+        "ms": 0.1074,
+        "calls": 2,
+        "bytes": 24
+      }
+    ]
+  },
+  {
+    "tick": 36121,
+    "ms": 572.5971,
+    "allocated": 175152456,
+    "phase": "post_restore",
+    "parts": [
+      {
+        "name": "Step",
+        "ms": 572.5968,
+        "calls": 1,
+        "bytes": 175152456
+      },
+      {
+        "name": "Residents",
+        "ms": 0.3417,
+        "calls": 1,
+        "bytes": 1040
+      },
+      {
+        "name": "Job",
+        "ms": 0.1395,
+        "calls": 1554,
+        "bytes": 0
+      },
+      {
+        "name": "Production",
+        "ms": 0.0304,
+        "calls": 1,
+        "bytes": 24
+      },
+      {
+        "name": "Logistics",
+        "ms": 0.5752,
+        "calls": 1,
+        "bytes": 80368
+      },
+      {
+        "name": "Dispatch",
+        "ms": 0.471,
+        "calls": 154,
+        "bytes": 81080
+      },
+      {
+        "name": "RouteLookup",
+        "ms": 1.9763,
+        "calls": 174,
+        "bytes": 284984
+      },
+      {
+        "name": "RouteSearch",
+        "ms": 1.9163,
+        "calls": 12,
+        "bytes": 284152
+      },
+      {
+        "name": "Admission",
+        "ms": 2.3461,
+        "calls": 157,
+        "bytes": 367104
+      },
+      {
+        "name": "Occupancy",
+        "ms": 0.1734,
+        "calls": 2,
+        "bytes": 1976
+      },
+      {
+        "name": "Movement",
+        "ms": 0.0951,
+        "calls": 1,
+        "bytes": 1024
+      },
+      {
+        "name": "Settlement",
+        "ms": 0.0042,
+        "calls": 1,
+        "bytes": 144
+      },
+      {
+        "name": "Growth",
+        "ms": 569.5057,
+        "calls": 1,
+        "bytes": 174783448
+      },
+      {
+        "name": "Utilities",
+        "ms": 0.0009,
+        "calls": 1,
+        "bytes": 0
+      },
+      {
+        "name": "Population",
+        "ms": 0.0344,
+        "calls": 1,
+        "bytes": 144
+      },
+      {
+        "name": "Consumption",
+        "ms": 0.0004,
+        "calls": 1,
+        "bytes": 0
+      },
+      {
+        "name": "Trade",
+        "ms": 0.0127,
+        "calls": 1,
+        "bytes": 96
+      },
+      {
+        "name": "Payroll",
+        "ms": 0,
+        "calls": 1,
+        "bytes": 0
+      },
+      {
+        "name": "ZoningRebuild",
+        "ms": 564.461,
+        "calls": 1,
+        "bytes": 174750184
+      },
+      {
+        "name": "GrowthSearch",
+        "ms": 4.2639,
+        "calls": 1,
+        "bytes": 2720
+      },
+      {
+        "name": "Placement",
+        "ms": 65.8292,
+        "calls": 18240,
+        "bytes": 7701728
+      },
+      {
+        "name": "Finance",
+        "ms": 0.0002,
+        "calls": 1,
+        "bytes": 0
+      },
+      {
+        "name": "FinanceAccrual",
+        "ms": 0.0003,
+        "calls": 1,
+        "bytes": 0
+      },
+      {
+        "name": "Waste",
+        "ms": 1.9914,
+        "calls": 2,
+        "bytes": 286168
+      }
+    ]
+  },
+  {
+    "tick": 37701,
+    "ms": 34.3871,
+    "allocated": 9516272,
+    "phase": "post_restore",
+    "parts": [
+      {
+        "name": "Step",
+        "ms": 34.3867,
+        "calls": 1,
+        "bytes": 9516272
+      },
+      {
+        "name": "Residents",
+        "ms": 0.2961,
+        "calls": 1,
+        "bytes": 2696
+      },
+      {
+        "name": "Job",
+        "ms": 0.0974,
+        "calls": 1174,
+        "bytes": 0
+      },
+      {
+        "name": "Production",
+        "ms": 0.0295,
+        "calls": 1,
+        "bytes": 24
+      },
+      {
+        "name": "Logistics",
+        "ms": 0.1421,
+        "calls": 1,
+        "bytes": 39792
+      },
+      {
+        "name": "Dispatch",
+        "ms": 29.0319,
+        "calls": 229,
+        "bytes": 8772672
+      },
+      {
+        "name": "RouteLookup",
+        "ms": 28.5353,
+        "calls": 229,
+        "bytes": 8664760
+      },
+      {
+        "name": "RouteSearch",
+        "ms": 27.9243,
+        "calls": 568,
+        "bytes": 8617984
+      },
+      {
+        "name": "Admission",
+        "ms": 28.7995,
+        "calls": 229,
+        "bytes": 8771488
+      },
+      {
+        "name": "Occupancy",
+        "ms": 0.1136,
+        "calls": 2,
+        "bytes": 3136
+      },
+      {
+        "name": "Movement",
+        "ms": 0.1404,
+        "calls": 1,
+        "bytes": 3136
+      },
+      {
+        "name": "Settlement",
+        "ms": 0.0029,
+        "calls": 1,
+        "bytes": 144
+      },
+      {
+        "name": "Growth",
+        "ms": 0.0002,
+        "calls": 1,
+        "bytes": 0
+      },
+      {
+        "name": "Utilities",
+        "ms": 0.0002,
+        "calls": 1,
+        "bytes": 0
+      },
+      {
+        "name": "Population",
+        "ms": 0.0001,
+        "calls": 1,
+        "bytes": 0
+      },
+      {
+        "name": "Consumption",
+        "ms": 33.7586,
+        "calls": 1,
+        "bytes": 9469792
+      },
+      {
+        "name": "Trade",
+        "ms": 0.0125,
+        "calls": 1,
+        "bytes": 688
+      },
+      {
+        "name": "Payroll",
+        "ms": 0.0002,
+        "calls": 1,
+        "bytes": 0
+      },
+      {
+        "name": "ZoningRebuild",
+        "ms": 0,
+        "calls": 0,
+        "bytes": 0
+      },
+      {
+        "name": "GrowthSearch",
+        "ms": 0,
+        "calls": 0,
+        "bytes": 0
+      },
+      {
+        "name": "Placement",
+        "ms": 0,
+        "calls": 0,
+        "bytes": 0
+      },
+      {
+        "name": "Finance",
+        "ms": 0.0002,
+        "calls": 1,
+        "bytes": 0
+      },
+      {
+        "name": "FinanceAccrual",
+        "ms": 0.0002,
+        "calls": 1,
+        "bytes": 0
+      },
+      {
+        "name": "Waste",
+        "ms": 0.0015,
+        "calls": 2,
+        "bytes": 0
+      }
+    ]
+  },
+  {
+    "tick": 63881,
+    "ms": 17.1457,
+    "allocated": 3961472,
+    "phase": "steady",
+    "parts": [
+      {
+        "name": "Step",
+        "ms": 17.1453,
+        "calls": 1,
+        "bytes": 3961472
+      },
+      {
+        "name": "Residents",
+        "ms": 0.1682,
+        "calls": 1,
+        "bytes": 24
+      },
+      {
+        "name": "Job",
+        "ms": 0.0635,
+        "calls": 1280,
+        "bytes": 0
+      },
+      {
+        "name": "Production",
+        "ms": 0.0295,
+        "calls": 1,
+        "bytes": 24
+      },
+      {
+        "name": "Logistics",
+        "ms": 0.4726,
+        "calls": 1,
+        "bytes": 101552
+      },
+      {
+        "name": "Dispatch",
+        "ms": 0.3239,
+        "calls": 190,
+        "bytes": 101184
+      },
+      {
+        "name": "RouteLookup",
+        "ms": 16.3564,
+        "calls": 247,
+        "bytes": 3858400
+      },
+      {
+        "name": "RouteSearch",
+        "ms": 16.0847,
+        "calls": 164,
+        "bytes": 3847264
+      },
+      {
+        "name": "Admission",
+        "ms": 16.6455,
+        "calls": 247,
+        "bytes": 3960544
+      },
+      {
+        "name": "Occupancy",
+        "ms": 0.0279,
+        "calls": 2,
+        "bytes": 0
+      },
+      {
+        "name": "Movement",
+        "ms": 0.029,
+        "calls": 1,
+        "bytes": 64
+      },
+      {
+        "name": "Settlement",
+        "ms": 0.0021,
+        "calls": 1,
+        "bytes": 144
+      },
+      {
+        "name": "Growth",
+        "ms": 0.0001,
+        "calls": 1,
+        "bytes": 0
+      },
+      {
+        "name": "Utilities",
+        "ms": 0,
+        "calls": 1,
+        "bytes": 0
+      },
+      {
+        "name": "Population",
+        "ms": 0,
+        "calls": 1,
+        "bytes": 0
+      },
+      {
+        "name": "Consumption",
+        "ms": 0.0001,
+        "calls": 1,
+        "bytes": 0
+      },
+      {
+        "name": "Trade",
+        "ms": 0.0066,
+        "calls": 1,
+        "bytes": 216
+      },
+      {
+        "name": "Payroll",
+        "ms": 0.0003,
+        "calls": 1,
+        "bytes": 0
+      },
+      {
+        "name": "ZoningRebuild",
+        "ms": 0,
+        "calls": 0,
+        "bytes": 0
+      },
+      {
+        "name": "GrowthSearch",
+        "ms": 0,
+        "calls": 0,
+        "bytes": 0
+      },
+      {
+        "name": "Placement",
+        "ms": 0,
+        "calls": 0,
+        "bytes": 0
+      },
+      {
+        "name": "Finance",
+        "ms": 0.0003,
+        "calls": 1,
+        "bytes": 0
+      },
+      {
+        "name": "FinanceAccrual",
+        "ms": 0.0002,
+        "calls": 1,
+        "bytes": 0
+      },
+      {
+        "name": "Waste",
+        "ms": 16.4334,
+        "calls": 2,
+        "bytes": 3859448
+      }
+    ]
+  },
+  {
+    "tick": 36006,
+    "ms": 12.2101,
+    "allocated": 3471696,
+    "phase": "post_restore",
+    "parts": [
+      {
+        "name": "Step",
+        "ms": 12.2098,
+        "calls": 1,
+        "bytes": 3471696
+      },
+      {
+        "name": "Residents",
+        "ms": 0.9928,
+        "calls": 1,
+        "bytes": 239888
+      },
+      {
+        "name": "Job",
+        "ms": 0.0434,
+        "calls": 841,
+        "bytes": 0
+      },
+      {
+        "name": "Production",
+        "ms": 0.0182,
+        "calls": 1,
+        "bytes": 24
+      },
+      {
+        "name": "Logistics",
+        "ms": 11.0185,
+        "calls": 1,
+        "bytes": 3230680
+      },
+      {
+        "name": "Dispatch",
+        "ms": 11.4752,
+        "calls": 154,
+        "bytes": 3403664
+      },
+      {
+        "name": "RouteLookup",
+        "ms": 11.1262,
+        "calls": 171,
+        "bytes": 3322592
+      },
+      {
+        "name": "RouteSearch",
+        "ms": 10.9626,
+        "calls": 160,
+        "bytes": 3286720
+      },
+      {
+        "name": "Admission",
+        "ms": 11.3995,
+        "calls": 154,
+        "bytes": 3403664
+      },
+      {
+        "name": "Occupancy",
+        "ms": 0.1331,
+        "calls": 2,
+        "bytes": 1904
+      },
+      {
+        "name": "Movement",
+        "ms": 0.1686,
+        "calls": 1,
+        "bytes": 960
+      },
+      {
+        "name": "Settlement",
+        "ms": 0.0048,
+        "calls": 1,
+        "bytes": 144
+      },
+      {
+        "name": "Growth",
+        "ms": 0.0002,
+        "calls": 1,
+        "bytes": 0
+      },
+      {
+        "name": "Utilities",
+        "ms": 0.0001,
+        "calls": 1,
+        "bytes": 0
+      },
+      {
+        "name": "Population",
+        "ms": 0.0003,
+        "calls": 1,
+        "bytes": 0
+      },
+      {
+        "name": "Consumption",
+        "ms": 0.0001,
+        "calls": 1,
+        "bytes": 0
+      },
+      {
+        "name": "Trade",
+        "ms": 0.001,
+        "calls": 1,
+        "bytes": 0
+      },
+      {
+        "name": "Payroll",
+        "ms": 0.0002,
+        "calls": 1,
+        "bytes": 0
+      },
+      {
+        "name": "ZoningRebuild",
+        "ms": 0,
+        "calls": 0,
+        "bytes": 0
+      },
+      {
+        "name": "GrowthSearch",
+        "ms": 0,
+        "calls": 0,
+        "bytes": 0
+      },
+      {
+        "name": "Placement",
+        "ms": 0,
+        "calls": 0,
+        "bytes": 0
+      },
+      {
+        "name": "Finance",
+        "ms": 0.0003,
+        "calls": 1,
+        "bytes": 0
+      },
+      {
+        "name": "FinanceAccrual",
+        "ms": 0.0002,
+        "calls": 1,
+        "bytes": 0
+      },
+      {
+        "name": "Waste",
+        "ms": 0.0013,
+        "calls": 2,
+        "bytes": 0
+      }
+    ]
+  }
+]
