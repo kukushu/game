@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using HarborCity.RoadCore;
 namespace HarborCity
@@ -34,6 +34,9 @@ namespace HarborCity
             if(time.Start<city.development.nextGrowth)return;city.development.nextGrowth=(float)(time.Start+6);
             RefreshStatistics();
             city.DevelopmentDemand();var candidates=Zoning.Cells();
+#if CITY_CORE_ATTRIBUTION
+            using var searchObservation=CityCoreProfile.Measure(CityCoreProfile.Part.GrowthSearch);
+#endif
             foreach(var use in new[]{LandUse.Residential,LandUse.Commercial,LandUse.Industrial})
             {
                 int demand=use==LandUse.Residential?city.residentialDemand:use==LandUse.Commercial?city.commercialDemand:city.industrialDemand;if(demand<=0||city.development.projects.Any(p=>p.building.type==use))continue;bool planned=false;

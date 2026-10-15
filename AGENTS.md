@@ -1,6 +1,6 @@
 # 开发约定
 
-- R3-D1 b532733：HarborCityBuildingViews独占稳定ID显示对象，结构变化增量创建/删除；只读CityEntities.Buildings，RenderBuildings不再整城销毁。19建筑20次同步0B、完整模拟保存未变；区域/道路显示与TerrainData适配仍过渡。
+- R3-D1 b532733：HarborCityBuildingViews独占稳定ID显示对象，结构变化增量创建/删除；只读CityEntities.Buildings，RenderBuildings不再整城销毁。19建筑20次同步对象不重建、完整模拟保存未变；原0B计数已证实Unity不支持，须标未知并用Profiler层级测分配；区域/道路显示与TerrainData适配仍过渡。
 - 当前R3-C2 dbfda3d：真实购物/返家携货/消费、有限企业付薪与商业账户已接，城14/核15/设计2。Payroll拥有工资日界；Consumption拥有零售规则和消费累计，交通仅运输/报告到达。购物/携货在途恢复、动态道路与钱货守恒通过。忙碌建筑关闭显式暂拒；财政垃圾信号行人和完整UI仍未恢复。下一批局部改善表现边界与经营，不扩交通Demo。
 
 - 五小时任务持续至2026-10-14 21:35UTC；计划见R3AutonomousPlan.md。R3-C1 23f20eb已接有价原料实车进口、独立进出端点、真实出口与托管守恒；2196检查、原地形Unity多日及1x/3x窗口通过。尚未接消费/有限商业账户/完整财政垃圾。城13/核14。

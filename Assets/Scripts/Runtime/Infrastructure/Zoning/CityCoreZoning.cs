@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using HarborCity.RoadCore;
@@ -22,6 +22,9 @@ namespace HarborCity
         {
             if(!Ready)return view;
             if(roads==world.NetworkGeneration&&buildings==entities.BuildingRevision&&zones==city.zoning.revision&&projects==city.development.revision)return view;
+#if CITY_CORE_ATTRIBUTION
+            using var zoningObservation=CityCoreProfile.Measure(CityCoreProfile.Part.ZoningRebuild);
+#endif
             roads=world.NetworkGeneration;buildings=entities.BuildingRevision;zones=city.zoning.revision;projects=city.development.revision;cells.Clear();byKey.Clear();
             var claimed=new Dictionary<(int,int),List<ZoneCell>>();float size=CityZoningState.CellSize;stamps.Clear();
             foreach(var fact in city.zoning.designations){var values=fact.key.Split(':');var pose=new ResidentialBuilding{x=float.Parse(values[0],System.Globalization.CultureInfo.InvariantCulture),z=float.Parse(values[1],System.Globalization.CultureInfo.InvariantCulture),yaw=float.Parse(values[2],System.Globalization.CultureInfo.InvariantCulture),width=size,depth=size};var key=((int)Math.Floor(pose.x/size),(int)Math.Floor(pose.z/size));if(!stamps.TryGetValue(key,out var bucket))stamps.Add(key,bucket=new List<Stamp>());bucket.Add(new Stamp{fact=fact,pose=pose});}
@@ -69,6 +72,9 @@ namespace HarborCity
         }
         internal bool CanPlace(CityBuilding pose,bool checkBuildings=true,int ignoreProject=-1)
         {
+#if CITY_CORE_ATTRIBUTION
+            using var placementObservation=CityCoreProfile.Measure(CityCoreProfile.Part.Placement);
+#endif
             if(!Ready)return false;float low=float.MaxValue,high=float.MinValue;
             foreach(var corner in new[]{pose.Point(-pose.width/2,-pose.depth/2),pose.Point(pose.width/2,-pose.depth/2),pose.Point(pose.width/2,pose.depth/2),pose.Point(-pose.width/2,pose.depth/2)}){if(Math.Abs(corner.x)>city.map.buildHalfSize||Math.Abs(corner.z)>city.map.buildHalfSize)return false;float y=height(corner.x,corner.z);if(float.IsNaN(y)||float.IsInfinity(y))return false;low=Math.Min(low,y);high=Math.Max(high,y);}
             if(low<=.15f||high-low>1.5f)return false;pose.groundY=height(pose.x,pose.z);

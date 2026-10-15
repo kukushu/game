@@ -49,7 +49,7 @@ namespace HarborCity
             var args=Environment.GetCommandLineArgs();
             if(Array.IndexOf(args,"-harbor-core-validate")>=0||Array.IndexOf(args,"-harbor-core-window")>=0||Array.IndexOf(args,"-harbor-city-core-validate")>=0)Application.runInBackground=true;
             if(Array.IndexOf(args,"-harbor-core-validate")>=0){world=new World();int a=world.AddJunction(new Point(-40,0,-15)),b=world.AddJunction(new Point(0,0,-15)),cnode=world.AddJunction(new Point(35,0,20));world.AddRoad(a,b,new[]{world.JunctionPosition(a),new Point(-20,0,-15),world.JunctionPosition(b)});world.AddRoad(b,cnode,new[]{world.JunctionPosition(b),new Point(15,0,-5),world.JunctionPosition(cnode)});origin=world.AddDepot(a,1000);destination=world.AddDepot(cnode,0);}
-            else if(args.Any(a=>a.StartsWith("-harbor-",StringComparison.Ordinal)&&a!="-harbor-city-construction-validate"&&a!="-harbor-city-trade-validate")){session=CityCoreIndustrySession.Create();world=session.Transport;origin=1;destination=2;RenderBuildings();}
+            else if(args.Any(a=>a.StartsWith("-harbor-",StringComparison.Ordinal)&&a!="-harbor-city-construction-validate"&&a!="-harbor-city-trade-validate"&&a!="-harbor-city-growing-profile")){session=CityCoreIndustrySession.Create();world=session.Transport;origin=1;destination=2;RenderBuildings();}
             else {session=CityCoreIndustrySession.CreateEmpty(HarborCityEconomyAsset.Load());world=session.Transport;var land=new GameObject("City landscape");land.transform.SetParent(transform);landscape=land.AddComponent<CityLandscape>();landscape.Build();session.Simulation.Growth.Zoning.SetSurface(landscape.Height);constructionCamera=new HarborCityConstructionCamera(cameraView,landscape);notice=localization.Get("ui.stage.current");}
             RenderRoads();
             previousTick=System.Diagnostics.Stopwatch.GetTimestamp();
@@ -58,6 +58,9 @@ namespace HarborCity
             flag=Array.IndexOf(args,"-harbor-city-core-validate");if(flag>=0&&flag+1<args.Length)StartCoroutine(ValidateIndustryNative(args[flag+1]));
             flag=Array.IndexOf(args,"-harbor-city-window");if(flag>=0&&flag+1<args.Length){Application.runInBackground=true;StartCoroutine(MeasureIntegratedWindow(args[flag+1]));}
             flag=Array.IndexOf(args,"-harbor-city-construction-validate");if(flag>=0&&flag+1<args.Length){Application.runInBackground=true;StartCoroutine(ValidateConstruction(args[flag+1]));}
+#if CITY_CORE_ATTRIBUTION
+            flag=Array.IndexOf(args,"-harbor-city-growing-profile");if(flag>=0&&flag+1<args.Length){Application.runInBackground=true;StartCoroutine(ProfileGrowingCity(args[flag+1]));}
+#endif
             flag=Array.IndexOf(args,"-harbor-city-trade-validate");if(flag>=0&&flag+1<args.Length){Application.runInBackground=true;StartCoroutine(ValidateTrade(args[flag+1]));}
 #if CITY_CORE_ATTRIBUTION
             flag=Array.IndexOf(args,"-harbor-city-profile");if(flag>=0&&flag+1<args.Length){Application.runInBackground=true;StartCoroutine(ProfileCity(args[flag+1]));}
@@ -291,6 +294,29 @@ namespace HarborCity
             speed=0;session.Validate();File.AppendAllText(Path.Combine(path,"ConstructionResult.txt"),"PASS 1x/3x real original-terrain growing-city window FPS/time/GC sampling; small city only, not complete sustainable economy or large-city proof.\n");
             yield return new WaitForEndOfFrame();ScreenCapture.CaptureScreenshot(Path.Combine(path,"Construction.png"));yield return null;Application.Quit(0);
         }
+#if CITY_CORE_ATTRIBUTION
+        System.Collections.IEnumerator ProfileGrowingCity(string path)
+        {
+            Directory.CreateDirectory(path);speed=0;yield return null;
+            try{session=CityGrowingGridFixture.Create(landscape.Height,HarborCityEconomyAsset.Load());world=session.Transport;session.Advance(18);RenderRoads();RenderBuildings();RenderZones();RenderUtilities();}
+            catch(Exception e){File.WriteAllText(Path.Combine(path,"ProfileResult.txt"),"FAIL setup "+e);Application.Quit(1);yield break;}
+            UnityEngine.Profiling.Profiler.logFile=Path.Combine(path,"growing-city.raw");UnityEngine.Profiling.Profiler.enableBinaryLog=true;UnityEngine.Profiling.Profiler.enabled=true;CityCoreProfile.Enabled=true;
+            using(var output=new StreamWriter(Path.Combine(path,"steps.csv")))
+            {
+                output.WriteLine(CityCoreProfile.Header());
+                for(int batch=0;batch<600;batch++)
+                {
+                    try{for(int i=0;i<20;i++){CityCoreProfile.Reset();int a=GC.CollectionCount(0),b=GC.CollectionCount(1),c=GC.CollectionCount(2);long routes=world.RoutePreparations;session.Advance(.05);output.WriteLine(CityCoreProfile.Row(session.Simulation.Tick,world.ActiveCount,world.RoutePreparations-routes,GC.CollectionCount(0)-a,GC.CollectionCount(1)-b,GC.CollectionCount(2)-c));}}
+                    catch(Exception e){File.WriteAllText(Path.Combine(path,"ProfileResult.txt"),"FAIL step "+e);Application.Quit(1);yield break;}
+                    yield return null;
+                }
+            }
+            CityCoreProfile.Enabled=false;UnityEngine.Profiling.Profiler.enabled=false;UnityEngine.Profiling.Profiler.enableBinaryLog=false;
+            try{session.Validate();RenderBuildings();File.WriteAllText(Path.Combine(path,"ProfileResult.txt"),"PASS original terrain integrated consumer city: "+session.City.population+" people / "+session.City.buildings.Count+" buildings / day "+session.City.day+" / consumed "+session.City.consumption.ConsumedGoods+". 12000 profiled real fixed steps; CSV excludes views/CSV writing, raw includes rendered frames. Instrumented cost is not normal-game FPS.");}
+            catch(Exception e){File.WriteAllText(Path.Combine(path,"ProfileResult.txt"),"FAIL final "+e);Application.Quit(1);yield break;}
+            Application.Quit(0);
+        }
+#endif
         System.Collections.IEnumerator ValidateTrade(string path)
         {
             Directory.CreateDirectory(path);speed=0;yield return null;
@@ -311,7 +337,7 @@ namespace HarborCity
             byte[] sample;
             try
             {
-                session.Validate();clone.Validate();RenderBuildings();int created=buildingViews.Created;var bindings=session.Entities.Buildings.Select(b=>buildingViews.Instance(b.id)).ToArray();var beforeViews=CityCoreSave.Write(session);var viewTimer=new System.Diagnostics.Stopwatch();long viewAllocation=GC.GetAllocatedBytesForCurrentThread();viewTimer.Start();for(int i=0;i<20;i++)RenderBuildings();viewTimer.Stop();viewAllocation=GC.GetAllocatedBytesForCurrentThread()-viewAllocation;File.WriteAllText(Path.Combine(path,"building-views.csv"),"buildings,sync_calls,created_before,created_after,sync_mean_ms,total_allocated_bytes\n"+string.Join(",",buildingViews.Count,20,created,buildingViews.Created,(viewTimer.Elapsed.TotalMilliseconds/20).ToString("F6",System.Globalization.CultureInfo.InvariantCulture),viewAllocation));if(buildingViews.Created!=created||!bindings.SequenceEqual(session.Entities.Buildings.Select(b=>buildingViews.Instance(b.id)))||!beforeViews.SequenceEqual(CityCoreSave.Write(session)))throw new Exception("Read-only building views rebuilt objects or changed simulation");if(Convert.ToBase64String(CityCoreSave.Write(session))!=Convert.ToBase64String(CityCoreSave.Write(clone)))throw new Exception("Native trade continuation mismatch");
+                session.Validate();clone.Validate();RenderBuildings();int created=buildingViews.Created;var bindings=session.Entities.Buildings.Select(b=>buildingViews.Instance(b.id)).ToArray();var beforeViews=CityCoreSave.Write(session);bool viewCounter=CityCoreProfile.AllocationAvailable;var viewTimer=new System.Diagnostics.Stopwatch();long viewAllocation=GC.GetAllocatedBytesForCurrentThread();viewTimer.Start();for(int i=0;i<20;i++)RenderBuildings();viewTimer.Stop();viewAllocation=viewCounter?GC.GetAllocatedBytesForCurrentThread()-viewAllocation:-1;File.WriteAllText(Path.Combine(path,"building-views.csv"),"buildings,sync_calls,created_before,created_after,sync_mean_ms,total_allocated_bytes\n"+string.Join(",",buildingViews.Count,20,created,buildingViews.Created,(viewTimer.Elapsed.TotalMilliseconds/20).ToString("F6",System.Globalization.CultureInfo.InvariantCulture),viewAllocation));if(buildingViews.Created!=created||!bindings.SequenceEqual(session.Entities.Buildings.Select(b=>buildingViews.Instance(b.id)))||!beforeViews.SequenceEqual(CityCoreSave.Write(session)))throw new Exception("Read-only building views rebuilt objects or changed simulation");if(Convert.ToBase64String(CityCoreSave.Write(session))!=Convert.ToBase64String(CityCoreSave.Write(clone)))throw new Exception("Native trade continuation mismatch");
                 int produced=session.Entities.Factories.Sum(f=>f.factory.produced),goods=session.Entities.Factories.Sum(f=>f.Stock)+session.Entities.Shops.Sum(s=>s.Stock)+world.Tasks.Where(t=>t.Shipment?.kind==CargoKind.Goods).Sum(t=>t.Cargo)+session.City.trade.goodsExported+session.City.consumption.ConsumedGoods+session.City.Citizens.Sum(p=>p.carriedGoods);
                 if(session.City.population<=0||session.City.Employed<=0||produced<=0||produced!=goods||session.City.consumption.ConsumedGoods<=0)throw new Exception("Native multi-day labour/import/export conservation failed");
                 sample=CityCoreSave.Write(session);File.WriteAllText(Path.Combine(path,"TradeResult.txt"),"PASS actual original Unity terrain; empty city production construction commands, reachable grid, utilities, private growth, real people/jobs/commuting, paid material trucks and actual wholesale deliveries. Multi-day inventory/market escrow, immutable asset profile and in-flight save continuation. Actual shopping vehicles, paid employer wages, finite commercial accounts, carried home goods and consumption verified. Stable-ID building views retain objects and leave simulation save unchanged. Fiscal/garbage remain pending.\n");

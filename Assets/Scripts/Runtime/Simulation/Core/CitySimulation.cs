@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using HarborCity.RoadCore;
 #if UNITY_5_3_OR_NEWER
 using Unity.Profiling;
@@ -46,17 +46,29 @@ namespace HarborCity
 #if UNITY_5_3_OR_NEWER
                     using(growthSample.Auto())
 #endif
+#if CITY_CORE_ATTRIBUTION
+                    using(CityCoreProfile.Measure(CityCoreProfile.Part.Growth))
+#endif
                     Growth.Step(clock.Context);
 #if UNITY_5_3_OR_NEWER
                     using(utilitySample.Auto())
+#endif
+#if CITY_CORE_ATTRIBUTION
+                    using(CityCoreProfile.Measure(CityCoreProfile.Part.Utilities))
 #endif
                     Utilities.Refresh();
 #if UNITY_5_3_OR_NEWER
                     using(populationSample.Auto())
 #endif
+#if CITY_CORE_ATTRIBUTION
+                    using(CityCoreProfile.Measure(CityCoreProfile.Part.Population))
+#endif
                     if(Growth.Zoning.Ready)Population.Step(clock.Context);IsApplyingBoundary=false;IsStepping=true;Step(clock.Context);clock.Commit(true);SyncCalendar(clock.Seconds);
 #if UNITY_5_3_OR_NEWER
                     using(payrollSample.Auto())
+#endif
+#if CITY_CORE_ATTRIBUTION
+                    using(CityCoreProfile.Measure(CityCoreProfile.Part.Payroll))
 #endif
                     Payroll.SettleDay();steps++;}catch(Exception e){Fault=e;throw;}finally{IsStepping=false;IsApplyingBoundary=false;}}
             }
@@ -77,7 +89,10 @@ namespace HarborCity
 #if UNITY_5_3_OR_NEWER
                 using(consumptionSample.Auto())
 #endif
-                Consumption.Step(time);
+#if CITY_CORE_ATTRIBUTION
+                    using(CityCoreProfile.Measure(CityCoreProfile.Part.Consumption))
+#endif
+                    Consumption.Step(time);
 #if UNITY_5_3_OR_NEWER
                 using(logisticsSample.Auto())
 #endif
@@ -85,7 +100,10 @@ namespace HarborCity
 #if UNITY_5_3_OR_NEWER
                 using(tradeSample.Auto())
 #endif
-                Trade.Step(time);
+#if CITY_CORE_ATTRIBUTION
+                    using(CityCoreProfile.Measure(CityCoreProfile.Part.Trade))
+#endif
+                    Trade.Step(time);
                 transport.MoveStep(time);
 #if UNITY_5_3_OR_NEWER
                 using(settleSample.Auto())

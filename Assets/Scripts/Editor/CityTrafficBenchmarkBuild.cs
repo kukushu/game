@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Globalization;
 using System.IO;
 using System.Text;
@@ -96,7 +96,7 @@ namespace HarborCity
             string directory=Environment.GetEnvironmentVariable("HARBOR_CORE_PROFILE_RESULTS");
             var history=typeof(ProfilerDriver).GetMethod("SetMaxFrameHistoryLength",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.Public|System.Reflection.BindingFlags.NonPublic);
             if(history==null)throw new Exception("Profiler history binding unavailable");history.Invoke(null,new object[]{10000});
-            if(!ProfilerDriver.LoadProfile(Path.Combine(directory,"city.raw"),false))throw new Exception("Core profile load failed");
+            if(!ProfilerDriver.LoadProfile(Path.Combine(directory,Environment.GetEnvironmentVariable("HARBOR_CORE_PROFILE_FILE")??"city.raw"),false))throw new Exception("Core profile load failed");
             var rows=new StringBuilder("profiler_frame,path,total_ms,self_ms,calls,gc_bytes\n");
             var frames=new StringBuilder("profiler_frame,frame_ms\n");int count=0;
             for(int frame=ProfilerDriver.firstFrameIndex;frame<=ProfilerDriver.lastFrameIndex;frame++)

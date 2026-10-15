@@ -1,0 +1,9 @@
+{
+  "steps": 12000,
+  "active_peak": 30,
+  "tick_first": 361,
+  "tick_last": 12360,
+  "allocation_counter_supported": false,
+  "gc_note": "Unity/Boehm generation counters may alias; do not sum gc0+gc1+gc2. Hierarchy GC allocations are inclusive, not additive between parent/child modules.",
+  "scope_note": "Instrumented fixed-step times, not normal FPS; CSV writing/rendering outside Step. Raw scope bytes are unavailable when probe fails; use Unity hierarchy."
+}

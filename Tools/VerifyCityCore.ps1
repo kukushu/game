@@ -1,4 +1,4 @@
-param([string]$Results='Temp/RoadCore/industry-model.csv')
+﻿param([string]$Results='Temp/RoadCore/industry-model.csv',[switch]$Attribution)
 . (Join-Path $PSScriptRoot 'ProjectLayout.ps1')
 $ErrorActionPreference='Stop';$root=Split-Path $PSScriptRoot -Parent
 $mono='C:/Program Files/Unity/Hub/Editor/6000.6.3f1/Editor/Data/MonoBleedingEdge/bin/mono.exe'
@@ -14,3 +14,11 @@ $probe=Join-Path $root 'Temp/RoadCore/JobChecks.exe'
 if($LASTEXITCODE -ne 0){throw 'Job allocation checks compile failed'}
 & $mono $probe
 if($LASTEXITCODE -ne 0){throw 'Job allocation checks failed'}
+
+if($Attribution){
+    $profileCheck=Join-Path $root 'Temp/RoadCore/CityProfileChecks.exe'
+    & $mono $compiler /nologo /langversion:latest /define:CITY_CORE_ATTRIBUTION ('/out:'+$profileCheck) (Get-CityModelSources $root) (Join-Path $root 'Tools/Diagnostics/CityProfileChecks.cs')
+    if($LASTEXITCODE -ne 0){throw 'Profile correctness checks compile failed'}
+    & $mono $profileCheck
+    if($LASTEXITCODE -ne 0){throw 'Profile correctness checks failed'}
+}
