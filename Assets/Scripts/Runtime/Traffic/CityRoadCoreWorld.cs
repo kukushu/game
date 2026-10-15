@@ -322,6 +322,10 @@ namespace HarborCity.RoadCore
 #endif
                 rejection=TransportRejection.Unreachable;return null;
             }
+            // Service routes may depart on either curb. Only reject when EVERY
+            // reachable source used by AccessRouting.Find is blocked; never pick
+            // a different route just because its departure lane happens to be free.
+            if(purpose==TransportPurpose.Service&&source!=null&&target!=null&&ServiceSourceBlocked(source,target)){rejection=TransportRejection.SourceOccupied;return null;}
             var blueprint=dispatchRoutes.Get(Network,origin,destination,source,target,purpose!=TransportPurpose.Freight,business as IJunctionEndpointProvider);var route=blueprint.route;double start=blueprint.start,end=blueprint.end;if(route==null||route.Length==0){rejection=TransportRejection.NoRoute;return null;}
             if(indexDirty)Reindex();List<LaneOccupant> bucket;
             if(occupancy.TryGetValue(route[0],out bucket)){int slot=InsertionSlot(bucket,start);if(slot>0&&bucket[slot-1].distance-start<MinimumSpacing||slot<bucket.Count&&start-bucket[slot].distance<MinimumSpacing){rejection=TransportRejection.SourceOccupied;return null;}}
@@ -352,6 +356,28 @@ namespace HarborCity.RoadCore
             var source=GetAccess(origin);if(source==null||!source.valid)return false;if(indexDirty)Reindex();
             if(!occupancy.TryGetValue(source.lane,out var bucket))return false;int slot=InsertionSlot(bucket,source.distance);
             return slot>0&&bucket[slot-1].distance-source.distance<MinimumSpacing||slot<bucket.Count&&source.distance-bucket[slot].distance<MinimumSpacing;
+        }
+        bool SpawnBlocked(long lane,double distance)
+        {
+            if(!occupancy.TryGetValue(lane,out var bucket))return false;int slot=InsertionSlot(bucket,distance);
+            return slot>0&&bucket[slot-1].distance-distance<MinimumSpacing||slot<bucket.Count&&distance-bucket[slot].distance<MinimumSpacing;
+        }
+        bool CanServiceReach(long source,double distance,RoadAccess target)
+        {
+            if(Network.CanReach(source,distance,target.lane,target.distance))return true;
+            var lane=Network.Get(target.lane);long opposite=Network.LaneId(lane.RoadId,!lane.Reverse,lane.LaneIndex);
+            return Network.Contains(opposite)&&Network.CanReach(source,distance,opposite,lane.Geometry.MapReverseDistance(Network.Get(opposite).Geometry,target.distance));
+        }
+        bool ServiceSourceBlocked(RoadAccess source,RoadAccess target)
+        {
+            if(indexDirty)Reindex();bool first=SpawnBlocked(source.lane,source.distance);
+            var lane=Network.Get(source.lane);long opposite=Network.LaneId(lane.RoadId,!lane.Reverse,lane.LaneIndex);bool hasOther=Network.Contains(opposite);
+            double otherDistance=hasOther?lane.Geometry.MapReverseDistance(Network.Get(opposite).Geometry,source.distance):0;
+            bool second=!hasOther||SpawnBlocked(opposite,otherDistance);
+            if(!first&&!second)return false;
+            bool reachFirst=CanServiceReach(source.lane,source.distance,target),reachOther=hasOther&&CanServiceReach(opposite,otherDistance,target);
+            // No reachable departure: preserve the ordinary NoRoute diagnostic.
+            return (reachFirst||reachOther)&&(!reachFirst||first)&&(!reachOther||second);
         }
         public double EstimateResidentSeconds(int origin,int destination)
         {var a=GetAccess(origin);var b=GetAccess(destination);if(a==null||b==null||!a.valid||!b.valid||(a.use&AccessUse.Resident)==0||(b.use&AccessUse.Resident)==0||!EndpointExists(origin)||!EndpointExists(destination))return double.PositiveInfinity;return dispatchRoutes.Get(Network,origin,destination,a,b,true,null).seconds;}
