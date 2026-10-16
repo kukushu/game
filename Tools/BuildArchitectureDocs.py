@@ -7,10 +7,13 @@ import subprocess, json, html, re, csv
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'Docs/Architecture'
-COMMIT = 'b7c73c2'
+COMMIT = 'c0de4e6'
 BASELINE = '110c4eaa24fa69d55b08a5db2a6d19ec6da5dd7f'
 R = 'Assets/Scripts/Runtime/'
 files = {
+ 'development':R+'Simulation/Growth/CityDevelopment.cs',
+ 'employmentreadout':R+'Presentation/UI/HarborCityEmploymentReadout.cs',
+ 'outsideviews':R+'Presentation/World/HarborCityOutsideViews.cs',
  'utilitycoverage':R+'Infrastructure/Utilities/CityUtilityCoverage.cs',
  'roadeditor':R+'Presentation/UI/HarborCityRoadEditor.cs',
  'clearance':R+'Infrastructure/Roads/CityRoadClearance.cs',
@@ -553,6 +556,25 @@ graphs['global-current']['nodes'].append(node('reachability','Static lane reacha
 graphs['global-current']['edges'].append(edge('network','reachability','derived query support'))
 evidence.append(dict(title='Actual: SCC lane reachability and bounded DAG cache',source=ref('reachability','internal sealed class LaneReachability')))
 
+# Actual interactive scheduler and view-only projections; no new simulation owner.
+for c in cards:
+    if c['id']=='simulation':c.update(methods='Advance(seconds) · Advance(seconds, maximumSteps, maximumMilliseconds) · Step · RequestTransport',risk='后台默认全额执行；Unity使用协作预算，单步不可分割仍可产生长尖峰。不是数据库级回滚。',decision='保留全部欠步，不把可响应误称实际倍率达标；继续按真实窗口归因。')
+    if c['id']=='clock':c.update(risk='只保存请求/固定步/欠步；宿主预算不拥有第二时钟。Advance(0)可以排空既有欠步，暂停宿主必须停止调用。',decision='时间债务逐帧核对并保存，绝不静默丢步。')
+    if c['id']=='host':c.update(fields='Session / camera / tools / readonly views / employmentReadout',risk='主线程模拟与渲染仍串行；8ms/4步是协作预算，单步会超时。大量Transform和绘制仍有成本。',facts='速度乘真实时间后请求CitySimulation；暂停不Advance；可见欠步；视图不能回写物理位置。')
+for ident,name,key,fields,methods,owner,facts,risk in [
+ ('employmentreadout','HarborCityEmploymentReadout','employmentreadout','bound session / tick / revision / due / localized text','Read','Unity表现层拥有','就业/劳动力文字由实际居民查询派生；最多每0.5真实秒刷新，同城同tick不重算，结构变化失效。','一次刷新仍O(P+H)，不是O(1)；不入保存、不参与就业和经济。'),
+ ('outsideviews','HarborCityOutsideViews','outsideviews','stable endpoint ID → marker / material / label','Sync · Draw · Dispose','Unity表现层拥有','从现有合法端点读取进出方向/位置/活动状态，只创建高亮和定位显示；不增加物流容量。','标记不是道路或端点事实；高亮不表示已通过完整城市物流验收。')]:
+    card(ident,name,'Presentation','derived',key,'sealed class '+name,fields,methods,owner,facts,'只读投影，可重建。','只写自身显示对象/文字。','换城清空或重绑；端点结构变化同步。','当前Session的只读领域查询和本地化。',risk,'已在同一三万人真实Player使用；窗口结果见CityWindow30000.md。')
+    graphs['classes']['nodes'].append(node(ident,name,fields,'derived'))
+    graphs['classes']['edges'].append(edge('host',ident,'owns read-only projection'))
+    evidence.append(dict(title='实际表现：'+name,source=ref(key,'sealed class '+name)))
+flowdata['current']['stages'][0].update(detail='正常Unity Update请求速度×真实秒；每帧最多4完整步/8ms协作预算，保留全部欠步。暂停不调用；后台Advance默认全额执行。单步可超预算，不承诺实际3×。',source=ref('simulation','public int Advance(double seconds,int maximumSteps'))
+flowdata['current']['note']+=' 真实窗口与后台分别测量；暂停不消耗债务，渲染只读物理状态。'
+
+evidence.append(dict(title='实际性能修正：按真实家庭和岗位线性汇总发展需求',source=ref('development','public void DevelopmentDemand')))
+for stage in flowdata['current']['stages']:
+    if '生长' in stage['name'] or '成长' in stage['name']:stage['detail']+=' 需求查询已线性汇总，保持旧公式/实际入住和Job；候选搜索仍有成本。'
+
 payload=dict(commit=COMMIT,baseline=BASELINE,cards=cards,graphs=graphs,flows=flowdata,readings=readingdata,perf=perf,evidence=evidence)
 
 page=r'''<!doctype html>
@@ -730,6 +752,8 @@ logistics=(OUT/'LogisticsAttribution100000.md').read_text(encoding='utf-8-sig')
 page=page.replace('<section id="review">','<section id="review"><details open><summary>最新归因：原12辆货车全部交付，但商店失去周转资金而无法营业</summary><div class="doccontent">'+markdown(logistics)+'</div></details>')
 imports=(OUT/'ImportEndpointExperiment.md').read_text(encoding='utf-8-sig')
 page=page.replace('<section id="review">','<section id="review"><details open><summary>最新实测：同城1/4/12进口口，一日原料48/88/169；未改变业务规则</summary><div class="doccontent">'+markdown(imports)+'</div></details>')
+current_window=(OUT/'CityWindow30000.md').read_text(encoding='utf-8-sig')
+page=page.replace('<section id="review">','<section id="review"><details open><summary>最新真实窗口：三万人卡顿归因、读数修正与保留欠步的交互预算</summary><div class="doccontent">'+markdown(current_window)+'</div></details>')
 (OUT/'HarborCityArchitecture.html').write_text(page,encoding='utf-8')
 (OUT/'SourceEvidence.md').write_text('# 固定源码定位证据\n\n审查commit：`'+COMMIT+'`。以下行号由固定源码生成，而非当前工作树。\n\n'+ '\n'.join('## '+e['title']+'\n\n['+e['source']['file']+':'+str(e['source']['line'])+']('+e['source']['url']+')\n\n方法/语句：`'+e['source']['token']+'`\n' for e in evidence),encoding='utf-8')
 print(f'Created {OUT / "HarborCityArchitecture.html"}; {len(cards)} class cards, {len(graphs)} graphs, {len(flowdata)} flows; pinned {COMMIT}')
