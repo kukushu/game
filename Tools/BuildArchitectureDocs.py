@@ -7,7 +7,7 @@ import subprocess, json, html, re, csv
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'Docs/Architecture'
-COMMIT = 'c964820'
+COMMIT = 'b7c73c2'
 BASELINE = '110c4eaa24fa69d55b08a5db2a6d19ec6da5dd7f'
 R = 'Assets/Scripts/Runtime/'
 files = {
@@ -543,6 +543,15 @@ graphs['ownership']['edges'].extend([edge('resident','commuteestimates','按实�
 graphs['global-current']['nodes'].append(node('commuteestimates','通勤估计重用','每实际居民一条，非4096计划LRU','derived','people'))
 graphs['global-current']['edges'].extend([edge('people','commuteestimates','居民领域拥有，注销时剔除'),edge('commuteestimates','world','廉价守卫/版本与确切路由查询')])
 evidence.extend([dict(title='已实现：居民ETA生命周期',source=ref('people','double EstimateCommute')),dict(title='已实现：实时入口与可用性守卫',source=ref('world','public bool HasResidentAccess'))])
+
+card('reachability','LaneReachability','Roads','derived','reachability','internal sealed class LaneReachability','Lane ID dense index / SCC / cyclic component / condensation exits / 64-source cache','CanReach / HasCycle / Reachable','Immutable Network owns one derived connectivity index.','No editable road, vehicle or business facts.','Actual LaneConnection directed graph; strongly connected components and bounded DAG queries.','Only its own derived cache changes; no route or movement rule changes.','New Network rebuilds connectivity; not saved.','Shared Network lanes and connections; optimized road key comparer.','Same-component queries O(1); cross-component BFS and up to 64 component sets can still be costly. Construction includes edge sorting/deduplication.','2475576 BFS checks; same 50000-person save/replay bytes; mean step 34.109 to 32.480ms. 100000-person routing remains expensive.')
+graphs['classes']['nodes'].append(node('reachability','LaneReachability','SCC / bounded condensation queries','derived'))
+graphs['classes']['edges'].append(edge('network','reachability','owns derived index'))
+graphs['ownership']['nodes'].append(node('reachability','Lane connectivity','derived from real directed LaneConnections; not saved','derived'))
+graphs['ownership']['edges'].append(edge('network','reachability','rebuild with Network','dash'))
+graphs['global-current']['nodes'].append(node('reachability','Static lane reachability','SCC / bounded DAG cache; no business state','derived'))
+graphs['global-current']['edges'].append(edge('network','reachability','derived query support'))
+evidence.append(dict(title='Actual: SCC lane reachability and bounded DAG cache',source=ref('reachability','internal sealed class LaneReachability')))
 
 payload=dict(commit=COMMIT,baseline=BASELINE,cards=cards,graphs=graphs,flows=flowdata,readings=readingdata,perf=perf,evidence=evidence)
 
