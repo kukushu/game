@@ -1,0 +1,42 @@
+{
+  "warmupSeconds": 8,
+  "commit": "39f1443e3d9f0a22d9f7d6d92a7bebfed22c9a14",
+  "utc": "2026-10-16T12:20:04.0541160Z",
+  "rates": [
+    3
+  ],
+  "dirty": [
+    " M AGENTS.md",
+    " M Assets/Resources/GameData/Localization/en.json",
+    " M Assets/Resources/GameData/Localization/zh-CN.json",
+    " M Assets/Scripts/Diagnostics/Runtime/HarborCityScenarioWindowProbe.cs",
+    " M Assets/Scripts/Runtime/Presentation/Game/HarborCityRoadCoreGame.cs",
+    " M Assets/Scripts/Runtime/Simulation/Core/CitySimulation.cs",
+    " M Assets/Scripts/Runtime/Simulation/Economy/CityCoreTrade.cs",
+    " M Assets/Scripts/Runtime/Traffic/CityRoadCoreWorld.cs",
+    " M Tools/Diagnostics/CityCoreIndustryChecks.cs",
+    " M Tools/RunCityScenarioWindow.ps1",
+    "?? Assets/Scripts/Runtime/Simulation/Economy/CityImportSources.cs",
+    "?? Assets/Scripts/Runtime/Simulation/Economy/CityImportSources.cs.meta",
+    "?? Docs/Architecture/LocalSupplyWorkPlan.md",
+    "?? Docs/Benchmarks/2026-10-16-LocalImports/",
+    "?? Tools/Diagnostics/CitySimulationBudgetChecks.cs",
+    "?? Tools/VerifySimulationBudget.ps1"
+  ],
+  "targetFps": 60,
+  "playerPath": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\ManualCityPlayer\\HarborCity.exe",
+  "measureSeconds": 60,
+  "inputPath": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\CityScenarios\\challenge30000-traffic10000\\threshold.hcity",
+  "inputHash": "E78C47DAAFFCB989FFC57EB0048575C3B6AA6DC66386DD6689C9C8EACD5DB7D8",
+  "vsync": 0,
+  "playerHash": "4C93A4BB060A12B9044AB2103835DD1565AEC9AA8381372FA84FBBC14A19B989",
+  "resolution": "1440x900",
+  "managedHash": "4D495F11DA16EC039B1C82A04770C1470F002514C462A9AD506A572194F034DE",
+  "os": "Microsoft Windows NT 10.0.26200.0",
+  "unity": [
+    "m_EditorVersion: 6000.6.3f1",
+    "m_EditorVersionWithRevision: 6000.6.3f1 (45d8eee7de74)"
+  ],
+  "cpu": "Intel(R) Core(TM) i5-14600KF",
+  "rawProfile": false
+}

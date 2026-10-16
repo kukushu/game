@@ -85,12 +85,14 @@ namespace HarborCity
         internal int ScenarioBuildingViews=>buildingViews?.Count??0;
         internal bool ScenarioMeasuring;
         internal double ScenarioAdvanceMs,ScenarioVehicleMs,ScenarioStructureMs;
+        internal double ScenarioRequestedSeconds;
         internal void ScenarioRate(float rate){speed=rate;previousTick=System.Diagnostics.Stopwatch.GetTimestamp();}
         string notice="原工厂劳动→生产→新交通实车运输→原商店库存/支付。居民实际通勤已接入；市政、分区、信号灯和行人尚未接回。";
         string SavePath=>Path.Combine(Application.persistentDataPath,session==null?"harbor-road-core-v15.hcrc":"harbor-city-core-v16.hcity");
         static Vector3 V(Point p)=>new Vector3((float)p.x,(float)p.y,(float)p.z);
         void Start()
         {
+            Application.targetFrameRate=60;
             var language=Resources.Load<TextAsset>("GameData/Localization/zh-CN");if(language==null)throw new InvalidOperationException("Missing localization resource");localization=new CityLocalization(JsonUtility.FromJson<TranslationData>(language.text));financePanel=new HarborCityFinancePanel(localization);observation=new HarborCityObservationPanel(localization);observation.Focus=(x,z)=>{if(constructionCamera!=null)constructionCamera.Focus(x,z);else{cameraView.transform.position=new Vector3(x,90,z-65);cameraView.transform.LookAt(new Vector3(x,0,z));}};
             foreach(var c in FindObjectsByType<Camera>(FindObjectsSortMode.None))c.gameObject.SetActive(false);
             cameraView=new GameObject("Road core camera").AddComponent<Camera>();cameraView.transform.position=new Vector3(0,90,-65);cameraView.transform.LookAt(Vector3.zero);cameraView.backgroundColor=new Color(.12f,.18f,.16f);cameraView.farClipPlane=3000;
@@ -142,7 +144,9 @@ namespace HarborCity
         void Update()
         {
             observation?.Bind(session);roadEditor?.Bind(session);roadEditor?.Sync();buildingViews?.Select(observation?.Selected??0);
-            if(world==null)return;long now=System.Diagnostics.Stopwatch.GetTimestamp();double seconds=(now-previousTick)/(double)System.Diagnostics.Stopwatch.Frequency*speed;using(simulationSample.Auto())lastSteps=session==null?world.Advance(seconds):session.Advance(seconds);previousTick=now;
+            if(world==null)return;long now=System.Diagnostics.Stopwatch.GetTimestamp();double seconds=(now-previousTick)/(double)System.Diagnostics.Stopwatch.Frequency*speed;
+            if(ScenarioMeasuring)ScenarioRequestedSeconds=seconds;
+            using(simulationSample.Auto())lastSteps=speed==0?0:session==null?world.Advance(seconds):session.Simulation.Advance(seconds,4,8);previousTick=now;
             long sampleAt=ScenarioMeasuring?System.Diagnostics.Stopwatch.GetTimestamp():0;
             if(ScenarioMeasuring)ScenarioAdvanceMs=(sampleAt-now)*1000.0/System.Diagnostics.Stopwatch.Frequency;
             if(outsideViews==null)outsideViews=new HarborCityOutsideViews(roadMaterial,localization);outsideViews.Sync(session);
@@ -253,7 +257,9 @@ namespace HarborCity
             GUILayout.Label(localization.Get("ui.build.mode",building?localization.Get("ui.build.road_mode"):utilityTool.HasValue?localization.Get("ui.build.pipe_mode"):facilityTool!=LandUse.Empty?localization.Get("ui.build.facility_mode"):zoneTool!=LandUse.Empty?localization.Get("ui.build.zone_mode"):outsideTool?localization.Get("ui.trade.choose"):localization.Get("ui.build.inspect_mode")));
             GUILayout.Label(building||utilityTool.HasValue?previewText:"",GUILayout.Height(32));
             GUILayout.BeginHorizontal();if(GUILayout.Button(building?"结束修路":"修路")){roadEditor.Clear();outsideTool=false;building=!building;zoneTool=facilityTool=LandUse.Empty;utilityTool=null;ResetGesture();previewVersion=-1;previewText="";notice=localization.Get(building?"ui.build.choose_start":"ui.build.cancelled");}oneWay=GUILayout.Toggle(oneWay,"单行");wide=GUILayout.Toggle(wide,"每方向两车道");if((session==null||!session.City.development.enabled)&&GUILayout.Button("发货 A → B"))notice=(session==null?world.Dispatch(origin,destination,1,5):session.Simulation.RequestFreight(origin,destination))==null?"暂无可用入口/库存/路线":"已发车，库存已扣；到达后才付款";if(GUILayout.Button("1×"))speed=1;if(GUILayout.Button("3×"))speed=3;if(GUILayout.Button("暂停"))speed=0;
-            GUILayout.EndHorizontal();GUILayout.BeginHorizontal();
+            GUILayout.EndHorizontal();
+            if(session!=null)GUILayout.Label(localization.Get("ui.time.pending",session.Simulation.PendingSeconds.ToString("F2")));
+            GUILayout.BeginHorizontal();
             if(session!=null&&GUILayout.Button(localization.Get("ui.road.open"))){building=false;outsideTool=false;ResetGesture();zoneTool=facilityTool=LandUse.Empty;utilityTool=null;observation.Close();roadEditor.Bind(session);roadEditor.Begin();}
             if(GUILayout.Button("保存"))Save();if(GUILayout.Button("读取"))Load();GUILayout.EndHorizontal();
             if(session!=null){GUILayout.BeginHorizontal();if(GUILayout.Button(localization.Get("ui.inspect.open"),GUILayout.Width(180))){building=false;outsideTool=false;ResetGesture();zoneTool=facilityTool=LandUse.Empty;utilityTool=null;roadEditor.Clear();observation.Bind(session);observation.ToggleIssues();}GUILayout.Label(localization.Get("ui.finance.balance",session.Simulation.Finance.Money));if(GUILayout.Button(localization.Get("ui.finance.open"),GUILayout.Width(180)))financePanel.IsOpen=true;GUILayout.EndHorizontal();}

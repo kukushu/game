@@ -1,4 +1,4 @@
-param([string]$Save='Temp/CityScenarios/grid500-normal-final/inflight.hcity',[string]$Results='Temp/CityScenarios/window500',[switch]$SkipBuild,[switch]$BuildOnly,[int]$TimeoutSeconds=180,[double]$MaxMemoryGB=8,[string]$PlayerPath='Temp/RoadCore/Player/HarborCity.exe',[ValidateSet(0,1,3)][int[]]$Rates=@(1,3),[switch]$RawProfile)
+param([string]$Save='Temp/CityScenarios/grid500-normal-final/inflight.hcity',[string]$Results='Temp/CityScenarios/window500',[switch]$SkipBuild,[switch]$BuildOnly,[int]$TimeoutSeconds=180,[double]$MaxMemoryGB=8,[string]$PlayerPath='Temp/RoadCore/Player/HarborCity.exe',[ValidateSet(0,1,3)][int[]]$Rates=@(1,3),[switch]$RawProfile,[switch]$CheckRestore)
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'ProjectLayout.ps1')
 $root=Split-Path $PSScriptRoot -Parent
@@ -18,7 +18,7 @@ if(-not $SkipBuild){
 if($BuildOnly){Write-Output "Unity Player built only; runtime/window validation was not performed";return}
 foreach($rate in $Rates){
  $target=Join-Path $resultsPath ($rate.ToString()+'x')
- $launch=@('-harbor-city-scenario-window',('"'+$inputFile+'"'),('"'+$target+'"'),$rate,'-screen-width','1440','-screen-height','900','-logFile',('"'+(Join-Path $resultsPath ($rate.ToString()+'x.log'))+'"'));if($RawProfile){$launch+='-harbor-window-raw'}
+ $launch=@('-harbor-city-scenario-window',('"'+$inputFile+'"'),('"'+$target+'"'),$rate,'-screen-width','1440','-screen-height','900','-logFile',('"'+(Join-Path $resultsPath ($rate.ToString()+'x.log'))+'"'));if($RawProfile){$launch+='-harbor-window-raw'};if($CheckRestore){$launch+='-harbor-window-restore'}
  $run=Start-Process $player -ArgumentList $launch -WindowStyle Normal -PassThru
  $watch=[Diagnostics.Stopwatch]::StartNew();$peak=0L;$stopped=$null
  while(-not $run.WaitForExit(1000)){$run.Refresh();try{$peak=[Math]::Max($peak,$run.WorkingSet64)}catch{if(-not $run.HasExited){throw}};if($watch.Elapsed.TotalSeconds -gt $TimeoutSeconds){$stopped='wall-time-limit'}elseif($peak -gt $MaxMemoryGB*1GB){$stopped='memory-limit'};if($stopped){$run.Kill($true);$run.WaitForExit();break}}

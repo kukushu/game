@@ -588,6 +588,10 @@
     {
       "key": "ui.hud.employment",
       "text": "Employed {0} / Workforce {1}"
+    },
+    {
+      "key": "ui.time.pending",
+      "text": "Pending simulation: {0} seconds (all steps retained)"
     }
   ]
 }

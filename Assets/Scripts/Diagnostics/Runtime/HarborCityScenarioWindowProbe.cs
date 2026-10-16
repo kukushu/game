@@ -12,7 +12,7 @@ namespace HarborCity
     // Observes the normal host clock and views. Never advances or repairs the city.
     public sealed class HarborCityScenarioWindowProbe:MonoBehaviour
     {
-        struct Sample {public double seconds,ms,advance,vehicles,structure,pending,gpu;public long bytes,tick,mainNs,renderNs,gcNs,uiNs;public int steps,active,views;}
+        struct Sample {public double seconds,ms,advance,vehicles,structure,pending,gpu,requested;public long bytes,tick,mainNs,renderNs,gcNs,uiNs;public int steps,active,views;}
         readonly FrameTiming[] timing=new FrameTiming[1];
         HarborCityRoadCoreGame host;string savePath,output;float rate;
         public void Configure(HarborCityRoadCoreGame game,string input,string result,float speed)
@@ -24,6 +24,7 @@ namespace HarborCity
             host.ScenarioRate(rate);double warm=Time.realtimeSinceStartupAsDouble;
             while(Time.realtimeSinceStartupAsDouble-warm<8)yield return null;
             var city=host.ScenarioSession;long startTick=city.Simulation.Tick;
+            double startPending=city.Simulation.PendingSeconds;
             var frames=new List<double>(5000);var rows=new List<Sample>(5000);
             var gc=ProfilerRecorder.StartNew(ProfilerCategory.Memory,"GC Allocated In Frame",1);
             var mainThread=ProfilerRecorder.StartNew(ProfilerCategory.Internal,"Main Thread",1);
@@ -41,20 +42,39 @@ namespace HarborCity
                 long bytes=gc.Valid&&gc.Count>0?gc.LastValue:-1;if(bytes>=0){allocated+=bytes;gcSamples++;}
                 peak=Math.Max(peak,city.Transport.ActiveCount);maxSteps=Math.Max(maxSteps,host.ScenarioSteps);
                 FrameTimingManager.CaptureFrameTimings();uint count=FrameTimingManager.GetLatestTimings(1,timing);
-                rows.Add(new Sample{seconds=now-start,ms=ms,bytes=bytes,tick=city.Simulation.Tick,steps=host.ScenarioSteps,active=city.Transport.ActiveCount,views=host.ScenarioVehicleViews,advance=host.ScenarioAdvanceMs,vehicles=host.ScenarioVehicleMs,structure=host.ScenarioStructureMs,pending=city.Simulation.ClockSnapshot.pendingSeconds,mainNs=mainThread.Valid&&mainThread.Count>0?mainThread.LastValue:-1,renderNs=renderThread.Valid&&renderThread.Count>0?renderThread.LastValue:-1,gcNs=collect.Valid&&collect.Count>0?collect.LastValue:-1,uiNs=ui.Valid&&ui.Count>0?ui.LastValue:-1,gpu=count>0&&timing[0].gpuFrameTime>0?timing[0].gpuFrameTime:-1});
+                rows.Add(new Sample{seconds=now-start,ms=ms,bytes=bytes,tick=city.Simulation.Tick,steps=host.ScenarioSteps,active=city.Transport.ActiveCount,views=host.ScenarioVehicleViews,advance=host.ScenarioAdvanceMs,vehicles=host.ScenarioVehicleMs,structure=host.ScenarioStructureMs,pending=city.Simulation.PendingSeconds,requested=host.ScenarioRequestedSeconds,mainNs=mainThread.Valid&&mainThread.Count>0&&mainThread.LastValue>0?mainThread.LastValue:-1,renderNs=renderThread.Valid&&renderThread.Count>0&&renderThread.LastValue>0?renderThread.LastValue:-1,gcNs=collect.Valid&&collect.Count>0?collect.LastValue:-1,uiNs=ui.Valid&&ui.Count>0?ui.LastValue:-1,gpu=count>0&&timing[0].gpuFrameTime>0?timing[0].gpuFrameTime:-1});
             }
             int endGen0=GC.CollectionCount(0),endGen1=GC.CollectionCount(1),endGen2=GC.CollectionCount(2);
             double elapsed=last-start;long endTick=city.Simulation.Tick;host.ScenarioRate(0);gc.Dispose();mainThread.Dispose();renderThread.Dispose();collect.Dispose();ui.Dispose();
             if(raw){UnityEngine.Profiling.Profiler.enabled=false;UnityEngine.Profiling.Profiler.enableBinaryLog=false;}
+            double endPending=city.Simulation.PendingSeconds;
+            double balanceError=startPending+rows.Sum(r=>r.requested)-(endTick-startTick)*WorldStepSeconds-endPending;
+            if(rows.Sum(r=>r.steps)!=endTick-startTick||Math.Abs(balanceError)>1e-6)throw new InvalidOperationException("Requested time/fixed steps/debt do not balance");
             frames.Sort();double p95=frames[(int)Math.Ceiling(frames.Count*.95)-1],p99=frames[(int)Math.Ceiling(frames.Count*.99)-1];
             string hash;using(var sha=SHA256.Create())hash=BitConverter.ToString(sha.ComputeHash(File.ReadAllBytes(savePath))).Replace("-","").ToLowerInvariant();
-            File.WriteAllLines(Path.Combine(output,"frames.csv"),new[]{"real_seconds,frame_ms,gc_bytes,tick,fixed_steps,active_vehicles,vehicle_views,advance_ms,vehicle_sync_ms,structure_sync_ms,pending_seconds,main_thread_ns,render_thread_ns,gc_collect_ns,gpu_ms,ui_ns"}.Concat(rows.Select(r=>string.Join(",",r.seconds.ToString("R",CultureInfo.InvariantCulture),r.ms.ToString("R",CultureInfo.InvariantCulture),r.bytes,r.tick,r.steps,r.active,r.views,r.advance,r.vehicles,r.structure,r.pending,r.mainNs,r.renderNs,r.gcNs,r.gpu,r.uiNs))));
+            File.WriteAllLines(Path.Combine(output,"frames.csv"),new[]{"real_seconds,frame_ms,gc_bytes,tick,fixed_steps,active_vehicles,vehicle_views,advance_ms,vehicle_sync_ms,structure_sync_ms,pending_seconds,main_thread_ns,render_thread_ns,gc_collect_ns,gpu_ms,ui_ns,requested_seconds"}.Concat(rows.Select(r=>string.Join(",",r.seconds.ToString("R",CultureInfo.InvariantCulture),r.ms.ToString("R",CultureInfo.InvariantCulture),r.bytes,r.tick,r.steps,r.active,r.views,r.advance,r.vehicles,r.structure,r.pending,r.mainNs,r.renderNs,r.gcNs,r.gpu,r.uiNs,r.requested))));
+            File.WriteAllText(Path.Combine(output,"clock-balance.json"),"{\"initial_pending_seconds\":"+startPending.ToString("R",CultureInfo.InvariantCulture)+",\"requested_seconds\":"+rows.Sum(r=>r.requested).ToString("R",CultureInfo.InvariantCulture)+",\"completed_steps\":"+(endTick-startTick)+",\"final_pending_seconds\":"+endPending.ToString("R",CultureInfo.InvariantCulture)+",\"balance_error_seconds\":"+balanceError.ToString("R",CultureInfo.InvariantCulture)+"}");
             File.WriteAllText(Path.Combine(output,"attribution.json"),"{\"advance_mean_ms\":"+rows.Average(r=>r.advance).ToString("R",CultureInfo.InvariantCulture)+",\"vehicle_sync_mean_ms\":"+rows.Average(r=>r.vehicles).ToString("R",CultureInfo.InvariantCulture)+",\"structure_sync_mean_ms\":"+rows.Average(r=>r.structure).ToString("R",CultureInfo.InvariantCulture)+",\"max_pending_seconds\":"+rows.Max(r=>r.pending).ToString("R",CultureInfo.InvariantCulture)+",\"note\":\"Stopwatch host scopes are current Update. ProfilerRecorder and GPU timings may lag; unavailable is -1. Main Thread can include waits; GC.Collect marker is not a proven complete pause total. This probe does not budget or discard steps.\"}");
             File.WriteAllText(Path.Combine(output,"summary.csv"),"input_sha256,rate,real_seconds,start_tick,end_tick,sim_ratio,fps,p95_ms,p99_ms,max_ms,gc_bytes_per_frame,gc_samples,gen0,gen1,gen2,peak_vehicles,max_steps_frame,building_views,population\n"+string.Join(",",hash,rate,elapsed,startTick,endTick,(endTick-startTick)*.05/elapsed,frames.Count/elapsed,p95,p99,frames.Last(),gcSamples==frames.Count?(double)allocated/gcSamples:-1,gcSamples,endGen0-gen0,endGen1-gen1,endGen2-gen2,peak,maxSteps,host.ScenarioBuildingViews,city.City.population));
             // Validation and disk output are outside the measured window.
-            try{city.Validate();File.WriteAllBytes(Path.Combine(output,"final.hcity"),CityCoreSave.Write(city));File.WriteAllText(Path.Combine(output,"Result.txt"),"PASS normal host visible Player, loaded captured flat mature city; not mouse construction acceptance. GC pauses not measured.\n");}
+            yield return null;
+            if(city.Simulation.Tick!=endTick||city.Simulation.PendingSeconds!=endPending)throw new InvalidOperationException("Paused host silently drains saved debt");
+            try
+            {
+                city.Validate();byte[] final=CityCoreSave.Write(city);File.WriteAllBytes(Path.Combine(output,"final.hcity"),final);
+                if(Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-window-restore")>=0)
+                {
+                    var restored=CityCoreSave.Read(final);restored.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);
+                    for(int i=0;i<20;i++){double request=city.Simulation.PendingSeconds>=.05?0:.05;if(city.Simulation.Advance(request,1,double.PositiveInfinity)!=1||restored.Simulation.Advance(request,1,double.PositiveInfinity)!=1)throw new InvalidOperationException("Restore check lost a full step");}
+                    city.Validate();restored.Validate();if(!CityCoreSave.Write(city).SequenceEqual(CityCoreSave.Write(restored)))throw new InvalidOperationException("Warm/cold whole-city debt continuation differs");
+                    File.WriteAllText(Path.Combine(output,"RestoreResult.txt"),"PASS native Unity warm/cold 20 complete steps with saved pending debt, all city/transport/money/goods/waste state byte-identical. Outside timed window; final.hcity is original measured endpoint.\n");
+                }
+                File.WriteAllText(Path.Combine(output,"Result.txt"),"PASS normal host visible Player, loaded captured flat mature city; not mouse construction acceptance. GC pauses not measured.\n");
+            }
             catch(Exception e){File.WriteAllText(Path.Combine(output,"Result.txt"),e.ToString());Application.Quit(1);yield break;}
-            ScreenCapture.CaptureScreenshot(Path.Combine(output,"window.png"));yield return new WaitForEndOfFrame();yield return null;Application.Quit(0);
+            ScreenCapture.CaptureScreenshot(Path.Combine(output,"window.png"));yield return new WaitForEndOfFrame();yield return null;
+            Debug.Log("Harbor window probe: validation/output complete; requesting Player shutdown");Application.Quit(0);
         }
+        const double WorldStepSeconds=HarborCity.RoadCore.World.StepSeconds;
     }
 }

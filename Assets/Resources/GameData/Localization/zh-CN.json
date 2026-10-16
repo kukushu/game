@@ -588,6 +588,10 @@
     {
       "key": "ui.hud.employment",
       "text": "就业 {0} / 劳动力 {1}"
+    },
+    {
+      "key": "ui.time.pending",
+      "text": "待模拟时间：{0} 秒（保留全部欠步）"
     }
   ]
 }

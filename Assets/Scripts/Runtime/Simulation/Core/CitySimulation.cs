@@ -22,6 +22,7 @@ namespace HarborCity
         public CityCoreWaste Waste {get;}
         public SimulationClockData ClockSnapshot=>clock.Snapshot();
         public long Tick=>clock.Tick;public double Seconds=>clock.Seconds;
+        public double PendingSeconds=>clock.PendingSeconds;
         public double CalendarOffset {get;}
         public bool IsStepping {get;private set;}
         public bool IsApplyingBoundary {get;private set;}
@@ -35,9 +36,16 @@ namespace HarborCity
         void SyncCalendar(double seconds)
         {double absolute=CalendarOffset+seconds,daySeconds=city.society.settings.secondsPerDay;city.day=1+(int)Math.Floor(absolute/daySeconds);city.society.dayElapsed=(float)(absolute%daySeconds);}
         public int Advance(double seconds)
+            =>Advance(seconds,int.MaxValue,double.PositiveInfinity);
+        // Interactive scheduling only: every committed step is complete and all
+        // unprocessed requested time remains on the same saved simulation clock.
+        // A single indivisible step may exceed this cooperative wall-time budget.
+        public int Advance(double seconds,int maximumSteps,double maximumMilliseconds)
         {
+            if(maximumSteps<1||!(maximumMilliseconds>0)||double.IsNaN(maximumMilliseconds))throw new ArgumentOutOfRangeException("Invalid simulation work budget");
             if(Fault!=null)throw new InvalidOperationException("Simulation faulted; reload a validated save",Fault);if(IsStepping||IsApplyingBoundary)throw new InvalidOperationException("Reentrant simulation advance");clock.Request(seconds);int steps=0;
-            while(clock.HasStep)
+            bool limited=!double.IsPositiveInfinity(maximumMilliseconds);long started=limited?System.Diagnostics.Stopwatch.GetTimestamp():0;
+            while(clock.HasStep&&steps<maximumSteps)
             {
 #if CITY_CORE_ATTRIBUTION
                 using var observation=CityCoreProfile.Measure(CityCoreProfile.Part.Step);
@@ -85,6 +93,7 @@ namespace HarborCity
                     using(CityCoreProfile.Measure(CityCoreProfile.Part.Finance))
 #endif
                     Finance.SettleDay();steps++;}catch(Exception e){Fault=e;throw;}finally{IsStepping=false;IsApplyingBoundary=false;}}
+                if(limited&&(System.Diagnostics.Stopwatch.GetTimestamp()-started)*1000.0/System.Diagnostics.Stopwatch.Frequency>=maximumMilliseconds)break;
             }
             return steps;
         }
