@@ -552,6 +552,38 @@
     {
       "key": "ui.build.road_error",
       "text": "Cannot build this road. Adjust the route. Reason: {0}"
+    },
+    {
+      "key": "ui.trade.marker_import",
+      "text": "Raw material import #{0}"
+    },
+    {
+      "key": "ui.trade.marker_export",
+      "text": "Goods export #{0}"
+    },
+    {
+      "key": "ui.trade.marker_import_off",
+      "text": "Raw material import #{0} (disabled)"
+    },
+    {
+      "key": "ui.trade.marker_export_off",
+      "text": "Goods export #{0} (disabled)"
+    },
+    {
+      "key": "ui.trade.marker_disconnected",
+      "text": "Outside connection #{0} (disconnected)"
+    },
+    {
+      "key": "ui.trade.focus_import",
+      "text": "Locate raw import"
+    },
+    {
+      "key": "ui.trade.focus_export",
+      "text": "Locate goods export"
+    },
+    {
+      "key": "ui.trade.no_endpoint",
+      "text": "No active outside connection of this type."
     }
   ]
 }

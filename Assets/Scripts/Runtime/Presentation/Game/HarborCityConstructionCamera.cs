@@ -6,11 +6,11 @@ namespace HarborCity
     // Uses the original cursor-plane pan/zoom idea; no simulation position writes.
     internal sealed class HarborCityConstructionCamera
     {
-        readonly Camera camera;readonly CityLandscape landscape;
+        readonly Camera camera;readonly CityLandscape landscape;readonly float buildHalfSize;
         Vector3 focus;float distance=110,pitch=55,yaw;Vector2 previous;
         bool panning,rotating;
-        public HarborCityConstructionCamera(Camera camera,CityLandscape landscape){this.camera=camera;this.landscape=landscape;Apply();}
-        void Apply(){focus.x=Mathf.Clamp(focus.x,-CityModel.BuildHalfSize,CityModel.BuildHalfSize);focus.z=Mathf.Clamp(focus.z,-CityModel.BuildHalfSize,CityModel.BuildHalfSize);focus.y=Mathf.Max(0,landscape.Height(focus.x,focus.z));camera.transform.rotation=Quaternion.Euler(pitch,yaw,0);camera.transform.position=focus-camera.transform.forward*distance;}
+        public HarborCityConstructionCamera(Camera camera,CityLandscape landscape,float buildHalfSize=CityModel.BuildHalfSize){this.camera=camera;this.landscape=landscape;this.buildHalfSize=buildHalfSize;Apply();}
+        void Apply(){focus.x=Mathf.Clamp(focus.x,-buildHalfSize,buildHalfSize);focus.z=Mathf.Clamp(focus.z,-buildHalfSize,buildHalfSize);focus.y=Mathf.Max(0,landscape.Height(focus.x,focus.z));camera.transform.rotation=Quaternion.Euler(pitch,yaw,0);camera.transform.position=focus-camera.transform.forward*distance;}
         Vector3 Anchor(Vector2 pointer){var ray=camera.ScreenPointToRay(pointer);return landscape.Raycast(ray,out var hit)?hit:focus;}
         void Pan(Vector2 from,Vector2 to)
         {var plane=new Plane(Vector3.up,Anchor(from));var a=camera.ScreenPointToRay(from);var b=camera.ScreenPointToRay(to);if(plane.Raycast(a,out float da)&&plane.Raycast(b,out float db)){focus+=a.GetPoint(da)-b.GetPoint(db);Apply();}}

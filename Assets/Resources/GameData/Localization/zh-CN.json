@@ -552,6 +552,38 @@
     {
       "key": "ui.build.road_error",
       "text": "道路无法施工，请调整路线。原因：{0}"
+    },
+    {
+      "key": "ui.trade.marker_import",
+      "text": "原料进口 #{0}"
+    },
+    {
+      "key": "ui.trade.marker_export",
+      "text": "商品出口 #{0}"
+    },
+    {
+      "key": "ui.trade.marker_import_off",
+      "text": "原料进口 #{0}（停用）"
+    },
+    {
+      "key": "ui.trade.marker_export_off",
+      "text": "商品出口 #{0}（停用）"
+    },
+    {
+      "key": "ui.trade.marker_disconnected",
+      "text": "城外连接 #{0}（未接通）"
+    },
+    {
+      "key": "ui.trade.focus_import",
+      "text": "定位原料进口"
+    },
+    {
+      "key": "ui.trade.focus_export",
+      "text": "定位商品出口"
+    },
+    {
+      "key": "ui.trade.no_endpoint",
+      "text": "暂无启用的对应城外连接。"
     }
   ]
 }
