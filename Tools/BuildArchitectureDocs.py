@@ -7,7 +7,7 @@ import subprocess, json, html, re, csv
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'Docs/Architecture'
-COMMIT = '43eafc1'
+COMMIT = '941b602'
 BASELINE = '110c4eaa24fa69d55b08a5db2a6d19ec6da5dd7f'
 R = 'Assets/Scripts/Runtime/'
 files = {
@@ -534,6 +534,15 @@ graphs['global-current']['edges'].append(edge('coreutilities','utilitycoverage',
 evidence.append(dict(title='已实现：临时水电覆盖索引',source=ref('utilitycoverage','internal sealed class CityUtilityCoverage')))
 for stage in flowdata['current']['stages']:
     if stage['name']=='供给重建边界':stage.update(detail='按实际变更重算；临时线段格网查询局部候选，按原边序执行精确覆盖、传播、容量与预算。双万人完整状态配对通过；非逐步保存第二份管网。')
+
+# Actual resident-owned static ETA cache; actual commute observations stay on citizens.
+for c in cards:
+    if c['id']=='people':c.update(fields='city / entities / RequestCommute / 每居民自由流ETA派生记录',derived='home/work/路网代/入口代匹配的秒数；实际lastCommute仍属于居民。',methods='AdvanceRequests · Arrive · Observe · EstimateCommute · PruneEstimates',life='每查询居民至多一条标量；实时入口守卫，键/版本失效；结构修订清理注销成员，不保存。',risk='仍每步O(P)扫描；结构清理O(缓存人数)。未来动态成本/公交需新增失效语义。',decision='已消除3万人路线LRU工作集抖动；有限三步状态相同，长期大城尚待验收。')
+graphs['ownership']['nodes'].append(node('commuteestimates','居民自由流ETA','临时派生秒数，不是实际通勤/路线，不保存','derived','people'))
+graphs['ownership']['edges'].extend([edge('resident','commuteestimates','按实际查询居民派生','dash'),edge('network','commuteestimates','网络/入口版本失效','dash')])
+graphs['global-current']['nodes'].append(node('commuteestimates','通勤估计重用','每实际居民一条，非4096计划LRU','derived','people'))
+graphs['global-current']['edges'].extend([edge('people','commuteestimates','居民领域拥有，注销时剔除'),edge('commuteestimates','world','廉价守卫/版本与确切路由查询')])
+evidence.extend([dict(title='已实现：居民ETA生命周期',source=ref('people','double EstimateCommute')),dict(title='已实现：实时入口与可用性守卫',source=ref('world','public bool HasResidentAccess'))])
 
 payload=dict(commit=COMMIT,baseline=BASELINE,cards=cards,graphs=graphs,flows=flowdata,readings=readingdata,perf=perf,evidence=evidence)
 
