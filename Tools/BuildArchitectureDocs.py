@@ -7,7 +7,7 @@ import subprocess, json, html, re, csv
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'Docs/Architecture'
-COMMIT = 'c0de4e6'
+COMMIT = '156737e'
 BASELINE = '110c4eaa24fa69d55b08a5db2a6d19ec6da5dd7f'
 R = 'Assets/Scripts/Runtime/'
 files = {
@@ -574,6 +574,17 @@ flowdata['current']['note']+=' 真实窗口与后台分别测量；暂停不消�
 evidence.append(dict(title='实际性能修正：按真实家庭和岗位线性汇总发展需求',source=ref('development','public void DevelopmentDemand')))
 for stage in flowdata['current']['stages']:
     if '生长' in stage['name'] or '成长' in stage['name']:stage['detail']+=' 需求查询已线性汇总，保持旧公式/实际入住和Job；候选搜索仍有成本。'
+
+# Implemented routing scratch, explicitly derived and single-threaded.
+card('routeworkspace','Network.RouteScratch','Roads','derived','network','sealed class RouteScratch','queue / costs / parents / settled / busy','Acquire · Lease.Dispose','一个不可变Network按需拥有一个工作空间。','不是Road、RoutePlan或Vehicle事实；查询结果另建List，不借用工作容器。','前一次查询的容量可复用；每次清空逻辑内容。','只写派生搜索表与借用标记；不改几何、车道或实际路径规则。','首次搜索惰性创建；查询结束释放借用；换Network重新创建；不入存档。','当前Network、原道路键比较器和同步Dijkstra。','明确单线程；未来并行必须独立工作空间。保留最大容量，不能宣称进程内存必降；Clear仍有成本。','同城冷峰分配454MB→9MB，搜索次数不变；窗口1×约38FPS、3×实际仅约0.99×，尚非流畅三倍速。')
+graphs['classes']['nodes'].append(node('routeworkspace','Network.RouteScratch','derived search containers / single thread','derived'))
+graphs['classes']['edges'].append(edge('network','routeworkspace','owns lazy scratch, not routes'))
+graphs['ownership']['nodes'].append(node('routeworkspace','寻路临时工作空间','派生容器容量；不保存、不是路线事实','derived'))
+graphs['ownership']['edges'].append(edge('network','routeworkspace','惰性拥有；重建Network失效','dash'))
+evidence.append(dict(title='实际：查询结果独立的寻路工作空间',source=ref('network','sealed class RouteScratch')))
+for c in cards:
+    if c['id']=='network':c['derived']+=' RouteScratch只复用搜索容器，结果List独立；不是第二套网络。'
+flowdata['current']['note']+=' 路线搜索工作空间按Network派生复用；不共享演员Plan，不改变搜索次数或路线规则。'
 
 payload=dict(commit=COMMIT,baseline=BASELINE,cards=cards,graphs=graphs,flows=flowdata,readings=readingdata,perf=perf,evidence=evidence)
 
