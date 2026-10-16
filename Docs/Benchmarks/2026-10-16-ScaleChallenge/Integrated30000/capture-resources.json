@@ -1,0 +1,10 @@
+{
+  "maxSteps": 4800,
+  "wallSeconds": 123.024042,
+  "inputHash": "2A5724538B0C6303EE002948894DF918B6C25653CF2D446DCBF27DAA54B8E01A",
+  "terminatedBy": null,
+  "note": "Normal saved-city continuation to an actual traffic threshold; not a performance benchmark",
+  "timeoutSeconds": 600,
+  "peakWorkingSetBytes": 372269056,
+  "target": 10000
+}

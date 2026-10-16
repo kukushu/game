@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "population": 30000,
+  "seed": 7919,
+  "gridRadius": 10,
+  "streetSpacing": 48,
+  "days": 10,
+  "warmupDays": 2,
+  "name": "mature-avenues-30000-large-flat",
+  "mode": "mature",
+  "layout": "grid",
+  "openingPublicGrant": 30000000,
+  "householdsPerResidentialBuilding": 8,
+  "lanesPerDirection": 2,
+  "seedRoadNetwork": true,
+  "diagnosticBuildHalfSize": 504
+}

@@ -132,9 +132,10 @@ static class CityScenarioRun
                         long v=Stopwatch.GetTimestamp();CityCoreProfile.Enabled=false;s.Simulation.Waste.Diagnostics=null;
                         byte[] checkpoint=CityCoreSave.Write(s);File.WriteAllBytes(Path.Combine(output,"inflight.hcity"),checkpoint);Require(s.Transport.ActiveCount>0,"Checkpoint contains no active vehicles");
                         var a=Restore(checkpoint);var b=Restore(checkpoint);Require(CityCoreSave.Write(a).SequenceEqual(checkpoint),"Read/write checkpoint changed state");
-                        for(int j=0;j<2400;j++){a.Advance(.05);b.Advance(.05);}a.Validate();b.Validate();byte[] result=CityCoreSave.Write(a);Require(result.SequenceEqual(CityCoreSave.Write(b)),"Restored continuations differ");
+                        long replayProgressAt=Stopwatch.GetTimestamp();
+                        for(int j=0;j<2400;j++){a.Advance(.05);b.Advance(.05);long observed=Stopwatch.GetTimestamp();if(observed-replayProgressAt>=10L*Stopwatch.Frequency){Console.WriteLine("Replay twins tick "+a.Simulation.Tick);replayProgressAt=observed;}}a.Validate();b.Validate();byte[] result=CityCoreSave.Write(a);Require(result.SequenceEqual(CityCoreSave.Write(b)),"Restored continuations differ");
                         // Also compare a live continuation, including derived cache state, with restored state.
-                        var live=s;for(int j=0;j<2400;j++)live.Advance(.05);live.Validate();Require(result.SequenceEqual(CityCoreSave.Write(live)),"Live and restored continuations differ");
+                        var live=s;replayProgressAt=Stopwatch.GetTimestamp();for(int j=0;j<2400;j++){live.Advance(.05);long observed=Stopwatch.GetTimestamp();if(observed-replayProgressAt>=10L*Stopwatch.Frequency){Console.WriteLine("Replay live tick "+live.Simulation.Tick);replayProgressAt=observed;}}live.Validate();Require(result.SequenceEqual(CityCoreSave.Write(live)),"Live and restored continuations differ");
                         s=Restore(checkpoint);s.Simulation.Waste.Diagnostics=wasteDiagnostic;replayHash=Hash(result);replayChecked=true;restoreMs+=(Stopwatch.GetTimestamp()-v)*1000.0/Stopwatch.Frequency;CityCoreProfile.Enabled=profile;
                     }
                 }
