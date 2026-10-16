@@ -1,0 +1,2472 @@
+{
+  "construction": {
+    "inputHash": "93f656dbf0d3f5cd63176ad118d064ceca47664fd85bc5f3ed8cbd0e9a450dc8",
+    "commonHash": "b0090e0a5143cece682634a2c16dcb3987d523a8185468e009a5d7d65b3861f8",
+    "population": 100006,
+    "roadsBefore": 2665,
+    "roadsAfter": 2676,
+    "commonAddedRoads": 11,
+    "commonConstructionCost": 6754,
+    "treasuryBefore": 72599868,
+    "treasuryAfter": 72593114,
+    "arms": [
+      {
+        "imports": 1,
+        "initialHash": "b0090e0a5143cece682634a2c16dcb3987d523a8185468e009a5d7d65b3861f8",
+        "population": 100006
+      },
+      {
+        "imports": 4,
+        "initialHash": "c3c9a114e92cca364523a031abfca3998f43cc12be1843c5f982d7d80d0d4103",
+        "population": 100006
+      },
+      {
+        "imports": 12,
+        "initialHash": "648f0d46c09249d4d26bfbb3a19fcffdc02327d5c3c3db9976862921c2a38ceb",
+        "population": 100006
+      }
+    ],
+    "imports": [
+      1,
+      26020,
+      26022,
+      26024,
+      26026,
+      26028,
+      26030,
+      26032,
+      26034,
+      26036,
+      26038,
+      26040
+    ],
+    "cardinal": [
+      1,
+      26024,
+      26030,
+      26036
+    ],
+    "sameBusinessExceptDeclaredFields": true,
+    "positionsPreserved": true,
+    "onlyArmDifference": "active imports and matching endpoint availability; same roads, registered IDs, export capacity, finances and business facts"
+  },
+  "budget": {
+    "population": 100006,
+    "secondsPerDay": 120,
+    "gateSlots": 4,
+    "payload": 8,
+    "factories": 8334,
+    "rows": [
+      {
+        "id": 1,
+        "x": -887,
+        "z": -0.55,
+        "active": true,
+        "reachableFactories": 8334,
+        "sampleCount": 64,
+        "sampleRouteWorldUnits": {
+          "count": 64,
+          "mean": 1232.1314320142371,
+          "p50": 1142.7677406839748,
+          "p95": 2064.355663238207,
+          "p99": 2168.417255212482,
+          "max": 2168.417255212482
+        },
+        "sampleFreeFlowSeconds": {
+          "count": 64,
+          "mean": 102.67761933451973,
+          "p50": 95.23064505699789,
+          "p95": 172.02963860318383,
+          "p99": 180.7014379343734,
+          "max": 180.7014379343734
+        },
+        "estimatedRawPerGameDayIfFull": 37.398607650703596
+      },
+      {
+        "id": 26020,
+        "x": -887,
+        "z": -432.55,
+        "active": false,
+        "reachableFactories": 8334,
+        "sampleCount": 64,
+        "sampleRouteWorldUnits": {
+          "count": 64,
+          "mean": 1279.1827098571164,
+          "p50": 1284.9710308952467,
+          "p95": 2259.881270669524,
+          "p99": 2504.8859580553926,
+          "max": 2504.8859580553926
+        },
+        "sampleFreeFlowSeconds": {
+          "count": 64,
+          "mean": 106.59855915475967,
+          "p50": 107.08091924127055,
+          "p95": 188.32343922246034,
+          "p99": 208.7404965046161,
+          "max": 208.7404965046161
+        },
+        "estimatedRawPerGameDayIfFull": 36.02300097157122
+      },
+      {
+        "id": 26022,
+        "x": -887,
+        "z": 431.45,
+        "active": false,
+        "reachableFactories": 8334,
+        "sampleCount": 64,
+        "sampleRouteWorldUnits": {
+          "count": 64,
+          "mean": 1369.3232158202547,
+          "p50": 1357.1367419276828,
+          "p95": 2475.527223954219,
+          "p99": 2586.086802602261,
+          "max": 2586.086802602261
+        },
+        "sampleFreeFlowSeconds": {
+          "count": 64,
+          "mean": 114.11026798502121,
+          "p50": 113.09472849397362,
+          "p95": 206.2939353295184,
+          "p99": 215.50723355018832,
+          "max": 215.50723355018832
+        },
+        "estimatedRawPerGameDayIfFull": 33.651660519315065
+      },
+      {
+        "id": 26024,
+        "x": 887,
+        "z": 0.55,
+        "active": false,
+        "reachableFactories": 8334,
+        "sampleCount": 64,
+        "sampleRouteWorldUnits": {
+          "count": 64,
+          "mean": 1454.4464551458943,
+          "p50": 1334.503738953718,
+          "p95": 2324.926060757524,
+          "p99": 2439.139555971062,
+          "max": 2439.139555971062
+        },
+        "sampleFreeFlowSeconds": {
+          "count": 64,
+          "mean": 121.20387126215785,
+          "p50": 111.20864491280983,
+          "p95": 193.74383839646023,
+          "p99": 203.26162966425514,
+          "max": 203.26162966425514
+        },
+        "estimatedRawPerGameDayIfFull": 31.682156353688356
+      },
+      {
+        "id": 26026,
+        "x": 887,
+        "z": -431.45,
+        "active": false,
+        "reachableFactories": 8334,
+        "sampleCount": 64,
+        "sampleRouteWorldUnits": {
+          "count": 64,
+          "mean": 1502.5312119126881,
+          "p50": 1480.8673001684379,
+          "p95": 2490.337910122781,
+          "p99": 2852.218935522958,
+          "max": 2852.218935522958
+        },
+        "sampleFreeFlowSeconds": {
+          "count": 64,
+          "mean": 125.2109343260573,
+          "p50": 123.40560834736979,
+          "p95": 207.52815917689838,
+          "p99": 237.6849112935799,
+          "max": 237.6849112935799
+        },
+        "estimatedRawPerGameDayIfFull": 30.668248110028415
+      },
+      {
+        "id": 26028,
+        "x": 887,
+        "z": 432.55,
+        "active": false,
+        "reachableFactories": 8334,
+        "sampleCount": 64,
+        "sampleRouteWorldUnits": {
+          "count": 64,
+          "mean": 1590.2725062428513,
+          "p50": 1602.120888956645,
+          "p95": 2637.036120847393,
+          "p99": 2790.1050925437826,
+          "max": 2790.1050925437826
+        },
+        "sampleFreeFlowSeconds": {
+          "count": 64,
+          "mean": 132.52270885357086,
+          "p50": 133.51007407972037,
+          "p95": 219.753010070616,
+          "p99": 232.5087577119819,
+          "max": 232.5087577119819
+        },
+        "estimatedRawPerGameDayIfFull": 28.97616592068726
+      },
+      {
+        "id": 26030,
+        "x": 0.55,
+        "z": -887,
+        "active": false,
+        "reachableFactories": 8334,
+        "sampleCount": 64,
+        "sampleRouteWorldUnits": {
+          "count": 64,
+          "mean": 1195.5355492628662,
+          "p50": 1112.9187381548988,
+          "p95": 2079.385936665278,
+          "p99": 2432.2749189662504,
+          "max": 2432.2749189662504
+        },
+        "sampleFreeFlowSeconds": {
+          "count": 64,
+          "mean": 99.62796243857214,
+          "p50": 92.74322817957491,
+          "p95": 173.28216138877312,
+          "p99": 202.6895765805209,
+          "max": 202.6895765805209
+        },
+        "estimatedRawPerGameDayIfFull": 38.54339591023592
+      },
+      {
+        "id": 26032,
+        "x": -431.45,
+        "z": -887,
+        "active": false,
+        "reachableFactories": 8334,
+        "sampleCount": 64,
+        "sampleRouteWorldUnits": {
+          "count": 64,
+          "mean": 1242.9897647055784,
+          "p50": 1262.0912220847472,
+          "p95": 2241.591629696907,
+          "p99": 2499.668153224786,
+          "max": 2499.668153224786
+        },
+        "sampleFreeFlowSeconds": {
+          "count": 64,
+          "mean": 103.58248039213153,
+          "p50": 105.17426850706227,
+          "p95": 186.79930247474226,
+          "p99": 208.3056794353987,
+          "max": 208.3056794353987
+        },
+        "estimatedRawPerGameDayIfFull": 37.07190622837894
+      },
+      {
+        "id": 26034,
+        "x": 432.55,
+        "z": -887,
+        "active": false,
+        "reachableFactories": 8334,
+        "sampleCount": 64,
+        "sampleRouteWorldUnits": {
+          "count": 64,
+          "mean": 1409.1719860506698,
+          "p50": 1394.8236961525402,
+          "p95": 2491.80957795462,
+          "p99": 2849.9444663560294,
+          "max": 2849.9444663560294
+        },
+        "sampleFreeFlowSeconds": {
+          "count": 64,
+          "mean": 117.43099883755582,
+          "p50": 116.23530801271168,
+          "p95": 207.650798162885,
+          "p99": 237.49537219633586,
+          "max": 237.49537219633586
+        },
+        "estimatedRawPerGameDayIfFull": 32.70005397222188
+      },
+      {
+        "id": 26036,
+        "x": -0.55,
+        "z": 887,
+        "active": false,
+        "reachableFactories": 8334,
+        "sampleCount": 64,
+        "sampleRouteWorldUnits": {
+          "count": 64,
+          "mean": 1359.4448935590005,
+          "p50": 1318.7171475486844,
+          "p95": 2225.294676212733,
+          "p99": 2370.818513854687,
+          "max": 2370.818513854687
+        },
+        "sampleFreeFlowSeconds": {
+          "count": 64,
+          "mean": 113.28707446325002,
+          "p50": 109.893095629057,
+          "p95": 185.44122301772765,
+          "p99": 197.56820948789056,
+          "max": 197.56820948789056
+        },
+        "estimatedRawPerGameDayIfFull": 33.896188229714454
+      },
+      {
+        "id": 26038,
+        "x": -432.55,
+        "z": 887,
+        "active": false,
+        "reachableFactories": 8334,
+        "sampleCount": 64,
+        "sampleRouteWorldUnits": {
+          "count": 64,
+          "mean": 1406.6555473001392,
+          "p50": 1514.1734755063844,
+          "p95": 2488.5709588264,
+          "p99": 2590.3680731831755,
+          "max": 2590.3680731831755
+        },
+        "sampleFreeFlowSeconds": {
+          "count": 64,
+          "mean": 117.22129560834487,
+          "p50": 126.18112295886529,
+          "p95": 207.38091323553346,
+          "p99": 215.864006098598,
+          "max": 215.864006098598
+        },
+        "estimatedRawPerGameDayIfFull": 32.75855278745643
+      },
+      {
+        "id": 26040,
+        "x": 431.45,
+        "z": 887,
+        "active": false,
+        "reachableFactories": 8334,
+        "sampleCount": 64,
+        "sampleRouteWorldUnits": {
+          "count": 64,
+          "mean": 1574.8693406915208,
+          "p50": 1540.7468908228316,
+          "p95": 2638.3740557646292,
+          "p99": 2787.8323229819107,
+          "max": 2787.8323229819107
+        },
+        "sampleFreeFlowSeconds": {
+          "count": 64,
+          "mean": 131.23911172429337,
+          "p50": 128.39557423523598,
+          "p95": 219.8645046470524,
+          "p99": 232.3193602484926,
+          "max": 232.3193602484926
+        },
+        "estimatedRawPerGameDayIfFull": 29.259570181083348
+      }
+    ],
+    "caveat": "Free-flow full-utilization estimate using deterministic stratified factory-ID sample; not a guarantee or actual capacity. All directed reachability counts are exact. Port order unchanged."
+  },
+  "initialColdFacts": {
+    "tick": 4800,
+    "population": 100006,
+    "rawStock": 8,
+    "rawConsumed": 8,
+    "rawImported": 16,
+    "produced": 8,
+    "processing": 0,
+    "attendanceMinutes": 26356447.53845215,
+    "productiveMinutes": 480,
+    "factoryCash": 1502980.4236878129,
+    "factoryWages": 7593253.576311969,
+    "processingRates": [
+      1
+    ],
+    "requiredLabourPerItem": 60,
+    "shopStock": 0,
+    "shopCash": 9093114.953577124,
+    "shopFunded": 360,
+    "shopWages": 6624463.046426505,
+    "consumed": 0,
+    "note": "Cold read-only facts. Attendance is actual attendance, not proof all labour could be funded/productive or all output demanded."
+  },
+  "results": [
+    {
+      "imports": 1,
+      "report": {
+        "status": "passed-logistics-invariants; retail profitability not required",
+        "initialHash": "b0090e0a5143cece682634a2c16dcb3987d523a8185468e009a5d7d65b3861f8",
+        "finalHash": "fd9c1c064a8a9f60a6c13f54bb5b5d85742863f9e47fe737ebd5c9da85903bbf",
+        "initialTick": 4800,
+        "finalTick": 7200,
+        "population": 100006,
+        "steps": 2400,
+        "seconds": 120,
+        "stepMs": {
+          "count": 2400,
+          "mean": 70.28676758333334,
+          "p50": 33.266,
+          "p95": 85.9145,
+          "p99": 1813.4294,
+          "max": 8634.6972
+        },
+        "allocatedBytes": {
+          "count": 2400,
+          "mean": 11935851.883333333,
+          "p50": 3201552,
+          "p95": 19135624,
+          "p99": 96647208,
+          "max": 3013727664
+        },
+        "synchronousHookMs": {
+          "count": 2400,
+          "mean": 0.0019081250000000027,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0.04019999999999868,
+          "max": 2.571200000000001
+        },
+        "synchronousHookBytes": {
+          "count": 2400,
+          "mean": 45.42,
+          "p50": 0,
+          "p95": 0,
+          "p99": 1144,
+          "max": 73040
+        },
+        "outsideObserverMs": {
+          "count": 2400,
+          "mean": 0.17285537499999998,
+          "p50": 0.005,
+          "p95": 0.2921,
+          "p99": 4.3455,
+          "max": 11.32
+        },
+        "outsideObserverBytes": {
+          "count": 2400,
+          "mean": 11392.716666666667,
+          "p50": 192,
+          "p95": 18768,
+          "p99": 328040,
+          "max": 678456
+        },
+        "peakActive": 26195,
+        "rawDispatched": 48,
+        "rawDelivered": 48,
+        "rawPerGameDay": 48,
+        "produced": 22,
+        "consumed": 0,
+        "shopsStock": 0,
+        "shopCash": 5451425.217399768,
+        "replayChecked": true,
+        "replayHash": "9a4276c1a98da445ef2bb51c766b48ea7e2f003ccc99d80e298f876e2f2f675b",
+        "oldTasks": 797,
+        "oldestTask": 240,
+        "observation": {
+          "ports": [
+            {
+              "id": 1,
+              "x": -887,
+              "z": -0.550000011920929,
+              "active": true,
+              "departed": 6,
+              "arrived": 6,
+              "departedCargo": 48,
+              "arrivedCargo": 48,
+              "newArrived": 2,
+              "carryArrived": 4,
+              "slotOccupancy": 0.9885416666666276,
+              "fullFraction": 0.9629166666666298,
+              "peak": 4,
+              "allCompletedSeconds": {
+                "count": 6,
+                "mean": 156.9666666666667,
+                "p50": 56.900000000000034,
+                "p95": 265.6,
+                "p99": 265.6,
+                "max": 265.6
+              },
+              "newCompletedSeconds": {
+                "count": 2,
+                "mean": 56.62500000000003,
+                "p50": 56.35000000000002,
+                "p95": 56.900000000000034,
+                "p99": 56.900000000000034,
+                "max": 56.900000000000034
+              },
+              "incomplete": [
+                {
+                  "task": 262437,
+                  "carry": false,
+                  "age": 94,
+                  "cargo": 8
+                },
+                {
+                  "task": 334643,
+                  "carry": false,
+                  "age": 36,
+                  "cargo": 8
+                },
+                {
+                  "task": 335555,
+                  "carry": false,
+                  "age": 35,
+                  "cargo": 8
+                },
+                {
+                  "task": 261162,
+                  "carry": false,
+                  "age": 104,
+                  "cargo": 8
+                }
+              ]
+            },
+            {
+              "id": 26020,
+              "x": -887,
+              "z": -432.54998779296875,
+              "active": false,
+              "departed": 0,
+              "arrived": 0,
+              "departedCargo": 0,
+              "arrivedCargo": 0,
+              "newArrived": 0,
+              "carryArrived": 0,
+              "slotOccupancy": 0,
+              "fullFraction": 0,
+              "peak": 0,
+              "allCompletedSeconds": null,
+              "newCompletedSeconds": null,
+              "incomplete": []
+            },
+            {
+              "id": 26022,
+              "x": -887,
+              "z": 431.45001220703125,
+              "active": false,
+              "departed": 0,
+              "arrived": 0,
+              "departedCargo": 0,
+              "arrivedCargo": 0,
+              "newArrived": 0,
+              "carryArrived": 0,
+              "slotOccupancy": 0,
+              "fullFraction": 0,
+              "peak": 0,
+              "allCompletedSeconds": null,
+              "newCompletedSeconds": null,
+              "incomplete": []
+            },
+            {
+              "id": 26024,
+              "x": 887,
+              "z": 0.550000011920929,
+              "active": false,
+              "departed": 0,
+              "arrived": 0,
+              "departedCargo": 0,
+              "arrivedCargo": 0,
+              "newArrived": 0,
+              "carryArrived": 0,
+              "slotOccupancy": 0,
+              "fullFraction": 0,
+              "peak": 0,
+              "allCompletedSeconds": null,
+              "newCompletedSeconds": null,
+              "incomplete": []
+            },
+            {
+              "id": 26026,
+              "x": 887,
+              "z": -431.45001220703125,
+              "active": false,
+              "departed": 0,
+              "arrived": 0,
+              "departedCargo": 0,
+              "arrivedCargo": 0,
+              "newArrived": 0,
+              "carryArrived": 0,
+              "slotOccupancy": 0,
+              "fullFraction": 0,
+              "peak": 0,
+              "allCompletedSeconds": null,
+              "newCompletedSeconds": null,
+              "incomplete": []
+            },
+            {
+              "id": 26028,
+              "x": 887,
+              "z": 432.54998779296875,
+              "active": false,
+              "departed": 0,
+              "arrived": 0,
+              "departedCargo": 0,
+              "arrivedCargo": 0,
+              "newArrived": 0,
+              "carryArrived": 0,
+              "slotOccupancy": 0,
+              "fullFraction": 0,
+              "peak": 0,
+              "allCompletedSeconds": null,
+              "newCompletedSeconds": null,
+              "incomplete": []
+            },
+            {
+              "id": 26030,
+              "x": 0.550000011920929,
+              "z": -887,
+              "active": false,
+              "departed": 0,
+              "arrived": 0,
+              "departedCargo": 0,
+              "arrivedCargo": 0,
+              "newArrived": 0,
+              "carryArrived": 0,
+              "slotOccupancy": 0,
+              "fullFraction": 0,
+              "peak": 0,
+              "allCompletedSeconds": null,
+              "newCompletedSeconds": null,
+              "incomplete": []
+            },
+            {
+              "id": 26032,
+              "x": -431.45001220703125,
+              "z": -887,
+              "active": false,
+              "departed": 0,
+              "arrived": 0,
+              "departedCargo": 0,
+              "arrivedCargo": 0,
+              "newArrived": 0,
+              "carryArrived": 0,
+              "slotOccupancy": 0,
+              "fullFraction": 0,
+              "peak": 0,
+              "allCompletedSeconds": null,
+              "newCompletedSeconds": null,
+              "incomplete": []
+            },
+            {
+              "id": 26034,
+              "x": 432.54998779296875,
+              "z": -887,
+              "active": false,
+              "departed": 0,
+              "arrived": 0,
+              "departedCargo": 0,
+              "arrivedCargo": 0,
+              "newArrived": 0,
+              "carryArrived": 0,
+              "slotOccupancy": 0,
+              "fullFraction": 0,
+              "peak": 0,
+              "allCompletedSeconds": null,
+              "newCompletedSeconds": null,
+              "incomplete": []
+            },
+            {
+              "id": 26036,
+              "x": -0.550000011920929,
+              "z": 887,
+              "active": false,
+              "departed": 0,
+              "arrived": 0,
+              "departedCargo": 0,
+              "arrivedCargo": 0,
+              "newArrived": 0,
+              "carryArrived": 0,
+              "slotOccupancy": 0,
+              "fullFraction": 0,
+              "peak": 0,
+              "allCompletedSeconds": null,
+              "newCompletedSeconds": null,
+              "incomplete": []
+            },
+            {
+              "id": 26038,
+              "x": -432.54998779296875,
+              "z": 887,
+              "active": false,
+              "departed": 0,
+              "arrived": 0,
+              "departedCargo": 0,
+              "arrivedCargo": 0,
+              "newArrived": 0,
+              "carryArrived": 0,
+              "slotOccupancy": 0,
+              "fullFraction": 0,
+              "peak": 0,
+              "allCompletedSeconds": null,
+              "newCompletedSeconds": null,
+              "incomplete": []
+            },
+            {
+              "id": 26040,
+              "x": 431.45001220703125,
+              "z": 887,
+              "active": false,
+              "departed": 0,
+              "arrived": 0,
+              "departedCargo": 0,
+              "arrivedCargo": 0,
+              "newArrived": 0,
+              "carryArrived": 0,
+              "slotOccupancy": 0,
+              "fullFraction": 0,
+              "peak": 0,
+              "allCompletedSeconds": null,
+              "newCompletedSeconds": null,
+              "incomplete": []
+            }
+          ],
+          "goodsArrived": 0,
+          "servedFactories": 5,
+          "firstArrivalSeconds": {
+            "count": 5,
+            "mean": 35.18000000000003,
+            "p50": 25.600000000000023,
+            "p95": 83.35000000000002,
+            "p99": 83.35000000000002,
+            "max": 83.35000000000002
+          },
+          "unservedFactories": 8329,
+          "waitingDefinition": "first observed affordable refill need within this run; not historical order creation"
+        },
+        "note": "Includes synchronous event-observation cost, reported separately; outside-step scans/JSON/replay excluded. No uninstrumented FPS or algorithm speedup claim. GC pause unknown."
+      },
+      "resources": {
+        "peakPrivateBytes": 2638311424,
+        "peakWorkingSetBytes": 2652057600,
+        "terminatedBy": null,
+        "exitCode": 0,
+        "wallSeconds": 193.5638967
+      },
+      "preRunFreeFlowBudget": 37.398607650703596,
+      "coldFacts": {
+        "tick": 7200,
+        "population": 100006,
+        "rawStock": 30,
+        "rawConsumed": 34,
+        "rawImported": 64,
+        "produced": 30,
+        "processing": 4,
+        "attendanceMinutes": 29675902.127746582,
+        "productiveMinutes": 1962.9861286580563,
+        "factoryCash": 571550.6694494311,
+        "factoryWages": 8433954.330550501,
+        "processingRates": [
+          1
+        ],
+        "requiredLabourPerItem": 60,
+        "shopStock": 0,
+        "shopCash": 5451425.217399768,
+        "shopFunded": 1350,
+        "shopWages": 9790238.7826027,
+        "consumed": 0,
+        "note": "Cold read-only facts. Attendance is actual attendance, not proof all labour could be funded/productive or all output demanded."
+      },
+      "rawConsumedDelta": 26,
+      "observedAttendanceMinutes": 3319454.5892944336,
+      "attendancePotentialRaw": 55324.24315490723,
+      "potentialCaveat": "Only labour potential at rate1, NOT actual paid productive input or sales demand. Cash/stock constraints ignored.",
+      "rawArrivalCargoIncludingCarryIn": 48,
+      "carryInArrivalCargo": 32,
+      "newlyDispatched": 6,
+      "newCompleted": 2,
+      "newIncomplete": 4,
+      "newArrivalCargo": 16,
+      "meanNewPayload": 8.0,
+      "departedRouteWorldUnits": {
+        "count": 6,
+        "mean": 1126.0985065212012,
+        "p50": 997.3808213219182,
+        "p95": 2275.1859854934023,
+        "max": 2275.1859854934023
+      },
+      "departedFreeFlowSeconds": {
+        "count": 6,
+        "mean": 93.84154221010009,
+        "p50": 83.11506844349319,
+        "p95": 189.59883212445015,
+        "max": 189.59883212445015
+      },
+      "completedNewSeconds": {
+        "count": 2,
+        "mean": 56.62500000000003,
+        "p50": 56.35000000000002,
+        "p95": 56.900000000000034,
+        "max": 56.900000000000034
+      },
+      "carryInSeconds": {
+        "count": 4,
+        "mean": 207.13750000000005,
+        "p50": 263.35,
+        "p95": 265.6,
+        "max": 265.6
+      },
+      "incompleteAges": {
+        "count": 4,
+        "mean": 67.25,
+        "p50": 36.0,
+        "p95": 104.0,
+        "max": 104.0
+      },
+      "completedInflation": {
+        "count": 2,
+        "mean": 1.9263296426567074,
+        "p50": 1.9169743993590367,
+        "p95": 1.935684885954378,
+        "max": 1.935684885954378
+      },
+      "meanSlotOccupancy": 0.9885416666666276,
+      "factoryObservedWaiting": {
+        "count": 5194,
+        "mean": 76.66734693877551,
+        "p50": 63.0,
+        "p95": 120.0,
+        "max": 120.0
+      },
+      "demandStart": {
+        "tick": 4800,
+        "reorderGap": 199976,
+        "affordableGap": 93866,
+        "requesting": 5194,
+        "paidStaffedNoRaw": 0,
+        "rawDelivered": 16,
+        "produced": 8,
+        "consumed": 0
+      },
+      "demandEnd": {
+        "tick": 7200,
+        "reorderGap": 199954,
+        "affordableGap": 27242,
+        "requesting": 1322,
+        "paidStaffedNoRaw": 0,
+        "rawDelivered": 64,
+        "produced": 30,
+        "consumed": 0
+      },
+      "paidStaffedNoRaw": {
+        "count": 121,
+        "mean": 767.9504132231405,
+        "p50": 0,
+        "p95": 3100,
+        "max": 3623
+      },
+      "stockedShopSamples": 0,
+      "stockedAndOpenSamples": 0,
+      "finalRetail": {
+        "tick": 7200,
+        "day": 4,
+        "minute": 0,
+        "stock": 0,
+        "shops": [
+          {
+            "id": 5186,
+            "Stock": 0,
+            "Cash": 0,
+            "WholesaleFunded": 990,
+            "WageCosts": 896.0000000003135,
+            "actualAtWork": 0,
+            "paidStaffed": 0,
+            "open": false
+          },
+          {
+            "id": 5188,
+            "Stock": 0,
+            "Cash": 0,
+            "WholesaleFunded": 360,
+            "WageCosts": 1526.0000000002715,
+            "actualAtWork": 0,
+            "paidStaffed": 0,
+            "open": false
+          }
+        ],
+        "consumed": 0
+      },
+      "limitations": "One game day from same already-distressed city. Newly completed cohort only is completion-biased; all departures and right-censored trips are reported. No nearest-port policy. Not long-run capacity or FPS."
+    },
+    {
+      "imports": 4,
+      "report": {
+        "status": "passed-logistics-invariants; retail profitability not required",
+        "initialHash": "c3c9a114e92cca364523a031abfca3998f43cc12be1843c5f982d7d80d0d4103",
+        "finalHash": "de0dd582007282c4aa3322f20a9142f8ae6dcc9c15c812d8db0f9218d7a286d1",
+        "initialTick": 4800,
+        "finalTick": 7200,
+        "population": 100006,
+        "steps": 2400,
+        "seconds": 120,
+        "stepMs": {
+          "count": 2400,
+          "mean": 70.42690075000007,
+          "p50": 33.3378,
+          "p95": 85.5448,
+          "p99": 1577.409,
+          "max": 8333.5388
+        },
+        "allocatedBytes": {
+          "count": 2400,
+          "mean": 11935821.146666666,
+          "p50": 3249912,
+          "p95": 19135624,
+          "p99": 92483704,
+          "max": 3024039512
+        },
+        "synchronousHookMs": {
+          "count": 2400,
+          "mean": 0.0022555416666666665,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0.042500000000000426,
+          "max": 2.5985000000000014
+        },
+        "synchronousHookBytes": {
+          "count": 2400,
+          "mean": 67.27333333333333,
+          "p50": 0,
+          "p95": 0,
+          "p99": 1144,
+          "max": 73040
+        },
+        "outsideObserverMs": {
+          "count": 2400,
+          "mean": 0.17697258333333332,
+          "p50": 0.0081,
+          "p95": 1.1002,
+          "p99": 4.0513,
+          "max": 11.9862
+        },
+        "outsideObserverBytes": {
+          "count": 2400,
+          "mean": 11580.393333333333,
+          "p50": 384,
+          "p95": 22016,
+          "p99": 328584,
+          "max": 679064
+        },
+        "peakActive": 26241,
+        "rawDispatched": 170,
+        "rawDelivered": 88,
+        "rawPerGameDay": 88,
+        "produced": 33,
+        "consumed": 0,
+        "shopsStock": 0,
+        "shopCash": 5450538.980385391,
+        "replayChecked": true,
+        "replayHash": "733026147725567ad62cbb6e0b8a57c8a974772620d0f12d2a971c03d71545f8",
+        "oldTasks": 819,
+        "oldestTask": 240,
+        "observation": {
+          "ports": [
+            {
+              "id": 1,
+              "x": -887,
+              "z": -0.550000011920929,
+              "active": true,
+              "departed": 6,
+              "arrived": 6,
+              "departedCargo": 43,
+              "arrivedCargo": 48,
+              "newArrived": 2,
+              "carryArrived": 4,
+              "slotOccupancy": 0.9877083333332941,
+              "fullFraction": 0.9595833333332967,
+              "peak": 4,
+              "allCompletedSeconds": {
+                "count": 6,
+                "mean": 154.0666666666667,
+                "p50": 48.10000000000002,
+                "p95": 265.6,
+                "p99": 265.6,
+                "max": 265.6
+              },
+              "newCompletedSeconds": {
+                "count": 2,
+                "mean": 47.92500000000004,
+                "p50": 47.75000000000006,
+                "p95": 48.10000000000002,
+                "p99": 48.10000000000002,
+                "max": 48.10000000000002
+              },
+              "incomplete": [
+                {
+                  "task": 262445,
+                  "carry": false,
+                  "age": 94,
+                  "cargo": 8
+                },
+                {
+                  "task": 261171,
+                  "carry": false,
+                  "age": 104,
+                  "cargo": 8
+                },
+                {
+                  "task": 330186,
+                  "carry": false,
+                  "age": 45,
+                  "cargo": 3
+                },
+                {
+                  "task": 330890,
+                  "carry": false,
+                  "age": 43,
+                  "cargo": 8
+                }
+              ]
+            },
+            {
+              "id": 26020,
+              "x": -887,
+              "z": -432.54998779296875,
+              "active": false,
+              "departed": 0,
+              "arrived": 0,
+              "departedCargo": 0,
+              "arrivedCargo": 0,
+              "newArrived": 0,
+              "carryArrived": 0,
+              "slotOccupancy": 0,
+              "fullFraction": 0,
+              "peak": 0,
+              "allCompletedSeconds": null,
+              "newCompletedSeconds": null,
+              "incomplete": []
+            },
+            {
+              "id": 26022,
+              "x": -887,
+              "z": 431.45001220703125,
+              "active": false,
+              "departed": 0,
+              "arrived": 0,
+              "departedCargo": 0,
+              "arrivedCargo": 0,
+              "newArrived": 0,
+              "carryArrived": 0,
+              "slotOccupancy": 0,
+              "fullFraction": 0,
+              "peak": 0,
+              "allCompletedSeconds": null,
+              "newCompletedSeconds": null,
+              "incomplete": []
+            },
+            {
+              "id": 26024,
+              "x": 887,
+              "z": 0.550000011920929,
+              "active": true,
+              "departed": 4,
+              "arrived": 1,
+              "departedCargo": 32,
+              "arrivedCargo": 8,
+              "newArrived": 1,
+              "carryArrived": 0,
+              "slotOccupancy": 0.9855208333332947,
+              "fullFraction": 0.9670833333332962,
+              "peak": 4,
+              "allCompletedSeconds": {
+                "count": 1,
+                "mean": 118.10000000000002,
+                "p50": 118.10000000000002,
+                "p95": 118.10000000000002,
+                "p99": 118.10000000000002,
+                "max": 118.10000000000002
+              },
+              "newCompletedSeconds": {
+                "count": 1,
+                "mean": 118.10000000000002,
+                "p50": 118.10000000000002,
+                "p95": 118.10000000000002,
+                "p99": 118.10000000000002,
+                "max": 118.10000000000002
+              },
+              "incomplete": [
+                {
+                  "task": 259578,
+                  "carry": false,
+                  "age": 120,
+                  "cargo": 8
+                },
+                {
+                  "task": 259903,
+                  "carry": false,
+                  "age": 118,
+                  "cargo": 8
+                },
+                {
+                  "task": 259989,
+                  "carry": false,
+                  "age": 117,
+                  "cargo": 8
+                }
+              ]
+            },
+            {
+              "id": 26026,
+              "x": 887,
+              "z": -431.45001220703125,
+              "active": false,
+              "departed": 0,
+              "arrived": 0,
+              "departedCargo": 0,
+              "arrivedCargo": 0,
+              "newArrived": 0,
+              "carryArrived": 0,
+              "slotOccupancy": 0,
+              "fullFraction": 0,
+              "peak": 0,
+              "allCompletedSeconds": null,
+              "newCompletedSeconds": null,
+              "incomplete": []
+            },
+            {
+              "id": 26028,
+              "x": 887,
+              "z": 432.54998779296875,
+              "active": false,
+              "departed": 0,
+              "arrived": 0,
+              "departedCargo": 0,
+              "arrivedCargo": 0,
+              "newArrived": 0,
+              "carryArrived": 0,
+              "slotOccupancy": 0,
+              "fullFraction": 0,
+              "peak": 0,
+              "allCompletedSeconds": null,
+              "newCompletedSeconds": null,
+              "incomplete": []
+            },
+            {
+              "id": 26030,
+              "x": 0.550000011920929,
+              "z": -887,
+              "active": true,
+              "departed": 8,
+              "arrived": 4,
+              "departedCargo": 64,
+              "arrivedCargo": 32,
+              "newArrived": 4,
+              "carryArrived": 0,
+              "slotOccupancy": 0.9834374999999617,
+              "fullFraction": 0.9587499999999634,
+              "peak": 4,
+              "allCompletedSeconds": {
+                "count": 4,
+                "mean": 42.56250000000003,
+                "p50": 33.5,
+                "p95": 69.25000000000006,
+                "p99": 69.25000000000006,
+                "max": 69.25000000000006
+              },
+              "newCompletedSeconds": {
+                "count": 4,
+                "mean": 42.56250000000003,
+                "p50": 33.5,
+                "p95": 69.25000000000006,
+                "p99": 69.25000000000006,
+                "max": 69.25000000000006
+              },
+              "incomplete": [
+                {
+                  "task": 259579,
+                  "carry": false,
+                  "age": 120,
+                  "cargo": 8
+                },
+                {
+                  "task": 328586,
+                  "carry": false,
+                  "age": 49,
+                  "cargo": 8
+                },
+                {
+                  "task": 326747,
+                  "carry": false,
+                  "age": 53,
+                  "cargo": 8
+                },
+                {
+                  "task": 269606,
+                  "carry": false,
+                  "age": 80,
+                  "cargo": 8
+                }
+              ]
+            },
+            {
+              "id": 26032,
+              "x": -431.45001220703125,
+              "z": -887,
+              "active": false,
+              "departed": 0,
+              "arrived": 0,
+              "departedCargo": 0,
+              "arrivedCargo": 0,
+              "newArrived": 0,
+              "carryArrived": 0,
+              "slotOccupancy": 0,
+              "fullFraction": 0,
+              "peak": 0,
+              "allCompletedSeconds": null,
+              "newCompletedSeconds": null,
+              "incomplete": []
+            },
+            {
+              "id": 26034,
+              "x": 432.54998779296875,
+              "z": -887,
+              "active": false,
+              "departed": 0,
+              "arrived": 0,
+              "departedCargo": 0,
+              "arrivedCargo": 0,
+              "newArrived": 0,
+              "carryArrived": 0,
+              "slotOccupancy": 0,
+              "fullFraction": 0,
+              "peak": 0,
+              "allCompletedSeconds": null,
+              "newCompletedSeconds": null,
+              "incomplete": []
+            },
+            {
+              "id": 26036,
+              "x": -0.550000011920929,
+              "z": 887,
+              "active": true,
+              "departed": 4,
+              "arrived": 0,
+              "departedCargo": 31,
+              "arrivedCargo": 0,
+              "newArrived": 0,
+              "carryArrived": 0,
+              "slotOccupancy": 0.9874999999999617,
+              "fullFraction": 0.9749999999999625,
+              "peak": 4,
+              "allCompletedSeconds": null,
+              "newCompletedSeconds": null,
+              "incomplete": [
+                {
+                  "task": 259580,
+                  "carry": false,
+                  "age": 120,
+                  "cargo": 7
+                },
+                {
+                  "task": 259803,
+                  "carry": false,
+                  "age": 119,
+                  "cargo": 8
+                },
+                {
+                  "task": 259905,
+                  "carry": false,
+                  "age": 118,
+                  "cargo": 8
+                },
+                {
+                  "task": 259991,
+                  "carry": false,
+                  "age": 117,
+                  "cargo": 8
+                }
+              ]
+            },
+            {
+              "id": 26038,
+              "x": -432.54998779296875,
+              "z": 887,
+              "active": false,
+              "departed": 0,
+              "arrived": 0,
+              "departedCargo": 0,
+              "arrivedCargo": 0,
+              "newArrived": 0,
+              "carryArrived": 0,
+              "slotOccupancy": 0,
+              "fullFraction": 0,
+              "peak": 0,
+              "allCompletedSeconds": null,
+              "newCompletedSeconds": null,
+              "incomplete": []
+            },
+            {
+              "id": 26040,
+              "x": 431.45001220703125,
+              "z": 887,
+              "active": false,
+              "departed": 0,
+              "arrived": 0,
+              "departedCargo": 0,
+              "arrivedCargo": 0,
+              "newArrived": 0,
+              "carryArrived": 0,
+              "slotOccupancy": 0,
+              "fullFraction": 0,
+              "peak": 0,
+              "allCompletedSeconds": null,
+              "newCompletedSeconds": null,
+              "incomplete": []
+            }
+          ],
+          "goodsArrived": 0,
+          "servedFactories": 9,
+          "firstArrivalSeconds": {
+            "count": 9,
+            "mean": 50.97777777777781,
+            "p50": 35.5,
+            "p95": 119.10000000000002,
+            "p99": 119.10000000000002,
+            "max": 119.10000000000002
+          },
+          "unservedFactories": 8325,
+          "waitingDefinition": "first observed affordable refill need within this run; not historical order creation"
+        },
+        "note": "Includes synchronous event-observation cost, reported separately; outside-step scans/JSON/replay excluded. No uninstrumented FPS or algorithm speedup claim. GC pause unknown."
+      },
+      "resources": {
+        "terminatedBy": null,
+        "peakPrivateBytes": 2390183936,
+        "peakWorkingSetBytes": 2372321280,
+        "wallSeconds": 193.9432026,
+        "exitCode": 0
+      },
+      "preRunFreeFlowBudget": 141.52034814434234,
+      "coldFacts": {
+        "tick": 7200,
+        "population": 100006,
+        "rawStock": 58,
+        "rawConsumed": 46,
+        "rawImported": 104,
+        "produced": 41,
+        "processing": 5,
+        "attendanceMinutes": 29665629.347808838,
+        "productiveMinutes": 2666.7770222127438,
+        "factoryCash": 572560.49312001,
+        "factoryWages": 8431924.50687992,
+        "processingRates": [
+          1
+        ],
+        "requiredLabourPerItem": 60,
+        "shopStock": 0,
+        "shopCash": 5450538.980385391,
+        "shopFunded": 1845,
+        "shopWages": 9790630.019617112,
+        "consumed": 0,
+        "note": "Cold read-only facts. Attendance is actual attendance, not proof all labour could be funded/productive or all output demanded."
+      },
+      "rawConsumedDelta": 38,
+      "observedAttendanceMinutes": 3309181.8093566895,
+      "attendancePotentialRaw": 55153.03015594483,
+      "potentialCaveat": "Only labour potential at rate1, NOT actual paid productive input or sales demand. Cash/stock constraints ignored.",
+      "rawArrivalCargoIncludingCarryIn": 88,
+      "carryInArrivalCargo": 32,
+      "newlyDispatched": 22,
+      "newCompleted": 7,
+      "newIncomplete": 15,
+      "newArrivalCargo": 56,
+      "meanNewPayload": 7.7272727272727275,
+      "departedRouteWorldUnits": {
+        "count": 22,
+        "mean": 1352.649236492591,
+        "p50": 1519.5009633322793,
+        "p95": 2275.1859854934023,
+        "max": 2306.5737725948134
+      },
+      "departedFreeFlowSeconds": {
+        "count": 22,
+        "mean": 112.7207697077159,
+        "p50": 126.62508027768993,
+        "p95": 189.59883212445015,
+        "max": 192.21448104956767
+      },
+      "completedNewSeconds": {
+        "count": 7,
+        "mean": 54.885714285714315,
+        "p50": 47.75000000000006,
+        "p95": 118.10000000000002,
+        "max": 118.10000000000002
+      },
+      "carryInSeconds": {
+        "count": 4,
+        "mean": 207.13750000000005,
+        "p50": 263.35,
+        "p95": 265.6,
+        "max": 265.6
+      },
+      "incompleteAges": {
+        "count": 15,
+        "mean": 94.46666666666667,
+        "p50": 117.0,
+        "p95": 120.0,
+        "max": 120.0
+      },
+      "completedInflation": {
+        "count": 7,
+        "mean": 1.30172113177777,
+        "p50": 1.2526534712192547,
+        "p95": 1.6363171004289205,
+        "max": 1.6363171004289205
+      },
+      "meanSlotOccupancy": 0.9860416666666281,
+      "factoryObservedWaiting": {
+        "count": 5194,
+        "mean": 76.62665575664228,
+        "p50": 63.0,
+        "p95": 120.0,
+        "max": 120.0
+      },
+      "demandStart": {
+        "tick": 4800,
+        "reorderGap": 199976,
+        "affordableGap": 93866,
+        "requesting": 5194,
+        "paidStaffedNoRaw": 0,
+        "rawDelivered": 16,
+        "produced": 8,
+        "consumed": 0
+      },
+      "demandEnd": {
+        "tick": 7200,
+        "reorderGap": 199844,
+        "affordableGap": 27224,
+        "requesting": 1318,
+        "paidStaffedNoRaw": 0,
+        "rawDelivered": 104,
+        "produced": 41,
+        "consumed": 0
+      },
+      "paidStaffedNoRaw": {
+        "count": 121,
+        "mean": 764.3388429752066,
+        "p50": 0,
+        "p95": 3084,
+        "max": 3606
+      },
+      "stockedShopSamples": 0,
+      "stockedAndOpenSamples": 0,
+      "finalRetail": {
+        "tick": 7200,
+        "day": 4,
+        "minute": 0,
+        "stock": 0,
+        "shops": [
+          {
+            "id": 5186,
+            "Stock": 0,
+            "Cash": 0,
+            "WholesaleFunded": 990,
+            "WageCosts": 896.0000000003135,
+            "actualAtWork": 0,
+            "paidStaffed": 0,
+            "open": false
+          },
+          {
+            "id": 5188,
+            "Stock": 0,
+            "Cash": 0,
+            "WholesaleFunded": 585,
+            "WageCosts": 1301.0000000003677,
+            "actualAtWork": 0,
+            "paidStaffed": 0,
+            "open": false
+          },
+          {
+            "id": 5190,
+            "Stock": 0,
+            "Cash": 1119.7615750633497,
+            "WholesaleFunded": 270,
+            "WageCosts": 439.2384249369093,
+            "actualAtWork": 0,
+            "paidStaffed": 0,
+            "open": false
+          }
+        ],
+        "consumed": 0
+      },
+      "limitations": "One game day from same already-distressed city. Newly completed cohort only is completion-biased; all departures and right-censored trips are reported. No nearest-port policy. Not long-run capacity or FPS."
+    },
+    {
+      "imports": 12,
+      "report": {
+        "status": "passed-logistics-invariants; retail profitability not required",
+        "initialHash": "648f0d46c09249d4d26bfbb3a19fcffdc02327d5c3c3db9976862921c2a38ceb",
+        "finalHash": "68af94eb5c8509c315aa271c69ac9acf713c2f24b77774296c3c354534c6713e",
+        "initialTick": 4800,
+        "finalTick": 7200,
+        "population": 100006,
+        "steps": 2400,
+        "seconds": 120,
+        "stepMs": {
+          "count": 2400,
+          "mean": 73.27507329166671,
+          "p50": 33.3824,
+          "p95": 88.1118,
+          "p99": 1780.153,
+          "max": 8258.112
+        },
+        "allocatedBytes": {
+          "count": 2400,
+          "mean": 12640147.8,
+          "p50": 3259872,
+          "p95": 19368744,
+          "p99": 127900448,
+          "max": 3030417368
+        },
+        "synchronousHookMs": {
+          "count": 2400,
+          "mean": 0.002677833333333332,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0.03719999999999857,
+          "max": 2.4924999999999997
+        },
+        "synchronousHookBytes": {
+          "count": 2400,
+          "mean": 96.67,
+          "p50": 0,
+          "p95": 0,
+          "p99": 1352,
+          "max": 73040
+        },
+        "outsideObserverMs": {
+          "count": 2400,
+          "mean": 0.1770188333333333,
+          "p50": 0.0135,
+          "p95": 0.9146,
+          "p99": 3.7927,
+          "max": 11.2116
+        },
+        "outsideObserverBytes": {
+          "count": 2400,
+          "mean": 12001.623333333333,
+          "p50": 776,
+          "p95": 19768,
+          "p99": 329048,
+          "max": 679424
+        },
+        "peakActive": 26246,
+        "rawDispatched": 502,
+        "rawDelivered": 169,
+        "rawPerGameDay": 169,
+        "produced": 46,
+        "consumed": 0,
+        "shopsStock": 6,
+        "shopCash": 5455360.682312948,
+        "replayChecked": true,
+        "replayHash": "6aad6e3db453206a3ba45454f0b03fd0073e77ef3f35c175e7f9fae3ccf5fc48",
+        "oldTasks": 792,
+        "oldestTask": 240,
+        "observation": {
+          "ports": [
+            {
+              "id": 1,
+              "x": -887,
+              "z": -0.550000011920929,
+              "active": true,
+              "departed": 6,
+              "arrived": 6,
+              "departedCargo": 37,
+              "arrivedCargo": 41,
+              "newArrived": 2,
+              "carryArrived": 4,
+              "slotOccupancy": 0.9891666666666278,
+              "fullFraction": 0.9654166666666296,
+              "peak": 4,
+              "allCompletedSeconds": {
+                "count": 6,
+                "mean": 153.5166666666667,
+                "p50": 47.00000000000006,
+                "p95": 265.6,
+                "p99": 265.6,
+                "max": 265.6
+              },
+              "newCompletedSeconds": {
+                "count": 2,
+                "mean": 46.275000000000034,
+                "p50": 45.55000000000001,
+                "p95": 47.00000000000006,
+                "p99": 47.00000000000006,
+                "max": 47.00000000000006
+              },
+              "incomplete": [
+                {
+                  "task": 329005,
+                  "carry": false,
+                  "age": 48,
+                  "cargo": 8
+                },
+                {
+                  "task": 329799,
+                  "carry": false,
+                  "age": 46,
+                  "cargo": 8
+                },
+                {
+                  "task": 261205,
+                  "carry": false,
+                  "age": 104,
+                  "cargo": 4
+                },
+                {
+                  "task": 262880,
+                  "carry": false,
+                  "age": 92,
+                  "cargo": 8
+                }
+              ]
+            },
+            {
+              "id": 26020,
+              "x": -887,
+              "z": -432.54998779296875,
+              "active": true,
+              "departed": 8,
+              "arrived": 4,
+              "departedCargo": 64,
+              "arrivedCargo": 32,
+              "newArrived": 4,
+              "carryArrived": 0,
+              "slotOccupancy": 0.9831249999999615,
+              "fullFraction": 0.9574999999999635,
+              "peak": 4,
+              "allCompletedSeconds": {
+                "count": 4,
+                "mean": 54.275000000000034,
+                "p50": 24.950000000000045,
+                "p95": 87.05000000000001,
+                "p99": 87.05000000000001,
+                "max": 87.05000000000001
+              },
+              "newCompletedSeconds": {
+                "count": 4,
+                "mean": 54.275000000000034,
+                "p50": 24.950000000000045,
+                "p95": 87.05000000000001,
+                "p99": 87.05000000000001,
+                "max": 87.05000000000001
+              },
+              "incomplete": [
+                {
+                  "task": 369125,
+                  "carry": false,
+                  "age": 6,
+                  "cargo": 8
+                },
+                {
+                  "task": 261677,
+                  "carry": false,
+                  "age": 100,
+                  "cargo": 8
+                },
+                {
+                  "task": 259809,
+                  "carry": false,
+                  "age": 119,
+                  "cargo": 8
+                },
+                {
+                  "task": 336899,
+                  "carry": false,
+                  "age": 30,
+                  "cargo": 8
+                }
+              ]
+            },
+            {
+              "id": 26022,
+              "x": -887,
+              "z": 431.45001220703125,
+              "active": true,
+              "departed": 6,
+              "arrived": 2,
+              "departedCargo": 47,
+              "arrivedCargo": 16,
+              "newArrived": 2,
+              "carryArrived": 0,
+              "slotOccupancy": 0.9865624999999617,
+              "fullFraction": 0.9712499999999626,
+              "peak": 4,
+              "allCompletedSeconds": {
+                "count": 2,
+                "mean": 77.32500000000005,
+                "p50": 48.900000000000034,
+                "p95": 105.75000000000006,
+                "p99": 105.75000000000006,
+                "max": 105.75000000000006
+              },
+              "newCompletedSeconds": {
+                "count": 2,
+                "mean": 77.32500000000005,
+                "p50": 48.900000000000034,
+                "p95": 105.75000000000006,
+                "p99": 105.75000000000006,
+                "max": 105.75000000000006
+              },
+              "incomplete": [
+                {
+                  "task": 367958,
+                  "carry": false,
+                  "age": 14,
+                  "cargo": 8
+                },
+                {
+                  "task": 259810,
+                  "carry": false,
+                  "age": 119,
+                  "cargo": 8
+                },
+                {
+                  "task": 259920,
+                  "carry": false,
+                  "age": 118,
+                  "cargo": 8
+                },
+                {
+                  "task": 292664,
+                  "carry": false,
+                  "age": 68,
+                  "cargo": 7
+                }
+              ]
+            },
+            {
+              "id": 26024,
+              "x": 887,
+              "z": 0.550000011920929,
+              "active": true,
+              "departed": 4,
+              "arrived": 0,
+              "departedCargo": 31,
+              "arrivedCargo": 0,
+              "newArrived": 0,
+              "carryArrived": 0,
+              "slotOccupancy": 0.9874999999999617,
+              "fullFraction": 0.9749999999999625,
+              "peak": 4,
+              "allCompletedSeconds": null,
+              "newCompletedSeconds": null,
+              "incomplete": [
+                {
+                  "task": 259580,
+                  "carry": false,
+                  "age": 120,
+                  "cargo": 7
+                },
+                {
+                  "task": 259811,
+                  "carry": false,
+                  "age": 119,
+                  "cargo": 8
+                },
+                {
+                  "task": 259921,
+                  "carry": false,
+                  "age": 118,
+                  "cargo": 8
+                },
+                {
+                  "task": 260015,
+                  "carry": false,
+                  "age": 117,
+                  "cargo": 8
+                }
+              ]
+            },
+            {
+              "id": 26026,
+              "x": 887,
+              "z": -431.45001220703125,
+              "active": true,
+              "departed": 7,
+              "arrived": 3,
+              "departedCargo": 50,
+              "arrivedCargo": 24,
+              "newArrived": 3,
+              "carryArrived": 0,
+              "slotOccupancy": 0.9846874999999611,
+              "fullFraction": 0.9637499999999631,
+              "peak": 4,
+              "allCompletedSeconds": {
+                "count": 3,
+                "mean": 107.2666666666667,
+                "p50": 108.85000000000002,
+                "p95": 116.40000000000003,
+                "p99": 116.40000000000003,
+                "max": 116.40000000000003
+              },
+              "newCompletedSeconds": {
+                "count": 3,
+                "mean": 107.2666666666667,
+                "p50": 108.85000000000002,
+                "p95": 116.40000000000003,
+                "p99": 116.40000000000003,
+                "max": 116.40000000000003
+              },
+              "incomplete": [
+                {
+                  "task": 259581,
+                  "carry": false,
+                  "age": 120,
+                  "cargo": 8
+                },
+                {
+                  "task": 369564,
+                  "carry": false,
+                  "age": 2,
+                  "cargo": 2
+                },
+                {
+                  "task": 352773,
+                  "carry": false,
+                  "age": 21,
+                  "cargo": 8
+                },
+                {
+                  "task": 368860,
+                  "carry": false,
+                  "age": 8,
+                  "cargo": 8
+                }
+              ]
+            },
+            {
+              "id": 26028,
+              "x": 887,
+              "z": 432.54998779296875,
+              "active": true,
+              "departed": 4,
+              "arrived": 0,
+              "departedCargo": 32,
+              "arrivedCargo": 0,
+              "newArrived": 0,
+              "carryArrived": 0,
+              "slotOccupancy": 0.9874999999999617,
+              "fullFraction": 0.9749999999999625,
+              "peak": 4,
+              "allCompletedSeconds": null,
+              "newCompletedSeconds": null,
+              "incomplete": [
+                {
+                  "task": 259582,
+                  "carry": false,
+                  "age": 120,
+                  "cargo": 8
+                },
+                {
+                  "task": 259813,
+                  "carry": false,
+                  "age": 119,
+                  "cargo": 8
+                },
+                {
+                  "task": 259923,
+                  "carry": false,
+                  "age": 118,
+                  "cargo": 8
+                },
+                {
+                  "task": 260017,
+                  "carry": false,
+                  "age": 117,
+                  "cargo": 8
+                }
+              ]
+            },
+            {
+              "id": 26030,
+              "x": 0.550000011920929,
+              "z": -887,
+              "active": true,
+              "departed": 6,
+              "arrived": 2,
+              "departedCargo": 43,
+              "arrivedCargo": 16,
+              "newArrived": 2,
+              "carryArrived": 0,
+              "slotOccupancy": 0.9839583333332952,
+              "fullFraction": 0.9608333333332966,
+              "peak": 4,
+              "allCompletedSeconds": {
+                "count": 2,
+                "mean": 59.20000000000002,
+                "p50": 54.25,
+                "p95": 64.15000000000003,
+                "p99": 64.15000000000003,
+                "max": 64.15000000000003
+              },
+              "newCompletedSeconds": {
+                "count": 2,
+                "mean": 59.20000000000002,
+                "p50": 54.25,
+                "p95": 64.15000000000003,
+                "p99": 64.15000000000003,
+                "max": 64.15000000000003
+              },
+              "incomplete": [
+                {
+                  "task": 259814,
+                  "carry": false,
+                  "age": 119,
+                  "cargo": 8
+                },
+                {
+                  "task": 259924,
+                  "carry": false,
+                  "age": 118,
+                  "cargo": 3
+                },
+                {
+                  "task": 297064,
+                  "carry": false,
+                  "age": 65,
+                  "cargo": 8
+                },
+                {
+                  "task": 327195,
+                  "carry": false,
+                  "age": 52,
+                  "cargo": 8
+                }
+              ]
+            },
+            {
+              "id": 26032,
+              "x": -431.45001220703125,
+              "z": -887,
+              "active": true,
+              "departed": 5,
+              "arrived": 1,
+              "departedCargo": 39,
+              "arrivedCargo": 8,
+              "newArrived": 1,
+              "carryArrived": 0,
+              "slotOccupancy": 0.9873958333332951,
+              "fullFraction": 0.9745833333332958,
+              "peak": 4,
+              "allCompletedSeconds": {
+                "count": 1,
+                "mean": 86.00000000000006,
+                "p50": 86.00000000000006,
+                "p95": 86.00000000000006,
+                "p99": 86.00000000000006,
+                "max": 86.00000000000006
+              },
+              "newCompletedSeconds": {
+                "count": 1,
+                "mean": 86.00000000000006,
+                "p50": 86.00000000000006,
+                "p95": 86.00000000000006,
+                "p99": 86.00000000000006,
+                "max": 86.00000000000006
+              },
+              "incomplete": [
+                {
+                  "task": 259584,
+                  "carry": false,
+                  "age": 120,
+                  "cargo": 7
+                },
+                {
+                  "task": 259815,
+                  "carry": false,
+                  "age": 119,
+                  "cargo": 8
+                },
+                {
+                  "task": 259925,
+                  "carry": false,
+                  "age": 118,
+                  "cargo": 8
+                },
+                {
+                  "task": 336802,
+                  "carry": false,
+                  "age": 31,
+                  "cargo": 8
+                }
+              ]
+            },
+            {
+              "id": 26034,
+              "x": 432.54998779296875,
+              "z": -887,
+              "active": true,
+              "departed": 5,
+              "arrived": 1,
+              "departedCargo": 40,
+              "arrivedCargo": 8,
+              "newArrived": 1,
+              "carryArrived": 0,
+              "slotOccupancy": 0.9862499999999618,
+              "fullFraction": 0.9699999999999628,
+              "peak": 4,
+              "allCompletedSeconds": {
+                "count": 1,
+                "mean": 32.450000000000045,
+                "p50": 32.450000000000045,
+                "p95": 32.450000000000045,
+                "p99": 32.450000000000045,
+                "max": 32.450000000000045
+              },
+              "newCompletedSeconds": {
+                "count": 1,
+                "mean": 32.450000000000045,
+                "p50": 32.450000000000045,
+                "p95": 32.450000000000045,
+                "p99": 32.450000000000045,
+                "max": 32.450000000000045
+              },
+              "incomplete": [
+                {
+                  "task": 264329,
+                  "carry": false,
+                  "age": 87,
+                  "cargo": 8
+                },
+                {
+                  "task": 259816,
+                  "carry": false,
+                  "age": 119,
+                  "cargo": 8
+                },
+                {
+                  "task": 259926,
+                  "carry": false,
+                  "age": 118,
+                  "cargo": 8
+                },
+                {
+                  "task": 260020,
+                  "carry": false,
+                  "age": 117,
+                  "cargo": 8
+                }
+              ]
+            },
+            {
+              "id": 26036,
+              "x": -0.550000011920929,
+              "z": 887,
+              "active": true,
+              "departed": 5,
+              "arrived": 1,
+              "departedCargo": 40,
+              "arrivedCargo": 8,
+              "newArrived": 1,
+              "carryArrived": 0,
+              "slotOccupancy": 0.9873958333332951,
+              "fullFraction": 0.9745833333332958,
+              "peak": 4,
+              "allCompletedSeconds": {
+                "count": 1,
+                "mean": 77.00000000000006,
+                "p50": 77.00000000000006,
+                "p95": 77.00000000000006,
+                "p99": 77.00000000000006,
+                "max": 77.00000000000006
+              },
+              "newCompletedSeconds": {
+                "count": 1,
+                "mean": 77.00000000000006,
+                "p50": 77.00000000000006,
+                "p95": 77.00000000000006,
+                "p99": 77.00000000000006,
+                "max": 77.00000000000006
+              },
+              "incomplete": [
+                {
+                  "task": 259586,
+                  "carry": false,
+                  "age": 120,
+                  "cargo": 8
+                },
+                {
+                  "task": 259817,
+                  "carry": false,
+                  "age": 119,
+                  "cargo": 8
+                },
+                {
+                  "task": 331446,
+                  "carry": false,
+                  "age": 41,
+                  "cargo": 8
+                },
+                {
+                  "task": 260021,
+                  "carry": false,
+                  "age": 117,
+                  "cargo": 8
+                }
+              ]
+            },
+            {
+              "id": 26038,
+              "x": -432.54998779296875,
+              "z": 887,
+              "active": true,
+              "departed": 5,
+              "arrived": 1,
+              "departedCargo": 40,
+              "arrivedCargo": 8,
+              "newArrived": 1,
+              "carryArrived": 0,
+              "slotOccupancy": 0.9858333333332953,
+              "fullFraction": 0.9683333333332962,
+              "peak": 4,
+              "allCompletedSeconds": {
+                "count": 1,
+                "mean": 31.25,
+                "p50": 31.25,
+                "p95": 31.25,
+                "p99": 31.25,
+                "max": 31.25
+              },
+              "newCompletedSeconds": {
+                "count": 1,
+                "mean": 31.25,
+                "p50": 31.25,
+                "p95": 31.25,
+                "p99": 31.25,
+                "max": 31.25
+              },
+              "incomplete": [
+                {
+                  "task": 259587,
+                  "carry": false,
+                  "age": 120,
+                  "cargo": 8
+                },
+                {
+                  "task": 264330,
+                  "carry": false,
+                  "age": 87,
+                  "cargo": 8
+                },
+                {
+                  "task": 259928,
+                  "carry": false,
+                  "age": 118,
+                  "cargo": 8
+                },
+                {
+                  "task": 260022,
+                  "carry": false,
+                  "age": 117,
+                  "cargo": 8
+                }
+              ]
+            },
+            {
+              "id": 26040,
+              "x": 431.45001220703125,
+              "z": 887,
+              "active": true,
+              "departed": 5,
+              "arrived": 1,
+              "departedCargo": 39,
+              "arrivedCargo": 8,
+              "newArrived": 1,
+              "carryArrived": 0,
+              "slotOccupancy": 0.9871874999999618,
+              "fullFraction": 0.9737499999999625,
+              "peak": 4,
+              "allCompletedSeconds": {
+                "count": 1,
+                "mean": 64.90000000000003,
+                "p50": 64.90000000000003,
+                "p95": 64.90000000000003,
+                "p99": 64.90000000000003,
+                "max": 64.90000000000003
+              },
+              "newCompletedSeconds": {
+                "count": 1,
+                "mean": 64.90000000000003,
+                "p50": 64.90000000000003,
+                "p95": 64.90000000000003,
+                "p99": 64.90000000000003,
+                "max": 64.90000000000003
+              },
+              "incomplete": [
+                {
+                  "task": 325617,
+                  "carry": false,
+                  "age": 55,
+                  "cargo": 8
+                },
+                {
+                  "task": 259819,
+                  "carry": false,
+                  "age": 119,
+                  "cargo": 7
+                },
+                {
+                  "task": 259929,
+                  "carry": false,
+                  "age": 118,
+                  "cargo": 8
+                },
+                {
+                  "task": 260023,
+                  "carry": false,
+                  "age": 117,
+                  "cargo": 8
+                }
+              ]
+            }
+          ],
+          "goodsArrived": 6,
+          "servedFactories": 16,
+          "firstArrivalSeconds": {
+            "count": 16,
+            "mean": 53.61562500000003,
+            "p50": 32.450000000000045,
+            "p95": 111.85000000000002,
+            "p99": 111.85000000000002,
+            "max": 111.85000000000002
+          },
+          "unservedFactories": 8318,
+          "waitingDefinition": "first observed affordable refill need within this run; not historical order creation"
+        },
+        "note": "Includes synchronous event-observation cost, reported separately; outside-step scans/JSON/replay excluded. No uninstrumented FPS or algorithm speedup claim. GC pause unknown."
+      },
+      "resources": {
+        "peakWorkingSetBytes": 3442139136,
+        "peakPrivateBytes": 3530141696,
+        "exitCode": 0,
+        "terminatedBy": null,
+        "wallSeconds": 200.2433215
+      },
+      "preRunFreeFlowBudget": 402.6295068350849,
+      "coldFacts": {
+        "tick": 7200,
+        "population": 100006,
+        "rawStock": 125,
+        "rawConsumed": 60,
+        "rawImported": 185,
+        "produced": 54,
+        "processing": 6,
+        "attendanceMinutes": 29668220.04147339,
+        "productiveMinutes": 3453.4286985583603,
+        "factoryCash": 570008.8025076613,
+        "factoryWages": 8432188.197492264,
+        "processingRates": [
+          1
+        ],
+        "requiredLabourPerItem": 60,
+        "shopStock": 6,
+        "shopCash": 5455360.682312948,
+        "shopFunded": 2430,
+        "shopWages": 9785223.317689566,
+        "consumed": 0,
+        "note": "Cold read-only facts. Attendance is actual attendance, not proof all labour could be funded/productive or all output demanded."
+      },
+      "rawConsumedDelta": 52,
+      "observedAttendanceMinutes": 3311772.5030212402,
+      "attendancePotentialRaw": 55196.208383687335,
+      "potentialCaveat": "Only labour potential at rate1, NOT actual paid productive input or sales demand. Cash/stock constraints ignored.",
+      "rawArrivalCargoIncludingCarryIn": 169,
+      "carryInArrivalCargo": 32,
+      "newlyDispatched": 66,
+      "newCompleted": 18,
+      "newIncomplete": 48,
+      "newArrivalCargo": 137,
+      "meanNewPayload": 7.606060606060606,
+      "departedRouteWorldUnits": {
+        "count": 66,
+        "mean": 1317.8411601865002,
+        "p50": 1325.538647706583,
+        "p95": 2212.620436458846,
+        "max": 2679.7688689019196
+      },
+      "departedFreeFlowSeconds": {
+        "count": 66,
+        "mean": 109.82009668220833,
+        "p50": 110.46155397554863,
+        "p95": 184.3850363715705,
+        "max": 223.31407240849322
+      },
+      "completedNewSeconds": {
+        "count": 18,
+        "mean": 66.45000000000003,
+        "p50": 64.15000000000003,
+        "p95": 116.40000000000003,
+        "max": 116.40000000000003
+      },
+      "carryInSeconds": {
+        "count": 4,
+        "mean": 207.13750000000005,
+        "p50": 263.35,
+        "p95": 265.6,
+        "max": 265.6
+      },
+      "incompleteAges": {
+        "count": 48,
+        "mean": 91.54166666666667,
+        "p50": 117.0,
+        "p95": 120.0,
+        "max": 120.0
+      },
+      "completedInflation": {
+        "count": 18,
+        "mean": 1.2588322576081081,
+        "p50": 1.1451377137879952,
+        "p95": 1.5988961272382394,
+        "max": 1.5988961272382394
+      },
+      "meanSlotOccupancy": 0.986380208333295,
+      "factoryObservedWaiting": {
+        "count": 5194,
+        "mean": 76.48820754716981,
+        "p50": 63.0,
+        "p95": 120.0,
+        "max": 120.0
+      },
+      "demandStart": {
+        "tick": 4800,
+        "reorderGap": 199976,
+        "affordableGap": 93866,
+        "requesting": 5194,
+        "paidStaffedNoRaw": 0,
+        "rawDelivered": 16,
+        "produced": 8,
+        "consumed": 0
+      },
+      "demandEnd": {
+        "tick": 7200,
+        "reorderGap": 199526,
+        "affordableGap": 27171,
+        "requesting": 1322,
+        "paidStaffedNoRaw": 0,
+        "rawDelivered": 185,
+        "produced": 54,
+        "consumed": 0
+      },
+      "paidStaffedNoRaw": {
+        "count": 121,
+        "mean": 767.2644628099174,
+        "p50": 0,
+        "p95": 3097,
+        "max": 3624
+      },
+      "stockedShopSamples": 20,
+      "stockedAndOpenSamples": 0,
+      "finalRetail": {
+        "tick": 7200,
+        "day": 4,
+        "minute": 0,
+        "stock": 6,
+        "shops": [
+          {
+            "id": 5186,
+            "Stock": 0,
+            "Cash": 0,
+            "WholesaleFunded": 990,
+            "WageCosts": 896.0000000003135,
+            "actualAtWork": 0,
+            "paidStaffed": 0,
+            "open": false
+          },
+          {
+            "id": 5188,
+            "Stock": 0,
+            "Cash": 0,
+            "WholesaleFunded": 810,
+            "WageCosts": 1076.000000000469,
+            "actualAtWork": 0,
+            "paidStaffed": 0,
+            "open": false
+          },
+          {
+            "id": 5190,
+            "Stock": 6,
+            "Cash": 769.6174240115042,
+            "WholesaleFunded": 630,
+            "WageCosts": 429.3825759887501,
+            "actualAtWork": 0,
+            "paidStaffed": 0,
+            "open": false
+          }
+        ],
+        "consumed": 0
+      },
+      "limitations": "One game day from same already-distressed city. Newly completed cohort only is completion-biased; all departures and right-censored trips are reported. No nearest-port policy. Not long-run capacity or FPS."
+    }
+  ],
+  "matched": [
+    {
+      "imports": 4,
+      "sharedNewlyServedFactories": 1,
+      "rows": [
+        {
+          "factory": 5721,
+          "controlOrigin": 1,
+          "variantOrigin": 1,
+          "controlDuration": 56.35000000000002,
+          "variantDuration": 47.75000000000006,
+          "controlFreeFlow": 29.395280405852745,
+          "variantFreeFlow": 29.395280405852745
+        }
+      ],
+      "inheritedSameTasks": [
+        {
+          "task": 256011,
+          "controlDuration": 34.150000000000034,
+          "variantDuration": 34.150000000000034
+        },
+        {
+          "task": 1427,
+          "controlDuration": 263.35,
+          "variantDuration": 263.35
+        },
+        {
+          "task": 194,
+          "controlDuration": 265.6,
+          "variantDuration": 265.6
+        },
+        {
+          "task": 893,
+          "controlDuration": 265.45000000000005,
+          "variantDuration": 265.45000000000005
+        }
+      ]
+    },
+    {
+      "imports": 12,
+      "sharedNewlyServedFactories": 1,
+      "rows": [
+        {
+          "factory": 5721,
+          "controlOrigin": 1,
+          "variantOrigin": 1,
+          "controlDuration": 56.35000000000002,
+          "variantDuration": 45.55000000000001,
+          "controlFreeFlow": 29.395280405852745,
+          "variantFreeFlow": 29.395280405852745
+        }
+      ],
+      "inheritedSameTasks": [
+        {
+          "task": 256011,
+          "controlDuration": 34.150000000000034,
+          "variantDuration": 34.150000000000034
+        },
+        {
+          "task": 1427,
+          "controlDuration": 263.35,
+          "variantDuration": 263.35
+        },
+        {
+          "task": 194,
+          "controlDuration": 265.6,
+          "variantDuration": 265.6
+        },
+        {
+          "task": 893,
+          "controlDuration": 265.45000000000005,
+          "variantDuration": 265.45000000000005
+        }
+      ]
+    }
+  ],
+  "productRuleChanges": false,
+  "comparison": "1/4/12 all share the same 11 added paid stubs, registry IDs and public/private funds; only import activation differs. Original city unchanged. Not an algorithm optimization."
+}

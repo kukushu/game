@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "name": "same-captured-100k-city-import-capacity",
+  "gridRadius": 18,
+  "spacing": 48,
+  "imports": [1, 4, 12],
+  "steps": 2400,
+  "routeSampleFactories": 64,
+  "notes": "Start from preserved tick4800 failed city (100006 actual residents). All arms have identical eleven paid boundary stubs, twelve registered directional pairs and only the original export enabled. Only import activation differs. Ordered Trade, design, private money, inventories and day length stay unchanged. One-day probe; incomplete trips are censored, not zero-duration. Not natural-growth or Unity FPS acceptance."
+}

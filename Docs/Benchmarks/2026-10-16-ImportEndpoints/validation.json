@@ -1,0 +1,9 @@
+{
+  "note": "Actual commands passed; not Unity FPS or comprehensive 100k editing validation",
+  "observedBare20Hash": "C4EA7EE94AD25D6800D81377B52704828AF5C0AB72C1E43981A40C0D498D822F",
+  "bare20Hash": "C4EA7EE94AD25D6800D81377B52704828AF5C0AB72C1E43981A40C0D498D822F",
+  "coreChecks": 3218,
+  "jobChecks": 10000,
+  "cityChecks": 23437,
+  "profilePairedSteps": 6000
+}

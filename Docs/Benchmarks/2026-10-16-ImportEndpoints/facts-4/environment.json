@@ -1,0 +1,16 @@
+{
+  "configHash": "01E7EF2E071BF9BEC8B7EAF30575EFC540C6AF0309F7AC9B4113450F4D637389",
+  "spacing": 48,
+  "utc": "2026-10-16T06:12:10.8150718Z",
+  "mode": "facts",
+  "dotnet": "10.0.401",
+  "stallSeconds": 120,
+  "gridRadius": 18,
+  "maxMemoryGB": 8,
+  "routeSampleFactories": 64,
+  "steps": 2400,
+  "timeoutSeconds": 120,
+  "inputHash": "DE0DD582007282C4AA3322F20A9142F8AE6DCC9C15C812D8DB0F9218D7A286D1",
+  "commit": "9b87105106c282b1f4faa1208e1610e6fd3b90fa",
+  "note": "Same CitySimulation, ordered Trade and original rules; diagnostic assembly adds departure/acknowledgement observation only"
+}
