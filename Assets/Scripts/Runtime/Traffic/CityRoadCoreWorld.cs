@@ -379,8 +379,11 @@ namespace HarborCity.RoadCore
             // No reachable departure: preserve the ordinary NoRoute diagnostic.
             return (reachFirst||reachOther)&&(!reachFirst||first)&&(!reachOther||second);
         }
+        // Cheap access/availability guard, independent of traffic or route-cache residency.
+        public bool HasResidentAccess(int origin,int destination)
+        {var a=GetAccess(origin);var b=GetAccess(destination);return a!=null&&b!=null&&a.valid&&b.valid&&(a.use&AccessUse.Resident)!=0&&(b.use&AccessUse.Resident)!=0&&EndpointExists(origin)&&EndpointExists(destination);}
         public double EstimateResidentSeconds(int origin,int destination)
-        {var a=GetAccess(origin);var b=GetAccess(destination);if(a==null||b==null||!a.valid||!b.valid||(a.use&AccessUse.Resident)==0||(b.use&AccessUse.Resident)==0||!EndpointExists(origin)||!EndpointExists(destination))return double.PositiveInfinity;return dispatchRoutes.Get(Network,origin,destination,a,b,true,null).seconds;}
+        {if(!HasResidentAccess(origin,destination))return double.PositiveInfinity;return dispatchRoutes.Get(Network,origin,destination,GetAccess(origin),GetAccess(destination),true,null).seconds;}
         public bool CanReachResident(int origin,int destination)
         {
             var a=GetAccess(origin);var b=GetAccess(destination);if(a==null||b==null||!a.valid||!b.valid||(a.use&AccessUse.Resident)==0||(b.use&AccessUse.Resident)==0||!EndpointExists(origin)||!EndpointExists(destination))return false;

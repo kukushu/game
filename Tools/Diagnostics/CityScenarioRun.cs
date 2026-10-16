@@ -89,6 +89,7 @@ static class CityScenarioRun
             using(var spikes=new StreamWriter(Path.Combine(output,"profile-spikes.jsonl")))
             using(var csv=new StreamWriter(Path.Combine(output,"steps.csv")))
             {
+                long flushAt=Stopwatch.GetTimestamp(),progressAt=flushAt;
                 csv.WriteLine("tick,step_ms,allocated_bytes,active,day_boundary,phase,gc0_host_cumulative,gc1_host_cumulative,gc2_host_cumulative");
                 for(int i=0;i<steps;i++)
                 {
@@ -101,6 +102,11 @@ static class CityScenarioRun
                     if(boundary)daily.Add(ms);if(restoring)postRestore.Add(ms);else if(i>=warmup&&!boundary)steady.Add(ms);
                     string phase=i<warmup?"warmup":restoring?"post_restore":boundary?"day_boundary":"steady";
                     csv.WriteLine(string.Join(",",s.Simulation.Tick,ms.ToString("F6",Inv),bytesPerStep[i],s.Transport.ActiveCount,boundary?1:0,phase,GC.CollectionCount(0)-g0,GC.CollectionCount(1)-g1,GC.CollectionCount(2)-g2));
+                    // Real progress must reach disk even when fewer than 200 steps
+                    // take minutes. Diagnostics stay outside measured model work.
+                    long observedAt=Stopwatch.GetTimestamp();
+                    if(observedAt-flushAt>=Stopwatch.Frequency){csv.Flush();spikes.Flush();flushAt=observedAt;}
+                    if(observedAt-progressAt>=10L*Stopwatch.Frequency){Console.WriteLine("Progress tick "+s.Simulation.Tick+" active "+s.Transport.ActiveCount);progressAt=observedAt;}
                     if(profile)
                     {
                         if(ms>=10)spikes.WriteLine(Json.Serialize(new{tick=s.Simulation.Tick,ms,allocated,phase,parts=Enumerable.Range(0,previousTicks.Length).Select(k=>new{name=((CityCoreProfile.Part)k).ToString(),ms=(CityCoreProfile.Ticks[k]-previousTicks[k])*1000.0/Stopwatch.Frequency,calls=CityCoreProfile.Calls[k]-previousCalls[k],bytes=CityCoreProfile.AllocationAvailable?CityCoreProfile.Bytes[k]-previousBytes[k]:-1}).ToArray()}));

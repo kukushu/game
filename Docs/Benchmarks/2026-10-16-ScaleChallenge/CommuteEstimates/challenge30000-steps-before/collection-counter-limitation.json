@@ -1,0 +1,1 @@
+{"note": "Initial probe version passes constant zero for GC collection count columns; these are placeholders, not measured collection counts. Do not report them as zero collections. Allocated bytes, timing, phase calls and route counters are measured. Original source preserved."}

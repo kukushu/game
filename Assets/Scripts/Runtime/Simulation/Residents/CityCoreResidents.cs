@@ -12,6 +12,35 @@ namespace HarborCity
         readonly CityModel city;readonly World transport;
         readonly double calendarOffset;
         readonly CityEntities entities;
+        // One derived free-flow scalar per actually queried resident, not a route or
+        // a second actual commute observation. Independent of the bounded plan LRU.
+        struct CommuteEstimate {internal int home,work,network;internal long access;internal double seconds;}
+        readonly Dictionary<int,CommuteEstimate> estimates=new Dictionary<int,CommuteEstimate>();
+        readonly List<int> retiredEstimates=new List<int>();int estimateEntityRevision=-1;
+        internal int CachedCommuteEstimates=>estimates.Count;
+        void PruneEstimates()
+        {
+            if(estimateEntityRevision==entities.Revision)return;
+            retiredEstimates.Clear();foreach(var pair in estimates)if(entities.Member(pair.Key)==null)retiredEstimates.Add(pair.Key);
+            foreach(int id in retiredEstimates)estimates.Remove(id);estimateEntityRevision=entities.Revision;
+        }
+        double EstimateCommute(int citizen,int home,int work)
+        {
+            if(!transport.HasResidentAccess(home,work))return double.PositiveInfinity;
+            if(estimates.TryGetValue(citizen,out var value)&&value.home==home&&value.work==work&&value.network==transport.NetworkGeneration&&value.access==transport.AccessRevision)
+            {
+#if CITY_CORE_ATTRIBUTION
+                if(CityCoreProfile.Enabled)CityCoreProfile.CommuteEstimateHits++;
+#endif
+                return value.seconds;
+            }
+#if CITY_CORE_ATTRIBUTION
+            using var estimateObservation=CityCoreProfile.Measure(CityCoreProfile.Part.CommuteEstimate);
+            if(CityCoreProfile.Enabled)CityCoreProfile.CommuteEstimateMisses++;
+#endif
+            double seconds=transport.EstimateResidentSeconds(home,work);
+            estimates[citizen]=new CommuteEstimate{home=home,work=work,network=transport.NetworkGeneration,access=transport.AccessRevision,seconds=seconds};return seconds;
+        }
         internal Func<int,int,int,bool,Vehicle> RequestCommute;
         public bool Enabled {get;}
         internal CityCoreConsumption Consumption;
@@ -49,13 +78,13 @@ namespace HarborCity
             using var observation=HarborCity.RoadCore.CityCoreProfile.Measure(HarborCity.RoadCore.CityCoreProfile.Part.Residents);
 #endif
 
-            if(!Enabled)return;
+            if(!Enabled)return;PruneEstimates();
             float minute=city.ResidentMinute;
             foreach(var member in entities.Members)
             {
                 var p=member.Person;var h=member.Family;if(!h.resident||p.dead||p.tripId!=0||transport.Clock<p.retryAt||transport.Clock<p.visitUntil)continue;float shift=entities.Employment.ShiftStart(p.id,city.development.enabled&&city.GetBuilding(city.Workplace(p)) is CommercialBuilding),end=shift+entities.Employment.ShiftMinutes;
                 bool returning=p.location!=h.home&&(!p.atWork||p.sick||city.Workplace(p)!=p.location||p.arrivedDay<city.day||minute>=end||!city.JobFunded(city.ResidentJob(p)));
-                bool eligible=!p.atWork&&p.location==h.home&&p.departureDay!=city.day&&city.CanAttendWork(p)&&city.JobFunded(city.ResidentJob(p));double estimate=eligible?transport.EstimateResidentSeconds(h.home,city.Workplace(p))*1440/city.society.settings.secondsPerDay:double.PositiveInfinity;
+                bool eligible=!p.atWork&&p.location==h.home&&p.departureDay!=city.day&&city.CanAttendWork(p)&&city.JobFunded(city.ResidentJob(p));double estimate=eligible?EstimateCommute(p.id,h.home,city.Workplace(p))*1440/city.society.settings.secondsPerDay:double.PositiveInfinity;
                 if(p.observedHome==h.home&&p.observedWork==city.Workplace(p)&&p.observedRevision==transport.NetworkGeneration)estimate=Math.Max(estimate,p.lastCommute);
                 bool leaving=eligible&&!double.IsInfinity(estimate)&&minute>=Math.Max(0,shift-estimate)&&minute<end;
                 if(!returning&&!leaving)continue;p.retryAt=(float)(transport.Clock+.25);RequestCommute(p.id,returning?p.location:h.home,returning?h.home:city.Workplace(p),returning);
