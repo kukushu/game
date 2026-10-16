@@ -84,3 +84,14 @@ python Tools/CompareCityScenarios.py Temp/CityScenarios/my-baseline Temp/CitySce
 新增诊断 Builder、命令行宿主、设计导出与比较工具；调用既有 CitySimulation、Entities、Construction、Utilities、Trade 和 Save。领域模块、World、CityModel、正常 UI/渲染均无修改，无双重事实、循环依赖或新的业务跨域写入。初始构造直赋仅限 B 模式的合法种子状态，随后所有业务归正常领域。已有模拟/表现边界不变；报告不反向驱动游戏规则。
 
 源码入口：[Builder](../../Assets/Scripts/Diagnostics/Runtime/CityScenarioBuilder.cs)、[Runner/观测与报告](../../Tools/Diagnostics/CityScenarioRun.cs)、[命令行启动](../../Tools/RunCityScenario.ps1)、[配对比较](../../Tools/CompareCityScenarios.py)、[构造检查](../../Tools/Diagnostics/CityScenarioChecks.cs)。这些是测试宿主，未新增核心领域所有者；HTML原核心关系图保持其固定源码版本，本批实现单独在当前测试章节说明。
+
+
+## 大规模测试的宿主位数（2026-10-16）
+
+Unity附带命令行mono.exe实际为x86，5万人恢复副本中约1.5GB工作集抛OOM，不能当作64位Unity的城市上限。默认旧命令仍为Mono以保留历史口径；大规模请显式给RunBoundedCityScenario.ps1传-Runtime DotNet64，要求本机已有.NET10 SDK/目标包，离线Release/x64构建。同一原始CityScenarioRun与模型源文件编译，不是第二模拟引擎。CITY_SCENARIO_DOTNET仅切测试JSON适配/进程位数守卫，不改领域算法；二进制CityCoreSave仍完全相同。
+
+64位示例：`pwsh -NoProfile -File Tools/RunBoundedCityScenario.ps1 -Runtime DotNet64 -Scenario Tools/Scenarios/mature-avenues-50000-two-days.json -Load Temp/CityScenarios/challenge50000-two-days/initial.hcity -Results Temp/CityScenarios/fresh-50000-64 -TimeoutSeconds 1200 -StallSeconds 300 -MaxMemoryGB 8`。结果目录必须新建，保留失败文件。build-sources.json记录实际编译清单（包括可选参考World源码），environment.json记录宿主选择/SDK，report.host实际记录进程位数与运行时，不能仅依赖PowerShell自身是64位。
+
+不同运行时的长期状态不保证逐步相同：相同500人输入已实际观察到Mono与.NET的30日结果差异。优化前后必须同宿主配对，并要求该宿主完整保存/恢复状态一致；不得用.NET比Mono快宣称产品优化，也不得以.NET后台成绩冒充Unity FPS。-WorldReference只用于同宿主工具正确性对照，不是产品运行回退。默认游戏仍Unity宿主。
+
+MaximumFamilies是100000家庭技术资源边界，不是城市规模通过声明。10001/100000户容量测试是无房未成年专用单元夹具，不是真实经营城市。实际综合结果/经营风险以ScaleChallengeResults.md为准。

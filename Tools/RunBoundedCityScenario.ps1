@@ -1,5 +1,5 @@
 #requires -Version 7.0
-param([string]$Scenario='Tools/Scenarios/mature-grid-3000.json',[string]$Results,[string]$Load='', [switch]$Profile,[switch]$WasteDiagnostics,[int]$TimeoutSeconds=600,[int]$StallSeconds=120,[double]$MaxMemoryGB=8)
+param([string]$Scenario='Tools/Scenarios/mature-grid-3000.json',[string]$Results,[string]$Load='', [switch]$Profile,[switch]$WasteDiagnostics,[int]$TimeoutSeconds=600,[int]$StallSeconds=120,[double]$MaxMemoryGB=8,[ValidateSet("Mono","DotNet64")][string]$Runtime="Mono",[string]$WorldReference="")
 $ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot -Parent
 Set-Location -LiteralPath $root
@@ -8,6 +8,7 @@ $target=[IO.Path]::GetFullPath((Join-Path $root $Results));$control=$target+'.co
 if((Test-Path -LiteralPath $target) -or (Test-Path -LiteralPath $control)){throw 'Existing evidence is never overwritten'}
 New-Item -ItemType Directory -Path $control|Out-Null
 $arguments=@('-NoProfile','-File',('"'+(Join-Path $PSScriptRoot 'RunCityScenario.ps1')+'"'),'-Scenario',('"'+$Scenario+'"'),'-Results',('"'+$Results+'"'))
+$arguments+=@("-Runtime",$Runtime);if($WorldReference){$arguments+=@("-WorldReference",$WorldReference)}
 if($Load){$arguments+=@('-Load',('"'+$Load+'"'))};if($Profile){$arguments+='-Profile'};if($WasteDiagnostics){$arguments+='-WasteDiagnostics'}
 $hostExecutable=(Get-Process -Id $PID).Path
 $process=Start-Process $hostExecutable -ArgumentList $arguments -WorkingDirectory $root -WindowStyle Hidden -RedirectStandardOutput (Join-Path $control 'stdout.log') -RedirectStandardError (Join-Path $control 'stderr.log') -PassThru

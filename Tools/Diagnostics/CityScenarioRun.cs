@@ -5,7 +5,11 @@ using System.Diagnostics;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Security.Cryptography;
+#if CITY_SCENARIO_DOTNET
+using JavaScriptSerializer=CityScenarioJson;
+#else
 using System.Web.Script.Serialization;
+#endif
 using HarborCity;
 using HarborCity.RoadCore;
 
@@ -58,6 +62,10 @@ static class CityScenarioRun
         string output=args.Length>1?args[1]:"Temp/CityScenarios/latest";Directory.CreateDirectory(output);CityCoreIndustrySession s=null;CityWasteDiagnostics wasteDiagnostic=null;var wall=Stopwatch.StartNew();var construction=new BuildObservation(output);
         try
         {
+            #if CITY_SCENARIO_DOTNET
+            if(IntPtr.Size!=8)throw new InvalidOperationException("Scale host requires a 64-bit process");
+#endif
+            Console.WriteLine("Host process bits "+(IntPtr.Size*8)+" runtime "+Environment.Version);
             var settings=Json.Deserialize<CityScenarioSettings>(File.ReadAllText(args[0]));settings.Validate();
             Write(Path.Combine(output,"settings.json"),settings);
             bool profile=args.Length>2&&args[2]=="profile";
@@ -153,7 +161,7 @@ static class CityScenarioRun
             if(profile){File.WriteAllLines(Path.Combine(output,"attribution.csv"),new[]{CityCoreProfile.Header(),CityCoreProfile.Row(s.Simulation.Tick,s.Transport.ActiveCount,routePreparations,GC.CollectionCount(0)-g0,GC.CollectionCount(1)-g1,GC.CollectionCount(2)-g2)});}
             // GC collection counters include diagnostic/replay work; step allocation/time exclude it.
             long workingSet=Process.GetCurrentProcess().WorkingSet64;
-            Write(Path.Combine(output,"report.json"),new{status="passed-invariants",mode="B seeded mature city; no proof of natural growth",rendering="headless; FPS and Unity 1x/3x unverified",profile,steps,initialTick,finalTick=s.Simulation.Tick,
+            Write(Path.Combine(output,"report.json"),new{status="passed-invariants",mode="B seeded mature city; no proof of natural growth",rendering="headless; FPS and Unity 1x/3x unverified",host=new{processBits=IntPtr.Size*8,runtime=Environment.Version.ToString()},profile,steps,initialTick,finalTick=s.Simulation.Tick,
                 allStepMs=Distribution(samples),warmupStepMs=Distribution(samples.Take(warmup)),stableNonDayBoundaryMs=Distribution(steady),postRestoreStepMs=Distribution(postRestore),dayBoundaryMs=Distribution(daily),
                 stepAllocatedBytes=CityCoreProfile.AllocationAvailable?Distribution(bytesPerStep.Select(x=>(double)x)):null,peakActiveVehicles=peak,simulationSeconds=steps*.05,
                 timedSimulationMs=samples.Sum(),hostWallSeconds=wall.Elapsed.TotalSeconds,validationMs,restoreMs,

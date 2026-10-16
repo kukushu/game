@@ -1,0 +1,11 @@
+System.OutOfMemoryException: Insufficient memory to continue the execution of the program.
+  at (wrapper alloc) System.Object.AllocVector(intptr,intptr)
+  at System.Collections.Generic.HashSet`1[T].SetCapacity (System.Int32 newSize) [0x00000] in <1b6d7e99e5414d05b29c34e3609a3284>:0 
+  at System.Collections.Generic.HashSet`1[T].IncreaseCapacity () [0x00020] in <1b6d7e99e5414d05b29c34e3609a3284>:0 
+  at System.Collections.Generic.HashSet`1[T].AddIfNotPresent (T value) [0x000c1] in <1b6d7e99e5414d05b29c34e3609a3284>:0 
+  at System.Collections.Generic.HashSet`1[T].Add (T item) [0x00000] in <1b6d7e99e5414d05b29c34e3609a3284>:0 
+  at HarborCity.CityUtilityNetwork.Valid (System.Single buildExtent) [0x0009e] in <8f3974dd0da34e59a3b3f6c666c9fe40>:0 
+  at HarborCity.CityUtilityState.Valid (System.Single buildExtent) [0x00010] in <8f3974dd0da34e59a3b3f6c666c9fe40>:0 
+  at HarborCity.CityCoreIndustrySession.Validate () [0x0001f] in <8f3974dd0da34e59a3b3f6c666c9fe40>:0 
+  at HarborCity.CityCoreSave.Write (HarborCity.CityCoreIndustrySession session) [0x00001] in <8f3974dd0da34e59a3b3f6c666c9fe40>:0 
+  at CityScenarioRun.Main (System.String[] args) [0x01285] in <8f3974dd0da34e59a3b3f6c666c9fe40>:0 

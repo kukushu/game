@@ -1,4 +1,4 @@
-param([string]$Scenario='Tools/Scenarios/mature-grid-500.json',[string]$Results='Temp/CityScenarios/latest',[string]$Load='', [switch]$Profile,[switch]$WasteDiagnostics)
+param([string]$Scenario='Tools/Scenarios/mature-grid-500.json',[string]$Results='Temp/CityScenarios/latest',[string]$Load='', [switch]$Profile,[switch]$WasteDiagnostics,[ValidateSet("Mono","DotNet64")][string]$Runtime="Mono",[string]$WorldReference="")
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'ProjectLayout.ps1')
 $root=Split-Path $PSScriptRoot -Parent
@@ -13,16 +13,24 @@ python (Join-Path $PSScriptRoot 'Diagnostics/ExportScenarioDesign.py') $designAs
 if($LASTEXITCODE -ne 0){throw 'Authored design export failed; requires Python and PyYAML'}
 $sources=Get-CityModelSources $root
 $metadata=@{gitCommit=(& git rev-parse HEAD);dirty=(@(& git status --porcelain));scenarioHash=(Get-FileHash -LiteralPath $Scenario -Algorithm SHA256).Hash;utc=[DateTime]::UtcNow.ToString('o');unity=(Get-Content ProjectSettings/ProjectVersion.txt);mono=(& $mono --version);os=[Environment]::OSVersion.ToString();cpu=(Get-CimInstance Win32_Processor|Select-Object -ExpandProperty Name);ramBytes=(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory;profile=[bool]$Profile;sourceHashes=@($sources+(Join-Path $root 'Tools/Diagnostics/CityScenarioRun.cs')|ForEach-Object{@{path=$_.Substring($root.Length+1);hash=(Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash}})}
+$metadata.hostRuntime=$Runtime;$metadata.worldReference=$WorldReference;if($Runtime -eq 'DotNet64'){$metadata.dotnetSdk=(& dotnet --version);$metadata.dotnetRuntimes=@(& dotnet --list-runtimes)}
 $metadata.designAssetHash=(Get-FileHash -LiteralPath $designAsset -Algorithm SHA256).Hash
 $metadata.wasteDiagnostics=[bool]$WasteDiagnostics
 $metadata|ConvertTo-Json -Depth 8|Set-Content -LiteralPath (Join-Path $Results 'environment.json') -Encoding UTF8
-$binary=Join-Path $Results 'CityScenarioRun.exe'
-$flags=@('/nologo','/langversion:latest','/r:System.Web.Extensions.dll',('/out:'+$binary))
-if($Profile){$flags+='/define:CITY_CORE_ATTRIBUTION'}
-& $mono $compiler @flags $sources (Join-Path $root 'Tools/Diagnostics/CityScenarioRun.cs')
-if($LASTEXITCODE -ne 0){throw 'Scenario runner compile failed'}
 $runArgs=@($Scenario,$Results,$(if($Profile){'profile'}else{'normal'}),$(if($Load){$Load}else{'-'}),$design)
 if($WasteDiagnostics){$runArgs+='waste'}
-& $mono $binary @runArgs
+if($Runtime -eq 'DotNet64'){
+ $directory=[IO.Path]::GetFullPath((Join-Path $root $Results));$defines=if($Profile){'CITY_CORE_ATTRIBUTION'}else{''}
+ $binary=Build-CityDotNetHost $root $directory (Join-Path $root 'Tools/Diagnostics/CityScenarioRun.cs') $defines $WorldReference
+ & dotnet $binary @runArgs
+}else{
+ if($WorldReference){throw 'Reference compilation supported only by explicitly selected DotNet64 host'}
+ $binary=Join-Path $Results 'CityScenarioRun.exe'
+ $flags=@('/nologo','/langversion:latest','/r:System.Web.Extensions.dll',('/out:'+$binary))
+ if($Profile){$flags+='/define:CITY_CORE_ATTRIBUTION'}
+ & $mono $compiler @flags $sources (Join-Path $root 'Tools/Diagnostics/CityScenarioRun.cs')
+ if($LASTEXITCODE -ne 0){throw 'Scenario runner compile failed'}
+ & $mono $binary @runArgs
+}
 if($LASTEXITCODE -ne 0){throw "Scenario failed; preserved evidence: $Results"}
 Write-Output "Results: $Results/report.json"

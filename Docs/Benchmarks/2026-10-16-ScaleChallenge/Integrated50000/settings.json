@@ -1,0 +1,1 @@
+{"schema":1,"population":50000,"seed":7919,"gridRadius":13,"streetSpacing":48,"days":2,"warmupDays":0,"name":"mature-avenues-50000-two-days","mode":"mature","layout":"grid","openingPublicGrant":50000000,"householdsPerResidentialBuilding":8,"lanesPerDirection":2,"seedRoadNetwork":true,"diagnosticBuildHalfSize":648}

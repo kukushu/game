@@ -1,0 +1,19 @@
+{
+  "wallSeconds": 412.3950698,
+  "stallSeconds": 300,
+  "peakWorkingSetBytes": 2186960896,
+  "maxMemoryGB": 8.0,
+  "note": "OS-observed process-tree memory sampled ~1s; may miss shorter peaks; progress watchdog is file growth, not proof of model health. Forced termination cannot guarantee an in-memory failure save; latest flushed timeline and prior checkpoints retained.",
+  "timeoutSeconds": 1200,
+  "peakPrivateBytes": 2129846272,
+  "exitCode": 0,
+  "terminatedBy": null,
+  "processes": {
+    "33900": "dotnet",
+    "17156": "dotnet",
+    "52188": "conhost",
+    "30272": "pwsh",
+    "42000": "conhost",
+    "14228": "csc"
+  }
+}
