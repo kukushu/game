@@ -1,5 +1,6 @@
-param([string]$Scenario='Tools/Scenarios/mature-grid-500.json',[string]$Results='Temp/CityScenarios/latest',[string]$Load='', [switch]$Profile,[switch]$WasteDiagnostics,[ValidateSet("Mono","DotNet64")][string]$Runtime="Mono",[string]$WorldReference="")
+param([string]$Scenario='Tools/Scenarios/mature-grid-500.json',[string]$Results='Temp/CityScenarios/latest',[string]$Load='', [switch]$Profile,[switch]$WasteDiagnostics,[ValidateSet("Mono","DotNet64")][string]$Runtime="Mono",[string]$WorldReference="",[switch]$AllowPopulationChange)
 $ErrorActionPreference='Stop'
+if($AllowPopulationChange -and -not $Load){throw 'Population-change resume requires an existing save'}
 . (Join-Path $PSScriptRoot 'ProjectLayout.ps1')
 $root=Split-Path $PSScriptRoot -Parent
 Set-Location -LiteralPath $root
@@ -15,10 +16,11 @@ $sources=Get-CityModelSources $root
 $metadata=@{gitCommit=(& git rev-parse HEAD);dirty=(@(& git status --porcelain));scenarioHash=(Get-FileHash -LiteralPath $Scenario -Algorithm SHA256).Hash;utc=[DateTime]::UtcNow.ToString('o');unity=(Get-Content ProjectSettings/ProjectVersion.txt);mono=(& $mono --version);os=[Environment]::OSVersion.ToString();cpu=(Get-CimInstance Win32_Processor|Select-Object -ExpandProperty Name);ramBytes=(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory;profile=[bool]$Profile;sourceHashes=@($sources+(Join-Path $root 'Tools/Diagnostics/CityScenarioRun.cs')|ForEach-Object{@{path=$_.Substring($root.Length+1);hash=(Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash}})}
 $metadata.hostRuntime=$Runtime;$metadata.worldReference=$WorldReference;if($Runtime -eq 'DotNet64'){$metadata.dotnetSdk=(& dotnet --version);$metadata.dotnetRuntimes=@(& dotnet --list-runtimes)}
 $metadata.designAssetHash=(Get-FileHash -LiteralPath $designAsset -Algorithm SHA256).Hash
-$metadata.wasteDiagnostics=[bool]$WasteDiagnostics
+$metadata.wasteDiagnostics=[bool]$WasteDiagnostics;$metadata.allowPopulationChange=[bool]$AllowPopulationChange
 $metadata|ConvertTo-Json -Depth 8|Set-Content -LiteralPath (Join-Path $Results 'environment.json') -Encoding UTF8
 $runArgs=@($Scenario,$Results,$(if($Profile){'profile'}else{'normal'}),$(if($Load){$Load}else{'-'}),$design)
-if($WasteDiagnostics){$runArgs+='waste'}
+if($WasteDiagnostics){$runArgs+='waste'}elseif($AllowPopulationChange){$runArgs+='-'}
+if($AllowPopulationChange){$runArgs+='resume-population'}
 if($Runtime -eq 'DotNet64'){
  $directory=[IO.Path]::GetFullPath((Join-Path $root $Results));$defines=if($Profile){'CITY_CORE_ATTRIBUTION'}else{''}
  $binary=Build-CityDotNetHost $root $directory (Join-Path $root 'Tools/Diagnostics/CityScenarioRun.cs') $defines $WorldReference

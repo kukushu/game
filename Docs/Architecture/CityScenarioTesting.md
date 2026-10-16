@@ -95,3 +95,5 @@ Unity附带命令行mono.exe实际为x86，5万人恢复副本中约1.5GB工作�
 不同运行时的长期状态不保证逐步相同：相同500人输入已实际观察到Mono与.NET的30日结果差异。优化前后必须同宿主配对，并要求该宿主完整保存/恢复状态一致；不得用.NET比Mono快宣称产品优化，也不得以.NET后台成绩冒充Unity FPS。-WorldReference只用于同宿主工具正确性对照，不是产品运行回退。默认游戏仍Unity宿主。
 
 MaximumFamilies是100000家庭技术资源边界，不是城市规模通过声明。10001/100000户容量测试是无房未成年专用单元夹具，不是真实经营城市。实际综合结果/经营风险以ScaleChallengeResults.md为准。
+
+续跑成熟存档如人口已自然变化，可显式使用 -AllowPopulationChange（仅 -Load 可用），报告同时记录配置声明人数及实际初始人口。默认仍严格核对。真实活动未发生时，工具先保存 status=failed-required-city-activity 的报告，再保持原断言和非零退出；不可将该报告当成通过。InspectCityBusiness.ps1 仅冷只读诊断，保存前后字节核对，不推进模拟。

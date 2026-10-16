@@ -75,12 +75,15 @@ static class CityScenarioRun
             long initAt=Stopwatch.GetTimestamp(),initBytes=GC.GetAllocatedBytesForCurrentThread();
             s=loading?Restore(File.ReadAllBytes(args[3])):CityScenarioBuilder.Create(settings,design,construction.Observe);
             Write(Path.Combine(output,"initialization.json"),new{loading,ms=(Stopwatch.GetTimestamp()-initAt)*1000.0/Stopwatch.Frequency,allocated=GC.GetAllocatedBytesForCurrentThread()-initBytes});
-            Require(s.Entities.Members.Count==settings.population,"Loaded population does not match declared scenario");
+            bool resumePopulation=args.Length>6&&args[6]=="resume-population";
+            Require(s.Entities.Members.Count==settings.population||loading&&resumePopulation,"Loaded population does not match declared scenario; explicit resume-population required");
+            if(resumePopulation)Console.WriteLine("Resume actual population "+s.Entities.Members.Count+"; declared fixture population "+settings.population);
             Write(Path.Combine(output,"effective-design.json"),s.Simulation.Design.Snapshot());
             byte[] initial=CityCoreSave.Write(s);File.WriteAllBytes(Path.Combine(output,"initial.hcity"),initial);
             if(!loading){var repeated=CityCoreSave.Write(CityScenarioBuilder.Create(settings,design,construction.Observe));Require(initial.SequenceEqual(repeated),"Same seed/settings did not reproduce initial city");}
             // All timed runs start from the same saved facts and cold derived caches,
             // whether constructed just now or supplied by --Load.
+            construction.Latest=null; // Construction-only failure observer must not retain an obsolete city during replay.
             s=Restore(initial);
             s.Simulation.Waste.Diagnostics=wasteDiagnostic;
             long initialCollected=s.Simulation.Waste.Collected,initialProcessed=s.Simulation.Waste.Processed,initialInTransit=s.Simulation.Waste.InTransit;
@@ -149,8 +152,8 @@ static class CityScenarioRun
                 }
             }
             s.Validate();byte[] final=CityCoreSave.Write(s);File.WriteAllBytes(Path.Combine(output,"final.hcity"),final);Restore(final);
-            Require(s.City.trade.rawDelivered>0&&s.City.consumption.ConsumedGoods>0&&s.Simulation.Waste.Processed>0&&s.Simulation.Finance.TaxesCollected>0&&s.Entities.Buildings.OfType<IndustrialBuilding>().Sum(f=>(long)f.factory.produced)>0,"Required real city activity absent; not a complete scenario pass");
-            Require(everWorking&&new[]{TransportPurpose.Work,TransportPurpose.Home,TransportPurpose.Freight,TransportPurpose.Shopping,TransportPurpose.Service}.All(p=>observedPurposes.Contains(p)),"Not all required real city trip purposes/attendance observed");
+            bool requiredActivities=s.City.trade.rawDelivered>0&&s.City.consumption.ConsumedGoods>0&&s.Simulation.Waste.Processed>0&&s.Simulation.Finance.TaxesCollected>0&&s.Entities.Buildings.OfType<IndustrialBuilding>().Sum(f=>(long)f.factory.produced)>0;
+            bool requiredPurposes=everWorking&&new[]{TransportPurpose.Work,TransportPurpose.Home,TransportPurpose.Freight,TransportPurpose.Shopping,TransportPurpose.Service}.All(p=>observedPurposes.Contains(p));
             if(wasteDiagnostic!=null)
             {
                 var stations=wasteDiagnostic.Snapshot();
@@ -161,13 +164,15 @@ static class CityScenarioRun
             if(profile){File.WriteAllLines(Path.Combine(output,"attribution.csv"),new[]{CityCoreProfile.Header(),CityCoreProfile.Row(s.Simulation.Tick,s.Transport.ActiveCount,routePreparations,GC.CollectionCount(0)-g0,GC.CollectionCount(1)-g1,GC.CollectionCount(2)-g2)});}
             // GC collection counters include diagnostic/replay work; step allocation/time exclude it.
             long workingSet=Process.GetCurrentProcess().WorkingSet64;
-            Write(Path.Combine(output,"report.json"),new{status="passed-invariants",mode="B seeded mature city; no proof of natural growth",rendering="headless; FPS and Unity 1x/3x unverified",host=new{processBits=IntPtr.Size*8,runtime=Environment.Version.ToString()},profile,steps,initialTick,finalTick=s.Simulation.Tick,
+            Write(Path.Combine(output,"report.json"),new{status=requiredActivities&&requiredPurposes?"passed-invariants":"failed-required-city-activity",requiredActivities,requiredPurposes,declaredPopulation=settings.population,resumePopulation,mode="B seeded mature city; no proof of natural growth",rendering="headless; FPS and Unity 1x/3x unverified",host=new{processBits=IntPtr.Size*8,runtime=Environment.Version.ToString()},profile,steps,initialTick,finalTick=s.Simulation.Tick,
                 allStepMs=Distribution(samples),warmupStepMs=Distribution(samples.Take(warmup)),stableNonDayBoundaryMs=Distribution(steady),postRestoreStepMs=Distribution(postRestore),dayBoundaryMs=Distribution(daily),
                 stepAllocatedBytes=CityCoreProfile.AllocationAvailable?Distribution(bytesPerStep.Select(x=>(double)x)):null,peakActiveVehicles=peak,simulationSeconds=steps*.05,
                 timedSimulationMs=samples.Sum(),hostWallSeconds=wall.Elapsed.TotalSeconds,validationMs,restoreMs,
                 stepCollections,gcCollectionsIncludingDiagnostics=new[]{GC.CollectionCount(0)-g0,GC.CollectionCount(1)-g1,GC.CollectionCount(2)-g2},managedMemoryBytes=GC.GetTotalMemory(false),workingSetBytes=workingSet>0?(long?)workingSet:null,
                 replayChecked,replayHash,everWorking,observedPurposes=observedPurposes.Select(p=>p.ToString()).OrderBy(p=>p).ToArray(),initialHash=Hash(initial),finalHash=Hash(final),initial=initialState,final=State(s),operationalWarnings=warnings.OrderBy(w=>w).ToArray(),gcPauseMs=(object)null,
                 limitations=new[]{"No Unity rendering/FPS measurement in this run","Retired task count derived from monotonic task allocator minus current store; historical failures unavailable","No explicit departure queue; waiting count unavailable","Passing invariants does not prove economically sustainable city","This run covers only the declared population/configuration; Mode A natural growth, other seeds/layouts and larger populations are not verified by this run"}});
+            Require(requiredActivities,"Required real city activity absent; not a complete scenario pass");
+            Require(requiredPurposes,"Not all required real city trip purposes/attendance observed");
             return 0;
         }
         catch(Exception e)
