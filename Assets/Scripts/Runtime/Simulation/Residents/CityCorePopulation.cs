@@ -28,7 +28,7 @@ namespace HarborCity
                 if(!occupied.TryGetValue(home.id,out var units))occupied.Add(home.id,units=new HashSet<int>());
                 for(int unit=0;unit<home.housingUnits;unit++)
                 {
-                    if(arrivals>=city.society.settings.applicantsPerDay||city.society.families.Count>=10000)return;if(units.Contains(unit))continue;
+                    if(arrivals>=city.society.settings.applicantsPerDay||city.society.families.Count>=HouseholdState.MaximumFamilies)return;if(units.Contains(unit))continue;
                     var family=new Household{id=city.society.nextId,home=home.id,unit=unit,resident=true,rent=0,reason="迁入分区住宅；个人寻找实际岗位"};family.savings=450+family.id%7*100;family.openingSavings=family.savings;entities.AddFamily(family);
                     int count=2+family.id%3;for(int slot=0;slot<count;slot++){int age=slot==0?25+family.id%30:slot==1?24+family.id%30:6+(family.id+slot)%12;var person=new CityResident{id=city.society.nextCitizenId,age=age,canWork=age>=18,skill=(family.id+slot)%3,location=home.id,name="居民 "+city.society.nextCitizenId};entities.AddResident(family.id,person);}
                     units.Add(unit);arrivals++;

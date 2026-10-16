@@ -77,7 +77,7 @@ namespace HarborCity
         public void SetAvailability(int id,bool abandoned,bool burned)
         {StructuralBoundary();var b=Building(id);if(b==null)throw new ArgumentException("Missing building");b.abandoned=abandoned;b.burned=burned;transport.SetEndpointAvailable(id,Available(b));Revision++;BuildingRevision++;city.SyncJobs();transport.RefreshEndpoints();}
         public void AddFamily(Household h)
-        {StructuralBoundary();if(h==null||h.id<city.society.nextId||h.id>=int.MaxValue||families.ContainsKey(h.id)||h.people.Count!=0)throw new ArgumentException("Add empty new family first");families.Add(h.id,h);city.society.families.Add(h);city.society.nextId=h.id+1;Revision++;}
+        {StructuralBoundary();if(families.Count>=HouseholdState.MaximumFamilies)throw new InvalidOperationException("Household technical capacity reached");if(h==null||h.id<city.society.nextId||h.id>=int.MaxValue||families.ContainsKey(h.id)||h.people.Count!=0)throw new ArgumentException("Add empty new family first");families.Add(h.id,h);city.society.families.Add(h);city.society.nextId=h.id+1;Revision++;}
         public void AddResident(int familyId,CityResident p)
         {StructuralBoundary();var h=Family(familyId);if(h==null||p==null||p.id<city.society.nextCitizenId||p.id>=int.MaxValue||people.ContainsKey(p.id)||p.tripId!=0||p.jobId>=0)throw new ArgumentException("Invalid new resident");p.householdId=h.id;h.people.Add(p);var m=new CityMember(h,p);members.Add(m);people.Add(p.id,m);city.society.nextCitizenId=p.id+1;Revision++;}
         public void MoveResident(int citizen,int familyId)

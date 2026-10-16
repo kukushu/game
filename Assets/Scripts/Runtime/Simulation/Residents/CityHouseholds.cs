@@ -48,6 +48,8 @@ namespace HarborCity
     }
     [Serializable] public sealed class HouseholdState
     {
+        // Technical state/resource guard, not a migration or economy tuning rule.
+        public const int MaximumFamilies=100000;
         public int nextId=1, seed=19237, lastSettledDay;
         public float dayElapsed;
         public int nextJobId=1;
@@ -338,7 +340,7 @@ namespace HarborCity
                 || society.settings.minimumStay<0 || society.settings.moveCost<0 || society.settings.applicantsPerDay<0 || society.settings.applicantsPerDay>100
                 || society.settings.apartmentCost<0 || society.settings.villaCost<0 || society.settings.apartmentMaintenance<0 || society.settings.villaMaintenance<0
                 || society.settings.apartmentRent<0 || society.settings.villaRent<0 || float.IsNaN(society.settings.improvement) || society.settings.improvement<0 || society.settings.improvement>1000
-                || society.families.Count>10000 || society.history.Count>180 || society.events.Count>120) return false;
+                || society.families.Count>HouseholdState.MaximumFamilies || society.history.Count>180 || society.events.Count>120) return false;
             var ids=new HashSet<int>(); var units=new HashSet<string>();
             foreach(var h in society.families)
             {

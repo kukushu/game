@@ -1,0 +1,26 @@
+{
+  "resolution": "1440x900",
+  "dirty": [
+    " M Docs/Architecture/ScaleChallengeResults.md",
+    " M Tools/BuildArchitectureDocs.py",
+    " M Tools/Diagnostics/CityScenarioRun.cs",
+    "?? Docs/Benchmarks/2026-10-16-ScaleChallenge/Integrated30000/",
+    "?? Tools/CaptureTrafficThreshold.ps1",
+    "?? Tools/Diagnostics/CityTrafficThresholdCapture.cs"
+  ],
+  "warmupSeconds": 8,
+  "unity": [
+    "m_EditorVersion: 6000.6.3f1",
+    "m_EditorVersionWithRevision: 6000.6.3f1 (45d8eee7de74)"
+  ],
+  "inputHash": "E78C47DAAFFCB989FFC57EB0048575C3B6AA6DC66386DD6689C9C8EACD5DB7D8",
+  "commit": "3530c9e29cfb055b73f05c40ca8e7c822bc86129",
+  "playerHash": "4C93A4BB060A12B9044AB2103835DD1565AEC9AA8381372FA84FBBC14A19B989",
+  "targetFps": 60,
+  "measureSeconds": 60,
+  "os": "Microsoft Windows NT 10.0.26200.0",
+  "inputPath": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\CityScenarios\\challenge30000-traffic10000\\threshold.hcity",
+  "cpu": "Intel(R) Core(TM) i5-14600KF",
+  "utc": "2026-10-16T00:45:24.2239880Z",
+  "vsync": 0
+}
