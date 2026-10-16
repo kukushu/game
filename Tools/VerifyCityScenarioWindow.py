@@ -16,6 +16,10 @@ for number in metadata.get('rates', [1, 3]):
     result = next(csv.DictReader((folder / 'summary.csv').read_text(encoding='utf-8-sig').splitlines()))
     assert rows and (folder / 'Result.txt').read_text().startswith('PASS '), 'Missing successful model validation'
     resources = json.loads((args.results / f'{rate}-resources.json').read_text(encoding='utf-8-sig'))
+    assert resources.get('exitCode', 0) == 0, 'Player did not exit successfully'
+    lifecycle = args.results / rate / 'process-exit.json'
+    if lifecycle.exists():
+        assert json.loads(lifecycle.read_text(encoding='utf-8-sig'))['normalExit'], 'Abnormal/interrupted Player run; do not report PASS'
     assert not resources.get('terminatedBy'), 'Measurement may exist but Player did not exit normally'
     assert (folder / 'window.png').is_file() and (folder / 'final.hcity').stat().st_size > 0
     assert result['input_sha256'].lower() == metadata['inputHash'].lower(), 'Different city input'

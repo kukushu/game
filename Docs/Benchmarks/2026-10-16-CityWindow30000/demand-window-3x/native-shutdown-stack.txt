@@ -1,0 +1,68 @@
+Validation and native 20-step restore completed before Application.Quit. Player then crashed; normal-exit acceptance FAILED. Full log/dump retained in Temp.
+
+  ERROR: SymGetSymFromAddr64, GetLastError: '璇曞浘璁块棶鏃犳晥鐨勫湴鍧�銆�
+
+' (Address: 00007FFD16D651C3)
+0x00007FFD16D651C3 (UnityPlayer) (function-name not available)
+  ERROR: SymGetSymFromAddr64, GetLastError: '璇曞浘璁块棶鏃犳晥鐨勫湴鍧�銆�
+
+' (Address: 00007FFD16FB5EE1)
+0x00007FFD16FB5EE1 (UnityPlayer) (function-name not available)
+0x00007FFDBAF252E6 (USER32) CallWindowProcW
+0x00007FFDBAF24B6C (USER32) GetFocus
+0x00007FFDBAF4F593 (USER32) GetWindowDpiAwarenessContext
+0x00007FFDBC9E5D94 (ntdll) KiUserCallbackDispatcher
+0x00007FFDB9DB1304 (win32u) NtUserPeekMessage
+0x00007FFDBAF219DF (USER32) PeekMessageW
+0x00007FFDBAF21968 (USER32) PeekMessageW
+0x00007FFDBA7031B7 (combase) Ordinal87
+0x00007FFDBA703130 (combase) Ordinal87
+0x00007FFDBA7033C6 (combase) Ordinal87
+0x00007FFDBA701953 (combase) Ordinal87
+0x00007FFDBA70238B (combase) Ordinal87
+0x00007FFDBA701895 (combase) Ordinal87
+0x00007FFDBA6D5DFB (combase) CoWaitForMultipleHandles
+0x00007FFD8B7CA6E6 (UIAutomationCore) WindowPattern_WaitForInputIdle
+0x00007FFD8B75AF2F (UIAutomationCore) UiaDisconnectAllProviders
+  ERROR: SymGetSymFromAddr64, GetLastError: '璇曞浘璁块棶鏃犳晥鐨勫湴鍧�銆�
+
+' (Address: 00007FFD1563A461)
+0x00007FFD1563A461 (UnityPlayer) (function-name not available)
+  ERROR: SymGetSymFromAddr64, GetLastError: '璇曞浘璁块棶鏃犳晥鐨勫湴鍧�銆�
+
+' (Address: 00007FFD1562A999)
+0x00007FFD1562A999 (UnityPlayer) (function-name not available)
+  ERROR: SymGetSymFromAddr64, GetLastError: '璇曞浘璁块棶鏃犳晥鐨勫湴鍧�銆�
+
+' (Address: 00007FFD1563E009)
+0x00007FFD1563E009 (UnityPlayer) (function-name not available)
+  ERROR: SymGetSymFromAddr64, GetLastError: '璇曞浘璁块棶鏃犳晥鐨勫湴鍧�銆�
+
+' (Address: 00007FFD156EB8E7)
+0x00007FFD156EB8E7 (UnityPlayer) (function-name not available)
+0x00007FFD175D3A80 (UnityPlayer) UnityMain
+0x00007FFD17566F2C (UnityPlayer) UnityMain
+  ERROR: SymGetSymFromAddr64, GetLastError: '璇曞浘璁块棶鏃犳晥鐨勫湴鍧�銆�
+
+' (Address: 00007FFD16FB547A)
+0x00007FFD16FB547A (UnityPlayer) (function-name not available)
+  ERROR: SymGetSymFromAddr64, GetLastError: '璇曞浘璁块棶鏃犳晥鐨勫湴鍧�銆�
+
+' (Address: 00007FFD16FB454D)
+0x00007FFD16FB454D (UnityPlayer) (function-name not available)
+  ERROR: SymGetSymFromAddr64, GetLastError: '璇曞浘璁块棶鏃犳晥鐨勫湴鍧�銆�
+
+' (Address: 00007FFD16FB9A46)
+0x00007FFD16FB9A46 (UnityPlayer) (function-name not available)
+0x00007FFD16FBAAEB (UnityPlayer) UnityMain
+  ERROR: SymGetSymFromAddr64, GetLastError: '璇曞浘璁块棶鏃犳晥鐨勫湴鍧�銆�
+
+' (Address: 00007FF77F4011F6)
+0x00007FF77F4011F6 (HarborCity) (function-name not available)
+0x00007FFDBBB7DDA7 (KERNEL32) BaseThreadInitThunk
+0x00007FFDBC8FEE4C (ntdll) RtlUserThreadStart
+
+========== END OF STACKTRACE ===========
+
+A crash has been intercepted by the crash handler. For call stack and other details, see the latest crash report generated in:
+ * C:/Users/16934/AppData/Local/Temp/DefaultCompany/test/Crashes

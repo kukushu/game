@@ -1,0 +1,37 @@
+{
+  "measureSeconds": 15,
+  "os": "Microsoft Windows NT 10.0.26200.0",
+  "utc": "2026-10-16T12:47:09.6774233Z",
+  "dirty": [
+    " M AGENTS.md",
+    " M Assets/Scripts/Runtime/Simulation/Growth/CityDevelopment.cs",
+    " M Tools/BuildArchitectureDocs.py",
+    " M Tools/RunCityScenarioWindow.ps1",
+    " M Tools/VerifyArchitectureDocs.cjs",
+    " M Tools/VerifyCityScenarioWindow.py",
+    "?? Docs/Architecture/LocalSupplyWorkPlan.md",
+    "?? Docs/Benchmarks/2026-10-16-CityWindow30000/demand-before-raw/",
+    "?? Tools/Diagnostics/CityDemandChecks.cs",
+    "?? Tools/VerifyDevelopmentDemand.ps1"
+  ],
+  "managedHash": "26E1CB667030030BAEB2DD19D20B4C189A2444E84FD4B54BDD1338A13FDD1EBE",
+  "warmupSeconds": 8,
+  "targetFps": 60,
+  "rawProfile": true,
+  "vsync": 0,
+  "inputPath": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\CityScenarios\\challenge30000-traffic10000\\threshold.hcity",
+  "rates": [
+    1
+  ],
+  "cpu": "Intel(R) Core(TM) i5-14600KF",
+  "resolution": "1440x900",
+  "playerPath": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\ManualCityPlayer\\HarborCity.exe",
+  "inputHash": "E78C47DAAFFCB989FFC57EB0048575C3B6AA6DC66386DD6689C9C8EACD5DB7D8",
+  "checkRestore": true,
+  "commit": "16d34eac04282e59c8ff92d304dc0021769eb7ea",
+  "unity": [
+    "m_EditorVersion: 6000.6.3f1",
+    "m_EditorVersionWithRevision: 6000.6.3f1 (45d8eee7de74)"
+  ],
+  "playerHash": "4C93A4BB060A12B9044AB2103835DD1565AEC9AA8381372FA84FBBC14A19B989"
+}

@@ -1,0 +1,5 @@
+{
+  "normalExit": false,
+  "exitCode": -1,
+  "note": "Native crash after completed measurement, Validate and warm/cold restore; process explicitly terminated after crash log was preserved. Not a normal-exit pass."
+}
