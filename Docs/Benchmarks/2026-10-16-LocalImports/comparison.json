@@ -1,0 +1,95 @@
+[
+  {
+    "label": "ordered",
+    "raw": 169,
+    "produced": 46,
+    "consumed": 0,
+    "served": 16,
+    "meanDepartureFreeFlow": 109.82009668220833,
+    "meanDepartureWorldUnits": 1317.8411601865002,
+    "departures": 66,
+    "completed": 18,
+    "completedMeanSeconds": 66.45000000000003,
+    "routePreparations": 90602,
+    "stepMs": {
+      "count": 2400,
+      "mean": 73.09696587499997,
+      "p50": 32.9198,
+      "p95": 87.1787,
+      "p99": 1800.2759,
+      "max": 8312.6446
+    },
+    "allocatedBytes": {
+      "count": 2400,
+      "mean": 12640157.483333332,
+      "p50": 3259872,
+      "p95": 19368744,
+      "p99": 127900448,
+      "max": 3030427232
+    },
+    "initialHash": "648f0d46c09249d4d26bfbb3a19fcffdc02327d5c3c3db9976862921c2a38ceb",
+    "replayChecked": true
+  },
+  {
+    "label": "local",
+    "raw": 328,
+    "produced": 83,
+    "consumed": 0,
+    "served": 25,
+    "meanDepartureFreeFlow": 91.9834164404409,
+    "meanDepartureWorldUnits": 1103.800997285291,
+    "departures": 84,
+    "completed": 38,
+    "completedMeanSeconds": 70.28552631578951,
+    "routePreparations": 90456,
+    "stepMs": {
+      "count": 2400,
+      "mean": 68.43617412499997,
+      "p50": 32.6467,
+      "p95": 85.4753,
+      "p99": 1704.0782,
+      "max": 8309.6854
+    },
+    "allocatedBytes": {
+      "count": 2400,
+      "mean": 12147619.856666667,
+      "p50": 3265776,
+      "p95": 19324616,
+      "p99": 102355200,
+      "max": 3030577192
+    },
+    "initialHash": "648f0d46c09249d4d26bfbb3a19fcffdc02327d5c3c3db9976862921c2a38ceb",
+    "replayChecked": true
+  },
+  {
+    "label": "small-local",
+    "raw": 1256,
+    "produced": 1051,
+    "consumed": 35,
+    "served": 42,
+    "meanDepartureFreeFlow": 18.60274698236527,
+    "meanDepartureWorldUnits": 223.23296378838324,
+    "departures": 229,
+    "completed": 182,
+    "completedMeanSeconds": 20.417307692307695,
+    "routePreparations": 1625,
+    "stepMs": {
+      "count": 2000,
+      "mean": 0.5901251999999994,
+      "p50": 0.4046,
+      "p95": 1.0446,
+      "p99": 7.1141,
+      "max": 195.5062
+    },
+    "allocatedBytes": {
+      "count": 2000,
+      "mean": 47565.712,
+      "p50": 5968,
+      "p95": 100768,
+      "p99": 332768,
+      "max": 49700648
+    },
+    "initialHash": "3bdcfc0ede7f83ad92982f454bd52711330a5f5e2e58eced69725399168a669a",
+    "replayChecked": true
+  }
+]

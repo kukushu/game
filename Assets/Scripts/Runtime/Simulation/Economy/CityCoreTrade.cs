@@ -64,9 +64,10 @@ namespace HarborCity
         readonly Dictionary<int,int> incomingRaw=new Dictionary<int,int>();
         readonly Dictionary<int,int> gateTrucks=new Dictionary<int,int>();
         readonly List<SpatialHit> hits=new List<SpatialHit>();
+        readonly CityImportSources importSources;
 
         internal CityCoreTrade(CityModel city,CityEntities entities,World transport,CitySimulation simulation)
-        {this.city=city;this.entities=entities;this.transport=transport;this.simulation=simulation;rules=simulation.Design.Economy;}
+        {this.city=city;this.entities=entities;this.transport=transport;this.simulation=simulation;rules=simulation.Design.Economy;importSources=new CityImportSources(transport);}
 
         public int ConnectBorder(Point point)
         {
@@ -110,6 +111,7 @@ namespace HarborCity
             int count=entities.Factories.Count;
             if(count==0){city.trade.factoryCursor=0;return;}
             int start=city.trade.factoryCursor%count;
+            importSources.Begin(city.trade.connections,gateTrucks,rules.MaxGateTrucks);
             for(int offset=0;offset<count;offset++)
             {
                 var factory=entities.Factories[(start+offset)%count];
@@ -117,13 +119,16 @@ namespace HarborCity
                 incomingRaw.TryGetValue(factory.id,out int reserved);
                 int amount=Math.Min(rules.FreightBatch,rules.RawReorderTarget-factory.factory.raw-reserved);
                 amount=Math.Min(amount,(int)Math.Min(rules.FreightBatch,Math.Floor(factory.factory.cash/rules.RawUnitPrice)));
-                if(amount>0)foreach(var gate in city.trade.connections)
+                if(amount>0)
                 {
-                    gateTrucks.TryGetValue(gate.id,out int trucks);
-                    if(!gate.active||gate.flow!=OutsideFlow.Import||trucks>=rules.MaxGateTrucks||transport.FreightSourceBlocked(gate.id))continue;
-                    var vehicle=simulation.RequestMaterial(gate.id,factory.id,amount,CargoKind.RawMaterial,rules.RawUnitPrice);
-                    if(vehicle==null)continue;
-                    incomingRaw[factory.id]=reserved+amount;gateTrucks[gate.id]=trucks+1;break;
+                    importSources.ForFactory();int gate;
+                    while((gate=importSources.Choose(factory.id))!=0)
+                    {
+                        var vehicle=simulation.RequestMaterial(gate,factory.id,amount,CargoKind.RawMaterial,rules.RawUnitPrice);
+                        if(vehicle==null){importSources.Reject(gate);continue;}
+                        gateTrucks.TryGetValue(gate,out int trucks);incomingRaw[factory.id]=reserved+amount;gateTrucks[gate]=trucks+1;
+                        importSources.Accepted(gate,gateTrucks,rules.MaxGateTrucks);break;
+                    }
                 }
                 // Local shops get the preceding Logistics phase's first chance.
                 // Keep a buffer; export only actual surplus, funded by the market.

@@ -22,6 +22,7 @@ public static class CityCoreIndustryChecks
         PopulationUtilityTests();
         ConsumptionTests();
         TradeTests();
+        LocalImportTests();
         var session=CityCoreIndustrySession.Create(startAtWork:true);var city=session.City;var factory=city.Factory(1);double opening=factory.cash;
         var snapshot=session.SnapshotBusiness();snapshot.buildings[0].industrial[0].cash=0;snapshot.society.families[0].people[0].location=-1;Check(factory.cash==opening&&city.Citizens.First().location==1,"Business snapshot leaked live state");
         Check(city.roads.edges.Count==0&&city.traffic.trips.Count==0,"Legacy engine/network used");Check(session.Transport.Snapshot().depots.Count==0,"Duplicate city inventory");
@@ -222,6 +223,51 @@ public static class CityCoreIndustryChecks
         var pending=CityCoreIndustrySession.CreateEmpty();pending.Simulation.Growth.Zoning.SetSurface((x,z)=>2);int x1=pending.Transport.AddJunction(new Point(-20,2,0)),x2=pending.Transport.AddJunction(new Point(20,2,0));pending.Transport.AddRoad(x1,x2,new[]{pending.Transport.JunctionPosition(x1),pending.Transport.JunctionPosition(x2)});var land=pending.Simulation.Growth.Zoning;land.Paint(land.Cells().ToArray(),LandUse.Residential);pending.Advance(1);Check(pending.City.development.projects.Count==1,"Pending housing not scheduled");land.Paint(land.Cells().ToArray(),LandUse.Empty);pending.Advance(13);Check(pending.City.buildings.Count==0&&pending.City.development.projects.Count==0,"Cleared zoning completed cancelled building");
         var noLand=CityCoreIndustrySession.CreateEmpty();noLand.Simulation.Growth.Zoning.SetSurface((x,z)=>-2);int w=noLand.Transport.AddJunction(new Point(-20,-2,0)),e=noLand.Transport.AddJunction(new Point(20,-2,0));noLand.Transport.AddRoad(w,e,new[]{noLand.Transport.JunctionPosition(w),noLand.Transport.JunctionPosition(e)});Check(noLand.Simulation.Growth.Zoning.Cells().Count==0,"Underwater plots allowed");
         var edit=CityCoreIndustrySession.CreateEmpty();edit.Simulation.Growth.Zoning.SetSurface((x,z)=>2);int left=edit.Transport.AddJunction(new Point(-40,2,0)),right=edit.Transport.AddJunction(new Point(40,2,0));edit.Transport.AddRoad(left,right,new[]{edit.Transport.JunctionPosition(left),edit.Transport.JunctionPosition(right)});var paint=edit.Simulation.Growth.Zoning;paint.Paint(paint.Cells().ToArray(),LandUse.Residential);edit.Transport.SplitRoadAt(1,33.7);var regenerated=paint.Cells().ToArray();Check(regenerated.Length>100&&regenerated.All(c=>c.use==LandUse.Residential),"Non-grid road edit lost world-space land designation");paint.Paint(regenerated,LandUse.Empty);Check(paint.Cells().All(c=>c.use==LandUse.Empty),"Clearing rebuilt frontage left old land stamps");
+    }
+    static void LocalImportTests()
+    {
+        var w=new World(new WorldData{externalBusiness=true},new SimulationClock(),new[]{1,2,3,4,5});
+        int a=w.AddJunction(new Point(0,2,0)),b=w.AddJunction(new Point(100,2,0));
+        int road=w.AddRoad(a,b,new[]{w.JunctionPosition(a),new Point(50,2,8),w.JunctionPosition(b)},lanes:2);
+        foreach(int id in new[]{1,2,3,4,5})w.RegisterAccess(id,Network.LaneId(road,false),(id==4?20:id*18));
+        var ports=new System.Collections.Generic.List<CityOutsideConnection>();
+        foreach(int id in new[]{4,2,1})ports.Add(new CityOutsideConnection{id=id,flow=OutsideFlow.Import});
+        var trucks=new System.Collections.Generic.Dictionary<int,int>();var index=new CityImportSources(w);
+        Action verify=()=>
+        {
+            index.Begin(ports,trucks,4);
+            foreach(int target in new[]{3,5})
+            {
+                index.ForFactory();int expected=0;double best=double.PositiveInfinity;
+                foreach(var port in ports)
+                {
+                    trucks.TryGetValue(port.id,out int count);if(!port.active||count>=4||w.FreightSourceBlocked(port.id))continue;
+                    var source=w.GetAccess(port.id);var goal=w.GetAccess(target);if(source==null||goal==null||!source.valid||!goal.valid)continue;
+                    var path=AccessRouting.Find(w.Network,source,goal,false,out double start,out double end);if(path==null)continue;double seconds=0;
+                    for(int i=0;i<path.Count;i++){var d=w.Network.Get(path[i]);seconds+=((i==path.Count-1?end:d.EndDistance)-(i==0?start:d.StartDistance))/d.Speed;}
+                    if(seconds<best||seconds==best&&(expected==0||port.id<expected)){expected=port.id;best=seconds;}
+                }
+                Check(index.Choose(target)==expected,"Local import differs from exhaustive directed route-cost minimum");
+            }
+        };
+        verify();long prepared=w.RoutePreparations;var before=w.Snapshot();verify();Check(w.RoutePreparations==prepared&&w.Tasks.Count==0&&w.Vehicles.Count==0&&w.Snapshot().nextTask==before.nextTask,"Route quotes allocate tasks, change physical state or bypass cache");
+        index.Begin(ports,trucks,4);index.ForFactory();int selected=index.Choose(3);index.Reject(selected);Check(index.Choose(3)!=selected,"Failed import source was retried forever");
+        trucks[2]=4;verify();ports[0].active=false;verify();ports[0].active=true;trucks.Clear();
+        var admission=w.PrepareTransport(2,3,1,0,TransportPurpose.Freight,0);Check(admission!=null,"Local source admission unavailable");w.CommitAdmission(admission);verify();Check(w.FreightSourceBlocked(2),"Imported source not occupied");
+        var pose=w.Position(w.Vehicles[0]);w.SplitRoadAt(road,45);verify();Check(Point.Distance(pose,w.Position(w.Vehicles[0]))<1e-7,"Local route index road split moved vehicle");
+        w.RemoveRoad(road);verify();Check(w.Vehicles[0].Task.Cargo==1&&Point.Distance(pose,w.Position(w.Vehicles[0]))<1e-7,"Local import removal lost cargo or physical position");
+        var directed=new World(new WorldData{externalBusiness=true},new SimulationClock(),new[]{1,2});int x=directed.AddJunction(new Point(0,0,0)),y=directed.AddJunction(new Point(80,0,0));int r=directed.AddRoad(x,y,new[]{directed.JunctionPosition(x),directed.JunctionPosition(y)},true);directed.RegisterAccess(1,Network.LaneId(r,false),60);directed.RegisterAccess(2,Network.LaneId(r,false),20);
+        Check(double.IsPositiveInfinity(directed.FreightTravelSeconds(1,2))&&!double.IsInfinity(directed.FreightTravelSeconds(2,1)),"Freight quote ignored one-way station reachability");
+        directed.PlanUpgradeRoad(r,2,12,RoadDirection.Both).TryCommit();Check(!double.IsInfinity(directed.FreightTravelSeconds(2,1)),"Freight quote stale after lane upgrade");
+        var detour=new World(new WorldData{externalBusiness=true},new SimulationClock(),new[]{1,2,3,4});
+        int near=detour.AddJunction(new Point(0,0,0)),far=detour.AddJunction(new Point(0,0,100)),join=detour.AddJunction(new Point(10,0,0)),endNode=detour.AddJunction(new Point(60,0,0));
+        int longRoad=detour.AddRoad(near,join,new[]{detour.JunctionPosition(near),new Point(-100,0,1000),detour.JunctionPosition(join)},true);
+        int shortRoad=detour.AddRoad(far,join,new[]{detour.JunctionPosition(far),detour.JunctionPosition(join)},true);
+        int tail=detour.AddRoad(join,endNode,new[]{detour.JunctionPosition(join),detour.JunctionPosition(endNode)},true);
+        detour.RegisterAccess(1,Network.LaneId(longRoad,false),5);detour.RegisterAccess(2,Network.LaneId(shortRoad,false),5);detour.RegisterAccess(4,Network.LaneId(shortRoad,false),5);detour.RegisterAccess(3,Network.LaneId(tail,false),25);
+        var detourPorts=new[]{new CityOutsideConnection{id=4,flow=OutsideFlow.Import},new CityOutsideConnection{id=1,flow=OutsideFlow.Import},new CityOutsideConnection{id=2,flow=OutsideFlow.Import}};
+        var local=new CityImportSources(detour);local.Begin(detourPorts,trucks,4);local.ForFactory();Check(local.Choose(3)==2,"Straight-line nearest replaced actual route cost / equal-cost ID tie unstable");
+        detourPorts[2].active=false;local.Begin(detourPorts,trucks,4);local.ForFactory();Check(local.Choose(3)==4,"Closed local gate selected instead of legal equal-cost alternative");
     }
     static void TradeTests()
     {

@@ -88,6 +88,14 @@ namespace HarborCity.RoadCore
         readonly LostOccupancy lostOccupancy=new LostOccupancy();
         public long RoutePreparations=>dispatchRoutes.Preparations;
         public int CachedRoutes=>dispatchRoutes.Count;
+        // Derived static cost only. Admission still owns occupancy, reservations and
+        // the physical spawn; callers must not treat a quote as an admitted task.
+        public double FreightTravelSeconds(int origin,int destination)
+        {
+            var source=GetAccess(origin);var target=GetAccess(destination);
+            if(origin==destination||!EndpointExists(origin)||!EndpointExists(destination)||source==null||target==null||!source.valid||!target.valid||(source.use&AccessUse.Freight)==0||(target.use&AccessUse.Freight)==0||!Network.CanReach(source,target))return double.PositiveInfinity;
+            return dispatchRoutes.Get(Network,origin,destination,source,target,false,business as IJunctionEndpointProvider).seconds;
+        }
         bool indexDirty=true;
         readonly Dictionary<long,double> entries=new Dictionary<long,double>(CityRoadKeyComparer.Instance);
         readonly List<Intent> intents=new List<Intent>();
