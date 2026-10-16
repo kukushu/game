@@ -1,0 +1,28 @@
+{
+  "inputPath": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\CityScenarios\\challenge10000-large\\initial.hcity",
+  "measureSeconds": 60,
+  "playerHash": "4C93A4BB060A12B9044AB2103835DD1565AEC9AA8381372FA84FBBC14A19B989",
+  "cpu": "Intel(R) Core(TM) i5-14600KF",
+  "vsync": 0,
+  "commit": "c729ad28f84693717a9aa763d5d1caeca57a89d0",
+  "utc": "2026-10-15T23:57:17.1281562Z",
+  "dirty": [
+    " M Assets/Scripts/Diagnostics/Runtime/CityCoreProfile.cs",
+    " M Assets/Scripts/Runtime/Infrastructure/Utilities/CityUtilities.cs",
+    " M Assets/Scripts/Runtime/Simulation/Services/CityCoreUtilities.cs",
+    " M Tools/MeasureColdCity.ps1",
+    "?? Assets/Scripts/Runtime/Infrastructure/Utilities/CityUtilityCoverage.cs",
+    "?? Assets/Scripts/Runtime/Infrastructure/Utilities/CityUtilityCoverage.cs.meta",
+    "?? Tools/Diagnostics/CityUtilityCoverageChecks.cs",
+    "?? Tools/VerifyUtilityCoverage.ps1"
+  ],
+  "warmupSeconds": 8,
+  "inputHash": "F68F81FB8C5BE87C676585863CC105D4558EA502F9BCB2C414143B016854BD1A",
+  "resolution": "1440x900",
+  "unity": [
+    "m_EditorVersion: 6000.6.3f1",
+    "m_EditorVersionWithRevision: 6000.6.3f1 (45d8eee7de74)"
+  ],
+  "targetFps": 60,
+  "os": "Microsoft Windows NT 10.0.26200.0"
+}

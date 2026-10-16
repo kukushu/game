@@ -7,10 +7,11 @@ import subprocess, json, html, re, csv
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'Docs/Architecture'
-COMMIT = 'f6d00f3'
+COMMIT = '43eafc1'
 BASELINE = '110c4eaa24fa69d55b08a5db2a6d19ec6da5dd7f'
 R = 'Assets/Scripts/Runtime/'
 files = {
+ 'utilitycoverage':R+'Infrastructure/Utilities/CityUtilityCoverage.cs',
  'roadeditor':R+'Presentation/UI/HarborCityRoadEditor.cs',
  'clearance':R+'Infrastructure/Roads/CityRoadClearance.cs',
  'observation':R+'Observability/CityCoreObservation.cs',
@@ -521,6 +522,18 @@ flowdata['roadediting']=dict(name='R3-D3实际道路选段编辑',note='当前�
  dict(name='更新视图与供给',detail='道路Mesh立即刷新；分区下一Update按版本刷新一次；供给/入口恢复在下一健康固定边界。',source=ref('host','roadEditor.Changed=RenderRoads'))])
 for filename in ['Docs/Architecture/Results/R3RoadEditing/paired-before.csv','Docs/Architecture/Results/R3RoadEditing/paired-after.csv','Docs/Architecture/Results/R3RoadEditing/interfered-before.csv','Docs/Architecture/Results/R3RoadEditing/interfered-after.csv','Docs/Architecture/Results/R3RoadEditing/native-window.csv','Docs/Architecture/Results/R3RoadEditing/native-tools.csv']:
     with (ROOT/filename).open(encoding='utf-8-sig') as f:perf.append(dict(file=filename,rows=list(csv.DictReader(f))))
+
+# Scale challenge: actual ephemeral utility coverage, not a future persistent cache.
+card('utilitycoverage','CityUtilityCoverage','Utilities','derived','utilitycoverage','internal sealed class CityUtilityCoverage','16单位格网 / 原边序索引 / visited / 临时查询列表','构造线段经过格子 · Query · 原LineDistance最终判断','CityModel.RecalculateUtilities每次创建；CityCoreUtilities管理重算时机。','无独立运行事实；CityUtilityNetwork与建筑仍是唯一来源。','局部管线候选，去重后恢复原边顺序。','只写自身临时索引，不改管网/容量/供给规则。','每次供给重算创建并丢弃；不保存，不跨网络变更保留。','只依赖管网节点/边与建筑占地，无Unity/交通/经济依赖。','长斜线/高密度候选仍有成本；更大城市尚需实际测量。','已双万人完整状态对照；减少O(B×全部边)扫描，非整体城市达标。')
+graphs['classes']['nodes'].append(node('utilitycoverage','CityUtilityCoverage','每次重算临时局部候选','derived'))
+graphs['classes']['edges'].extend([edge('coreutilities','utilitycoverage','刷新→领域重算构造'),edge('utilitycoverage','city','只读真实管网/占地')])
+graphs['ownership']['nodes'].append(node('utilitycoverage','临时管线覆盖格网','无运行事实，不保存，重算后丢弃','derived'))
+graphs['ownership']['edges'].append(edge('city','utilitycoverage','由真实管网/占地派生','dash'))
+graphs['global-current']['nodes'].append(node('utilitycoverage','局部供给覆盖候选','已实现，最终判定仍用原规则','derived'))
+graphs['global-current']['edges'].append(edge('coreutilities','utilitycoverage','重算内部使用，无反向业务依赖'))
+evidence.append(dict(title='已实现：临时水电覆盖索引',source=ref('utilitycoverage','internal sealed class CityUtilityCoverage')))
+for stage in flowdata['current']['stages']:
+    if stage['name']=='供给重建边界':stage.update(detail='按实际变更重算；临时线段格网查询局部候选，按原边序执行精确覆盖、传播、容量与预算。双万人完整状态配对通过；非逐步保存第二份管网。')
 
 payload=dict(commit=COMMIT,baseline=BASELINE,cards=cards,graphs=graphs,flows=flowdata,readings=readingdata,perf=perf,evidence=evidence)
 
