@@ -11,6 +11,22 @@ namespace HarborCity.RoadCore
     // Never used to choose a route, reduce work or change simulation state.
     public static class CityCoreProfile
     {
+        public enum QueryKind {CommuteEstimate,Blueprint,Evicted,Reset}
+        public enum QueryResult {Hit,Absent,EndpointsChanged,NetworkChanged,AccessChanged,Miss}
+        public readonly struct RouteQuery
+        {
+            public readonly QueryKind Kind;public readonly QueryResult Result;public readonly int Citizen,Origin,Destination;public readonly bool BothDirections;public readonly Part Context;
+            internal RouteQuery(QueryKind kind,QueryResult result,int citizen,int origin,int destination,bool bothDirections,Part context){Kind=kind;Result=result;Citizen=citizen;Origin=origin;Destination=destination;BothDirections=bothDirections;Context=context;}
+        }
+        // Optional bounded diagnostic observer. Never used by production decisions.
+        public static Action<RouteQuery> QueryObserver;
+        public static void ObserveQuery(QueryKind kind,QueryResult result,int citizen,int origin,int destination,bool bothDirections=true)
+        {
+            if(!Enabled||QueryObserver==null)return;
+            Part context=depth>0?(Part)stack[depth-1].part:Part.Step;
+            if(context==Part.RouteLookup&&depth>1)context=(Part)stack[depth-2].part;
+            QueryObserver(new RouteQuery(kind,result,citizen,origin,destination,bothDirections,context));
+        }
         public enum Part {Step,Residents,Job,Production,Logistics,Dispatch,RouteLookup,RouteSearch,Admission,Occupancy,Movement,Settlement,Growth,Utilities,Population,Consumption,Trade,Payroll,ZoningRebuild,GrowthSearch,Placement,Finance,FinanceAccrual,Waste,ZoningGeometry,ZoningLandUse,ZoningOccupancy,UtilityRebuild,UtilityPowerCoverage,UtilityWaterCoverage,CommuteEstimate}
         const int PartCount=31;
         public static bool Enabled;

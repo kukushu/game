@@ -44,6 +44,7 @@ namespace HarborCity.RoadCore
                 if(oldest!=null)oldest.older=null;else newest=null;
 #if CITY_CORE_ATTRIBUTION
                 CityCoreProfile.CacheEvictions++;
+                CityCoreProfile.ObserveQuery(CityCoreProfile.QueryKind.Evicted,CityCoreProfile.QueryResult.Miss,0,(int)(removed.key>>32),(int)removed.key,removed.resident);
 #endif
             }
             var entry=new Entry{key=key,resident=resident,blueprint=blueprint};(resident?passengers:freight).Add(key,entry);Touch(entry);
@@ -54,7 +55,11 @@ namespace HarborCity.RoadCore
 #if UNITY_5_3_OR_NEWER
         static readonly ProfilerMarker prepareSample=new ProfilerMarker("City.RoadCore.Dispatch.PrepareRoute");
 #endif
-        public void Reset(Network network){this.network=network;freight.Clear();passengers.Clear();newest=oldest=null;}
+        public void Reset(Network network){
+#if CITY_CORE_ATTRIBUTION
+            CityCoreProfile.ObserveQuery(CityCoreProfile.QueryKind.Reset,CityCoreProfile.QueryResult.Miss,0,0,0);
+#endif
+            this.network=network;freight.Clear();passengers.Clear();newest=oldest=null;}
         public DispatchBlueprint Get(Network current,int origin,int destination,RoadAccess source,RoadAccess target,bool resident,IJunctionEndpointProvider provider)
         {
 #if CITY_CORE_ATTRIBUTION
@@ -65,9 +70,13 @@ namespace HarborCity.RoadCore
             {
 #if CITY_CORE_ATTRIBUTION
                 CityCoreProfile.CacheHits++;
+                CityCoreProfile.ObserveQuery(CityCoreProfile.QueryKind.Blueprint,CityCoreProfile.QueryResult.Hit,0,origin,destination,resident);
 #endif
                 Touch(cached);return cached.blueprint;
             }
+#if CITY_CORE_ATTRIBUTION
+            CityCoreProfile.ObserveQuery(CityCoreProfile.QueryKind.Blueprint,CityCoreProfile.QueryResult.Miss,0,origin,destination,resident);
+#endif
 #if UNITY_5_3_OR_NEWER
             using(prepareSample.Auto())
 #endif

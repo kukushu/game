@@ -1,0 +1,7 @@
+{
+  "maxMemoryGB": 4,
+  "instrumentation": "CITY_CORE_ATTRIBUTION observational callback; timings include observer overhead",
+  "inputHash": "E78C47DAAFFCB989FFC57EB0048575C3B6AA6DC66386DD6689C9C8EACD5DB7D8",
+  "timeoutSeconds": 300,
+  "commit": "0eb29b2a4e2eb72210d10489ab85eecdcdd6d4f4"
+}
