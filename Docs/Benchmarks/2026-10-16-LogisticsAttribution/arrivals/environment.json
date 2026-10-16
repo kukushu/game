@@ -1,0 +1,12 @@
+{
+  "utc": "2026-10-16T05:27:54.4170694Z",
+  "steps": 2399,
+  "note": "Same actual CitySimulation. Generated copy adds observation calls only; trace timing is NOT uninstrumented performance.",
+  "productWorldHash": "63BAE52297007DF3313981FCEAB60C53C54C1773E2086E118A2BA2BA7AF7582B",
+  "mode": "trace",
+  "maxMemoryGB": 8,
+  "inputPath": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\CityScenarios\\logistics-attribution-trace\\final.hcity",
+  "timeoutSeconds": 480,
+  "commit": "df5ba1f5d734ae8d3d5e05dacdd82c5c5cea7ee6",
+  "inputHash": "7ACCCB707DBC3514A90352682B8A8766F43793406E5AF9CFA92687F07A79DCA7"
+}

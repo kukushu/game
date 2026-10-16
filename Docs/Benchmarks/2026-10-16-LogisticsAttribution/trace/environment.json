@@ -1,0 +1,12 @@
+{
+  "inputPath": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\CityScenarios\\challenge100000-dotnet64\\final.hcity",
+  "maxMemoryGB": 8,
+  "mode": "trace",
+  "steps": 2401,
+  "utc": "2026-10-16T05:24:30.9217006Z",
+  "note": "Same actual CitySimulation. Generated copy adds observation calls only; trace timing is NOT uninstrumented performance.",
+  "productWorldHash": "63BAE52297007DF3313981FCEAB60C53C54C1773E2086E118A2BA2BA7AF7582B",
+  "commit": "df5ba1f5d734ae8d3d5e05dacdd82c5c5cea7ee6",
+  "timeoutSeconds": 480,
+  "inputHash": "93F656DBF0D3F5CD63176AD118D064CECA47664FD85BC5F3ED8CBD0E9A450DC8"
+}

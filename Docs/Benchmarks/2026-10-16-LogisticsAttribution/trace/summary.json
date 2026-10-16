@@ -1,0 +1,1 @@
+{"mode":"instrumented actual branch trace; not baseline performance","steps":2401,"finalTick":7201,"mean":69.14476842982086,"p95":83.1698,"p99":1795.999,"max":8468.9578,"meanAllocated":11065222.757184507,"gc0":1706,"gc1":390,"gc2":27,"consumed":0,"retiredWatched":4,"finalHash":"7acccb707dbc3514a90352682b8a8766f43793406e5af9cfa92687f07a79dca7"}
