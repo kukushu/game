@@ -13,6 +13,7 @@ namespace HarborCity
     public sealed class HarborCityRoadCoreGame:MonoBehaviour
     {
         static readonly ProfilerMarker simulationSample=new ProfilerMarker("City.Simulation"),viewsSample=new ProfilerMarker("City.RoadCore.Views");
+        static readonly ProfilerMarker uiSample=new ProfilerMarker("City.Views.UI");
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Launch()
         {
@@ -81,6 +82,8 @@ namespace HarborCity
         internal int ScenarioSteps=>lastSteps;
         internal int ScenarioVehicleViews=>cars.Count;
         internal int ScenarioBuildingViews=>buildingViews?.Count??0;
+        internal bool ScenarioMeasuring;
+        internal double ScenarioAdvanceMs,ScenarioVehicleMs,ScenarioStructureMs;
         internal void ScenarioRate(float rate){speed=rate;previousTick=System.Diagnostics.Stopwatch.GetTimestamp();}
         string notice="原工厂劳动→生产→新交通实车运输→原商店库存/支付。居民实际通勤已接入；市政、分区、信号灯和行人尚未接回。";
         string SavePath=>Path.Combine(Application.persistentDataPath,session==null?"harbor-road-core-v15.hcrc":"harbor-city-core-v16.hcity");
@@ -139,6 +142,8 @@ namespace HarborCity
         {
             observation?.Bind(session);roadEditor?.Bind(session);roadEditor?.Sync();buildingViews?.Select(observation?.Selected??0);
             if(world==null)return;long now=System.Diagnostics.Stopwatch.GetTimestamp();double seconds=(now-previousTick)/(double)System.Diagnostics.Stopwatch.Frequency*speed;using(simulationSample.Auto())lastSteps=session==null?world.Advance(seconds):session.Advance(seconds);previousTick=now;
+            long sampleAt=ScenarioMeasuring?System.Diagnostics.Stopwatch.GetTimestamp():0;
+            if(ScenarioMeasuring)ScenarioAdvanceMs=(sampleAt-now)*1000.0/System.Diagnostics.Stopwatch.Frequency;
             if(outsideViews==null)outsideViews=new HarborCityOutsideViews(roadMaterial,localization);outsideViews.Sync(session);
             if(session!=null&&session.City.development.enabled)
             {
@@ -146,6 +151,7 @@ namespace HarborCity
                 if(changed){RenderBuildings();shownBuildings=session.Entities.BuildingRevision;}
                 if(changed||shownZones!=session.City.zoning.revision||shownNetwork!=world.NetworkGeneration){RenderZones();shownZones=session.City.zoning.revision;shownNetwork=world.NetworkGeneration;}
             }
+            if(ScenarioMeasuring){long end=System.Diagnostics.Stopwatch.GetTimestamp();ScenarioStructureMs=(end-sampleAt)*1000.0/System.Diagnostics.Stopwatch.Frequency;sampleAt=end;}
             using(viewsSample.Auto())
             {
             visibleIds.Clear();foreach(var v in world.Vehicles)
@@ -157,6 +163,7 @@ namespace HarborCity
             }
             expiredIds.Clear();foreach(var pair in cars)if(!visibleIds.Contains(pair.Key))expiredIds.Add(pair.Key);foreach(int id in expiredIds){Destroy(cars[id].gameObject);cars.Remove(id);}
             }
+            if(ScenarioMeasuring)ScenarioVehicleMs=(System.Diagnostics.Stopwatch.GetTimestamp()-sampleAt)*1000.0/System.Diagnostics.Stopwatch.Frequency;
             if(constructionCamera!=null&&(Mouse.current==null||!(BlocksWorldInput(Mouse.current.position.ReadValue()))))constructionCamera.Step(Time.deltaTime);
             if(Keyboard.current!=null)
             {
@@ -236,6 +243,8 @@ namespace HarborCity
             foreach(var kind in new[]{UtilityKind.Electricity,UtilityKind.Water}){var network=session.City.UtilityNetwork(kind);foreach(var edge in network.edges){var a=network.Node(edge.a);var b=network.Node(edge.b);var go=new GameObject(kind+" line #"+edge.id);var line=go.AddComponent<LineRenderer>();line.sharedMaterial=kind==UtilityKind.Water?waterLineMaterial:carMaterial;line.startWidth=line.endWidth=kind==UtilityKind.Water?.22f:.14f;int samples=Math.Max(2,(int)Math.Ceiling(Vector2.Distance(new Vector2(a.x,a.z),new Vector2(b.x,b.z)))+1);line.positionCount=samples;for(int i=0;i<samples;i++){float t=i/(float)(samples-1),x=Mathf.Lerp(a.x,b.x,t),z=Mathf.Lerp(a.z,b.z,t);line.SetPosition(i,new Vector3(x,(landscape==null?2:landscape.Height(x,z))+(kind==UtilityKind.Water?.34f:1.4f),z));}utilityViews.Add(go);}}
         }
         void OnGUI()
+        {using(uiSample.Auto())DrawInterface();}
+        void DrawInterface()
         {
             if(world==null){if(localization==null){var language=Resources.Load<TextAsset>("GameData/Localization/zh-CN");if(language!=null)localization=new CityLocalization(JsonUtility.FromJson<TranslationData>(language.text));}if(localization!=null)GUI.Box(new Rect(8,8,Math.Min(Screen.width-16,760),80),localization.Get("ui.build.restart_play"));return;}if(Event.current.type==EventType.KeyDown&&Event.current.keyCode==KeyCode.Escape){CancelTool();Event.current.Use();}
             var bounds=MenuBounds;var colour=GUI.color;GUI.color=new Color(.07f,.1f,.12f,1);GUI.DrawTexture(bounds,Texture2D.whiteTexture);GUI.color=colour;GUI.contentColor=Color.white;
