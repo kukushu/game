@@ -584,6 +584,10 @@
     {
       "key": "ui.trade.no_endpoint",
       "text": "No active outside connection of this type."
+    },
+    {
+      "key": "ui.hud.employment",
+      "text": "Employed {0} / Workforce {1}"
     }
   ]
 }
