@@ -1,0 +1,33 @@
+{
+  "measureSeconds": 60,
+  "managedHash": "62CE611B4DA762E3E1D3A6084401E898720BEC73962FFA312A1525749E9CA51B",
+  "resolution": "1440x900",
+  "targetFps": 60,
+  "os": "Microsoft Windows NT 10.0.26200.0",
+  "playerHash": "4C93A4BB060A12B9044AB2103835DD1565AEC9AA8381372FA84FBBC14A19B989",
+  "inputHash": "E78C47DAAFFCB989FFC57EB0048575C3B6AA6DC66386DD6689C9C8EACD5DB7D8",
+  "rawProfile": false,
+  "cpu": "Intel(R) Core(TM) i5-14600KF",
+  "vsync": 0,
+  "rates": [
+    1,
+    3
+  ],
+  "unity": [
+    "m_EditorVersion: 6000.6.3f1",
+    "m_EditorVersionWithRevision: 6000.6.3f1 (45d8eee7de74)"
+  ],
+  "playerPath": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\ManualCityPlayer\\HarborCity.exe",
+  "utc": "2026-10-16T15:47:38.0312659Z",
+  "dirty": [
+    " M Assets/Scripts/Runtime/Infrastructure/Roads/CityRoadCoreNetwork.cs",
+    " M Tools/Diagnostics/CityStepProbe.cs",
+    " M Tools/MeasureCitySteps.ps1",
+    "?? Tools/Diagnostics/CityRouteWorkspaceChecks.cs",
+    "?? Tools/VerifyRouteWorkspace.ps1"
+  ],
+  "inputPath": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\CityScenarios\\challenge30000-traffic10000\\threshold.hcity",
+  "warmupSeconds": 8,
+  "commit": "0fb268d850d2e696bbb32f31035474249c8da3bd",
+  "checkRestore": true
+}

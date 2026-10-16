@@ -215,6 +215,7 @@ namespace HarborCity.RoadCore
             internal struct Entry { public long id;public double cost; }
             readonly List<Entry> entries=new List<Entry>();
             public int Count=>entries.Count;
+            internal void Clear()=>entries.Clear();
             static bool Before(Entry a,Entry b)=>a.cost<b.cost||(a.cost==b.cost&&a.id<b.id);
             public void Push(long id,double cost)
             {
@@ -227,6 +228,24 @@ namespace HarborCity.RoadCore
                 int i=0;while(i*2+1<entries.Count){int child=i*2+1;if(child+1<entries.Count&&Before(entries[child+1],entries[child]))child++;if(!Before(entries[child],item))break;entries[i]=entries[child];i=child;}entries[i]=item;return result;
             }
         }
+        // Derived scratch belongs to this immutable Network, not a route or actor.
+        // Current routing is synchronous/single-threaded. Results never borrow scratch.
+        sealed class RouteScratch
+        {
+            internal readonly RouteQueue queue=new RouteQueue();
+            internal readonly Dictionary<long,double> costs=new Dictionary<long,double>(CityRoadKeyComparer.Instance);
+            internal readonly Dictionary<long,long> parents=new Dictionary<long,long>(CityRoadKeyComparer.Instance);
+            internal readonly HashSet<long> settled=new HashSet<long>(CityRoadKeyComparer.Instance);
+            bool busy;
+            internal readonly struct Lease:IDisposable
+            {readonly RouteScratch owner;internal Lease(RouteScratch owner){this.owner=owner;}public void Dispose(){owner.busy=false;}}
+            internal Lease Acquire()
+            {
+                if(busy)throw new InvalidOperationException("Reentrant network route search");
+                queue.Clear();costs.Clear();parents.Clear();settled.Clear();busy=true;return new Lease(this);
+            }
+        }
+        RouteScratch accessSearch;
         // Dijkstra over lane ends with a heap: O((L+C) log L), independent of sample count.
         // No route scans or per-vehicle searches in Step; road edits validate references once.
         public List<long> Route(int from,int to)
@@ -259,7 +278,10 @@ namespace HarborCity.RoadCore
             var first=Get(start.lane);var last=Get(goal.lane);
             if(!start.valid||!goal.valid||first.IsConnection||last.IsConnection||start.distance<first.StartDistance||start.distance>first.EndDistance||goal.distance<last.StartDistance||goal.distance>last.EndDistance)return null;
             if(first.Id==last.Id&&goal.distance>=start.distance)return new List<long>{first.Id};
-            var queue=new RouteQueue();var costs=new Dictionary<long,double>(CityRoadKeyComparer.Instance);var parents=new Dictionary<long,long>(CityRoadKeyComparer.Instance);var settled=new HashSet<long>(CityRoadKeyComparer.Instance);
+            var scratch=accessSearch??(accessSearch=new RouteScratch());
+            using(scratch.Acquire())
+            {
+            var queue=scratch.queue;var costs=scratch.costs;var parents=scratch.parents;var settled=scratch.settled;
             double initial=(first.EndDistance-start.distance)/first.Speed;costs[first.Id]=initial;parents[first.Id]=0;queue.Push(first.Id,initial);
             long beforeGoal=0;double goalCost=double.PositiveInfinity;
             while(queue.Count>0)
@@ -276,6 +298,7 @@ namespace HarborCity.RoadCore
             }
             if(beforeGoal==0)return null;var lanes=new List<long>();for(long id=beforeGoal;id!=0;id=parents[id])lanes.Add(id);lanes.Reverse();lanes.Add(last.Id);
             var result=new List<long>();for(int i=0;i<lanes.Count;i++){if(i>0)result.Add(ConnectionId(lanes[i-1],lanes[i]));result.Add(lanes[i]);}return result;
+            }
         }
         public void ValidateRoute(List<long> route)
         {

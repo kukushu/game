@@ -1,0 +1,8 @@
+{
+  "terminatedBy": null,
+  "exitCode": 0,
+  "note": "Attributed few-step probe; not a normal build performance or complete-city pass",
+  "wallSeconds": 32.1429721,
+  "timeoutSeconds": 180,
+  "peakWorkingSetBytes": 314208256
+}

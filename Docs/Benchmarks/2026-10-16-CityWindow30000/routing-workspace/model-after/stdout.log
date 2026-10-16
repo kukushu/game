@@ -1,0 +1,10 @@
+Normal warm replay 120 tick=4526
+Normal warm replay 240 tick=4646
+Normal warm replay 360 tick=4766
+Starting actual step 4801
+Completed step 4801 ms=1507.2139 route preparations=3495
+Starting actual step 4802
+Completed step 4802 ms=19.9435 route preparations=2
+Starting actual step 4803
+Completed step 4803 ms=20.0067 route preparations=3
+PASS limited 3-step invariants; NOT multi-day or Unity performance acceptance

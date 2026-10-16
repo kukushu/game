@@ -1,4 +1,4 @@
-param([string]$Save='Temp/CityScenarios/grid500-normal-final/inflight.hcity',[string]$Results='Temp/CityScenarios/window500',[switch]$SkipBuild,[switch]$BuildOnly,[int]$TimeoutSeconds=180,[double]$MaxMemoryGB=8,[string]$PlayerPath='Temp/RoadCore/Player/HarborCity.exe',[ValidateSet(0,1,3)][int[]]$Rates=@(1,3),[switch]$RawProfile,[switch]$CheckRestore)
+param([string]$Save='Temp/CityScenarios/grid500-normal-final/inflight.hcity',[string]$Results='Temp/CityScenarios/window500',[switch]$SkipBuild,[switch]$BuildOnly,[int]$TimeoutSeconds=180,[double]$MaxMemoryGB=8,[string]$PlayerPath='Temp/RoadCore/Player/HarborCity.exe',[ValidateSet(0,1,3)][int[]]$Rates=@(1,3),[switch]$RawProfile,[switch]$CheckRestore,[string]$NetworkReference='')
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'ProjectLayout.ps1')
 $root=Split-Path $PSScriptRoot -Parent
@@ -8,13 +8,25 @@ $inputFile=(Resolve-Path -LiteralPath $Save).Path
 $resultsPath=[IO.Path]::GetFullPath((Join-Path $root $Results))
 New-Item -ItemType Directory -Path $resultsPath|Out-Null
 $project=Join-Path $root 'Temp/RoadCoreUnity';$player=[IO.Path]::GetFullPath((Join-Path $root $PlayerPath))
+$resolvedNetworkReference=$null
+if($NetworkReference){
+ if($SkipBuild){throw 'A diagnostic Network reference must be built, never just labelled on an existing binary'}
+ $resolvedNetworkReference=(& git rev-parse --verify ($NetworkReference+'^{commit}')).Trim()
+ if($LASTEXITCODE -ne 0 -or $resolvedNetworkReference -notmatch '^[0-9a-f]{40}$'){throw 'Invalid diagnostic Network reference'}
+}
 if(-not $SkipBuild){
  Sync-CityWorkspaceProject $root $project
+ if($resolvedNetworkReference){
+  $networkFile='Assets/Scripts/Runtime/Infrastructure/Roads/CityRoadCoreNetwork.cs'
+  $referenceSource=& git show ($resolvedNetworkReference+':'+$networkFile)
+  if($LASTEXITCODE -ne 0){throw 'Diagnostic Network source unavailable'}
+  [IO.File]::WriteAllLines((Join-Path $project $networkFile),$referenceSource)
+ }
  $env:HARBOR_TRAFFIC_VALIDATION_PLAYER=$player;$env:HARBOR_CORE_ATTRIBUTION='0'
  $build=Start-Process 'C:/Program Files/Unity/Hub/Editor/6000.6.3f1/Editor/Unity.exe' -ArgumentList '-batchmode','-quit','-projectPath',('"'+$project+'"'),'-executeMethod','HarborCity.CityTrafficBenchmarkBuild.BuildResearchValidation','-logFile',('"'+(Join-Path $resultsPath 'build.log')+'"') -WindowStyle Hidden -PassThru
  if(-not $build.WaitForExit(600000)){$build.Kill($true);$build.WaitForExit();throw "Unity build exceeded 600 seconds; build log preserved"};if($build.ExitCode -ne 0){throw 'Unity build failed'}
 }
-@{commit=(& git rev-parse HEAD);dirty=@(& git status --porcelain);inputPath=$inputFile;inputHash=(Get-FileHash -LiteralPath $inputFile).Hash;playerPath=$player;playerHash=(Get-FileHash -LiteralPath $player).Hash;managedHash=(Get-FileHash -LiteralPath (Join-Path (Split-Path $player) 'HarborCity_Data/Managed/Assembly-CSharp.dll')).Hash;cpu=(Get-CimInstance Win32_Processor|Select-Object -ExpandProperty Name);os=[Environment]::OSVersion.ToString();unity=(Get-Content ProjectSettings/ProjectVersion.txt);utc=[DateTime]::UtcNow.ToString('o');warmupSeconds=8;measureSeconds=$(if($RawProfile){15}else{60});rawProfile=$RawProfile.IsPresent;checkRestore=$CheckRestore.IsPresent;rates=$Rates;resolution='1440x900';targetFps=60;vsync=0}|ConvertTo-Json -Depth 5|Set-Content (Join-Path $resultsPath 'environment.json')
+@{networkReference=$resolvedNetworkReference;commit=(& git rev-parse HEAD);dirty=@(& git status --porcelain);inputPath=$inputFile;inputHash=(Get-FileHash -LiteralPath $inputFile).Hash;playerPath=$player;playerHash=(Get-FileHash -LiteralPath $player).Hash;managedHash=(Get-FileHash -LiteralPath (Join-Path (Split-Path $player) 'HarborCity_Data/Managed/Assembly-CSharp.dll')).Hash;cpu=(Get-CimInstance Win32_Processor|Select-Object -ExpandProperty Name);os=[Environment]::OSVersion.ToString();unity=(Get-Content ProjectSettings/ProjectVersion.txt);utc=[DateTime]::UtcNow.ToString('o');warmupSeconds=8;measureSeconds=$(if($RawProfile){15}else{60});rawProfile=$RawProfile.IsPresent;checkRestore=$CheckRestore.IsPresent;rates=$Rates;resolution='1440x900';targetFps=60;vsync=0}|ConvertTo-Json -Depth 5|Set-Content (Join-Path $resultsPath 'environment.json')
 if($BuildOnly){Write-Output "Unity Player built only; runtime/window validation was not performed";return}
 foreach($rate in $Rates){
  foreach($existing in @(Get-Process -Name ([IO.Path]::GetFileNameWithoutExtension($player)) -ErrorAction SilentlyContinue)){
