@@ -7,10 +7,11 @@ import subprocess, json, html, re, csv
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'Docs/Architecture'
-COMMIT = '1c374c4'
+COMMIT = '8c22ac1'
 BASELINE = '110c4eaa24fa69d55b08a5db2a6d19ec6da5dd7f'
 R = 'Assets/Scripts/Runtime/'
 files = {
+ 'roadviews':R+'Presentation/World/HarborCityRoadViews.cs',
  'vehicleviews':R+'Presentation/World/HarborCityVehicleViews.cs',
  'zoningviews':R+'Presentation/World/HarborCityZoningViews.cs',
  'surfacemesh':R+'Presentation/World/HarborCitySurfaceMesh.cs',
@@ -269,7 +270,7 @@ evidence_specs=[
  ('P1 完成收据无限保留','session','readonly HashSet<int> receipts'),
  ('R2-B 真实端口与共享曲线','ports','static Point[] Curve'),
  ('P2 全量施工候选与提交','world','internal bool TryCommit'),
- ('P2 局部连接冲突两两构建','reservations','foreach(var bucket in local.Values)'),
+ ('静态连接冲突按需查询','reservations','public ConnectionConflicts(Network network)'),
  ('P2 保存协议依赖public字段布局','save','static FieldInfo[] Fields'),
  ('模块：旧分区规划世界坐标键','zoning','public sealed class CityZoningState'),
  ('模块：旧地图参数而非渲染事实','map','public sealed class CityMapState'),
@@ -621,6 +622,22 @@ graphs['global-current']['nodes'].append(node('vehicleviews','车辆表现生命
 graphs['global-current']['edges'].extend([edge('host','vehicleviews','固定步之后同步'),edge('vehicleviews','world','公开只读查询','dash')])
 flowdata['current']['note']+=' 车辆显示由HarborCityVehicleViews在固定步外更新；只回收已退休ID，所有真车仍显示，闲置物体不是新车辆事实。'
 evidence.extend([dict(title='实际：车辆显示所有权与复用',source=ref('vehicleviews','public void Sync')),dict(title='实际：换城/卸载清理显示资源',source=ref('vehicleviews','public void Clear'))])
+card('roadviews','HarborCityRoadViews','Presentation / 道路生命周期','derived','roadviews','public sealed class HarborCityRoadViews','稳定Drivable ID→GameObject/Mesh','Sync · Instance · InvalidateSurface · Dispose','宿主独占Mesh和对象；材质借用。','World只读；不入存档。','按端点和完整XYZ几何比较，复用未变化显示。','仍绘制全部真实道路，不写模拟。','换World/采样器或地表失效时清理；卸载Dispose。','只读Network与SurfaceMesh.Ribbon。','分区视图仍有独立长帧；静态缓存占用内存。','145项原生生命周期及逐顶点几何检查通过。')
+graphs['classes']['nodes'].append(node('roadviews','HarborCityRoadViews','稳定道路ID / 完整几何复用','derived'))
+graphs['classes']['edges'].extend([edge('host','roadviews','独占显示生命周期'),edge('roadviews','network','只读几何','dash')])
+graphs['ownership']['nodes'].append(node('roadviews','道路显示对象 / Mesh','派生表现；材质借用','derived'))
+graphs['ownership']['edges'].extend([edge('host','roadviews','拥有 / 清理'),edge('network','roadviews','只读全部道路','dash')])
+flowdata['current']['note']+=' 2026-10-18：鼠标移动只更新黄色待校验示意；点击仍完整规划、校验、事务提交。ConnectionConflicts由不可变Network持有，按需缓存静态精确冲突结果；保留原始插入顺序计算，保守包围盒只排除不可能相交的段，不保存动态预约。'
+evidence.append(dict(title='实际：道路显示所有权与完整几何复用',source=ref('roadviews','public void Sync')))
+for c in cards:
+    if c['id']=='network':
+        c['derived']+=' ConnectionConflicts按同路口查询惰性缓存true/false，保留原插入顺序的精确计算；包围盒只保守排除。'
+        c['risk']='输入可写DTO仍须遵守所有权；静态冲突查询缓存最坏随各路口连接对增长，正常步冷填充会增加分配，不入存档。'
+    if c['id']=='connection':
+        c['risk']='精确保护路径和动态预约保持原规则；静态冲突现在按需查询，不再在Network构造时穷举全部路径对。'
+        c['owner']='Network生成真实LaneConnection并持有静态派生查询；World独占动态预约。'
+    if c['id']=='host':
+        c['derived']+=' 黄色道路预览仅表示长度/地形示意，点击才做完整施工事务；HarborCityRoadViews持有全部道路Mesh。'
 payload=dict(commit=COMMIT,baseline=BASELINE,cards=cards,graphs=graphs,flows=flowdata,readings=readingdata,perf=perf,evidence=evidence)
 
 page=r'''<!doctype html>
@@ -815,6 +832,9 @@ vehicle_pool=(OUT/'VehicleViewPooling20261017.md').read_text(encoding='utf-8')
 page=page.replace('<section id="review">','<section id="review"><details open><summary>最新默认：车辆显示复用与真实出生峰；普通FPS仍未达标</summary><div class="doccontent">'+markdown(vehicle_pool)+'</div></details>')
 review=(OUT/'PerformanceReview20261017.md').read_text(encoding='utf-8')
 page=page.replace('<section id="review">','<section id="review"><details open><summary>性能工作已暂停：占用索引复用、完整状态对照与经验收尾</summary><div class="doccontent">'+markdown(review)+'</div></details>')
+road_report=ROOT/'Docs/Benchmarks/2026-10-18-RoadPreviewOptimization/Report.txt'
+if road_report.exists():
+    page=page.replace('<section id="review">','<section id="review"><details open><summary>2026-10-18 当前道路预览优化、精确对照与剩余长帧</summary><pre>'+html.escape(road_report.read_text(encoding='utf-8'))+'</pre></details>')
 (OUT/'HarborCityArchitecture.html').write_text(page,encoding='utf-8')
 (OUT/'SourceEvidence.md').write_text('# 固定源码定位证据\n\n审查commit：`'+COMMIT+'`。以下行号由固定源码生成，而非当前工作树。\n\n'+ '\n'.join('## '+e['title']+'\n\n['+e['source']['file']+':'+str(e['source']['line'])+']('+e['source']['url']+')\n\n方法/语句：`'+e['source']['token']+'`\n' for e in evidence),encoding='utf-8')
 print(f'Created {OUT / "HarborCityArchitecture.html"}; {len(cards)} class cards, {len(graphs)} graphs, {len(flowdata)} flows; pinned {COMMIT}')
