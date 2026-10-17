@@ -7,7 +7,7 @@ import subprocess, json, html, re, csv
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'Docs/Architecture'
-COMMIT = '559a5df'
+COMMIT = '0444e58'
 BASELINE = '110c4eaa24fa69d55b08a5db2a6d19ec6da5dd7f'
 R = 'Assets/Scripts/Runtime/'
 files = {
@@ -796,6 +796,8 @@ frames_review=(OUT/'CityWindowFrames20261017.md').read_text(encoding='utf-8')
 page=page.replace('<section id="review">','<section id="review"><details open><summary>最新真实长帧：暂停显示成本、关键帧与测量隔离</summary><div class="doccontent">'+markdown(frames_review)+'</div></details>')
 zoning_batch=(OUT/'ZoningViewBatching20261017.md').read_text(encoding='utf-8')
 page=page.replace('<section id="review">','<section id="review"><details open><summary>最新默认：保留全部几何的分区空间合批与真实窗口</summary><div class="doccontent">'+markdown(zoning_batch)+'</div></details>')
+two_goal=(OUT/'TwoGoalRouting20261017.md').read_text(encoding='utf-8')
+page=page.replace('<section id="review">','<section id="review"><details open><summary>最新默认路线：共享双目标搜索、完整状态对照与真实倍率</summary><div class="doccontent">'+markdown(two_goal)+'</div></details>')
 (OUT/'HarborCityArchitecture.html').write_text(page,encoding='utf-8')
 (OUT/'SourceEvidence.md').write_text('# 固定源码定位证据\n\n审查commit：`'+COMMIT+'`。以下行号由固定源码生成，而非当前工作树。\n\n'+ '\n'.join('## '+e['title']+'\n\n['+e['source']['file']+':'+str(e['source']['line'])+']('+e['source']['url']+')\n\n方法/语句：`'+e['source']['token']+'`\n' for e in evidence),encoding='utf-8')
 print(f'Created {OUT / "HarborCityArchitecture.html"}; {len(cards)} class cards, {len(graphs)} graphs, {len(flowdata)} flows; pinned {COMMIT}')

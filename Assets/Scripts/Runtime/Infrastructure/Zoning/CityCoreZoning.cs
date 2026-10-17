@@ -176,9 +176,21 @@ namespace HarborCity
             using var placementObservation=CityCoreProfile.Measure(CityCoreProfile.Part.Placement);
 #endif
             if(!Ready)return false;float low=float.MaxValue,high=float.MinValue;
+#if CITY_CORE_ATTRIBUTION
+            using(CityCoreProfile.Measure(CityCoreProfile.Part.PlacementTerrain))
+            {
+#endif
             foreach(var corner in new[]{pose.Point(-pose.width/2,-pose.depth/2),pose.Point(pose.width/2,-pose.depth/2),pose.Point(pose.width/2,pose.depth/2),pose.Point(-pose.width/2,pose.depth/2)}){if(Math.Abs(corner.x)>city.map.buildHalfSize||Math.Abs(corner.z)>city.map.buildHalfSize)return false;float y=height(corner.x,corner.z);if(float.IsNaN(y)||float.IsInfinity(y))return false;low=Math.Min(low,y);high=Math.Max(high,y);}
             if(low<=.15f||high-low>1.5f)return false;pose.groundY=height(pose.x,pose.z);
+#if CITY_CORE_ATTRIBUTION
+            }
+            using(CityCoreProfile.Measure(CityCoreProfile.Part.PlacementBuildings))
+            {
+#endif
             if(checkBuildings&&(city.buildings.Any(b=>pose.Overlaps(b))||city.development.projects.Any(p=>p.id!=ignoreProject&&pose.Overlaps(p.building.ToBuilding()))))return false;
+#if CITY_CORE_ATTRIBUTION
+            }
+#endif
             return !CityRoadClearance.Intersects(world.Network,pose,hits);
         }
         internal SpatialHit? Entrance(CityBuilding b)
