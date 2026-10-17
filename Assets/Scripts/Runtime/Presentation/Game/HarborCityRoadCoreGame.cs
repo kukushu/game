@@ -81,8 +81,13 @@ namespace HarborCity
         long previousTick;int lastSteps;
         internal CityCoreIndustrySession ScenarioSession=>session;
         internal int ScenarioSteps=>lastSteps;
+        internal float ScenarioCurrentRate=>speed;
         internal int ScenarioVehicleViews=>cars.Count;
         internal int ScenarioBuildingViews=>buildingViews?.Count??0;
+        internal int ScenarioZonePlots=>zones.Count;
+        internal int ScenarioZoneRenderers=>zones.Count;
+        internal int ScenarioRoadViews=>roads.Count;
+        internal int ScenarioUtilityViews=>utilityViews.Count;
         internal bool ScenarioMeasuring;
         internal double ScenarioAdvanceMs,ScenarioVehicleMs,ScenarioStructureMs;
         internal double ScenarioRequestedSeconds;
@@ -169,6 +174,9 @@ namespace HarborCity
             expiredIds.Clear();foreach(var pair in cars)if(!visibleIds.Contains(pair.Key))expiredIds.Add(pair.Key);foreach(int id in expiredIds){Destroy(cars[id].gameObject);cars.Remove(id);}
             }
             if(ScenarioMeasuring)ScenarioVehicleMs=(System.Diagnostics.Stopwatch.GetTimestamp()-sampleAt)*1000.0/System.Diagnostics.Stopwatch.Frequency;
+            // A scripted timing run observes normal simulation/views but must not
+            // accept incidental clicks or camera keys. Manual inspect is separate.
+            if(ScenarioMeasuring)return;
             if(constructionCamera!=null&&(Mouse.current==null||!(BlocksWorldInput(Mouse.current.position.ReadValue()))))constructionCamera.Step(Time.deltaTime);
             if(Keyboard.current!=null)
             {
@@ -248,7 +256,10 @@ namespace HarborCity
             foreach(var kind in new[]{UtilityKind.Electricity,UtilityKind.Water}){var network=session.City.UtilityNetwork(kind);foreach(var edge in network.edges){var a=network.Node(edge.a);var b=network.Node(edge.b);var go=new GameObject(kind+" line #"+edge.id);var line=go.AddComponent<LineRenderer>();line.sharedMaterial=kind==UtilityKind.Water?waterLineMaterial:carMaterial;line.startWidth=line.endWidth=kind==UtilityKind.Water?.22f:.14f;int samples=Math.Max(2,(int)Math.Ceiling(Vector2.Distance(new Vector2(a.x,a.z),new Vector2(b.x,b.z)))+1);line.positionCount=samples;for(int i=0;i<samples;i++){float t=i/(float)(samples-1),x=Mathf.Lerp(a.x,b.x,t),z=Mathf.Lerp(a.z,b.z,t);line.SetPosition(i,new Vector3(x,(landscape==null?2:landscape.Height(x,z))+(kind==UtilityKind.Water?.34f:1.4f),z));}utilityViews.Add(go);}}
         }
         void OnGUI()
-        {using(uiSample.Auto())DrawInterface();}
+        {
+            if(ScenarioMeasuring&&(Event.current.isMouse||Event.current.isKey||Event.current.type==EventType.ScrollWheel))return;
+            using(uiSample.Auto())DrawInterface();
+        }
         void DrawInterface()
         {
             if(world==null){if(localization==null){var language=Resources.Load<TextAsset>("GameData/Localization/zh-CN");if(language!=null)localization=new CityLocalization(JsonUtility.FromJson<TranslationData>(language.text));}if(localization!=null)GUI.Box(new Rect(8,8,Math.Min(Screen.width-16,760),80),localization.Get("ui.build.restart_play"));return;}if(Event.current.type==EventType.KeyDown&&Event.current.keyCode==KeyCode.Escape){CancelTool();Event.current.Use();}

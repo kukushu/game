@@ -3,6 +3,7 @@ import argparse
 import csv
 import json
 import math
+import hashlib
 from pathlib import Path
 
 parser = argparse.ArgumentParser()
@@ -25,6 +26,8 @@ for number in metadata.get('rates', [1, 3]):
     assert result['input_sha256'].lower() == metadata['inputHash'].lower(), 'Different city input'
     previous = int(result['start_tick'])
     for row in rows:
+        if 'actual_rate' in row:
+            assert float(row['actual_rate']) == number, 'User input changed benchmark speed'
         tick = int(row['tick'])
         assert tick - previous == int(row['fixed_steps']), 'Tick change differs from actual host steps'
         assert int(row['active_vehicles']) == int(row['vehicle_views']), 'Vehicles missing from normal views'
@@ -32,6 +35,13 @@ for number in metadata.get('rates', [1, 3]):
     assert previous == int(result['end_tick'])
     close = lambda a,b: math.isclose(float(a), float(b), rel_tol=1e-8, abs_tol=1e-7)
     elapsed = float(result['real_seconds'])
+    if number == 0:
+        assert previous == int(result['start_tick']) and all(float(r.get('requested_seconds',0)) == 0 for r in rows), 'Paused-labelled run advanced the city'
+        assert hashlib.sha256((folder / 'final.hcity').read_bytes()).hexdigest().lower() == metadata['inputHash'].lower(), 'Paused observation changed complete saved facts'
+    elif all('requested_seconds' in r for r in rows):
+        requested = sum(float(r['requested_seconds']) for r in rows)
+        edge = max(float(r['frame_ms']) for r in rows) / 1000 * number + .01
+        assert abs(requested - elapsed * number) <= edge, 'Requested time does not match benchmark rate'
     times = sorted(float(r['frame_ms']) for r in rows)
     assert close(sum(times) / 1000, elapsed) and close(rows[-1]['real_seconds'], elapsed)
     assert close(len(rows)/elapsed, result['fps'])
@@ -56,3 +66,5 @@ for number in metadata.get('rates', [1, 3]):
         assert abs(float(clock['balance_error_seconds'])) < 1e-6
     print(f'PASS {rate}: {len(rows)} actual frames, {previous-int(result["start_tick"])} steps, every vehicle view present; frame/GC/multiplier summary matches raw CSV')
 print('No mouse acceptance or economic-health/performance-threshold claim.')
+if metadata.get('hostSource'):
+    print('Diagnostic presentation source override: this is an ablation/control, not full normal rendering performance.')

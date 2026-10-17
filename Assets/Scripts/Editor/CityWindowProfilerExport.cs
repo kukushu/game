@@ -25,7 +25,7 @@ namespace HarborCity
             {
                 if(!raw.valid)break;string name=raw.threadName;
                 if(name!="Main Thread"&&name!="Render Thread"&&name.IndexOf("Gfx",StringComparison.OrdinalIgnoreCase)<0)continue;
-                frames.Append(frame).Append(',').Append(Quote(name)).Append(',').Append(N(raw.frameTimeMs)).Append(',').Append(N(raw.frameGpuTimeMs)).AppendLine();
+                frames.Append(frame).Append(',').Append(Quote(name)).Append(',').Append(N(raw.frameTimeMs)).Append(',').Append(N(raw.frameGpuTimeMs>0?raw.frameGpuTimeMs:-1)).AppendLine();
                 using(var data=ProfilerDriver.GetHierarchyFrameDataView(frame,thread,HierarchyFrameDataView.ViewModes.MergeSamplesWithTheSameName,HierarchyFrameDataView.columnDontSort,false))
                     if(data.valid){Visit(data,data.GetRootItemID(),"",frame,name,rows);count++;}
             }

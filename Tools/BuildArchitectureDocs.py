@@ -7,7 +7,7 @@ import subprocess, json, html, re, csv
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'Docs/Architecture'
-COMMIT = '156737e'
+COMMIT = '14650d8'
 BASELINE = '110c4eaa24fa69d55b08a5db2a6d19ec6da5dd7f'
 R = 'Assets/Scripts/Runtime/'
 files = {
@@ -586,6 +586,19 @@ for c in cards:
     if c['id']=='network':c['derived']+=' RouteScratch只复用搜索容器，结果List独立；不是第二套网络。'
 flowdata['current']['note']+=' 路线搜索工作空间按Network派生复用；不共享演员Plan，不改变搜索次数或路线规则。'
 
+# Implemented scalar-first OD cache, not another authoritative route/position.
+card('routingcache','DispatchRoutes','Traffic / 派生静态查询','derived','dispatch','internal sealed class DispatchRoutes','4096 LRU / Entry.seconds / optional blueprint','GetTravelSeconds · Get · Reset','World私有拥有；Session仅负责组装World。','没有实体事实、车辆位置、库存或时钟；不保存。','相同OD共享静态报价；实际派车按需生成原算法蓝图。','只写派生缓存；每车独立持有自己的RoutePlan。','网络/入口改变失效；同一LRU项由标量升级为蓝图，不复制第二缓存。','Network共享几何、AccessRouting合法方向；单线程RouteScratch。','首次新OD仍遍历路网；不能缓存实时拥堵，未来并行不能共享当前工作空间。','已默认启用：通勤峰1498→357ms，但正常整日均值仅改善1.31%，3×窗口仍未达标。')
+graphs['classes']['nodes'].append(node('routingcache','DispatchRoutes','one bounded scalar/blueprint OD cache','derived'))
+graphs['classes']['edges'].extend([edge('world','routingcache','owns derived cache'),edge('routingcache','network','static cost / canonical route')])
+graphs['ownership']['nodes'].append(node('routingcache','派车报价 / 蓝图LRU','World私有派生数据；不入存档','derived'))
+graphs['ownership']['edges'].extend([edge('session','routingcache','World持有（会话内）；非城市事实','dash'),edge('network','routingcache','静态来源；重建后失效','dash')])
+for n in graphs['ownership']['nodes']:
+    if n['id']=='cache':n.update(label='空间 / 可达性索引',sub='Network拥有；派车LRU另由World拥有',detail='network')
+for c in cards:
+    if c['id']=='world':c['derived']+=' DispatchRoutes单一4096项静态OD缓存：标量先行，实际派车才生成蓝图。'
+flowdata['current']['note']+=' 通勤估计只求合法方向最低自由流秒数；实际派车仍用原Find。估计不拥有车辆位置，不改出勤和工资。'
+evidence.extend([dict(title='实际：静态标量多起终点查询',source=ref('network','internal double MinimumTravelSeconds')),dict(title='实际：同一LRU项按需生成导航',source=ref('dispatch','public double GetTravelSeconds'))])
+
 payload=dict(commit=COMMIT,baseline=BASELINE,cards=cards,graphs=graphs,flows=flowdata,readings=readingdata,perf=perf,evidence=evidence)
 
 page=r'''<!doctype html>
@@ -765,6 +778,10 @@ imports=(OUT/'ImportEndpointExperiment.md').read_text(encoding='utf-8-sig')
 page=page.replace('<section id="review">','<section id="review"><details open><summary>最新实测：同城1/4/12进口口，一日原料48/88/169；未改变业务规则</summary><div class="doccontent">'+markdown(imports)+'</div></details>')
 current_window=(OUT/'CityWindow30000.md').read_text(encoding='utf-8-sig')
 page=page.replace('<section id="review">','<section id="review"><details open><summary>最新真实窗口：三万人卡顿归因、读数修正与保留欠步的交互预算</summary><div class="doccontent">'+markdown(current_window)+'</div></details>')
+commute=(OUT/'CommuteOptimization20261017.md').read_text(encoding='utf-8-sig')
+page=page.replace('<section id="review">','<section id="review"><details open><summary>最新通勤性能：标量先行与剩余真实窗口瓶颈</summary><div class="doccontent">'+markdown(commute)+'</div></details>')
+frames_review=(OUT/'CityWindowFrames20261017.md').read_text(encoding='utf-8')
+page=page.replace('<section id="review">','<section id="review"><details open><summary>最新真实长帧：暂停显示成本、关键帧与测量隔离</summary><div class="doccontent">'+markdown(frames_review)+'</div></details>')
 (OUT/'HarborCityArchitecture.html').write_text(page,encoding='utf-8')
 (OUT/'SourceEvidence.md').write_text('# 固定源码定位证据\n\n审查commit：`'+COMMIT+'`。以下行号由固定源码生成，而非当前工作树。\n\n'+ '\n'.join('## '+e['title']+'\n\n['+e['source']['file']+':'+str(e['source']['line'])+']('+e['source']['url']+')\n\n方法/语句：`'+e['source']['token']+'`\n' for e in evidence),encoding='utf-8')
 print(f'Created {OUT / "HarborCityArchitecture.html"}; {len(cards)} class cards, {len(graphs)} graphs, {len(flowdata)} flows; pinned {COMMIT}')
