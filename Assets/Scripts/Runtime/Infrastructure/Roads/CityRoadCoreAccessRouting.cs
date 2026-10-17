@@ -15,15 +15,20 @@ namespace HarborCity.RoadCore
         public static RoadAccess AtDirection(Network network,RoadAccess access,bool reverse)=>network.Get(access.lane).Reverse==reverse?access:Opposite(network,access);
         public static List<long> Find(Network network,RoadAccess source,RoadAccess target,bool bothDirections,out double start,out double end)
         {
-            start=0;end=0;if(!source.valid||!target.valid)return null;if(!bothDirections){start=source.distance;end=target.distance;return network.Route(source,target);}var sources=new[]{source,Opposite(network,source)};var goals=new[]{target,Opposite(network,target)};
-            List<long> best=null;double cost=double.PositiveInfinity;
-            foreach(var a in sources)foreach(var b in goals)
+            start=0;end=0;if(!source.valid||!target.valid)return null;if(!bothDirections){start=source.distance;end=target.distance;return network.Route(source,target);}
+            var otherSource=Opposite(network,source);var otherTarget=Opposite(network,target);
+            if(otherSource!=null&&otherTarget!=null)
             {
-                if(a==null||b==null)continue;var route=network.Route(a,b);if(route==null||route.Count==0)continue;double candidate=0;
-                for(int i=0;i<route.Count;i++){var d=network.Get(route[i]);candidate+=((i==route.Count-1?b.distance:d.EndDistance)-(i==0?a.distance:d.StartDistance))/d.Speed;}
-                if(candidate<cost){cost=candidate;best=route;start=a.distance;end=b.distance;}
+                int choice0,choice1;var first=network.RouteToEither(source,target,otherTarget,out choice0);var second=network.RouteToEither(otherSource,target,otherTarget,out choice1);
+                double firstEnd=choice0==0?target.distance:otherTarget.distance,secondEnd=choice1==0?target.distance:otherTarget.distance;
+                double cost=Cost(network,first,source.distance,firstEnd),candidate=Cost(network,second,otherSource.distance,secondEnd);
+                if(second!=null&&candidate<cost){start=otherSource.distance;end=secondEnd;return second;}
+                if(first!=null){start=source.distance;end=firstEnd;}return first;
             }
-            return best;
+            // Do not add a second search on one-way or other <=2-combination cases.
+            var sources=new[]{source,otherSource};var goals=new[]{target,otherTarget};List<long> best=null;double bestCost=double.PositiveInfinity;
+            foreach(var a in sources)foreach(var b in goals)
+            {if(a==null||b==null)continue;var route=network.Route(a,b);if(route==null||route.Count==0)continue;double cost=Cost(network,route,a.distance,b.distance);if(cost<bestCost){bestCost=cost;best=route;start=a.distance;end=b.distance;}}return best;
         }
         public static double EstimateSeconds(Network network,RoadAccess source,RoadAccess target,bool bothDirections)
         {

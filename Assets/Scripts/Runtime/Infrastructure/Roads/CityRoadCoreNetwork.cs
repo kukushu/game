@@ -270,34 +270,50 @@ namespace HarborCity.RoadCore
             return null;
         }
         public List<long> Route(RoadAccess start,RoadAccess goal)
+        {int selected;return RouteToEither(start,goal,null,out selected);}
+        // A single source, two terminal access directions. Keep canonical queue
+        // and parent ordering; ties prefer the original first goal.
+        internal List<long> RouteToEither(RoadAccess start,RoadAccess goal,RoadAccess other,out int selected)
         {
 #if CITY_CORE_ATTRIBUTION
-            using var observation=HarborCity.RoadCore.CityCoreProfile.Measure(HarborCity.RoadCore.CityCoreProfile.Part.RouteSearch);
+            using var observation=CityCoreProfile.Measure(CityCoreProfile.Part.RouteSearch);
 #endif
-
-            var first=Get(start.lane);var last=Get(goal.lane);
-            if(!start.valid||!goal.valid||first.IsConnection||last.IsConnection||start.distance<first.StartDistance||start.distance>first.EndDistance||goal.distance<last.StartDistance||goal.distance>last.EndDistance)return null;
-            if(first.Id==last.Id&&goal.distance>=start.distance)return new List<long>{first.Id};
+            selected=-1;var first=Get(start.lane);Get(goal.lane);
+            if(!start.valid||first.IsConnection||start.distance<first.StartDistance||start.distance>first.EndDistance)return null;
+            RoadAccess a=ValidCostAccess(goal)?goal:null,b=other!=null&&ValidCostAccess(other)?other:null;
+            if(a==null&&b==null)return null;
+            // Any other path must first reach the end of this source lane,
+            // which cannot beat a legal forward arrival on that same lane.
+            double directCost=double.PositiveInfinity;
+            if(a!=null&&first.Id==a.lane&&a.distance>=start.distance){directCost=0.0+(a.distance-start.distance)/first.Speed;selected=0;}
+            if(b!=null&&first.Id==b.lane&&b.distance>=start.distance){double cost=0.0+(b.distance-start.distance)/first.Speed;if(cost<directCost){directCost=cost;selected=1;}}
+            if(selected>=0)return new List<long>{first.Id};
             var scratch=accessSearch??(accessSearch=new RouteScratch());
             using(scratch.Acquire())
             {
-            var queue=scratch.queue;var costs=scratch.costs;var parents=scratch.parents;var settled=scratch.settled;
-            double initial=(first.EndDistance-start.distance)/first.Speed;costs[first.Id]=initial;parents[first.Id]=0;queue.Push(first.Id,initial);
-            long beforeGoal=0;double goalCost=double.PositiveInfinity;
-            while(queue.Count>0)
-            {
-                var item=queue.Pop();if(item.cost>goalCost)break;if(item.cost!=costs[item.id]||!settled.Add(item.id))continue;
-                var current=Get(item.id);List<Drivable> next;if(!outgoing.TryGetValue(current.To,out next))continue;
-                foreach(var lane in next)
+                var queue=scratch.queue;var costs=scratch.costs;var parents=scratch.parents;var settled=scratch.settled;
+                double best=double.PositiveInfinity;long beforeGoal=0;
+                double initial=(first.EndDistance-start.distance)/first.Speed;costs[first.Id]=initial;parents[first.Id]=0;queue.Push(first.Id,initial);
+                while(queue.Count>0)
                 {
-                    long link=ConnectionId(current.Id,lane.Id);if(!Contains(link))continue;double prefix=item.cost+Get(link).Geometry.Length/Get(link).Speed;
-                    if(lane.Id==last.Id){double terminal=prefix+(goal.distance-lane.StartDistance)/lane.Speed;if(terminal<goalCost){goalCost=terminal;beforeGoal=current.Id;}continue;}
-                    if(settled.Contains(lane.Id))continue;double candidate=prefix+lane.TravelLength/lane.Speed,old;
-                    if(!costs.TryGetValue(lane.Id,out old)||candidate<old){costs[lane.Id]=candidate;parents[lane.Id]=current.Id;queue.Push(lane.Id,candidate);}
+                    var item=queue.Pop();if(item.cost>best)break;if(item.cost!=costs[item.id]||!settled.Add(item.id))continue;
+                    var current=Get(item.id);List<Drivable> next;if(!outgoing.TryGetValue(current.To,out next))continue;
+                    foreach(var lane in next)
+                    {
+                        long link=ConnectionId(current.Id,lane.Id);if(!Contains(link))continue;double prefix=item.cost+Get(link).Geometry.Length/Get(link).Speed;bool terminal=false;
+                        if(a!=null&&lane.Id==a.lane){double cost=prefix+(a.distance-lane.StartDistance)/lane.Speed;if(cost<best||cost==best&&selected>0){best=cost;selected=0;beforeGoal=current.Id;}terminal=true;}
+                        if(b!=null&&lane.Id==b.lane){double cost=prefix+(b.distance-lane.StartDistance)/lane.Speed;if(cost<best){best=cost;selected=1;beforeGoal=current.Id;}terminal=true;}
+                        // With one goal this is exactly the original terminal rule.
+                        // With two goals, allow traversal at the same cost so a
+                        // zero-length boundary cannot hide the earlier-ranked goal.
+                        if(terminal&&(a==null||b==null))continue;
+                        if(settled.Contains(lane.Id))continue;double candidate=prefix+lane.TravelLength/lane.Speed,old;
+                        if(!costs.TryGetValue(lane.Id,out old)||candidate<old){costs[lane.Id]=candidate;parents[lane.Id]=current.Id;queue.Push(lane.Id,candidate);}
+                    }
                 }
-            }
-            if(beforeGoal==0)return null;var lanes=new List<long>();for(long id=beforeGoal;id!=0;id=parents[id])lanes.Add(id);lanes.Reverse();lanes.Add(last.Id);
-            var result=new List<long>();for(int i=0;i<lanes.Count;i++){if(i>0)result.Add(ConnectionId(lanes[i-1],lanes[i]));result.Add(lanes[i]);}return result;
+                if(selected<0)return null;
+                var lanes=new List<long>();for(long id=beforeGoal;id!=0;id=parents[id])lanes.Add(id);lanes.Reverse();lanes.Add((selected==0?a:b).lane);
+                var result=new List<long>();for(int i=0;i<lanes.Count;i++){if(i>0)result.Add(ConnectionId(lanes[i-1],lanes[i]));result.Add(lanes[i]);}return result;
             }
         }
         // Static free-flow scalar only. Two legal source/goal directions share one

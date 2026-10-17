@@ -6,10 +6,12 @@ using HarborCity;
 using HarborCity.RoadCore;
 static class CityTravelTimeQuoteChecks
 {
+ static BinaryWriter answers;
  static int checks,numericChecks;static void Check(bool ok,string message){checks++;if(!ok)throw new Exception(message);}
  static void Compare(Network n,RoadAccess a,RoadAccess b,bool both)
  {
   double start,end;var route=AccessRouting.Find(n,a,b,both,out start,out end);double expected=new DispatchBlueprint(n,route,start,end).seconds;
+  if(answers!=null){answers.Write(a.lane);answers.Write(a.distance);answers.Write(b.lane);answers.Write(b.distance);answers.Write(both);answers.Write(start);answers.Write(end);answers.Write(route==null?-1:route.Count);if(route!=null)foreach(long id in route)answers.Write(id);}
   double actual=AccessRouting.EstimateSeconds(n,a,b,both);
   Check(BitConverter.DoubleToInt64Bits(expected)==BitConverter.DoubleToInt64Bits(actual),"Travel time changed bits: "+expected.ToString("R")+" != "+actual.ToString("R")+" src="+a.lane+"@"+a.distance.ToString("R")+" dst="+b.lane+"@"+b.distance.ToString("R")+" both="+both);numericChecks++;
  }
@@ -22,6 +24,7 @@ static class CityTravelTimeQuoteChecks
  }
  static void Main(string[] args)
  {
+  if(args.Length>1)answers=new BinaryWriter(File.Create(args[1]));
   var random=new Random(41297);
   foreach(bool varied in new[]{false,true})
   {var n=Grid(varied);var lanes=n.Drivables.Where(d=>!d.IsConnection).OrderBy(d=>d.Id).ToArray();for(int i=0;i<2500;i++)
@@ -42,6 +45,6 @@ static class CityTravelTimeQuoteChecks
   var changed=straight.Snapshot().network;changed.roads[0].speed=24;var replacement=new Network(changed);double next=cache.GetTravelSeconds(replacement,1,2,source,target);
   double rs,re;var rp=AccessRouting.Find(replacement,source,target,true,out rs,out re);Check(cache.Count==1&&next==new DispatchBlueprint(replacement,rp,rs,re).seconds&&next!=quote,"Rebuilt network retained stale quote");
   if(args.Length>0){var session=CityCoreSave.Read(File.ReadAllBytes(args[0]));var used=new HashSet<(int,int)>();foreach(var member in session.Entities.Members){int home=member.Family.home,work=session.City.Workplace(member.Person);if(!session.Transport.HasResidentAccess(home,work)||!used.Add((home,work)))continue;Compare(session.Transport.Network,session.Transport.GetAccess(home),session.Transport.GetAccess(work),true);if(used.Count>=2000)break;}Console.WriteLine("Real city unique legal OD="+used.Count);}
-  Console.WriteLine("PASS "+checks+" checks including "+numericChecks+" bit-exact scalar quotes vs existing complete routes: forward/backward, one-way, disconnected, curved/high-ID/multi-lane, partial/upstream/zero/invalid and varied speeds");
+  answers?.Dispose();Console.WriteLine("PASS "+checks+" checks including "+numericChecks+" bit-exact scalar quotes vs existing complete routes: forward/backward, one-way, disconnected, curved/high-ID/multi-lane, partial/upstream/zero/invalid and varied speeds");
  }
 }
