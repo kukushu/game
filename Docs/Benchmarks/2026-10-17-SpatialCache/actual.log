@@ -1,0 +1,1 @@
+PASS 9600 exact-output spatial queries; 194860 ordered hits; curved/elevated/partial/boundary/radius/dynamic split/upgrade/remove/high IDs/real 30k network

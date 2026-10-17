@@ -1,0 +1,116 @@
+[
+  {
+    "run": "spatial30k-day-before",
+    "steps": 2400,
+    "mean_ms": 16.021650416666667,
+    "p95_ms": 23.5727,
+    "p99_ms": 61.5332,
+    "maximum_ms": 1956.664,
+    "allocated_per_step": 202631.14333333334,
+    "final_sha": "2596b3c6f2c80fdca74941df38049ae8d519eeb5ae95a7e0b9f344e2a9a59f27",
+    "resources": {
+      "effectiveAffinityHex": "1",
+      "timeoutSeconds": 240,
+      "terminatedBy": null,
+      "wallSeconds": 58.767044,
+      "exitCode": 0,
+      "peakWorkingSetBytes": 245088256,
+      "note": "Bounded captured-city step probe; attributionEnabled identifies instrumented versus normal model; not Unity FPS or economic-health acceptance"
+    }
+  },
+  {
+    "run": "spatial30k-day-after",
+    "steps": 2400,
+    "mean_ms": 15.497480833333332,
+    "p95_ms": 22.9785,
+    "p99_ms": 60.9809,
+    "maximum_ms": 1457.9411,
+    "allocated_per_step": 214906.5,
+    "final_sha": "2596b3c6f2c80fdca74941df38049ae8d519eeb5ae95a7e0b9f344e2a9a59f27",
+    "resources": {
+      "effectiveAffinityHex": "1",
+      "timeoutSeconds": 240,
+      "terminatedBy": null,
+      "wallSeconds": 57.3340216,
+      "exitCode": 0,
+      "peakWorkingSetBytes": 338362368,
+      "note": "Bounded captured-city step probe; attributionEnabled identifies instrumented versus normal model; not Unity FPS or economic-health acceptance"
+    }
+  },
+  {
+    "run": "placement30k-normal-control",
+    "steps": 40,
+    "mean_ms": 67.9564725,
+    "p95_ms": 70.9028,
+    "p99_ms": 159.784,
+    "maximum_ms": 1862.2206,
+    "allocated_per_step": 5386604.2,
+    "final_sha": "c30c0334956f5b7b147d9f05dab666966b06192c1be75237d04fa03c2aec88fa",
+    "resources": {
+      "terminatedBy": null,
+      "wallSeconds": 22.6293389,
+      "peakWorkingSetBytes": 299704320,
+      "exitCode": 0,
+      "effectiveAffinityHex": "1",
+      "timeoutSeconds": 180,
+      "note": "Bounded captured-city step probe; attributionEnabled identifies instrumented versus normal model; not Unity FPS or economic-health acceptance"
+    }
+  },
+  {
+    "run": "spatial30k-cached-normal",
+    "steps": 40,
+    "mean_ms": 59.310874999999996,
+    "p95_ms": 74.6681,
+    "p99_ms": 167.8058,
+    "maximum_ms": 1485.4225,
+    "allocated_per_step": 6123125.6,
+    "final_sha": "c30c0334956f5b7b147d9f05dab666966b06192c1be75237d04fa03c2aec88fa",
+    "resources": {
+      "note": "Bounded captured-city step probe; attributionEnabled identifies instrumented versus normal model; not Unity FPS or economic-health acceptance",
+      "effectiveAffinityHex": "1",
+      "timeoutSeconds": 180,
+      "terminatedBy": null,
+      "wallSeconds": 22.3202587,
+      "peakWorkingSetBytes": 356847616,
+      "exitCode": 0
+    }
+  },
+  {
+    "run": "placement30k-fine",
+    "steps": 40,
+    "mean_ms": 75.0523725,
+    "p95_ms": 78.7151,
+    "p99_ms": 167.4157,
+    "maximum_ms": 2002.1254,
+    "allocated_per_step": 5386604.2,
+    "final_sha": "c30c0334956f5b7b147d9f05dab666966b06192c1be75237d04fa03c2aec88fa",
+    "resources": {
+      "exitCode": 0,
+      "note": "Bounded captured-city step probe; attributionEnabled identifies instrumented versus normal model; not Unity FPS or economic-health acceptance",
+      "timeoutSeconds": 180,
+      "terminatedBy": null,
+      "effectiveAffinityHex": "1",
+      "peakWorkingSetBytes": 304701440,
+      "wallSeconds": 22.9936676
+    }
+  },
+  {
+    "run": "spatial30k-cached-fine",
+    "steps": 40,
+    "mean_ms": 64.892745,
+    "p95_ms": 77.5711,
+    "p99_ms": 179.4785,
+    "maximum_ms": 1559.4519,
+    "allocated_per_step": 6123125.6,
+    "final_sha": "c30c0334956f5b7b147d9f05dab666966b06192c1be75237d04fa03c2aec88fa",
+    "resources": {
+      "timeoutSeconds": 180,
+      "effectiveAffinityHex": "1",
+      "terminatedBy": null,
+      "peakWorkingSetBytes": 315850752,
+      "note": "Bounded captured-city step probe; attributionEnabled identifies instrumented versus normal model; not Unity FPS or economic-health acceptance",
+      "exitCode": 0,
+      "wallSeconds": 23.1326664
+    }
+  }
+]
