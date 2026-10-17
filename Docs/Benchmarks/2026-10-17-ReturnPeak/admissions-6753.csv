@@ -1,0 +1,3 @@
+kind,purpose,rejection,transport_prepared,new_blueprint,all_source_curbs_blocked,calls,unique_od
+attempt,Home,None,True,False,False,1,1
+commit,Home,None,True,False,False,1,1

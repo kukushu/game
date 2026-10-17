@@ -1,0 +1,9 @@
+{
+  "observed": "cff112f59b7d38ba101a5fa2e847ae2235d4cd0b78624b005e8da02ad6d49958",
+  "shadow": "cff112f59b7d38ba101a5fa2e847ae2235d4cd0b78624b005e8da02ad6d49958",
+  "equal": true,
+  "tick": 6753,
+  "warmSteps": 2344,
+  "measuredSteps": 3,
+  "note": "Warm replay executes every .05s step. Observer times not normal performance; no product World modifications."
+}

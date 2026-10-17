@@ -1,0 +1,23 @@
+Normal warm replay 120 tick=4526
+Normal warm replay 240 tick=4646
+Normal warm replay 360 tick=4766
+Normal warm replay 480 tick=4886
+Normal warm replay 600 tick=5006
+Normal warm replay 720 tick=5126
+Normal warm replay 840 tick=5246
+Normal warm replay 960 tick=5366
+Normal warm replay 1080 tick=5486
+Normal warm replay 1200 tick=5606
+Normal warm replay 1320 tick=5726
+Normal warm replay 1440 tick=5846
+Normal warm replay 1560 tick=5966
+Normal warm replay 1680 tick=6086
+Normal warm replay 1800 tick=6206
+Normal warm replay 1920 tick=6326
+Normal warm replay 2040 tick=6446
+Normal warm replay 2160 tick=6566
+Normal warm replay 2280 tick=6686
+Completed step 6751 ms=2523.9048 route preparations=2226
+Completed step 6752 ms=34.2675 route preparations=0
+Completed step 6753 ms=33.2489 route preparations=0
+PASS limited 3-step invariants; not economic-health or Unity performance acceptance

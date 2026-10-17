@@ -1,0 +1,11 @@
+kind,purpose,rejection,transport_prepared,new_blueprint,all_source_curbs_blocked,calls,unique_od
+attempt,Work,SourceOccupied,False,False,False,72,55
+attempt,Work,SourceOccupied,False,False,True,8,7
+attempt,Home,None,True,False,False,6,6
+attempt,Home,None,True,True,False,2021,2021
+attempt,Home,SourceOccupied,False,False,False,2453,2223
+attempt,Home,SourceOccupied,False,False,True,101,91
+attempt,Home,SourceOccupied,False,True,False,196,196
+attempt,Home,SourceOccupied,False,True,True,9,9
+commit,Home,None,True,False,False,6,6
+commit,Home,None,True,True,False,2021,2021

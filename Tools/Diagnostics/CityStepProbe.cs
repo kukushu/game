@@ -9,6 +9,37 @@ using HarborCity.RoadCore;
 // Bounded captured-city attribution; reports only the actual tested interval.
 static class CityStepProbe
 {
+    // Hooks exist only in an explicit disposable World copy. Never refresh
+    // occupancy, find routes, dispatch, or write simulated facts here.
+    public static bool AdmissionSampling;
+    sealed class AdmissionCount {internal int calls;internal readonly System.Collections.Generic.HashSet<long> od=new System.Collections.Generic.HashSet<long>(CityRoadKeyComparer.Instance);}
+    static readonly System.Collections.Generic.Dictionary<(string,TransportPurpose,TransportRejection,bool,bool,bool),AdmissionCount> admissionCounts=new System.Collections.Generic.Dictionary<(string,TransportPurpose,TransportRejection,bool,bool,bool),AdmissionCount>();
+    static readonly System.Collections.Generic.Dictionary<int,bool> pendingAdmissions=new System.Collections.Generic.Dictionary<int,bool>();
+    static readonly FieldInfo occupancyField=typeof(World).GetField("occupancy",BindingFlags.Instance|BindingFlags.NonPublic),dirtyField=typeof(World).GetField("indexDirty",BindingFlags.Instance|BindingFlags.NonPublic);
+    static void CountAdmission(string kind,int origin,int destination,TransportPurpose purpose,TransportRejection reason,bool prepared,bool fresh,bool blocked)
+    {var key=(kind,purpose,reason,prepared,fresh,blocked);if(!admissionCounts.TryGetValue(key,out var count))admissionCounts.Add(key,count=new AdmissionCount());count.calls++;count.od.Add(((long)origin<<32)|(uint)destination);}
+    public static void ObserveAdmission(World world,int origin,int destination,TransportPurpose purpose,int citizen,TransportRejection reason,bool prepared,bool fresh)
+    {
+        if(!AdmissionSampling||!World.IsResident(purpose))return;bool blocked=false;
+        if(reason==TransportRejection.SourceOccupied)
+        {
+            if(occupancyField==null||dirtyField==null||(bool)dirtyField.GetValue(world))throw new Exception("Cannot inspect stale occupancy");
+            var buckets=(System.Collections.Generic.Dictionary<long,System.Collections.Generic.List<LaneOccupant>>)occupancyField.GetValue(world);
+            var source=world.GetAccess(origin);var opposite=AccessRouting.AtDirection(world.Network,source,!world.Network.Get(source.lane).Reverse);
+            blocked=Blocked(buckets,source)&&(opposite==null||Blocked(buckets,opposite));
+        }
+        CountAdmission("attempt",origin,destination,purpose,reason,prepared,fresh,blocked);if(prepared)pendingAdmissions[citizen]=fresh;
+    }
+    static bool Blocked(System.Collections.Generic.Dictionary<long,System.Collections.Generic.List<LaneOccupant>> buckets,RoadAccess source)
+    {if(!buckets.TryGetValue(source.lane,out var lane))return false;foreach(var occupant in lane)if(Math.Abs(occupant.distance-source.distance)<World.MinimumSpacing)return true;return false;}
+    public static void ObserveCommitted(Vehicle v)
+    {if(!AdmissionSampling||!World.IsResident(v.Task.purpose))return;if(!pendingAdmissions.TryGetValue(v.Task.citizenId,out bool fresh))throw new Exception("Commit without observed prepare");pendingAdmissions.Remove(v.Task.citizenId);CountAdmission("commit",v.Task.origin,v.Task.destination,v.Task.purpose,TransportRejection.None,true,fresh,false);}
+    static void DumpAdmissions(string output,long tick)
+    {
+        using(var w=new StreamWriter(Path.Combine(output,"admissions-"+tick+".csv")))
+        {w.WriteLine("kind,purpose,rejection,transport_prepared,new_blueprint,all_source_curbs_blocked,calls,unique_od");foreach(var pair in admissionCounts.OrderBy(p=>p.Key.Item1).ThenBy(p=>p.Key.Item2).ThenBy(p=>p.Key.Item3).ThenBy(p=>p.Key.Item4).ThenBy(p=>p.Key.Item5).ThenBy(p=>p.Key.Item6)){var k=pair.Key;w.WriteLine(string.Join(",",k.Item1,k.Item2,k.Item3,k.Item4,k.Item5,k.Item6,pair.Value.calls,pair.Value.od.Count));}}
+        File.WriteAllText(Path.Combine(output,"admissions-"+tick+"-summary.json"),"{\"prepared_without_commit\":"+pendingAdmissions.Count+",\"scope\":\"Resident wrapper attempts and actual CommitAdmission only. Direct service/freight overloads excluded. Observer overhead is not normal performance.\"}");
+    }
     static void InspectCommuteCache(CityCoreIndustrySession session,string output)
     {
         var cacheField=typeof(CityCoreResidents).GetField("estimates",BindingFlags.Instance|BindingFlags.NonPublic);
@@ -33,7 +64,7 @@ static class CityStepProbe
     {
         int steps=int.Parse(args[2]);if(steps<1||steps>10000)throw new ArgumentOutOfRangeException();
         var s=CityCoreSave.Read(File.ReadAllBytes(args[0]));s.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);s.Validate();
-        int warmup=args.Length>3?int.Parse(args[3]):0;if(warmup<0||warmup>1000)throw new ArgumentOutOfRangeException("warmup");
+        int warmup=args.Length>3?int.Parse(args[3]):0;if(warmup<0||warmup>10000)throw new ArgumentOutOfRangeException("warmup");
         for(int i=0;i<warmup;i++){if(s.Advance(.05)!=1)throw new Exception("Warm replay skipped a fixed step");if((i+1)%120==0)Console.WriteLine("Normal warm replay "+(i+1)+" tick="+s.Simulation.Tick);}
         if(warmup>0)File.WriteAllBytes(Path.Combine(args[1],"warm-boundary.hcity"),CityCoreSave.Write(s));
         if(args.Length>4&&args[4]=="1")InspectCommuteCache(s,args[1]);
@@ -42,11 +73,12 @@ static class CityStepProbe
             writer.WriteLine("probe_tick,ms,allocated,probe_active,"+CityCoreProfile.Header());writer.Flush();
             long progressAt=Stopwatch.GetTimestamp();for(int i=0;i<steps;i++)
             {
-                CityCoreProfile.Reset();CityCoreProfile.Enabled=true;
+                admissionCounts.Clear();pendingAdmissions.Clear();AdmissionSampling=args.Length>5&&args[5]=="1";CityCoreProfile.Reset();CityCoreProfile.Enabled=true;
                 int cg0=GC.CollectionCount(0),cg1=GC.CollectionCount(1),cg2=GC.CollectionCount(2);
                 long before=GC.GetAllocatedBytesForCurrentThread(),routes=s.Transport.RoutePreparations,start=Stopwatch.GetTimestamp();
                 if(s.Advance(.05)!=1)throw new Exception("Probe skipped a fixed step");
                 double ms=(Stopwatch.GetTimestamp()-start)*1000.0/Stopwatch.Frequency;long allocated=GC.GetAllocatedBytesForCurrentThread()-before;CityCoreProfile.Enabled=false;
+                if(AdmissionSampling){AdmissionSampling=false;DumpAdmissions(args[1],s.Simulation.Tick);}
                 writer.WriteLine(s.Simulation.Tick+","+ms.ToString("R",System.Globalization.CultureInfo.InvariantCulture)+","+allocated+","+s.Transport.ActiveCount+","+CityCoreProfile.Row(s.Simulation.Tick,s.Transport.ActiveCount,s.Transport.RoutePreparations-routes,GC.CollectionCount(0)-cg0,GC.CollectionCount(1)-cg1,GC.CollectionCount(2)-cg2));writer.Flush();
                 if(steps<=20||Stopwatch.GetTimestamp()-progressAt>10L*Stopwatch.Frequency){Console.WriteLine("Completed step "+s.Simulation.Tick+" ms="+ms+" route preparations="+(s.Transport.RoutePreparations-routes));progressAt=Stopwatch.GetTimestamp();}
             }

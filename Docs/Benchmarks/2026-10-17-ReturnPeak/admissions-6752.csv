@@ -1,0 +1,4 @@
+kind,purpose,rejection,transport_prepared,new_blueprint,all_source_curbs_blocked,calls,unique_od
+attempt,Work,SourceOccupied,False,False,False,5,4
+attempt,Home,SourceOccupied,False,False,False,12,5
+attempt,Home,SourceOccupied,False,False,True,1,1
