@@ -1,0 +1,40 @@
+[
+  {
+    "run": "axis30k-day-before",
+    "steps": 2400,
+    "mean_ms": 15.388128416666666,
+    "p95_ms": 22.448,
+    "p99_ms": 59.2628,
+    "maximum_ms": 1490.9214,
+    "allocated_per_step": 214906.5,
+    "final_sha": "2596b3c6f2c80fdca74941df38049ae8d519eeb5ae95a7e0b9f344e2a9a59f27",
+    "resources": {
+      "timeoutSeconds": 240,
+      "note": "Bounded captured-city step probe; attributionEnabled identifies instrumented versus normal model; not Unity FPS or economic-health acceptance",
+      "terminatedBy": null,
+      "exitCode": 0,
+      "peakWorkingSetBytes": 354439168,
+      "effectiveAffinityHex": "1",
+      "wallSeconds": 57.1905676
+    }
+  },
+  {
+    "run": "axis30k-day-after",
+    "steps": 2400,
+    "mean_ms": 15.631776791666669,
+    "p95_ms": 23.1291,
+    "p99_ms": 59.1174,
+    "maximum_ms": 1526.7987,
+    "allocated_per_step": 212748.9,
+    "final_sha": "2596b3c6f2c80fdca74941df38049ae8d519eeb5ae95a7e0b9f344e2a9a59f27",
+    "resources": {
+      "timeoutSeconds": 240,
+      "note": "Bounded captured-city step probe; attributionEnabled identifies instrumented versus normal model; not Unity FPS or economic-health acceptance",
+      "terminatedBy": null,
+      "exitCode": 0,
+      "peakWorkingSetBytes": 386383872,
+      "effectiveAffinityHex": "1",
+      "wallSeconds": 57.8334891
+    }
+  }
+]

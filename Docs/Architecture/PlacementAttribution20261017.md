@@ -9,3 +9,9 @@
 结论：主要CPU在168080次RoadSpatialIndex.Project，逐个候选反复从不可变Geometry中按距离二分采样同一段端点。优先研究把静态裁剪段坐标/投影分母在每个Network的惰性空间索引构建时计算一次；必须保留原候选顺序、最近点、同分选择和完整输出浮点位。索引跟随Network替换自然失效，不能以缓存成为另一份可修改道路。
 
 分配仍有独立来源：地形检查为每候选生成四个RoadNode和数组；大量矩形SAT也生成轴数组。不能把全部204MB归为路由或GC暂停。暂未修改这些算法，本批只观察，后续各自成批测量。原始CSV/保存/环境留Temp/CityScenarios/placement30k-{normal-control,fine}，轻量数据见Benchmarks/2026-10-17-Placement。
+
+## 进一步排除与标识格式化归因
+
+空间缓存之后，SAT轴数组移除实验只让该步少5.18MB，Geometry Self仅少0.32MB；没有整日CPU收益，所以产品已回退，详见SATAllocationExperiment20261017.md。不能把此前“可能大量SAT数组”当成已证实根因。
+
+增加仅诊断构建的ZoningCellKey范围后，4441步158070次地块Key格式化约288.78ms、36.10MB；ZoningGeometry剩余Self约394.42ms、94.80MB。完整40步保存仍应与原c30c033...一致（原文件留Temp/zoning-key30k-fine）。这是归因数据，不是优化收益；采样增加计时开销。地块标识本身是稳定数据，任何后续优化都必须保留全部字符串/坐标舍入/文化不变式，不能为省时间改变规划身份。未实施新Key规则，也没有恢复大型架构重写。

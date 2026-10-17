@@ -40,6 +40,9 @@ namespace HarborCity
         public CityBuilding pose;
         public static string Key(CityBuilding b)
         {
+#if CITY_CORE_ATTRIBUTION
+            using var keyObservation=HarborCity.RoadCore.CityCoreProfile.Measure(HarborCity.RoadCore.CityCoreProfile.Part.ZoningCellKey);
+#endif
             var values=new[]{Math.Round(b.x,3),Math.Round(b.z,3),Math.Round(b.yaw,3)%360};
             return string.Join(":",values.Select(v=>(v==0?0:v).ToString("F3",CultureInfo.InvariantCulture)));
         }

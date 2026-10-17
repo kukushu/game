@@ -35,7 +35,7 @@ namespace HarborCity
             bool raw=Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-window-raw")>=0;
             double duration=raw?15:60;
             var arguments=Environment.GetCommandLineArgs();int durationFlag=Array.IndexOf(arguments,"-harbor-window-duration");
-            if(raw&&durationFlag>=0){duration=double.Parse(arguments[durationFlag+1],CultureInfo.InvariantCulture);if(duration<15||duration>60)throw new ArgumentOutOfRangeException("Raw capture duration");}
+            if(raw&&durationFlag>=0){duration=double.Parse(arguments[durationFlag+1],CultureInfo.InvariantCulture);if(duration<15||duration>150)throw new ArgumentOutOfRangeException("Raw capture duration");}
             int frameLimit=60;long triggerTick=0;int option=Array.IndexOf(arguments,"-harbor-raw-frame-limit");if(option>=0)frameLimit=int.Parse(arguments[option+1],CultureInfo.InvariantCulture);
             option=Array.IndexOf(arguments,"-harbor-raw-start-tick");if(option>=0)triggerTick=long.Parse(arguments[option+1],CultureInfo.InvariantCulture);
             if(frameLimit<5||frameLimit>120||triggerTick<0)throw new ArgumentOutOfRangeException("Bounded raw frame capture");

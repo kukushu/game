@@ -1,0 +1,1 @@
+PASS 500000 deterministic oriented-rectangle cases plus touching/interior/distant checks; yes=305755 no=194245; 100000 warmed calls bytes=3200000 ms=6.174
