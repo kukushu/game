@@ -1,0 +1,67 @@
+{
+  "recorded_date": "2026-10-17",
+  "repository": "C:\\Users\\16934\\Documents\\unity_game\\test",
+  "branch": "codex/road-core-20261014",
+  "code_baseline": "08a89a4",
+  "purpose": "交接只读本地资源盘点；没有执行仿真或性能测试",
+  "local_resources": [
+    {
+      "path": "Temp/CityScenarios/challenge30000-traffic10000/threshold.hcity",
+      "exists": true,
+      "synchronized_to_git": false,
+      "bytes": 38095644,
+      "sha256": "e78c47daaffcb989ffc57eb0048575c3b6aa6dc66386dd6689c9c8eacd5db7d8"
+    },
+    {
+      "path": "Temp/CityScenarios/reuse-index-v2-day-b2/final.hcity",
+      "exists": true,
+      "synchronized_to_git": false,
+      "bytes": 37825145,
+      "sha256": "2596b3c6f2c80fdca74941df38049ae8d519eeb5ae95a7e0b9f344e2a9a59f27"
+    },
+    {
+      "path": "Temp/CityScenarios/challenge50000-connectivity-after/final.hcity",
+      "exists": true,
+      "synchronized_to_git": false,
+      "bytes": 63437470
+    },
+    {
+      "path": "Temp/CityScenarios/challenge100000-dotnet64/final.hcity",
+      "exists": true,
+      "synchronized_to_git": false,
+      "bytes": 122567823
+    },
+    {
+      "path": "Temp/ManualCityPlayer/HarborCity.exe",
+      "exists": true,
+      "synchronized_to_git": false,
+      "bytes": 667136
+    },
+    {
+      "path": "Temp/CityScenarios/window30k-index-scope-raw",
+      "exists": true,
+      "synchronized_to_git": false
+    },
+    {
+      "path": "Temp/RoadCoreUnity",
+      "exists": true,
+      "synchronized_to_git": false
+    },
+    {
+      "path": "Temp/TrafficBenchmarkProject",
+      "exists": true,
+      "synchronized_to_git": false
+    },
+    {
+      "path": "Temp/CodeLayoutNativeValidation",
+      "exists": false,
+      "synchronized_to_git": false
+    },
+    {
+      "path": "ProfilerCaptures",
+      "exists": true,
+      "synchronized_to_git": false
+    }
+  ],
+  "note": "不包含存档/原始采样内容；到另一电脑需要用户单独复制。目录存在不表示其中每次测试有效。"
+}
