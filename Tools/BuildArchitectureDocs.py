@@ -7,10 +7,11 @@ import subprocess, json, html, re, csv
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'Docs/Architecture'
-COMMIT = '4bdcbcd'
+COMMIT = '6027a0d'
 BASELINE = '110c4eaa24fa69d55b08a5db2a6d19ec6da5dd7f'
 R = 'Assets/Scripts/Runtime/'
 files = {
+ 'vehicleviews':R+'Presentation/World/HarborCityVehicleViews.cs',
  'zoningviews':R+'Presentation/World/HarborCityZoningViews.cs',
  'surfacemesh':R+'Presentation/World/HarborCitySurfaceMesh.cs',
  'development':R+'Simulation/Growth/CityDevelopment.cs',
@@ -611,6 +612,15 @@ graphs['global-current']['edges'].extend([edge('host','zoningviews','版本变�
 flowdata['current']['note']+=' Unity表现帧在0到多个完整固定步之外运行；分区视图只在修订变化后重建，Mesh不参与模拟或存档。'
 evidence.extend([dict(title='实际：分区显示独立所有权',source=ref('zoningviews','public void Sync')),dict(title='实际：不降精度的共享逐格表现几何',source=ref('surfacemesh','public static void AppendPlot'))])
 
+card('vehicleviews','HarborCityVehicleViews','Presentation / 车辆生命周期','derived','vehicleviews','public sealed class HarborCityVehicleViews','稳定车辆ID→Transform；闲置池≤4096','Sync · Instance · Clear · Dispose','宿主独占所有显示对象；材质借用，World只读。','不拥有车辆/任务/路线/物理位置；不入存档。','旧ID退休后取消映射，新ID重新绑定可复用Cube。','全量显示所有真实车；4096仅限闲置物体；不按镜头减少车辆。','实际ID索引判退休；换世界/读取/卸载清理，不把Transform当持久实体。','只读World.Vehicles/FindVehicle/Position/共享Geometry；模拟不引用表现。','每帧O(已有显示+当前车辆)，仍全量站位同步；闲置资源有内存代价，池满后仍新建，普通3×仅1.35真实倍率。','15079生命周期检查/同tick业务运输/0像素差；返家Views34.4→12.9ms，非全城62%提速。')
+graphs['classes']['nodes'].append(node('vehicleviews','HarborCityVehicleViews','真实ID映射 / 有界闲置池','derived'))
+graphs['classes']['edges'].extend([edge('host','vehicleviews','独占显示生命周期'),edge('vehicleviews','world','只读车辆与几何','dash')])
+graphs['ownership']['nodes'].append(node('vehicleviews','车辆显示对象 / 闲置池','派生表现；不是物理车辆或任务','derived'))
+graphs['ownership']['edges'].extend([edge('host','vehicleviews','拥有 / 清理'),edge('vehicle','vehicleviews','按稳定ID只读展示','dash')])
+graphs['global-current']['nodes'].append(node('vehicleviews','车辆表现生命周期','退役显示供给新ID；无模拟写入','derived'))
+graphs['global-current']['edges'].extend([edge('host','vehicleviews','固定步之后同步'),edge('vehicleviews','world','公开只读查询','dash')])
+flowdata['current']['note']+=' 车辆显示由HarborCityVehicleViews在固定步外更新；只回收已退休ID，所有真车仍显示，闲置物体不是新车辆事实。'
+evidence.extend([dict(title='实际：车辆显示所有权与复用',source=ref('vehicleviews','public void Sync')),dict(title='实际：换城/卸载清理显示资源',source=ref('vehicleviews','public void Clear'))])
 payload=dict(commit=COMMIT,baseline=BASELINE,cards=cards,graphs=graphs,flows=flowdata,readings=readingdata,perf=perf,evidence=evidence)
 
 page=r'''<!doctype html>
@@ -801,6 +811,8 @@ page=page.replace('<section id="review">','<section id="review"><details open><s
 for report_name,title in [('SpatialProjectionCache20261017.md','最新默认：静态空间投影缓存及明确内存代价'),('PlacementAttribution20261017.md','冷分区进一步归因：查询、地形和标识分配'),('ResidentReturnPeak20261017.md','真实返家长帧：必要路线与显示对象创建'),('SATAllocationExperiment20261017.md','未推广实验：局部零分配没有证明整城收益')]:
     report=(OUT/report_name).read_text(encoding='utf-8')
     page=page.replace('<section id="review">','<section id="review"><details open><summary>'+title+'</summary><div class="doccontent">'+markdown(report)+'</div></details>')
+vehicle_pool=(OUT/'VehicleViewPooling20261017.md').read_text(encoding='utf-8')
+page=page.replace('<section id="review">','<section id="review"><details open><summary>最新默认：车辆显示复用与真实出生峰；普通FPS仍未达标</summary><div class="doccontent">'+markdown(vehicle_pool)+'</div></details>')
 (OUT/'HarborCityArchitecture.html').write_text(page,encoding='utf-8')
 (OUT/'SourceEvidence.md').write_text('# 固定源码定位证据\n\n审查commit：`'+COMMIT+'`。以下行号由固定源码生成，而非当前工作树。\n\n'+ '\n'.join('## '+e['title']+'\n\n['+e['source']['file']+':'+str(e['source']['line'])+']('+e['source']['url']+')\n\n方法/语句：`'+e['source']['token']+'`\n' for e in evidence),encoding='utf-8')
 print(f'Created {OUT / "HarborCityArchitecture.html"}; {len(cards)} class cards, {len(graphs)} graphs, {len(flowdata)} flows; pinned {COMMIT}')
