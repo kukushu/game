@@ -1,0 +1,9 @@
+{
+  "effectiveAffinityHex": "1",
+  "note": "Bounded captured-city step probe; attributionEnabled identifies instrumented versus normal model; not Unity FPS or economic-health acceptance",
+  "exitCode": 0,
+  "timeoutSeconds": 240,
+  "terminatedBy": null,
+  "wallSeconds": 54.4446576,
+  "peakWorkingSetBytes": 348393472
+}

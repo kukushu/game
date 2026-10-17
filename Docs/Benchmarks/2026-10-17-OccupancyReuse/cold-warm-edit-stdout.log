@@ -1,0 +1,10 @@
+PASS cold-first observer on/off full city identical tick=4407 network=0 access=0
+PASS cold-warm observer on/off full city identical tick=4426 network=0 access=0
+warm-replay tick=4546
+warm-replay tick=4666
+warm-replay tick=4786
+PASS warm-replay observer on/off full city identical tick=4800 network=0 access=0
+PASS spike observer on/off full city identical tick=4801 network=0 access=0
+PASS ordinary observer on/off full city identical tick=4821 network=0 access=0
+PASS after-road-edit observer on/off full city identical tick=4831 network=1 access=0
+PASS bounded cold/warm/spike/edit attribution; all complete state identical; observer overhead is NOT normal performance

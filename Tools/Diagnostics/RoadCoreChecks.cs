@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Collections;
+using System.Linq;
+using System.Reflection;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -13,6 +16,46 @@ public static class RoadCoreChecks
     public static World Fixture(int count,bool congested)
     {
         return HarborCity.CityRoadCoreFixtures.Create(count,congested);
+    }
+    static string IndexSignature(World world)
+    {
+        const BindingFlags flags=BindingFlags.Instance|BindingFlags.NonPublic;
+        var buckets=(Dictionary<long,List<LaneOccupant>>)typeof(World).GetField("occupancy",flags).GetValue(world);
+        var rows=new List<string>{"active:"+world.ActiveCount};
+        foreach(var pair in buckets.OrderBy(p=>p.Key))if(pair.Value.Count>0)
+            rows.Add("lane:"+pair.Key+":"+string.Join(";",pair.Value.Select(v=>v.vehicle.id+":"+BitConverter.DoubleToInt64Bits(v.distance)+":"+v.shadow)));
+        var reservations=typeof(World).GetField("reservations",flags).GetValue(world);
+        var claims=(IDictionary)typeof(JunctionReservations).GetField("claims",flags).GetValue(reservations);var normalized=new List<string>();
+        foreach(DictionaryEntry entry in claims)foreach(var value in (IEnumerable)entry.Value)
+            normalized.Add(entry.Key+":"+value.GetType().GetField("owner").GetValue(value)+":"+value.GetType().GetField("movement").GetValue(value));
+        normalized.Sort(StringComparer.Ordinal);rows.AddRange(normalized);return string.Join("|",rows);
+    }
+    static void CheckCleanIndex(World world)
+    {
+        const BindingFlags flags=BindingFlags.Instance|BindingFlags.NonPublic;
+        if((bool)typeof(World).GetField("indexDirty",flags).GetValue(world))return;
+        var data=world.Snapshot();var time=(SimulationClock)typeof(World).GetField("timeline",flags).GetValue(world);
+        var reference=new World(data,data.externalBusiness?time.Copy():null);
+        Check(IndexSignature(world)==IndexSignature(reference),"Clean occupancy/claims differ from a fresh reconstruction");
+    }
+    static void IndexReuseTests()
+    {
+        var world=new World();int a=world.AddJunction(new Point(-60,0,0)),b=world.AddJunction(new Point()),c=world.AddJunction(new Point(60,0,0));
+        world.AddRoad(a,b,new[]{world.JunctionPosition(a),world.JunctionPosition(b)},lanes:2);world.AddRoad(b,c,new[]{world.JunctionPosition(b),world.JunctionPosition(c)},lanes:2);
+        int source=world.AddDepot(a,1000),target=world.AddDepot(c,0);
+        for(int step=0;step<300;step++)
+        {
+            if(step%5==0){world.Dispatch(source,target);CheckCleanIndex(world);}
+            if(step%11==0&&world.Vehicles.Count>0){var v=world.Vehicles[0];world.TryChangeLane(v.id,world.Network.Get(v.Current).LaneIndex==0?1:0);CheckCleanIndex(world);}
+            world.Step();if(step%25==0){world.FreightSourceBlocked(source);CheckCleanIndex(world);}
+        }
+        world.AssertSafety();Check(world.Delivered>0,"Cache fixture never completed real transport");
+        var clock=new SimulationClock();var external=new World(new WorldData{externalBusiness=true},clock,new[]{1,2});
+        a=external.AddJunction(new Point());b=external.AddJunction(new Point(60,0,0));int road=external.AddRoad(a,b,new[]{external.JunctionPosition(a),external.JunctionPosition(b)});
+        external.RegisterAccess(1,Network.LaneId(road,false),20);external.RegisterAccess(2,Network.LaneId(road,false),40);
+        var admission=external.PrepareTransport(1,2,0,0,TransportPurpose.Service,0);Check(admission!=null,"Endpoint invalidation fixture not admitted");var vehicle=external.CommitAdmission(admission);CheckCleanIndex(external);
+        external.SetEndpointAvailable(2,false);clock.Request(.05);external.MoveStep(clock.Context);clock.Commit(true);
+        Check(vehicle.status==VehicleStatus.Stranded&&vehicle.distance==20&&external.ActiveCount==0,"Unavailable endpoint reused stale occupancy or moved actor");
     }
     static void ServiceTests()
     {
@@ -42,6 +85,7 @@ public static class RoadCoreChecks
     }
     static void Tests()
     {
+        IndexReuseTests();
         ServiceTests();
         PositionTests();
         PortTests();

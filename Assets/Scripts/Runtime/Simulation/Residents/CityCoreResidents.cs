@@ -26,6 +26,9 @@ namespace HarborCity
         }
         double EstimateCommute(int citizen,int home,int work)
         {
+#if CITY_CORE_ATTRIBUTION
+            using var lookupObservation=CityCoreProfile.Measure(CityCoreProfile.Part.CommuteLookup);
+#endif
             if(!transport.HasResidentAccess(home,work))return double.PositiveInfinity;
             bool found=estimates.TryGetValue(citizen,out var value);
             if(found&&value.home==home&&value.work==work&&value.network==transport.NetworkGeneration&&value.access==transport.AccessRevision)

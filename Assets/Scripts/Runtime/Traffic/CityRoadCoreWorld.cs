@@ -105,6 +105,7 @@ namespace HarborCity.RoadCore
         {public static readonly IntentOrder Instance=new IntentOrder();public int Compare(Intent a,Intent b)=>a.vehicle.id.CompareTo(b.vehicle.id);}
 #if UNITY_5_3_OR_NEWER
         static readonly ProfilerMarker stepSample=new ProfilerMarker("City.RoadCore.Step"),indexSample=new ProfilerMarker("City.RoadCore.Occupancy"),intentSample=new ProfilerMarker("City.RoadCore.IntentAndReservations"),commitSample=new ProfilerMarker("City.RoadCore.CommitAndSettlement");
+        static readonly ProfilerMarker clearIndexSample=new ProfilerMarker("City.RoadCore.Occupancy.Clear"),actorsIndexSample=new ProfilerMarker("City.RoadCore.Occupancy.Actors"),sortIndexSample=new ProfilerMarker("City.RoadCore.Occupancy.Sort");
 #endif
         public World():this(new WorldData()){}
 
@@ -432,33 +433,59 @@ namespace HarborCity.RoadCore
         }
         void Reindex()
         {
-#if CITY_CORE_ATTRIBUTION
-            using var observation=HarborCity.RoadCore.CityCoreProfile.Measure(HarborCity.RoadCore.CityCoreProfile.Part.Occupancy);
+#if UNITY_5_3_OR_NEWER
+            using var indexObservation=indexSample.Auto();
 #endif
-
-            foreach(var b in occupancy.Values)b.Clear();ActiveCount=0;reservations.Reset(Network);
-            foreach(var v in data.vehicles)
+#if CITY_CORE_ATTRIBUTION
+            using var observation=CityCoreProfile.Measure(CityCoreProfile.Part.Occupancy);
+#endif
+#if UNITY_5_3_OR_NEWER
+            using(clearIndexSample.Auto())
+#endif
+#if CITY_CORE_ATTRIBUTION
+            using(CityCoreProfile.Measure(CityCoreProfile.Part.OccupancyClear))
+#endif
             {
-                if(v.status==VehicleStatus.Active&&(!EndpointExists(v.Task.origin)||!EndpointExists(v.Task.destination))){v.Freeze(Position(v));}
-                if(v.status==VehicleStatus.Delivered)continue;
-                if(!Network.Contains(v.Current))
-                {
-                    if(v.status!=VehicleStatus.Stranded)throw new InvalidOperationException("Active actor lost its drivable");
-                    foreach(var placement in lostOccupancy.Get(Network,v))
-                    {
-                        List<LaneOccupant> bucket;if(!occupancy.TryGetValue(placement.lane,out bucket))occupancy.Add(placement.lane,bucket=new List<LaneOccupant>());bucket.Add(placement.occupant);var road=Network.Get(placement.lane);int obstacleJunction=road.JunctionId;if(obstacleJunction==0&&placement.occupant.distance<EntryReservationEnd(road))obstacleJunction=road.From;if(!road.IsConnection&&placement.occupant.distance>StopDistance(road))obstacleJunction=road.To;if(Network.IsConflictJunction(obstacleJunction))reservations.Reserve(obstacleJunction,0,v.id);
-                    }
-                    continue;
-                }
-                if(v.status==VehicleStatus.Active)ActiveCount++;List<LaneOccupant> b;if(!occupancy.TryGetValue(v.Current,out b))occupancy.Add(v.Current,b=new List<LaneOccupant>());v.sourceOccupant.distance=v.distance;b.Add(v.sourceOccupant);
-                if(v.changeTarget!=0&&Network.Contains(v.changeTarget)){var target=Network.Get(v.changeTarget);List<LaneOccupant> shadow;if(!occupancy.TryGetValue(target.Id,out shadow))occupancy.Add(target.Id,shadow=new List<LaneOccupant>());v.shadowOccupant.distance=Network.Get(v.Current).Geometry.MapDistance(target.Geometry,v.distance);shadow.Add(v.shadowOccupant);}
-                var d=Network.Get(v.Current);int junction=d.JunctionId;
-                // Keep reservation until the body has cleared the outgoing lane.
-                if(junction==0&&v.distance<EntryReservationEnd(d)-1e-9)junction=d.From;
-                if(!d.IsConnection&&v.distance>StopDistance(d)+1e-9)junction=d.To;
-                if(junction!=0&&Network.IsConflictJunction(junction))reservations.Reserve(junction,v.changeTarget!=0?0:Movement(Network,v.Plan.segments,v.cursor,d,junction),v.id);
+                foreach(var b in occupancy.Values)b.Clear();ActiveCount=0;reservations.Reset(Network);
             }
-            foreach(var b in occupancy.Values)b.Sort(LaneOccupantOrder.Instance);
+#if UNITY_5_3_OR_NEWER
+            using(actorsIndexSample.Auto())
+#endif
+#if CITY_CORE_ATTRIBUTION
+            using(CityCoreProfile.Measure(CityCoreProfile.Part.OccupancyActors))
+#endif
+            {
+                foreach(var v in data.vehicles)
+                {
+                    if(v.status==VehicleStatus.Active&&(!EndpointExists(v.Task.origin)||!EndpointExists(v.Task.destination))){v.Freeze(Position(v));}
+                    if(v.status==VehicleStatus.Delivered)continue;
+                    if(!Network.Contains(v.Current))
+                    {
+                        if(v.status!=VehicleStatus.Stranded)throw new InvalidOperationException("Active actor lost its drivable");
+                        foreach(var placement in lostOccupancy.Get(Network,v))
+                        {
+                            List<LaneOccupant> bucket;if(!occupancy.TryGetValue(placement.lane,out bucket))occupancy.Add(placement.lane,bucket=new List<LaneOccupant>());bucket.Add(placement.occupant);var road=Network.Get(placement.lane);int obstacleJunction=road.JunctionId;if(obstacleJunction==0&&placement.occupant.distance<EntryReservationEnd(road))obstacleJunction=road.From;if(!road.IsConnection&&placement.occupant.distance>StopDistance(road))obstacleJunction=road.To;if(Network.IsConflictJunction(obstacleJunction))reservations.Reserve(obstacleJunction,0,v.id);
+                        }
+                        continue;
+                    }
+                    if(v.status==VehicleStatus.Active)ActiveCount++;List<LaneOccupant> b;if(!occupancy.TryGetValue(v.Current,out b))occupancy.Add(v.Current,b=new List<LaneOccupant>());v.sourceOccupant.distance=v.distance;b.Add(v.sourceOccupant);
+                    if(v.changeTarget!=0&&Network.Contains(v.changeTarget)){var target=Network.Get(v.changeTarget);List<LaneOccupant> shadow;if(!occupancy.TryGetValue(target.Id,out shadow))occupancy.Add(target.Id,shadow=new List<LaneOccupant>());v.shadowOccupant.distance=Network.Get(v.Current).Geometry.MapDistance(target.Geometry,v.distance);shadow.Add(v.shadowOccupant);}
+                    var d=Network.Get(v.Current);int junction=d.JunctionId;
+                    // Keep reservation until the body has cleared the outgoing lane.
+                    if(junction==0&&v.distance<EntryReservationEnd(d)-1e-9)junction=d.From;
+                    if(!d.IsConnection&&v.distance>StopDistance(d)+1e-9)junction=d.To;
+                    if(junction!=0&&Network.IsConflictJunction(junction))reservations.Reserve(junction,v.changeTarget!=0?0:Movement(Network,v.Plan.segments,v.cursor,d,junction),v.id);
+                }
+            }
+#if UNITY_5_3_OR_NEWER
+            using(sortIndexSample.Auto())
+#endif
+#if CITY_CORE_ATTRIBUTION
+            using(CityCoreProfile.Measure(CityCoreProfile.Part.OccupancySort))
+#endif
+            {
+                foreach(var b in occupancy.Values)b.Sort(LaneOccupantOrder.Instance);
+            }
             indexDirty=false;
         }
         public void Step()
@@ -476,10 +503,9 @@ namespace HarborCity.RoadCore
             using(stepSample.Auto())
 #endif
             {
-#if UNITY_5_3_OR_NEWER
-                using(indexSample.Auto())
-#endif
-                Reindex();
+                // Preparations/edits may already have rebuilt this exact state;
+                // committed births maintain its sorted buckets and claims.
+                if(indexDirty)Reindex();
                 if(Network.HasParallelLanes)EditEpoch+=LaneChanges.Choose(Network,data.vehicles,occupancy,(int)(timeline.Tick%int.MaxValue));
                 entries.Clear();intents.Clear();
 #if UNITY_5_3_OR_NEWER
@@ -561,7 +587,7 @@ namespace HarborCity.RoadCore
         }
         internal bool EndpointExists(int id)=>data.externalBusiness?availableEndpoints.Contains(id):business.Exists(id);
         internal void SetEndpointAvailable(int id,bool present)
-        {if(!data.externalBusiness)throw new InvalidOperationException("Fixture endpoints are depots");if(present){if(availableEndpoints.Add(id))data.availableEndpoints.Add(id);}else if(availableEndpoints.Remove(id))data.availableEndpoints.Remove(id);}
+        {if(!data.externalBusiness)throw new InvalidOperationException("Fixture endpoints are depots");if(present){if(availableEndpoints.Add(id)){data.availableEndpoints.Add(id);indexDirty=true;}}else if(availableEndpoints.Remove(id)){data.availableEndpoints.Remove(id);indexDirty=true;}}
         internal void AcknowledgeArrival(int id)
         {var v=FindVehicle(id);if(v==null||v.status!=VehicleStatus.Active||v.cursor!=v.Plan.segments.Count-1||v.distance<EndDistance(v,Network.Get(v.Current))-1e-9)throw new InvalidOperationException("Cannot acknowledge non-arrival");data.delivered+=v.Task.Cargo;if(v.Task.Shipment!=null)v.Task.Shipment.remaining=0;v.Task.state=TripState.Completed;v.status=VehicleStatus.Delivered;ActiveCount--;}
         internal void RetireCompleted()
