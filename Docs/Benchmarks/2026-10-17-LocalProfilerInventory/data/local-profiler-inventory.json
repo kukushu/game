@@ -1,0 +1,20 @@
+{
+  "assets": [
+    {
+      "path": "C:\\Users\\16934\\Documents\\unity_game\\test\\ProfilerCaptures\\test_2026-10-11_23-41-42.data",
+      "kind": "profiler_raw",
+      "export": {
+        "status": "unknown",
+        "artifacts": [],
+        "included": "No verified export mapped to this exact raw hash.",
+        "not_included": "All original samples; historical CSV elsewhere is not assumed to derive from this recording."
+      },
+      "present_at_inventory": true,
+      "inventoried_at_utc": "2026-10-17T15:37:44.669791+00:00",
+      "bytes": 571779620,
+      "sha256": "4fd15c1b27c7d96b8930b46b90316f034f83360bfcef060a57da23df357f9235"
+    }
+  ],
+  "scope": "Unassigned ProfilerCaptures raw found on this machine; RoadBuildPreview raw is mapped in its own manifest.",
+  "limitations": "Scanned known project Temp/ProfilerCaptures roots, not whole machine. No Unity export or simulation was rerun."
+}

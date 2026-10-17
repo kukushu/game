@@ -1,0 +1,176 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-14-CityCoreIndustry",
+  "packaged_at_utc": "2026-10-17T15:37:38.171127+00:00",
+  "measurement": {
+    "title": "2026-10-14-CityCoreIndustry",
+    "kind": "legacy",
+    "source_commit": null,
+    "captured_at_utc": null,
+    "unity_version": null,
+    "runtime": null,
+    "cpu": null,
+    "os": null,
+    "scenario": null,
+    "method": null,
+    "commands": [],
+    "unknown_reasons": {
+      "source_commit": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "captured_at_utc": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "unity_version": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "runtime": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "cpu": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "os": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "scenario": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "method": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements."
+    },
+    "limitations": [
+      "Historical data retained at original paths. Checksums prove exported file integrity, not that historical tests passed or were complete. Unknown CSV units are explicitly unknown."
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "city-checks.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 163,
+      "sha256": "b19fbbd40a0e97a524a0f3290db618e08369292ee756d53836b1efbae0496221",
+      "format": "text"
+    },
+    {
+      "path": "industry-model.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 183,
+      "sha256": "04805a005f74ae91bd7207643edd5039a70f47c12d06c07f099b31b2171b6bd0",
+      "format": "csv",
+      "rows": 1,
+      "columns": {
+        "active_min": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "active_max": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "roads": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "junctions": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "workers": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "steps": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "mean_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "p95_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "p99_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "allocated_per_step": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "simulation_seconds": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "wall_seconds": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "Industry.png",
+      "role": "historical",
+      "digest_mode": "binary",
+      "bytes": 84682,
+      "sha256": "3179d54328028d7e90e7bc00f9710b2c2238a2ef27265482b90251f3528e916f",
+      "format": "binary"
+    },
+    {
+      "path": "native.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 316,
+      "sha256": "a294e4da9251413f175042a14ec151294fda7f35c83a3fc510ab77069b3349ec",
+      "format": "text"
+    },
+    {
+      "path": "retained-checks.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 3862,
+      "sha256": "b9a9bef2446caaf959f890af8071f6a7e285cb37714fcb65b868b6bed0cf6091",
+      "format": "text"
+    },
+    {
+      "path": "traffic-model.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 406,
+      "sha256": "a179ac558f8e21712d9b1e954bbc06fd2fb4b15d93f4e7458abc547d7a08a240",
+      "format": "csv",
+      "rows": 4,
+      "columns": {
+        "scenario": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "active": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "steps": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "mean_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "p95_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "p99_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "allocated_bytes_per_step": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "simulated_seconds": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "wall_seconds": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    }
+  ],
+  "local_assets": [],
+  "local_inventory": {
+    "scope": "Original shared files only; historical local resources not rediscovered or measured.",
+    "limitations": "Other local raw files are registered separately in the local Profiler inventory. Missing historical captures are unknown, not implicitly exported or successfully sampled."
+  }
+}

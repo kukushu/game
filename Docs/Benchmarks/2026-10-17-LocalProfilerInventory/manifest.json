@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-17-LocalProfilerInventory",
+  "packaged_at_utc": "2026-10-17T15:37:45.043117+00:00",
+  "measurement": {
+    "title": "本机历史Profiler文件清单",
+    "kind": "legacy",
+    "source_commit": null,
+    "captured_at_utc": null,
+    "unity_version": null,
+    "runtime": null,
+    "cpu": null,
+    "os": null,
+    "scenario": null,
+    "method": "Read-only filesystem inventory and streaming SHA256; no performance measurement.",
+    "commands": [],
+    "unknown_reasons": {
+      "source_commit": "Original recording metadata not established.",
+      "captured_at_utc": "Original recording metadata not established.",
+      "unity_version": "Original recording metadata not established.",
+      "runtime": "Original recording metadata not established.",
+      "cpu": "Original recording metadata not established.",
+      "os": "Original recording metadata not established.",
+      "scenario": "Original recording metadata not established."
+    },
+    "limitations": [
+      "Inventory does not establish original workload or successful capture/export."
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "data/local-profiler-inventory.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 910,
+      "sha256": "c1add16fb0e6cd30721a7083ea3bf0b26b4ad7abdc6640edfaa96090691aec31",
+      "format": "json"
+    }
+  ],
+  "local_assets": [
+    {
+      "path": "C:\\Users\\16934\\Documents\\unity_game\\test\\ProfilerCaptures\\test_2026-10-11_23-41-42.data",
+      "kind": "profiler_raw",
+      "export": {
+        "status": "unknown",
+        "artifacts": [],
+        "included": "No verified export mapped to this exact raw hash.",
+        "not_included": "All original samples; historical CSV elsewhere is not assumed to derive from this recording."
+      },
+      "present_at_inventory": true,
+      "inventoried_at_utc": "2026-10-17T15:37:45.043166+00:00",
+      "bytes": 571779620,
+      "sha256": "4fd15c1b27c7d96b8930b46b90316f034f83360bfcef060a57da23df357f9235"
+    }
+  ],
+  "local_inventory": {
+    "scope": "Unassigned raw under known project ProfilerCaptures root.",
+    "limitations": "No mapping to historical CSV has been proven; unknown must not be interpreted as a completed export or proof of no export."
+  }
+}

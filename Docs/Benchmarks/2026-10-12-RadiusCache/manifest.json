@@ -1,0 +1,469 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-12-RadiusCache",
+  "packaged_at_utc": "2026-10-17T15:37:35.004966+00:00",
+  "measurement": {
+    "title": "2026-10-12-RadiusCache",
+    "kind": "legacy",
+    "source_commit": null,
+    "captured_at_utc": null,
+    "unity_version": null,
+    "runtime": null,
+    "cpu": null,
+    "os": null,
+    "scenario": null,
+    "method": null,
+    "commands": [],
+    "unknown_reasons": {
+      "source_commit": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "captured_at_utc": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "unity_version": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "runtime": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "cpu": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "os": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "scenario": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "method": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements."
+    },
+    "limitations": [
+      "Historical data retained at original paths. Checksums prove exported file integrity, not that historical tests passed or were complete. Unknown CSV units are explicitly unknown."
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "cache-build-options.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 62,
+      "sha256": "68e65d4e06b28621a9acd4503026bec3e1f5a587344dec36c18b8af17b79926c",
+      "format": "text"
+    },
+    {
+      "path": "cache-build-source.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 7903,
+      "sha256": "e144ed16984b05737420d09831ca711e300f888073863525affde8035f7a6bba",
+      "format": "text"
+    },
+    {
+      "path": "cache-configuration.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 472,
+      "sha256": "784c0c3a37a1007ad4c077b00f4cc883a69b365b23a170820c6eaa695f51d817",
+      "format": "text"
+    },
+    {
+      "path": "cache-live-summary.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 389,
+      "sha256": "cc1d7da301d55dfbe40a5ef7e025e4ae13dc62f138a4c1bb03247c816961c52d",
+      "format": "csv",
+      "rows": 2,
+      "columns": {
+        "mode": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "frames": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "wall_seconds": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "requested_sim_seconds": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "steps": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "observed_sim_seconds_per_wall_second": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "mean_frame_advance_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "mean_steps_per_frame": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "cache-module-summary.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 10098,
+      "sha256": "d1b481fe2189e8b1ed13c177d9ccdec4733fead9a88c222e52047040ccc72cb2",
+      "format": "csv",
+      "rows": 108,
+      "columns": {
+        "mode": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "node": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "total_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gc_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "cache-steps.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 66300,
+      "sha256": "a9240726e5c9a4503831a92b055a53a50bf30765039e368d71a54d0553d386ab",
+      "format": "csv",
+      "rows": 2700,
+      "columns": {
+        "run": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "mode": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "step": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gc_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "tasks": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "cache-summary.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 1140,
+      "sha256": "ae2e611cbfd7e7805d6dd17b66f8c958d541660168b635806cf62fa6d3d6528b",
+      "format": "csv",
+      "rows": 9,
+      "columns": {
+        "run": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "mode": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "mean_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "p95_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "p99_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gc_bytes_per_step": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "min_tasks": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "max_tasks": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "state_sha256": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "disabled-build-options.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 62,
+      "sha256": "1f7d86e5d68a9fc99c6bc437c4dcf7c997d60482d983aacc2de5b7cab8ee259b",
+      "format": "text"
+    },
+    {
+      "path": "disabled-build-source.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 7903,
+      "sha256": "e144ed16984b05737420d09831ca711e300f888073863525affde8035f7a6bba",
+      "format": "text"
+    },
+    {
+      "path": "disabled-configuration.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 472,
+      "sha256": "784c0c3a37a1007ad4c077b00f4cc883a69b365b23a170820c6eaa695f51d817",
+      "format": "text"
+    },
+    {
+      "path": "disabled-live-summary.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 389,
+      "sha256": "585236cf7578f10442ef0290183438111ffc29961b8753626965d570c13ddafc",
+      "format": "csv",
+      "rows": 2,
+      "columns": {
+        "mode": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "frames": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "wall_seconds": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "requested_sim_seconds": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "steps": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "observed_sim_seconds_per_wall_second": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "mean_frame_advance_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "mean_steps_per_frame": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "disabled-module-summary.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 10392,
+      "sha256": "392f37da4833e2457177cc23dbb47299b72717440d96a1f93245d9bbb32620e2",
+      "format": "csv",
+      "rows": 111,
+      "columns": {
+        "mode": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "node": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "total_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gc_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "disabled-steps.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 66350,
+      "sha256": "e1fe427d3ca4730d14ff3cefa38b0ed3fb95d77e64ca28b4d47ff8d1893fd3a8",
+      "format": "csv",
+      "rows": 2700,
+      "columns": {
+        "run": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "mode": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "step": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gc_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "tasks": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "disabled-summary.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 1142,
+      "sha256": "714cdf05b55eb8b438d9f04300d8cf8a246debc4297b5bf87416290e18d930de",
+      "format": "csv",
+      "rows": 9,
+      "columns": {
+        "run": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "mode": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "mean_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "p95_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "p99_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gc_bytes_per_step": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "min_tasks": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "max_tasks": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "state_sha256": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "paired-summary.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 950,
+      "sha256": "9f81298bea32d814e202143df63f89e9bed1392db9ebc6da89c153cfda544455",
+      "format": "csv",
+      "rows": 3,
+      "columns": {
+        "mode": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "before_mean_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "after_mean_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "reduction_mean_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "before_p95_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "after_p95_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "reduction_p95_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "before_p99_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "after_p99_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "reduction_p99_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "before_profiler_gc_bytes_per_step": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "after_profiler_gc_bytes_per_step": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "reduction_profiler_gc": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    }
+  ],
+  "local_assets": [],
+  "local_inventory": {
+    "scope": "Original shared files only; historical local resources not rediscovered or measured.",
+    "limitations": "Other local raw files are registered separately in the local Profiler inventory. Missing historical captures are unknown, not implicitly exported or successfully sampled."
+  }
+}

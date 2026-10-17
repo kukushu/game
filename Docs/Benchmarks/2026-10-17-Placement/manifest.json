@@ -1,0 +1,1696 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-17-Placement",
+  "packaged_at_utc": "2026-10-17T15:37:43.062617+00:00",
+  "measurement": {
+    "title": "2026-10-17-Placement",
+    "kind": "legacy",
+    "source_commit": null,
+    "captured_at_utc": null,
+    "unity_version": null,
+    "runtime": null,
+    "cpu": null,
+    "os": null,
+    "scenario": null,
+    "method": null,
+    "commands": [],
+    "unknown_reasons": {
+      "source_commit": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "captured_at_utc": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "unity_version": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "runtime": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "cpu": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "os": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "scenario": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "method": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements."
+    },
+    "limitations": [
+      "Historical data retained at original paths. Checksums prove exported file integrity, not that historical tests passed or were complete. Unknown CSV units are explicitly unknown."
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "placement30k-fine-resources.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 320,
+      "sha256": "4ed81f1d2ec9a309911b31fb0f9b0ac895b6c4ea063127e941ac8fee3de6dc2a",
+      "format": "json"
+    },
+    {
+      "path": "placement30k-normal-control-resources.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 320,
+      "sha256": "9b639559ffa63affae71de14036d279736dbfa338403725ad05f0c47a9a94a0b",
+      "format": "json"
+    },
+    {
+      "path": "tick4441-key.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 5012,
+      "sha256": "b114587e4e4dd7d1321959c99a2152e8f46a39381e9a206131ad6061dd480a6b",
+      "format": "csv",
+      "rows": 1,
+      "columns": {
+        "probe_tick": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "allocated": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "probe_active": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "tick": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "active": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "route_preparations": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gc0": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gc1": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gc2": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "unreachable": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "source_blocked": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "cache_flushes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "cache_hits": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "cache_evictions": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "commute_estimate_hits": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "commute_estimate_misses": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "allocation_counter_supported": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "zoning_candidate_pairs": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "zoning_exact_overlaps": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Step_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Step_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Step_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Step_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Step_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Residents_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Residents_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Residents_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Residents_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Residents_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Job_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Job_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Job_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Job_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Job_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Production_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Production_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Production_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Production_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Production_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Logistics_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Logistics_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Logistics_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Logistics_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Logistics_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Dispatch_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Dispatch_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Dispatch_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Dispatch_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Dispatch_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "RouteLookup_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "RouteLookup_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "RouteLookup_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "RouteLookup_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "RouteLookup_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "RouteSearch_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "RouteSearch_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "RouteSearch_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "RouteSearch_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "RouteSearch_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Admission_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Admission_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Admission_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Admission_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Admission_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Occupancy_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Occupancy_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Occupancy_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Occupancy_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Occupancy_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Movement_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Movement_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Movement_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Movement_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Movement_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Settlement_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Settlement_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Settlement_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Settlement_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Settlement_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Growth_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Growth_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Growth_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Growth_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Growth_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Utilities_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Utilities_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Utilities_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Utilities_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Utilities_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Population_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Population_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Population_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Population_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Population_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Consumption_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Consumption_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Consumption_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Consumption_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Consumption_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Trade_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Trade_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Trade_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Trade_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Trade_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Payroll_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Payroll_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Payroll_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Payroll_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Payroll_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningRebuild_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningRebuild_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningRebuild_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningRebuild_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningRebuild_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "GrowthSearch_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "GrowthSearch_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "GrowthSearch_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "GrowthSearch_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "GrowthSearch_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Placement_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Placement_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Placement_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Placement_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Placement_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Finance_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Finance_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Finance_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Finance_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Finance_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "FinanceAccrual_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "FinanceAccrual_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "FinanceAccrual_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "FinanceAccrual_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "FinanceAccrual_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Waste_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Waste_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Waste_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Waste_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Waste_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningGeometry_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningGeometry_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningGeometry_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningGeometry_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningGeometry_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningLandUse_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningLandUse_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningLandUse_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningLandUse_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningLandUse_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningOccupancy_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningOccupancy_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningOccupancy_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningOccupancy_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningOccupancy_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "UtilityRebuild_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "UtilityRebuild_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "UtilityRebuild_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "UtilityRebuild_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "UtilityRebuild_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "UtilityPowerCoverage_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "UtilityPowerCoverage_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "UtilityPowerCoverage_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "UtilityPowerCoverage_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "UtilityPowerCoverage_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "UtilityWaterCoverage_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "UtilityWaterCoverage_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "UtilityWaterCoverage_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "UtilityWaterCoverage_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "UtilityWaterCoverage_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "CommuteEstimate_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "CommuteEstimate_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "CommuteEstimate_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "CommuteEstimate_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "CommuteEstimate_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "CostSearch_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "CostSearch_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "CostSearch_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "CostSearch_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "CostSearch_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "PlacementTerrain_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "PlacementTerrain_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "PlacementTerrain_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "PlacementTerrain_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "PlacementTerrain_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "PlacementBuildings_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "PlacementBuildings_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "PlacementBuildings_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "PlacementBuildings_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "PlacementBuildings_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ClearanceQuery_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ClearanceQuery_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ClearanceQuery_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ClearanceQuery_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ClearanceQuery_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ClearanceOverlap_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ClearanceOverlap_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ClearanceOverlap_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ClearanceOverlap_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ClearanceOverlap_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningCellKey_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningCellKey_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningCellKey_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningCellKey_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningCellKey_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "tick4441.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 4864,
+      "sha256": "78dcb356182469e632b5d43f4673bd311119f5c7745d5edab42256d499241109",
+      "format": "csv",
+      "rows": 1,
+      "columns": {
+        "probe_tick": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "allocated": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "probe_active": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "tick": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "active": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "route_preparations": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gc0": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gc1": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gc2": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "unreachable": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "source_blocked": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "cache_flushes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "cache_hits": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "cache_evictions": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "commute_estimate_hits": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "commute_estimate_misses": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "allocation_counter_supported": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "zoning_candidate_pairs": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "zoning_exact_overlaps": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Step_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Step_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Step_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Step_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Step_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Residents_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Residents_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Residents_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Residents_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Residents_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Job_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Job_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Job_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Job_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Job_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Production_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Production_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Production_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Production_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Production_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Logistics_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Logistics_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Logistics_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Logistics_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Logistics_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Dispatch_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Dispatch_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Dispatch_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Dispatch_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Dispatch_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "RouteLookup_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "RouteLookup_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "RouteLookup_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "RouteLookup_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "RouteLookup_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "RouteSearch_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "RouteSearch_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "RouteSearch_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "RouteSearch_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "RouteSearch_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Admission_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Admission_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Admission_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Admission_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Admission_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Occupancy_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Occupancy_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Occupancy_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Occupancy_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Occupancy_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Movement_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Movement_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Movement_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Movement_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Movement_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Settlement_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Settlement_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Settlement_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Settlement_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Settlement_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Growth_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Growth_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Growth_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Growth_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Growth_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Utilities_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Utilities_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Utilities_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Utilities_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Utilities_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Population_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Population_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Population_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Population_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Population_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Consumption_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Consumption_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Consumption_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Consumption_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Consumption_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Trade_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Trade_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Trade_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Trade_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Trade_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Payroll_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Payroll_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Payroll_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Payroll_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Payroll_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningRebuild_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningRebuild_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningRebuild_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningRebuild_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningRebuild_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "GrowthSearch_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "GrowthSearch_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "GrowthSearch_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "GrowthSearch_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "GrowthSearch_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Placement_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Placement_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Placement_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Placement_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Placement_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Finance_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Finance_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Finance_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Finance_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Finance_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "FinanceAccrual_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "FinanceAccrual_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "FinanceAccrual_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "FinanceAccrual_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "FinanceAccrual_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Waste_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Waste_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Waste_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Waste_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "Waste_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningGeometry_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningGeometry_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningGeometry_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningGeometry_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningGeometry_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningLandUse_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningLandUse_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningLandUse_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningLandUse_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningLandUse_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningOccupancy_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningOccupancy_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningOccupancy_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningOccupancy_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ZoningOccupancy_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "UtilityRebuild_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "UtilityRebuild_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "UtilityRebuild_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "UtilityRebuild_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "UtilityRebuild_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "UtilityPowerCoverage_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "UtilityPowerCoverage_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "UtilityPowerCoverage_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "UtilityPowerCoverage_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "UtilityPowerCoverage_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "UtilityWaterCoverage_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "UtilityWaterCoverage_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "UtilityWaterCoverage_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "UtilityWaterCoverage_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "UtilityWaterCoverage_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "CommuteEstimate_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "CommuteEstimate_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "CommuteEstimate_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "CommuteEstimate_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "CommuteEstimate_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "CostSearch_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "CostSearch_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "CostSearch_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "CostSearch_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "CostSearch_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "PlacementTerrain_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "PlacementTerrain_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "PlacementTerrain_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "PlacementTerrain_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "PlacementTerrain_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "PlacementBuildings_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "PlacementBuildings_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "PlacementBuildings_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "PlacementBuildings_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "PlacementBuildings_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ClearanceQuery_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ClearanceQuery_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ClearanceQuery_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ClearanceQuery_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ClearanceQuery_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ClearanceOverlap_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ClearanceOverlap_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ClearanceOverlap_calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ClearanceOverlap_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ClearanceOverlap_self_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    }
+  ],
+  "local_assets": [],
+  "local_inventory": {
+    "scope": "Original shared files only; historical local resources not rediscovered or measured.",
+    "limitations": "Other local raw files are registered separately in the local Profiler inventory. Missing historical captures are unknown, not implicitly exported or successfully sampled."
+  }
+}

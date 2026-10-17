@@ -1,0 +1,385 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-13-RoadQueries",
+  "packaged_at_utc": "2026-10-17T15:37:37.226838+00:00",
+  "measurement": {
+    "title": "2026-10-13-RoadQueries",
+    "kind": "legacy",
+    "source_commit": null,
+    "captured_at_utc": null,
+    "unity_version": null,
+    "runtime": null,
+    "cpu": null,
+    "os": null,
+    "scenario": null,
+    "method": null,
+    "commands": [],
+    "unknown_reasons": {
+      "source_commit": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "captured_at_utc": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "unity_version": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "runtime": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "cpu": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "os": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "scenario": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "method": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements."
+    },
+    "limitations": [
+      "Historical data retained at original paths. Checksums prove exported file integrity, not that historical tests passed or were complete. Unknown CSV units are explicitly unknown."
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "after/build-options.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 154,
+      "sha256": "208348f93ecbad5264928c76c8d06acc01911e75e9b770771c5842b9e7b10fea",
+      "format": "text"
+    },
+    {
+      "path": "after/build-source.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 11489,
+      "sha256": "05dddc5740c27e2643eb19350d6fb200f961dbfa2506f73244fd469d5896157e",
+      "format": "text"
+    },
+    {
+      "path": "after/configuration.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 455,
+      "sha256": "4c224e50e2dfcbe9dbe7537c68039b07c6de6bf9e3bc5497d8380c051f3e9ccd",
+      "format": "text"
+    },
+    {
+      "path": "after/live-summary.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 371,
+      "sha256": "45f016d1ce5773c710c0b29649716510fb3e269aebedde78c8c5106233be7e98",
+      "format": "csv",
+      "rows": 2,
+      "columns": {
+        "mode": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "frames": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "wall_seconds": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "requested_sim_seconds": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "steps": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "observed_sim_seconds_per_wall_second": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "mean_frame_advance_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "mean_steps_per_frame": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "after/paired-summary.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 915,
+      "sha256": "e147573e31526bc8dde20ebb782c94d3dccc8d5a238802b944066189751fe872",
+      "format": "csv",
+      "rows": 3,
+      "columns": {
+        "mode": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "before_mean_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "after_mean_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "reduction_mean_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "before_p95_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "after_p95_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "reduction_p95_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "before_p99_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "after_p99_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "reduction_p99_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "before_profiler_gc_bytes_per_step": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "after_profiler_gc_bytes_per_step": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "reduction_profiler_gc": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "after/PASS.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 119,
+      "sha256": "0f3259b3da985e98b189ddfefe571b8d1dcf2dc05d14d37db982d261e3d3b42f",
+      "format": "text"
+    },
+    {
+      "path": "after/summary.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 1122,
+      "sha256": "dc93de82e6687675c521346a5a5902d1cfc9a5d0aaf9062e46567c206b0e342e",
+      "format": "csv",
+      "rows": 9,
+      "columns": {
+        "run": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "mode": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "mean_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "p95_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "p99_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gc_bytes_per_step": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "min_tasks": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "max_tasks": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "state_sha256": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "before/build-options.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 154,
+      "sha256": "208348f93ecbad5264928c76c8d06acc01911e75e9b770771c5842b9e7b10fea",
+      "format": "text"
+    },
+    {
+      "path": "before/build-source.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 11489,
+      "sha256": "4c92f9b51b0e120e264dee002b261ff402ed872e00c914a6638db51c135dc7ab",
+      "format": "text"
+    },
+    {
+      "path": "before/configuration.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 455,
+      "sha256": "4c224e50e2dfcbe9dbe7537c68039b07c6de6bf9e3bc5497d8380c051f3e9ccd",
+      "format": "text"
+    },
+    {
+      "path": "before/live-summary.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 375,
+      "sha256": "29c6458303b2cf29277996933babacb6c3a898bcb2b4211da55fc8a9e53e96a7",
+      "format": "csv",
+      "rows": 2,
+      "columns": {
+        "mode": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "frames": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "wall_seconds": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "requested_sim_seconds": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "steps": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "observed_sim_seconds_per_wall_second": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "mean_frame_advance_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "mean_steps_per_frame": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "before/PASS.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 119,
+      "sha256": "0f3259b3da985e98b189ddfefe571b8d1dcf2dc05d14d37db982d261e3d3b42f",
+      "format": "text"
+    },
+    {
+      "path": "before/summary.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 1128,
+      "sha256": "2aea1740d6886389c4f9bbdc45948786db56f1ef6edf172e4346b73593866442",
+      "format": "csv",
+      "rows": 9,
+      "columns": {
+        "run": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "mode": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "mean_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "p95_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "p99_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gc_bytes_per_step": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "min_tasks": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "max_tasks": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "state_sha256": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "README.md",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 2022,
+      "sha256": "d9d6d9c54a619c109477694b143ac2d3950a4456ea01ab3ff76d839d5781e122",
+      "format": "text"
+    },
+    {
+      "path": "RoadQueryFinalRegression.log",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 3690,
+      "sha256": "929d249024941530f15f039efff08854522eaddc645cd49c23d246e9af435fe9",
+      "format": "text"
+    },
+    {
+      "path": "RoadQueryIndependentReplay.log",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 329,
+      "sha256": "daebc5794c7ef9fb5ca95b4e139cc5d066ad7710a226aa0811e4844ceff93aee",
+      "format": "text"
+    },
+    {
+      "path": "RoadQueryLegacyRegression.log",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 3690,
+      "sha256": "929d249024941530f15f039efff08854522eaddc645cd49c23d246e9af435fe9",
+      "format": "text"
+    },
+    {
+      "path": "RoadQueryPairClean.log",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 2074,
+      "sha256": "7002429c558790bfe267a5fe266f66a726f0f50afb37d4b53637143206b434cf",
+      "format": "text"
+    }
+  ],
+  "local_assets": [],
+  "local_inventory": {
+    "scope": "Original shared files only; historical local resources not rediscovered or measured.",
+    "limitations": "Other local raw files are registered separately in the local Profiler inventory. Missing historical captures are unknown, not implicitly exported or successfully sampled."
+  }
+}

@@ -1,0 +1,618 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-13-RoadDraft",
+  "packaged_at_utc": "2026-10-17T15:37:37.090325+00:00",
+  "measurement": {
+    "title": "2026-10-13-RoadDraft",
+    "kind": "legacy",
+    "source_commit": null,
+    "captured_at_utc": null,
+    "unity_version": null,
+    "runtime": null,
+    "cpu": null,
+    "os": null,
+    "scenario": null,
+    "method": null,
+    "commands": [],
+    "unknown_reasons": {
+      "source_commit": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "captured_at_utc": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "unity_version": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "runtime": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "cpu": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "os": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "scenario": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "method": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements."
+    },
+    "limitations": [
+      "Historical data retained at original paths. Checksums prove exported file integrity, not that historical tests passed or were complete. Unknown CSV units are explicitly unknown."
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "after/configuration.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 354,
+      "sha256": "2cd2d66e5e83d186bcc8fcf8192e2bd7bade7125dc268c3858c6ebbce8cb2d64",
+      "format": "text"
+    },
+    {
+      "path": "after/PASS.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 106,
+      "sha256": "75ae8c7d80eaffbd4d1606efd0f52318b85ad0c5c14cd877cb5ab0423f4b6b56",
+      "format": "text"
+    },
+    {
+      "path": "after/plan-signatures.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 3848,
+      "sha256": "7ac78a168b7ec653720a00afd1daf3037af90734e78c71ee4ebcd8786af8f090",
+      "format": "csv",
+      "rows": 47,
+      "columns": {
+        "straight": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "False": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "0": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "F615FAF83743741986B7B45DC62C223060F0E52118CD36FB2F3DC4870E310193": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "after/previews.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 2212,
+      "sha256": "be0948ca67dc6314e39743806eeab23e972af99f3b2fb8be6c7ab34858f610cb",
+      "format": "csv",
+      "rows": 48,
+      "columns": {
+        "kind": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "cache_warmed": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "repeat": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gc_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "valid": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "cost": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "edges": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "splits": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "before/configuration.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 354,
+      "sha256": "2cd2d66e5e83d186bcc8fcf8192e2bd7bade7125dc268c3858c6ebbce8cb2d64",
+      "format": "text"
+    },
+    {
+      "path": "before/PASS.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 106,
+      "sha256": "75ae8c7d80eaffbd4d1606efd0f52318b85ad0c5c14cd877cb5ab0423f4b6b56",
+      "format": "text"
+    },
+    {
+      "path": "before/plan-signatures.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 3848,
+      "sha256": "7ac78a168b7ec653720a00afd1daf3037af90734e78c71ee4ebcd8786af8f090",
+      "format": "csv",
+      "rows": 47,
+      "columns": {
+        "straight": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "False": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "0": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "F615FAF83743741986B7B45DC62C223060F0E52118CD36FB2F3DC4870E310193": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "before/previews.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 2305,
+      "sha256": "e33e88d8b4777851ee56f462466aaa0baed6fc115cd93ca3fbdc26b5384dc89b",
+      "format": "csv",
+      "rows": 48,
+      "columns": {
+        "kind": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "cache_warmed": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "repeat": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gc_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "valid": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "cost": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "edges": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "splits": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "CurveDraftRegression.log",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 3690,
+      "sha256": "929d249024941530f15f039efff08854522eaddc645cd49c23d246e9af435fe9",
+      "format": "text"
+    },
+    {
+      "path": "Native/Aging.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 184,
+      "sha256": "83b36a1465496100025e4fd62574cc104e3eae9519a7931be2771fcec58c8279",
+      "format": "text"
+    },
+    {
+      "path": "Native/Budgets.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 101,
+      "sha256": "dfd02fc20327f5d30106fdeab43d7b1f2970cd6e86821ce74b33fdd981b5e3ed",
+      "format": "text"
+    },
+    {
+      "path": "Native/BuildingGrowth.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 140,
+      "sha256": "5c313d9a0c945b9d3d69d3261aeec32cff52b42b8d084290306d65b637cf0e2c",
+      "format": "text"
+    },
+    {
+      "path": "Native/BuildingProblems.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 255,
+      "sha256": "42a7aee1420f3512986cee8b6f00b3325c39f517e5e0d9c756cdf6d68fea1f67",
+      "format": "text"
+    },
+    {
+      "path": "Native/Conditions.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 118,
+      "sha256": "e7c0724d0453b9346cca2db1694e134922835f9b192205d08f1c5a59493387ce",
+      "format": "text"
+    },
+    {
+      "path": "Native/Deathcare.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 327,
+      "sha256": "7631b88df5b61a10ca949795805a48a8fda55a769c8e8d8e06373a3ca9aefdfc",
+      "format": "text"
+    },
+    {
+      "path": "Native/DemolitionInput.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 172,
+      "sha256": "81a468859417f7de73b9494c3917a56901c4256348e536777b792ba27d3c0ecc",
+      "format": "text"
+    },
+    {
+      "path": "Native/Education.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 173,
+      "sha256": "7bc75e27e2e90d6d3458a99bc9ddff8c0c21a8c05211709bcd90a6d19bde6d02",
+      "format": "text"
+    },
+    {
+      "path": "Native/ElevatedTraffic.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 125,
+      "sha256": "c20322f276b5f45e4080d1318e78338e8e642e51c6110dd48b717597090fec64",
+      "format": "text"
+    },
+    {
+      "path": "Native/ElevationInput.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 124,
+      "sha256": "9a7981d4b3212b01f38047fe2e60f3360a5eccd89b2898a117f1b69b174ed5fe",
+      "format": "text"
+    },
+    {
+      "path": "Native/EntranceDemolitionInput.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 150,
+      "sha256": "b82b015647807100f04d11a3096dd6bcca07c9a94b7367d2e1a7327ee6b9be35",
+      "format": "text"
+    },
+    {
+      "path": "Native/Fire.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 122,
+      "sha256": "5b946b8697f8ba7519cd377edaa61fa0e516133e8511de545deeb20aaa4fbece",
+      "format": "text"
+    },
+    {
+      "path": "Native/Health.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 71,
+      "sha256": "4bdc7f28a8dee5332e0d53cc7141c3a0be8d3d584a62a658fa2da8885f485b59",
+      "format": "text"
+    },
+    {
+      "path": "Native/Healthcare.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 122,
+      "sha256": "db40106015b775ba3279d72658b0dff6716fc0049d55cc377566bae0ef66f070",
+      "format": "text"
+    },
+    {
+      "path": "Native/HigherEducation.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 246,
+      "sha256": "40b5d6bf8c539a5245ffe9c87c9ab83ba7afb97695aea7f25184eed9c48c764c",
+      "format": "text"
+    },
+    {
+      "path": "Native/HighwayInput.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 193,
+      "sha256": "16a31761f6e9f4b9460a1e9f705dc92941a87ed27b3e2d8155cb3f8c2f7aa12f",
+      "format": "text"
+    },
+    {
+      "path": "Native/HighwayMerging.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 305,
+      "sha256": "1800a12e2c421ddd3dfe6d732119f2fb81a0b0642f6b6335922964e8f39fd812",
+      "format": "text"
+    },
+    {
+      "path": "Native/Highways.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 209,
+      "sha256": "f64266f90a59462995c268e9992b56b6bf290750be017384973f512b43cb1008",
+      "format": "text"
+    },
+    {
+      "path": "Native/Input.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 3072,
+      "sha256": "6cf14c7af81a7740ad34ae3caa21c210725fd2fd40319651c8d35518967446e2",
+      "format": "text"
+    },
+    {
+      "path": "Native/Junctions.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 123,
+      "sha256": "e0681d1010953e55f2a86b1d335c2f186020233a4bd5de082b59b71ea3e6a487",
+      "format": "text"
+    },
+    {
+      "path": "Native/LaneChoice.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 264,
+      "sha256": "db821562ef82ce535ad834c26ab650b293fe05c5f5bd313c221307b666c8aa1b",
+      "format": "text"
+    },
+    {
+      "path": "Native/Lanes.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 150,
+      "sha256": "60178da725541d7fec8d5e43433d23f8f3deb9c1cdbf25f4c6df649924eb7abd",
+      "format": "text"
+    },
+    {
+      "path": "Native/Loans.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 133,
+      "sha256": "637a9391f3d91d54727a8c45efdd820376a9883e939f34a8495bbcf80a24c8b6",
+      "format": "text"
+    },
+    {
+      "path": "Native/LogicalRoadTopology.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 331,
+      "sha256": "613e7b60c532e924a4c5ea2e6a4d8c68a166c769b26cf002de10a0bc3c81c9f9",
+      "format": "text"
+    },
+    {
+      "path": "Native/LongRun.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 103,
+      "sha256": "82e8ba27eac490aaa72e0c8006b2d736c408f6b72f9f7c2db455a8c12204dfeb",
+      "format": "text"
+    },
+    {
+      "path": "Native/MapExpansion.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 273,
+      "sha256": "0f25fc2ad1df8a84e6dedd602780692319ee5a48c0af3250030908b8b205af87",
+      "format": "text"
+    },
+    {
+      "path": "Native/MapExpansionInput.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 188,
+      "sha256": "955827a75c67d11ad8ae42785da1bd58e24e5ac44ed132465d2c9c16b828722f",
+      "format": "text"
+    },
+    {
+      "path": "Native/NegativeSkewPedestrians.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 309,
+      "sha256": "8172ccf2952978c1dc28c18b4796badc26d2a1fed7351e54f4cf2049e9e4b4b2",
+      "format": "text"
+    },
+    {
+      "path": "Native/Pedestrians.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 309,
+      "sha256": "8172ccf2952978c1dc28c18b4796badc26d2a1fed7351e54f4cf2049e9e4b4b2",
+      "format": "text"
+    },
+    {
+      "path": "Native/Police.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 130,
+      "sha256": "76e7b212f3622bae76655c03850d1a86add894e3e76ce8fd19b91ed8f129a2be",
+      "format": "text"
+    },
+    {
+      "path": "Native/PositiveSkewPedestrians.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 309,
+      "sha256": "8172ccf2952978c1dc28c18b4796badc26d2a1fed7351e54f4cf2049e9e4b4b2",
+      "format": "text"
+    },
+    {
+      "path": "Native/ProblemGUIUnverified.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 125,
+      "sha256": "d150d55a38847b581eec8c1a21d5a3b0ae41221e533706d49b65ef80d59f44c1",
+      "format": "text"
+    },
+    {
+      "path": "Native/ResidentIdentity.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 170,
+      "sha256": "1f9d9dc66ef4e50587e257648655fbd5edb538bc4538c7503edb3b60be05724d",
+      "format": "text"
+    },
+    {
+      "path": "Native/Result.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 878,
+      "sha256": "e2d95d9eceb06b9bcd8edbd31ec4486967e00308d07a0c1ad08bc73d8974870e",
+      "format": "text"
+    },
+    {
+      "path": "Native/RoadDirection.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 85,
+      "sha256": "d7defdbbc514727e1e8810a0e72eaffcbc2610d78ace1321085a4b3cfec6c675",
+      "format": "text"
+    },
+    {
+      "path": "Native/RoadTypes.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 145,
+      "sha256": "b3b09a8fabea38d7f3dec52d53b2af98718e933126bf9329a5b5cbc52b9612ad",
+      "format": "text"
+    },
+    {
+      "path": "Native/ServiceRoadChanges.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 125,
+      "sha256": "c1732166e0f3b1fe5b5d292df674cbaad65868602c6ef974cfb4aea5436ec5e7",
+      "format": "text"
+    },
+    {
+      "path": "Native/TerrainSpanApproaches.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 147,
+      "sha256": "6197b1ad1b5a4d1038d575bb0dceafcfac70b299a33f6f3fd31dac1662c8bf12",
+      "format": "text"
+    },
+    {
+      "path": "Native/TerrainSpanInput.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 166,
+      "sha256": "1ff3d646d95aed7013a9d5ff991ea86e6052cfc80ff94bee89f41b4187a7ac81",
+      "format": "text"
+    },
+    {
+      "path": "Native/TrafficControls.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 250,
+      "sha256": "abc0f2945b3cf253e08c31703526722f09bac636b739c4ed228d3af907920773",
+      "format": "text"
+    },
+    {
+      "path": "Native/UtilityAllocation.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 142,
+      "sha256": "20e235fff87fd949b4d26beb697412ef06b01212fd0f2fc5a39520e2fa3f5941",
+      "format": "text"
+    },
+    {
+      "path": "Native/VehicleTurns.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 246,
+      "sha256": "b0108b84d822dcd042e5fcbbbd1b27cf9609cf4d8850b838557e8fa762371a6b",
+      "format": "text"
+    },
+    {
+      "path": "Native/WasteProcessing.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 120,
+      "sha256": "3d3cb9267f692296735e3b39bf19d424ab054811c49ed5dc90550a90af29ccbb",
+      "format": "text"
+    },
+    {
+      "path": "Native/WideConnections.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 198,
+      "sha256": "07b42346eaaa337dd62f59b9f857f5a71c0f91e8781aabc4f72721175b1b6492",
+      "format": "text"
+    },
+    {
+      "path": "Native/WidePedestrians.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 309,
+      "sha256": "8172ccf2952978c1dc28c18b4796badc26d2a1fed7351e54f4cf2049e9e4b4b2",
+      "format": "text"
+    },
+    {
+      "path": "Native/WideRoads.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 192,
+      "sha256": "75d077924b313cc0a9a071545a9e6246d441956849ecae1d37a99876115b4781",
+      "format": "text"
+    },
+    {
+      "path": "README.md",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 2106,
+      "sha256": "5d9293fb35a1396eaf6760cb1723c5ce95923278978fd5e5acc72389317326e2",
+      "format": "text"
+    },
+    {
+      "path": "RoadDraftNativeRun.log",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 879,
+      "sha256": "60c8d9cefb2beadc05749f1c464e3530d82e60189564f95bd94ae138eadc0574",
+      "format": "text"
+    },
+    {
+      "path": "RoadDraftPair.log",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 376,
+      "sha256": "de1d867c1ecd928deb0488b18e4f20d7b5364101e03616377fc87761d14b3946",
+      "format": "text"
+    }
+  ],
+  "local_assets": [],
+  "local_inventory": {
+    "scope": "Original shared files only; historical local resources not rediscovered or measured.",
+    "limitations": "Other local raw files are registered separately in the local Profiler inventory. Missing historical captures are unknown, not implicitly exported or successfully sampled."
+  }
+}

@@ -1,0 +1,140 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-14-LaneChange",
+  "packaged_at_utc": "2026-10-17T15:37:38.298604+00:00",
+  "measurement": {
+    "title": "2026-10-14-LaneChange",
+    "kind": "legacy",
+    "source_commit": null,
+    "captured_at_utc": null,
+    "unity_version": null,
+    "runtime": null,
+    "cpu": null,
+    "os": null,
+    "scenario": null,
+    "method": null,
+    "commands": [],
+    "unknown_reasons": {
+      "source_commit": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "captured_at_utc": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "unity_version": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "runtime": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "cpu": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "os": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "scenario": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "method": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements."
+    },
+    "limitations": [
+      "Historical data retained at original paths. Checksums prove exported file integrity, not that historical tests passed or were complete. Unknown CSV units are explicitly unknown."
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "after.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 406,
+      "sha256": "fb968d87f03918169ab9a00876bf1dc8f4c9d68b0df9762205bf46495347d4f9",
+      "format": "csv",
+      "rows": 4,
+      "columns": {
+        "scenario": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "active": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "steps": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "mean_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "p95_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "p99_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "allocated_bytes_per_step": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "simulated_seconds": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "wall_seconds": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "before.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 406,
+      "sha256": "5d2aebbdfd7f4df55b968ce6ae123ed33e67d560b50188d7f59431e7e8c9a51c",
+      "format": "csv",
+      "rows": 4,
+      "columns": {
+        "scenario": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "active": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "steps": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "mean_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "p95_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "p99_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "allocated_bytes_per_step": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "simulated_seconds": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "wall_seconds": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "unity.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 385,
+      "sha256": "9a67c288a999a3515234718feac975128379a8299d723a259316fac7dd2a4645",
+      "format": "text"
+    }
+  ],
+  "local_assets": [],
+  "local_inventory": {
+    "scope": "Original shared files only; historical local resources not rediscovered or measured.",
+    "limitations": "Other local raw files are registered separately in the local Profiler inventory. Missing historical captures are unknown, not implicitly exported or successfully sampled."
+  }
+}

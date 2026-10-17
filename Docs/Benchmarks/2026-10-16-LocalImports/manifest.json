@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-16-LocalImports",
+  "packaged_at_utc": "2026-10-17T15:37:40.678056+00:00",
+  "measurement": {
+    "title": "2026-10-16-LocalImports",
+    "kind": "legacy",
+    "source_commit": null,
+    "captured_at_utc": null,
+    "unity_version": null,
+    "runtime": null,
+    "cpu": null,
+    "os": null,
+    "scenario": null,
+    "method": null,
+    "commands": [],
+    "unknown_reasons": {
+      "source_commit": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "captured_at_utc": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "unity_version": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "runtime": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "cpu": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "os": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "scenario": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "method": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements."
+    },
+    "limitations": [
+      "Historical data retained at original paths. Checksums prove exported file integrity, not that historical tests passed or were complete. Unknown CSV units are explicitly unknown."
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "comparison.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 2346,
+      "sha256": "7038c61ee7d8d0eeea106a0d5b9c8591c802749aff2729b75a91cf300e14c6c9",
+      "format": "json"
+    },
+    {
+      "path": "local/environment.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 596,
+      "sha256": "a41bcf36e07414650479d42f686223e649fb6d6d3aa0ef1d5760f1f32d0b38b0",
+      "format": "json"
+    },
+    {
+      "path": "local/freight-events.jsonl",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 36940,
+      "sha256": "7aa9148aa0d921af683f4cfb0df9c112e8c353839a00699c2e0fa71264c4c70f",
+      "format": "jsonl"
+    },
+    {
+      "path": "local/report.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 10777,
+      "sha256": "9fea8f7f15cac13a309943b32349684e18d51b0163f60ebaab082e58b81d3c71",
+      "format": "json"
+    },
+    {
+      "path": "local/resources.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 145,
+      "sha256": "010f92b6c98a52ecc9dafa4aa04d75bb2504ded769dd08eb17043fe308cf358a",
+      "format": "json"
+    },
+    {
+      "path": "ordered/environment.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 596,
+      "sha256": "0da687ff9266384080fc3d100d1e7e2827e786d1aad24ee6bbff0adfb938f3fc",
+      "format": "json"
+    },
+    {
+      "path": "ordered/freight-events.jsonl",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 25312,
+      "sha256": "8d8abfa9a29fab529ca7d08a4f43c27524a9b785ca8843f2775a3c689ef17f2b",
+      "format": "jsonl"
+    },
+    {
+      "path": "ordered/report.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 10192,
+      "sha256": "00f8419717c0841310fc8a7034eda39cdb84256ef377ea793ce7b5512eae0aef",
+      "format": "json"
+    },
+    {
+      "path": "ordered/resources.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 145,
+      "sha256": "703cbacd9bc968dd4f74aba8fce561fa9bf72d19c9cd9805bf8aa1e9dde4944f",
+      "format": "json"
+    },
+    {
+      "path": "small-local/environment.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 596,
+      "sha256": "914e35b53188ddcfa7783c3d5a077017b1790f8821cbab4898bd3a66e93cad99",
+      "format": "json"
+    },
+    {
+      "path": "small-local/freight-events.jsonl",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 115868,
+      "sha256": "1a6437133bf0b637bad58b1c31f961b50960dbde4056f23c67d64edf59c86ca6",
+      "format": "jsonl"
+    },
+    {
+      "path": "small-local/report.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 9784,
+      "sha256": "43741f741af8970e765de3155547a3489e3eab35593f6fab1a671a7d06c09c7e",
+      "format": "json"
+    },
+    {
+      "path": "small-local/resources.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 139,
+      "sha256": "deab385408bb1de980ca080081811a1cc9ac9ec041b8a2716366bd193042d32f",
+      "format": "json"
+    }
+  ],
+  "local_assets": [],
+  "local_inventory": {
+    "scope": "Original shared files only; historical local resources not rediscovered or measured.",
+    "limitations": "Other local raw files are registered separately in the local Profiler inventory. Missing historical captures are unknown, not implicitly exported or successfully sampled."
+  }
+}

@@ -1,0 +1,429 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-17-ReturnPeak",
+  "packaged_at_utc": "2026-10-17T15:37:43.184256+00:00",
+  "measurement": {
+    "title": "2026-10-17-ReturnPeak",
+    "kind": "legacy",
+    "source_commit": null,
+    "captured_at_utc": null,
+    "unity_version": null,
+    "runtime": null,
+    "cpu": null,
+    "os": null,
+    "scenario": null,
+    "method": null,
+    "commands": [],
+    "unknown_reasons": {
+      "source_commit": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "captured_at_utc": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "unity_version": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "runtime": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "cpu": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "os": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "scenario": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "method": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements."
+    },
+    "limitations": [
+      "Historical data retained at original paths. Checksums prove exported file integrity, not that historical tests passed or were complete. Unknown CSV units are explicitly unknown."
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "admissions-6751-summary.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 186,
+      "sha256": "2f1ef99fec8e342a0b7c2ccc7c08e06595e0bf13f6ef058ad2f1bd274ee47ac6",
+      "format": "json"
+    },
+    {
+      "path": "admissions-6751.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 571,
+      "sha256": "4bfe3b4187783b0ac5e8b8e38f0606afae5a0e0bc62ea4507870785a18360cdb",
+      "format": "csv",
+      "rows": 10,
+      "columns": {
+        "kind": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "purpose": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "rejection": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "transport_prepared": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "new_blueprint": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "all_source_curbs_blocked": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "unique_od": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "admissions-6752-summary.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 186,
+      "sha256": "2f1ef99fec8e342a0b7c2ccc7c08e06595e0bf13f6ef058ad2f1bd274ee47ac6",
+      "format": "json"
+    },
+    {
+      "path": "admissions-6752.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 247,
+      "sha256": "82e8b2e77be7c1fb379a8478bf8ef49fd306537308c8530b1f0f23b3789515ae",
+      "format": "csv",
+      "rows": 3,
+      "columns": {
+        "kind": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "purpose": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "rejection": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "transport_prepared": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "new_blueprint": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "all_source_curbs_blocked": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "unique_od": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "admissions-6753-summary.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 186,
+      "sha256": "2f1ef99fec8e342a0b7c2ccc7c08e06595e0bf13f6ef058ad2f1bd274ee47ac6",
+      "format": "json"
+    },
+    {
+      "path": "admissions-6753.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 174,
+      "sha256": "93c775d1dc7f3965046733d071a691a51c26ee061e0a2d23d8c18bc5cc6acadd",
+      "format": "csv",
+      "rows": 2,
+      "columns": {
+        "kind": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "purpose": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "rejection": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "transport_prepared": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "new_blueprint": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "all_source_curbs_blocked": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "unique_od": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "native-capture.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 206,
+      "sha256": "e68758e2fd401be401946db044589d8ea847008b5bce1a96ce907e72c57ab367",
+      "format": "json"
+    },
+    {
+      "path": "native-clock-balance.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 198,
+      "sha256": "6154a73bf8ca8a720a8f897b7d091f386cfc6f3b55a1771965204bd1f2a18481",
+      "format": "json"
+    },
+    {
+      "path": "native-export-resources.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 105,
+      "sha256": "3f72afa1584547d6a176f4331568dcb594cdedd1132ec7a71314c344937a6e59",
+      "format": "json"
+    },
+    {
+      "path": "native-frame3.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 15129,
+      "sha256": "86ac05340f6633120b6eedff92a1fd9f7f54432410f708f2720af62b62d02340",
+      "format": "csv",
+      "rows": 52,
+      "columns": {
+        "frame": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "thread": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "path": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "total_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gc_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "native-resources.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 259,
+      "sha256": "303b81e03bba657efe8460a35e69c6de1a989c6224b2d24aa8d3a78e96c0cb48",
+      "format": "json"
+    },
+    {
+      "path": "native-RestoreResult.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 195,
+      "sha256": "97c3a76f54f6648a3bd965a74b6dde04c2c790f3b3f33da818782369256f675f",
+      "format": "text"
+    },
+    {
+      "path": "native-summary.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 480,
+      "sha256": "1fabae9ce137333ee975fa84d083536037d32654698462b9acde54512b85d7a9",
+      "format": "csv",
+      "rows": 1,
+      "columns": {
+        "input_sha256": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "rate": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "real_seconds": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "start_tick": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "end_tick": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "sim_ratio": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "fps": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "p95_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "p99_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "max_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gc_bytes_per_frame": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gc_samples": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gen0": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gen1": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gen2": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "peak_vehicles": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "max_steps_frame": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "building_views": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "population": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "zone_plots": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "zone_renderers": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "road_views": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "utility_views": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "return-peak-observed-environment.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 20417,
+      "sha256": "1bbf5eccadcd5f7063afcd864fd80c9270fa9065bf932676763e1cf1843ab0c0",
+      "format": "json"
+    },
+    {
+      "path": "return-peak-observed-resources.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 289,
+      "sha256": "bcfdcd073f3a8eccbc1fbcfe0bda40b82472870308a721ba35e24c184be3f62a",
+      "format": "json"
+    },
+    {
+      "path": "return-peak-observed-stdout.log",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 883,
+      "sha256": "ea957d8adf4675dcbe9022f2f4600a97323aa64afc5832e4f6d616b7c3859e98",
+      "format": "text"
+    },
+    {
+      "path": "return-peak-shadow-environment.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 20278,
+      "sha256": "4ce4824558234a1c4a1d74fa36542244c01ae3ec73f7dc30cac3c8b94a2aa441",
+      "format": "json"
+    },
+    {
+      "path": "return-peak-shadow-resources.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 290,
+      "sha256": "69fe3060b0ef2c0d66c950d8c746cf6a98ddcc5a6cb42cec83699bc65f31bb5e",
+      "format": "json"
+    },
+    {
+      "path": "return-peak-shadow-stdout.log",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 883,
+      "sha256": "b6af5c945c64d597e23745b1c79ac082c7c8c6c748b5ff23a0c7a53294ba8745",
+      "format": "text"
+    },
+    {
+      "path": "state-pair.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 362,
+      "sha256": "d8caf5d0f5ba1ba761ac409ee78eadf44d539c3ac8bddab6eb182227b48a8575",
+      "format": "json"
+    }
+  ],
+  "local_assets": [],
+  "local_inventory": {
+    "scope": "Original shared files only; historical local resources not rediscovered or measured.",
+    "limitations": "Other local raw files are registered separately in the local Profiler inventory. Missing historical captures are unknown, not implicitly exported or successfully sampled."
+  }
+}

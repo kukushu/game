@@ -1,0 +1,693 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-17-ZoningViews",
+  "packaged_at_utc": "2026-10-17T15:37:44.587665+00:00",
+  "measurement": {
+    "title": "2026-10-17-ZoningViews",
+    "kind": "legacy",
+    "source_commit": null,
+    "captured_at_utc": null,
+    "unity_version": null,
+    "runtime": null,
+    "cpu": null,
+    "os": null,
+    "scenario": null,
+    "method": null,
+    "commands": [],
+    "unknown_reasons": {
+      "source_commit": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "captured_at_utc": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "unity_version": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "runtime": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "cpu": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "os": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "scenario": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "method": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements."
+    },
+    "limitations": [
+      "Historical data retained at original paths. Checksums prove exported file integrity, not that historical tests passed or were complete. Unknown CSV units are explicitly unknown."
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "after.png",
+      "role": "historical",
+      "digest_mode": "binary",
+      "bytes": 554827,
+      "sha256": "2fb1780350bda27bbea3a077fb4b8c2b2ac6fa404fd27245fb8ae4ac5c0120df",
+      "format": "binary"
+    },
+    {
+      "path": "before.png",
+      "role": "historical",
+      "digest_mode": "binary",
+      "bytes": 554827,
+      "sha256": "2fb1780350bda27bbea3a077fb4b8c2b2ac6fa404fd27245fb8ae4ac5c0120df",
+      "format": "binary"
+    },
+    {
+      "path": "geometry-environment.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 664,
+      "sha256": "2fb479e6d9ef43ad32de6ef00a07793ed088cadde2fe6b7054cf61128ddef73d",
+      "format": "json"
+    },
+    {
+      "path": "geometry-resources.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 103,
+      "sha256": "d1cd42c07c947b36ef70b859703b007ee56b09cbf5baa127c3ba5474c16275af",
+      "format": "json"
+    },
+    {
+      "path": "geometry-Result.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 171,
+      "sha256": "033e8d46af62c7d3e1a3353e6a06fc414e10d716fb04f288bc243d0cae77037c",
+      "format": "text"
+    },
+    {
+      "path": "native-resources.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 255,
+      "sha256": "aff712b6a9961eea974a87444a56357c67d6c3c0c5f15381e4f5bbd5eaa39e21",
+      "format": "json"
+    },
+    {
+      "path": "native-RoadEditingResult.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 349,
+      "sha256": "491397765bc9a28ad61119a9ce9b2df695e1ceaa4842d442f2bd17fbb5d7be73",
+      "format": "text"
+    },
+    {
+      "path": "native-TradeResult.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 1457,
+      "sha256": "8b4d6f8b5ff605735712f89b3625d2c4d836e99e01fc0939948efff56f9a0b74",
+      "format": "text"
+    },
+    {
+      "path": "pixel-comparison.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 267,
+      "sha256": "80a43035d2db0803899b76d6d45524d3c4559b4fb4662669ed72ba2cb49fbb47",
+      "format": "json"
+    },
+    {
+      "path": "profile-pair.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 1367,
+      "sha256": "941d33bc071b74beba0c6d2afa0325868eca472d6e7dcae2c701705395b808e3",
+      "format": "csv",
+      "rows": 20,
+      "columns": {
+        "implementation": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "rate": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "marker": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "frames": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "mean_self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "mean_total_ms": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "window30k-view-baseline-0x-attribution.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 399,
+      "sha256": "8bf8d39ae9ae73af89dd16f194a52815bca894df94b761632c7b02f8f90dcfea",
+      "format": "json"
+    },
+    {
+      "path": "window30k-view-baseline-0x-clock-balance.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 123,
+      "sha256": "69dc7e18e2932246bd3be9c4f333bada626e0d0497e1fec5ce51af928b0a63f5",
+      "format": "json"
+    },
+    {
+      "path": "window30k-view-baseline-0x-resources.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 258,
+      "sha256": "5e1af0cb1e2357bc143d4aa53339a771d0d405af7adfb7313a39985138d6c80d",
+      "format": "json"
+    },
+    {
+      "path": "window30k-view-baseline-0x-summary.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 466,
+      "sha256": "7185ad2612a2b15607a17275296d2a0ec8e1c7603fc5231e84e7ecd7515ecec5",
+      "format": "csv",
+      "rows": 1,
+      "columns": {
+        "input_sha256": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "rate": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "real_seconds": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "start_tick": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "end_tick": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "sim_ratio": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "fps": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "p95_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "p99_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "max_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gc_bytes_per_frame": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gc_samples": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gen0": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gen1": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gen2": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "peak_vehicles": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "max_steps_frame": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "building_views": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "population": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "zone_plots": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "zone_renderers": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "road_views": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "utility_views": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "window30k-view-baseline-environment.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 1571,
+      "sha256": "0f41b4939adffa24e10a2da7914a4861c42c422ff761e14eb8fff16bd8c06ae4",
+      "format": "json"
+    },
+    {
+      "path": "window30k-zoning-batch-flow-1x-attribution.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 412,
+      "sha256": "37493604c0910bdeb4909ad08d9bf27dab83398ff2e802e5305a40be1aeb2a67",
+      "format": "json"
+    },
+    {
+      "path": "window30k-zoning-batch-flow-1x-clock-balance.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 201,
+      "sha256": "c5893953c12c6271745376c25da37ff4cf883b635ae8f3c8af8cc5b1a3af00e8",
+      "format": "json"
+    },
+    {
+      "path": "window30k-zoning-batch-flow-1x-resources.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 259,
+      "sha256": "8e8a19f9edfa214e1df94b3888f75ba78c8b27d8cba6aa70fff58f95b97c79c9",
+      "format": "json"
+    },
+    {
+      "path": "window30k-zoning-batch-flow-1x-RestoreResult.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 195,
+      "sha256": "97c3a76f54f6648a3bd965a74b6dde04c2c790f3b3f33da818782369256f675f",
+      "format": "text"
+    },
+    {
+      "path": "window30k-zoning-batch-flow-1x-summary.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 481,
+      "sha256": "5026608fc9e956c736f04ab64878c3e3e4b18d142e342db5717ecfd1c1b049b3",
+      "format": "csv",
+      "rows": 1,
+      "columns": {
+        "input_sha256": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "rate": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "real_seconds": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "start_tick": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "end_tick": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "sim_ratio": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "fps": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "p95_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "p99_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "max_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gc_bytes_per_frame": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gc_samples": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gen0": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gen1": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gen2": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "peak_vehicles": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "max_steps_frame": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "building_views": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "population": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "zone_plots": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "zone_renderers": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "road_views": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "utility_views": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "window30k-zoning-batch-flow-3x-attribution.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 411,
+      "sha256": "b74d030f49ddb3b254f9aa29d8636eb58218dc8fb833f5524f2de34f7d7d84c1",
+      "format": "json"
+    },
+    {
+      "path": "window30k-zoning-batch-flow-3x-clock-balance.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 190,
+      "sha256": "1a69bd1b2c9a8b29f5fe05c4e158264d6a8958534b67b00dbb43525f4f965519",
+      "format": "json"
+    },
+    {
+      "path": "window30k-zoning-batch-flow-3x-resources.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 259,
+      "sha256": "e77b53ce9feb044933f9a022f1b0dae39230d8855d6caf6bca8c7684ffdc3b53",
+      "format": "json"
+    },
+    {
+      "path": "window30k-zoning-batch-flow-3x-RestoreResult.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 195,
+      "sha256": "97c3a76f54f6648a3bd965a74b6dde04c2c790f3b3f33da818782369256f675f",
+      "format": "text"
+    },
+    {
+      "path": "window30k-zoning-batch-flow-3x-summary.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 481,
+      "sha256": "2665ea035ed025fd8cfbbf2350f4fefebfc0c5e7ae568d8c7817001e68675d22",
+      "format": "csv",
+      "rows": 1,
+      "columns": {
+        "input_sha256": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "rate": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "real_seconds": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "start_tick": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "end_tick": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "sim_ratio": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "fps": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "p95_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "p99_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "max_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gc_bytes_per_frame": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gc_samples": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gen0": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gen1": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gen2": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "peak_vehicles": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "max_steps_frame": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "building_views": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "population": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "zone_plots": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "zone_renderers": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "road_views": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "utility_views": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "window30k-zoning-batch-flow-environment.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 1556,
+      "sha256": "5340a79d048f67ec205614c3d158f7c4481ff303b5f4da8d3d3605ab4f0b8b93",
+      "format": "json"
+    },
+    {
+      "path": "window30k-zoning-batch-pause-0x-attribution.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 398,
+      "sha256": "74275de323d9097f4de49930731a0e176bdd47a550c8051aa10b49b9f074b1f3",
+      "format": "json"
+    },
+    {
+      "path": "window30k-zoning-batch-pause-0x-clock-balance.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 123,
+      "sha256": "69dc7e18e2932246bd3be9c4f333bada626e0d0497e1fec5ce51af928b0a63f5",
+      "format": "json"
+    },
+    {
+      "path": "window30k-zoning-batch-pause-0x-resources.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 258,
+      "sha256": "e651ca6a2fe3571a2728b6684ad5718a5fb8d55a05b58fd45bb9697d05d7a663",
+      "format": "json"
+    },
+    {
+      "path": "window30k-zoning-batch-pause-0x-summary.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 464,
+      "sha256": "3e74089b194d844f3f51b0028462f7c7465386911467ec2927d18a865fbae289",
+      "format": "csv",
+      "rows": 1,
+      "columns": {
+        "input_sha256": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "rate": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "real_seconds": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "start_tick": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "end_tick": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "sim_ratio": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "fps": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "p95_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "p99_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "max_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gc_bytes_per_frame": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gc_samples": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gen0": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gen1": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gen2": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "peak_vehicles": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "max_steps_frame": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "building_views": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "population": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "zone_plots": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "zone_renderers": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "road_views": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "utility_views": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "window30k-zoning-batch-pause-environment.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 1550,
+      "sha256": "76f2c472b5c42bb76c47cae2ea56d74811a7647a555dfde867775d5416fed96d",
+      "format": "json"
+    }
+  ],
+  "local_assets": [],
+  "local_inventory": {
+    "scope": "Original shared files only; historical local resources not rediscovered or measured.",
+    "limitations": "Other local raw files are registered separately in the local Profiler inventory. Missing historical captures are unknown, not implicitly exported or successfully sampled."
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-17-SATExperiment",
+  "packaged_at_utc": "2026-10-17T15:37:44.003115+00:00",
+  "measurement": {
+    "title": "2026-10-17-SATExperiment",
+    "kind": "legacy",
+    "source_commit": null,
+    "captured_at_utc": null,
+    "unity_version": null,
+    "runtime": null,
+    "cpu": null,
+    "os": null,
+    "scenario": null,
+    "method": null,
+    "commands": [],
+    "unknown_reasons": {
+      "source_commit": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "captured_at_utc": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "unity_version": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "runtime": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "cpu": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "os": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "scenario": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "method": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements."
+    },
+    "limitations": [
+      "Historical data retained at original paths. Checksums prove exported file integrity, not that historical tests passed or were complete. Unknown CSV units are explicitly unknown."
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "actual.log",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 149,
+      "sha256": "952c7a4fb474580a5df376827fb8f0e6fff1f289ce9f8b469a2fd059c7374168",
+      "format": "text"
+    },
+    {
+      "path": "comparison.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 200,
+      "sha256": "88558bc10d24f451f9c16060abe88daa4e9b0ae9ea0d13e1c8ca1f5f5cae7ff4",
+      "format": "json"
+    },
+    {
+      "path": "paired-results.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 1322,
+      "sha256": "ada902bd330b5b58c3c37f2e2270362c29fa7ebd1b3a4ef07f337aa390a764b4",
+      "format": "json"
+    },
+    {
+      "path": "reference.log",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 155,
+      "sha256": "877cb829cb7f08890edd9903f804e95907ae80418fab7a2576363bb1e03277dd",
+      "format": "text"
+    }
+  ],
+  "local_assets": [],
+  "local_inventory": {
+    "scope": "Original shared files only; historical local resources not rediscovered or measured.",
+    "limitations": "Other local raw files are registered separately in the local Profiler inventory. Missing historical captures are unknown, not implicitly exported or successfully sampled."
+  }
+}

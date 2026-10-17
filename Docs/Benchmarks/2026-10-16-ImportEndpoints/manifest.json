@@ -1,0 +1,672 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-16-ImportEndpoints",
+  "packaged_at_utc": "2026-10-17T15:37:40.364716+00:00",
+  "measurement": {
+    "title": "2026-10-16-ImportEndpoints",
+    "kind": "legacy",
+    "source_commit": null,
+    "captured_at_utc": null,
+    "unity_version": null,
+    "runtime": null,
+    "cpu": null,
+    "os": null,
+    "scenario": null,
+    "method": null,
+    "commands": [],
+    "unknown_reasons": {
+      "source_commit": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "captured_at_utc": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "unity_version": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "runtime": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "cpu": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "os": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "scenario": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "method": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements."
+    },
+    "limitations": [
+      "Historical data retained at original paths. Checksums prove exported file integrity, not that historical tests passed or were complete. Unknown CSV units are explicitly unknown."
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "arm-1/build-sources.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 25514,
+      "sha256": "4bba478bd8b4372c9e018cf6354d3864e2b6adb84be7938a4680440faae46979",
+      "format": "json"
+    },
+    {
+      "path": "arm-1/demand.jsonl",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 17020,
+      "sha256": "af233c06d418acaeb9d3657652bac44b5ee9db6bfa40fff3427ed4d7f048f60d",
+      "format": "jsonl"
+    },
+    {
+      "path": "arm-1/environment.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 596,
+      "sha256": "e422606377e726c929f4efd872e978da87810cf5d2b2d690fa849e4845da54f4",
+      "format": "json"
+    },
+    {
+      "path": "arm-1/report.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 5442,
+      "sha256": "64ad78da9da50e960bd4232392ce0594b8252d697f4f506546b46d48ec5c19e7",
+      "format": "json"
+    },
+    {
+      "path": "arm-1/resources.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 145,
+      "sha256": "81389683f6834e2d1ae61933f4aa139b9a8c9cd13001e1a761f4d2c5e503bd17",
+      "format": "json"
+    },
+    {
+      "path": "arm-1/retail.jsonl",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 34609,
+      "sha256": "124d941c7b06e21fe6936f5aea2dadd8f5955f4b8ba91cedc5b2264df43f2f21",
+      "format": "jsonl"
+    },
+    {
+      "path": "arm-1/steps.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 79405,
+      "sha256": "aefc86805d7631dabfd1df769ff0f0efddc3380786f3ce75b7197931a09afca1",
+      "format": "csv",
+      "rows": 2400,
+      "columns": {
+        "tick": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "allocated": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "active": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "routes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "hook_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "hook_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "arm-1/trips.jsonl",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 10096,
+      "sha256": "195a3d32aaa320076ec201856b4f26da68d2875424b92b6fc375219d5f4645de",
+      "format": "jsonl"
+    },
+    {
+      "path": "arm-12/build-sources.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 25516,
+      "sha256": "be3e98fda42d56f13ffb018d8e817c011b8db5f7604820dcb8c6df2b185a4dff",
+      "format": "json"
+    },
+    {
+      "path": "arm-12/demand.jsonl",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 17076,
+      "sha256": "6253cd4c8f0d546429cc2ef56c1504674ce73375f034011f5ec90a14ed7f7ace",
+      "format": "jsonl"
+    },
+    {
+      "path": "arm-12/environment.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 596,
+      "sha256": "78d529cc0288e76c3c77054b5f88e9bb4a234d11368ae1098c458f4947f52f13",
+      "format": "json"
+    },
+    {
+      "path": "arm-12/report.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 10181,
+      "sha256": "484c6996ad89ee0477664b72c0843e610d3eb3bdc7b3e00374730035948d38f3",
+      "format": "json"
+    },
+    {
+      "path": "arm-12/resources.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 145,
+      "sha256": "db2a80ff5867bf017bc7db119ec86de737666999b8eac45891ad6c9a0437de60",
+      "format": "json"
+    },
+    {
+      "path": "arm-12/retail.jsonl",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 42863,
+      "sha256": "f64a14ea77c06ce7f8ba51fb13a8971a27fb9ce6cded90645a5cf4d70d8c1905",
+      "format": "jsonl"
+    },
+    {
+      "path": "arm-12/steps.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 80481,
+      "sha256": "42734228e406d66b1aa9628a6919f5b9e3caf5019a342135d54594f71a9e1f7b",
+      "format": "csv",
+      "rows": 2400,
+      "columns": {
+        "tick": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "allocated": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "active": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "routes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "hook_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "hook_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "arm-12/trips.jsonl",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 36137,
+      "sha256": "2d8493fcf8f6ad9e01cef73fb5b90ed267d6d7cacd0d6a01fd1d61dc37154edc",
+      "format": "jsonl"
+    },
+    {
+      "path": "arm-4/build-sources.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 25514,
+      "sha256": "a62d6d3ce80a2f2e0fc8a6df30685774dc9eb68c694848749f08eb6a6a83903b",
+      "format": "json"
+    },
+    {
+      "path": "arm-4/demand.jsonl",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 17021,
+      "sha256": "047ae5dc19d1506f1d93b6ce0666ca4e01fc13eadec523aa4932ef94cd22d51f",
+      "format": "jsonl"
+    },
+    {
+      "path": "arm-4/environment.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 596,
+      "sha256": "b4e335555402f06adc014b97119ca4910d54528aa99bef842deb6e73230f874b",
+      "format": "json"
+    },
+    {
+      "path": "arm-4/report.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 6588,
+      "sha256": "94220ab9d2d7da5e9171cc92fabea79ec4318541db1a1dbe45dd1860f565408a",
+      "format": "json"
+    },
+    {
+      "path": "arm-4/resources.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 145,
+      "sha256": "de511a0fc809e34c01804aeb192876f48f4c34f9ec0d0656f44ec94682d52e2e",
+      "format": "json"
+    },
+    {
+      "path": "arm-4/retail.jsonl",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 40309,
+      "sha256": "da88ffa0b2a4b63e5540d276f6e24e5fa14e92bab505e6094ae6b8a211f4e348",
+      "format": "jsonl"
+    },
+    {
+      "path": "arm-4/steps.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 79849,
+      "sha256": "c6af595854b33a35f75a6ebd90a8843f125939715da211715487730a605a8b40",
+      "format": "csv",
+      "rows": 2400,
+      "columns": {
+        "tick": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "allocated": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "active": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "routes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "hook_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "hook_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "arm-4/trips.jsonl",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 18160,
+      "sha256": "772e6a13c8230c6a10f7fff71f2b75cad6e9d8033016ea8404d3197daef06435",
+      "format": "jsonl"
+    },
+    {
+      "path": "budget.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 5819,
+      "sha256": "e638086e3b25aa0d2dae4ecfa974f16b4823eabb0774298940bde3aa595829f6",
+      "format": "json"
+    },
+    {
+      "path": "comparison-table.md",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 345,
+      "sha256": "cd69bb75591eb60cab432c91544bb5f322cafdbc3f282830531d1841b44e55ba",
+      "format": "text"
+    },
+    {
+      "path": "comparison.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 74061,
+      "sha256": "f05f8e34d7bfdaf47c69733906a43f4746c8f75ba3cb779ff3638fef3f77da38",
+      "format": "json"
+    },
+    {
+      "path": "construction.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 1000,
+      "sha256": "3da8e96df635577495125067dfd4a226df0441be4484506638d3c48dee660344",
+      "format": "json"
+    },
+    {
+      "path": "facts-1/environment.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 598,
+      "sha256": "7c00734370468c4a332898822eba1cd9e693ce78fa2740561279b0ea888de09e",
+      "format": "json"
+    },
+    {
+      "path": "facts-1/facts.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 540,
+      "sha256": "70674c7fbc3fd11f529bc8ca46da88d96ca65d40dcafa8267cda7d97a3e5d0a5",
+      "format": "json"
+    },
+    {
+      "path": "facts-1/resources.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 142,
+      "sha256": "ff45609d22f187adf162d7f9782ac722e5e3f465cf74d4af5f568b9e2fc2c2b9",
+      "format": "json"
+    },
+    {
+      "path": "facts-12/environment.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 598,
+      "sha256": "f6cf1ee4891fa012761ad67bc67df8aa62cccbb24c58c8657137deeddf224bba",
+      "format": "json"
+    },
+    {
+      "path": "facts-12/facts.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 543,
+      "sha256": "10d00970c21297a9a1041646fab08ad0bf8178c52e25c4170ba2f4c0c27d9af3",
+      "format": "json"
+    },
+    {
+      "path": "facts-12/resources.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 143,
+      "sha256": "0707666234a30938917028623472265c91449b200839889e68a6115587db2756",
+      "format": "json"
+    },
+    {
+      "path": "facts-4/environment.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 598,
+      "sha256": "cd6e263bbabee559db43927d5d8ae9b2f6b24a9b251593eaaf371e80d06b4db1",
+      "format": "json"
+    },
+    {
+      "path": "facts-4/facts.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 540,
+      "sha256": "e88a64537c4045f314ba36f5a893896f45b94f81fa6b3b03f6f8c093a8863cac",
+      "format": "json"
+    },
+    {
+      "path": "facts-4/resources.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 142,
+      "sha256": "a5a3081195f22486d92707253c5daed5633282af7f6b56975f189e201861505b",
+      "format": "json"
+    },
+    {
+      "path": "facts-initial/environment.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 598,
+      "sha256": "a6b472db17a42e5fb7bdb9969146a9e3ff0d21ca2658d35dfa0cf76328932680",
+      "format": "json"
+    },
+    {
+      "path": "facts-initial/facts.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 523,
+      "sha256": "9648f00fc27da8df7f2b4797e0167f47f0996b76a244f89f62e3cf8415b706a8",
+      "format": "json"
+    },
+    {
+      "path": "facts-initial/resources.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 143,
+      "sha256": "9ae6a576e3d7bb30300c650d19cae230360469db738a8654bf32e9d0f381b3ae",
+      "format": "json"
+    },
+    {
+      "path": "ports-1.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 835,
+      "sha256": "0844a58f6e7d400cb2a44ddbfbbff8bb76a1c991bfc7fe3fffb7f1d4d7bad64d",
+      "format": "csv",
+      "rows": 12,
+      "columns": {
+        "port": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "x": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "z": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "active": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "departed_trucks": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "departed_raw": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "arrived_trucks": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "arrived_raw": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "new_arrived_trucks": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "carry_arrived_trucks": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "slot_occupancy": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "new_completed_mean_seconds": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "incomplete_trucks": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "ports-12.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 1170,
+      "sha256": "6790b5c1407445f59ec50fc4382e00f44484262a5fe9a1f6f949a3ce8810c4d6",
+      "format": "csv",
+      "rows": 12,
+      "columns": {
+        "port": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "x": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "z": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "active": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "departed_trucks": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "departed_raw": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "arrived_trucks": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "arrived_raw": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "new_arrived_trucks": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "carry_arrived_trucks": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "slot_occupancy": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "new_completed_mean_seconds": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "incomplete_trucks": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "ports-4.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 922,
+      "sha256": "1f172fb10cc352f64be9883f4d2a0e47b639f7702c73d7e9ad78bebbc9ee2620",
+      "format": "csv",
+      "rows": 12,
+      "columns": {
+        "port": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "x": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "z": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "active": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "departed_trucks": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "departed_raw": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "arrived_trucks": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "arrived_raw": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "new_arrived_trucks": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "carry_arrived_trucks": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "slot_occupancy": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "new_completed_mean_seconds": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "incomplete_trucks": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "small/arm-1.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 5247,
+      "sha256": "3b0e688896f407dd4224bba53b4aa6652bcb313851f80fb85327ccd767bbc178",
+      "format": "json"
+    },
+    {
+      "path": "small/arm-12.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 9701,
+      "sha256": "f24305c21b0c54b37d42346317fa41c6d8ee640f7c2905836afe4aedb56c3cee",
+      "format": "json"
+    },
+    {
+      "path": "small/arm-4.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 6546,
+      "sha256": "5fe6969cc43a62dcc3b85be6275be31ecd8afccfee2c7ef6f4af703bee4fd9e1",
+      "format": "json"
+    },
+    {
+      "path": "validation.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 368,
+      "sha256": "fb6fed9c71f3493e69c7220e343d79e4cc173dc217c5538d48812fbb931e945f",
+      "format": "json"
+    }
+  ],
+  "local_assets": [],
+  "local_inventory": {
+    "scope": "Original shared files only; historical local resources not rediscovered or measured.",
+    "limitations": "Other local raw files are registered separately in the local Profiler inventory. Missing historical captures are unknown, not implicitly exported or successfully sampled."
+  }
+}

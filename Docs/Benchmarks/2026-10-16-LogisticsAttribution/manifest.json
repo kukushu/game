@@ -1,0 +1,355 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-16-LogisticsAttribution",
+  "packaged_at_utc": "2026-10-17T15:37:40.925559+00:00",
+  "measurement": {
+    "title": "2026-10-16-LogisticsAttribution",
+    "kind": "legacy",
+    "source_commit": null,
+    "captured_at_utc": null,
+    "unity_version": null,
+    "runtime": null,
+    "cpu": null,
+    "os": null,
+    "scenario": null,
+    "method": null,
+    "commands": [],
+    "unknown_reasons": {
+      "source_commit": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "captured_at_utc": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "unity_version": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "runtime": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "cpu": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "os": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "scenario": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "method": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements."
+    },
+    "limitations": [
+      "Historical data retained at original paths. Checksums prove exported file integrity, not that historical tests passed or were complete. Unknown CSV units are explicitly unknown."
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "anchor-check/arrivals.jsonl",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "format": "jsonl"
+    },
+    {
+      "path": "anchor-check/blockers.jsonl",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 2165,
+      "sha256": "ee84e83f7c9fc4bbedeb441414646cc4f43b6c580e68a4ddacef62d9bc85c5ee",
+      "format": "jsonl"
+    },
+    {
+      "path": "anchor-check/build-sources.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 25538,
+      "sha256": "57cceffe885bac1681d37bb45b50002017942b8083f25ee5515e257e55efd004",
+      "format": "json"
+    },
+    {
+      "path": "anchor-check/environment.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 609,
+      "sha256": "55a28165376e77ba3296415d9e8df1f68429a9b5b2e7ae836ba1cd01c9881b0f",
+      "format": "json"
+    },
+    {
+      "path": "anchor-check/initial.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 5793,
+      "sha256": "6e164d41e85d2a1c9a37a1ae1766c2ab24bde199a848db17790477b22ec597c0",
+      "format": "json"
+    },
+    {
+      "path": "anchor-check/resources.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 110,
+      "sha256": "3fbad581556c23e46c2d9308f1fc5e87e1dfc1ea9845f25341acbe131b07a951",
+      "format": "json"
+    },
+    {
+      "path": "anchor-check/retail.jsonl",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 636,
+      "sha256": "6fde058935b1e45694fb5239e03214fbf40cfab340bad2360e332ac365985806",
+      "format": "jsonl"
+    },
+    {
+      "path": "anchor-check/steps.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 337,
+      "sha256": "06fa305e2aaadb99b5a10a5809f489557dde8bb603081ba87ad47f0af9188251",
+      "format": "csv",
+      "rows": 10,
+      "columns": {
+        "tick": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "allocated": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "active": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "routes": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "anchor-check/summary.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 328,
+      "sha256": "cc0c553922af91118f26a1e55fc1bfa211e84c11abae1f878dc53bdf1e28b4ab",
+      "format": "json"
+    },
+    {
+      "path": "arrivals/arrivals.jsonl",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 5253,
+      "sha256": "594cf0bfa34f2bfef97fa1961707c86d8afabd125e76e8781870a45229c34aed",
+      "format": "jsonl"
+    },
+    {
+      "path": "arrivals/blockers.jsonl",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 19119,
+      "sha256": "297d75a50ec43e7b1220f3eafd3f9c4ceaa610add845271bdf40fa26d17367d2",
+      "format": "jsonl"
+    },
+    {
+      "path": "arrivals/build-sources.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 25530,
+      "sha256": "cf702a0d2d5e7967061638331effbbab34f71bcd57f98ea75052e6bc610e9c20",
+      "format": "json"
+    },
+    {
+      "path": "arrivals/environment.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 614,
+      "sha256": "260524ccfcd384e5bd3ea541bc4a1ee4f0df41fc29b13c030e61e9cf220f1338",
+      "format": "json"
+    },
+    {
+      "path": "arrivals/initial.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 14112,
+      "sha256": "607fac02802c08efbd921e7fe884a0a48ca93a6e69bc45c454bf463ab7f99475",
+      "format": "json"
+    },
+    {
+      "path": "arrivals/resources.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 111,
+      "sha256": "3c1b48f2694d5f0d4a1a4a31b1d789431d3266f68b59fddb237ac028c6414a62",
+      "format": "json"
+    },
+    {
+      "path": "arrivals/retail.jsonl",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 59925,
+      "sha256": "ac3baa0d4628621bc013e047d4af9939d0e214253b5204f24398cefac74c09ab",
+      "format": "jsonl"
+    },
+    {
+      "path": "arrivals/steps.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 67891,
+      "sha256": "a4305829183bbb05834a93b1357e1302c9415490fce7fc26c2fb06a470e93380",
+      "format": "csv",
+      "rows": 2399,
+      "columns": {
+        "tick": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "allocated": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "active": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "routes": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "arrivals/summary.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 346,
+      "sha256": "c49f2250de4e03565a7f4e0d52226ab01c60e6b413d92d1837fe89cd2e6f41f9",
+      "format": "json"
+    },
+    {
+      "path": "attribution.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 21302,
+      "sha256": "1e80490740c21a83d371173c7217018f3bed26defbaddd923c1649299ad61500",
+      "format": "json"
+    },
+    {
+      "path": "continuation-report.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 4266,
+      "sha256": "a53d62e9c47cc7e97db39a3055a22cc23b9c58e6deb396f50a50636bb6de2ac0",
+      "format": "json"
+    },
+    {
+      "path": "final-health.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 4992,
+      "sha256": "598194c0eab8cfb7c7dfe705cd4c5e3592c264c217f53354269baadb8769b709",
+      "format": "json"
+    },
+    {
+      "path": "freight-table.md",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 1128,
+      "sha256": "27ea5ccb17f744ed16698f140f273489e5d50dd8f2f4a31418f487ab4d6c44f4",
+      "format": "text"
+    },
+    {
+      "path": "origin-health.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 5274,
+      "sha256": "ba530e48876490eb6565fed24a2407729e77288244d02dc984b932cdd1b976c8",
+      "format": "json"
+    },
+    {
+      "path": "trace/blockers.jsonl",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 28707,
+      "sha256": "231d7de9670a45652f2a974b4abd6f18748e70f4349aaf8d00644c047af195e2",
+      "format": "jsonl"
+    },
+    {
+      "path": "trace/build-sources.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 25524,
+      "sha256": "e7eb8efcbca4aeaa9549a3d71179fa8be92234070cc532f02ae0656a12c0ad04",
+      "format": "json"
+    },
+    {
+      "path": "trace/environment.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 611,
+      "sha256": "bd13ed35ac4507d20b5065bee9d5aa0b7118089149ca87c8fbbab6d71eae2e30",
+      "format": "json"
+    },
+    {
+      "path": "trace/initial.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 5622,
+      "sha256": "fbe3ef0d618c9fd5b6edaf0cd48611dfb5251a134075b3df1f05b66f66339627",
+      "format": "json"
+    },
+    {
+      "path": "trace/resources.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 111,
+      "sha256": "41914c2c88f00ef113001e0d0c9cb64777c76fe4db643e2446e2804636e93ed4",
+      "format": "json"
+    },
+    {
+      "path": "trace/retail.jsonl",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 17941,
+      "sha256": "af13a6b8bd4f3ba0d7006eb816fae5da4e9b343e3e117799a951698ef489bcfc",
+      "format": "jsonl"
+    },
+    {
+      "path": "trace/steps.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 69405,
+      "sha256": "1991900e55f5b21c0b4a25b919334c61bfc381612160fafcbc4d4918173ee91c",
+      "format": "csv",
+      "rows": 2401,
+      "columns": {
+        "tick": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "allocated": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "active": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "routes": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "trace/summary.json",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 345,
+      "sha256": "bbe2398d1a553ba1627a70274694ce78fb35186dbdb32036b2da046938840f45",
+      "format": "json"
+    }
+  ],
+  "local_assets": [],
+  "local_inventory": {
+    "scope": "Original shared files only; historical local resources not rediscovered or measured.",
+    "limitations": "Other local raw files are registered separately in the local Profiler inventory. Missing historical captures are unknown, not implicitly exported or successfully sampled."
+  }
+}

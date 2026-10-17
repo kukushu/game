@@ -1,0 +1,1087 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-12-FollowingIndex",
+  "packaged_at_utc": "2026-10-17T15:37:34.768278+00:00",
+  "measurement": {
+    "title": "2026-10-12-FollowingIndex",
+    "kind": "legacy",
+    "source_commit": null,
+    "captured_at_utc": null,
+    "unity_version": null,
+    "runtime": null,
+    "cpu": null,
+    "os": null,
+    "scenario": null,
+    "method": null,
+    "commands": [],
+    "unknown_reasons": {
+      "source_commit": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "captured_at_utc": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "unity_version": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "runtime": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "cpu": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "os": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "scenario": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements.",
+      "method": "Historical runs may differ; use original environment/results files. This inventory did not rerun or infer measurements."
+    },
+    "limitations": [
+      "Historical data retained at original paths. Checksums prove exported file integrity, not that historical tests passed or were complete. Unknown CSV units are explicitly unknown."
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "index/build-options.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 97,
+      "sha256": "761807148469282387966f379066f1eeb4d860cfc626d0355cc939951b6489d9",
+      "format": "text"
+    },
+    {
+      "path": "index/build-source.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 7995,
+      "sha256": "372fc3a06a0b953ef292fa5bc29704f2d6c863ef1f717c1217c019cf1fba9d39",
+      "format": "text"
+    },
+    {
+      "path": "index/configuration.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 472,
+      "sha256": "80ce7962a0165070739e109af0ad36afd172c7f109e0364274d149e3fb0492f2",
+      "format": "text"
+    },
+    {
+      "path": "index/frames.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 223397,
+      "sha256": "45b0925674bfeeafbe388f24b4f6ad8d4a5c32024602f0b838b9a16c311d9c5c",
+      "format": "csv",
+      "rows": 2204,
+      "columns": {
+        "ordinal": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "run": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "mode": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "delta": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "unscaled_delta": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "maximum_delta": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "requested_seconds": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "steps": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "advance_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "tasks": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "partial": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "index/live-summary.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 366,
+      "sha256": "42e5901908b6e9ca99c0944b737524c20efa4a6558efd6417b096f4afaba4af2",
+      "format": "csv",
+      "rows": 2,
+      "columns": {
+        "mode": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "frames": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "wall_seconds": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "requested_sim_seconds": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "steps": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "observed_sim_seconds_per_wall_second": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "mean_frame_advance_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "mean_steps_per_frame": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "index/module-summary.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 10672,
+      "sha256": "7b54e616b9f5a3f6c4b12bad561bcb36ff6874186788fc52f0a7cf13e636c6a5",
+      "format": "csv",
+      "rows": 114,
+      "columns": {
+        "mode": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "node": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "total_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gc_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "index/PASS.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 119,
+      "sha256": "0f3259b3da985e98b189ddfefe571b8d1dcf2dc05d14d37db982d261e3d3b42f",
+      "format": "text"
+    },
+    {
+      "path": "index/profiler-frames.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 73061,
+      "sha256": "d3f21c801bd033ed60229088f23f32700408a7cb9b1d56b1bafe160899a08e76",
+      "format": "csv",
+      "rows": 2204,
+      "columns": {
+        "ordinal": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "profiler_frame": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "wall_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "source": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "index/steps.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 66276,
+      "sha256": "3aa801f45064d91dacf6431d0c2f0cd9d36b6e970401f0a3735d38653a97805f",
+      "format": "csv",
+      "rows": 2700,
+      "columns": {
+        "run": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "mode": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "step": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gc_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "tasks": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "index/summary.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 1143,
+      "sha256": "393bfdb99d84c2dd2ee3a221c6afa90df4d055c785f29ac74c4875ae1a9e62ec",
+      "format": "csv",
+      "rows": 9,
+      "columns": {
+        "run": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "mode": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "mean_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "p95_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "p99_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gc_bytes_per_step": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "min_tasks": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "max_tasks": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "state_sha256": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "ModelRegression.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 3517,
+      "sha256": "03c5721c40ba251db53f55296cee35467c8290fbad7b5457086f647591abc8d2",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/Aging.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 184,
+      "sha256": "83b36a1465496100025e4fd62574cc104e3eae9519a7931be2771fcec58c8279",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/Budgets.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 101,
+      "sha256": "dfd02fc20327f5d30106fdeab43d7b1f2970cd6e86821ce74b33fdd981b5e3ed",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/BuildingGrowth.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 140,
+      "sha256": "5c313d9a0c945b9d3d69d3261aeec32cff52b42b8d084290306d65b637cf0e2c",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/BuildingProblems.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 255,
+      "sha256": "42a7aee1420f3512986cee8b6f00b3325c39f517e5e0d9c756cdf6d68fea1f67",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/Conditions.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 118,
+      "sha256": "e7c0724d0453b9346cca2db1694e134922835f9b192205d08f1c5a59493387ce",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/Deathcare.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 327,
+      "sha256": "7631b88df5b61a10ca949795805a48a8fda55a769c8e8d8e06373a3ca9aefdfc",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/DemolitionInput.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 172,
+      "sha256": "81a468859417f7de73b9494c3917a56901c4256348e536777b792ba27d3c0ecc",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/Education.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 173,
+      "sha256": "7bc75e27e2e90d6d3458a99bc9ddff8c0c21a8c05211709bcd90a6d19bde6d02",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/ElevatedTraffic.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 125,
+      "sha256": "c20322f276b5f45e4080d1318e78338e8e642e51c6110dd48b717597090fec64",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/ElevationInput.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 124,
+      "sha256": "9a7981d4b3212b01f38047fe2e60f3360a5eccd89b2898a117f1b69b174ed5fe",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/EntranceDemolitionInput.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 150,
+      "sha256": "b82b015647807100f04d11a3096dd6bcca07c9a94b7367d2e1a7327ee6b9be35",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/Fire.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 122,
+      "sha256": "5b946b8697f8ba7519cd377edaa61fa0e516133e8511de545deeb20aaa4fbece",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/Health.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 71,
+      "sha256": "4bdc7f28a8dee5332e0d53cc7141c3a0be8d3d584a62a658fa2da8885f485b59",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/Healthcare.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 122,
+      "sha256": "db40106015b775ba3279d72658b0dff6716fc0049d55cc377566bae0ef66f070",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/HigherEducation.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 246,
+      "sha256": "40b5d6bf8c539a5245ffe9c87c9ab83ba7afb97695aea7f25184eed9c48c764c",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/HighwayInput.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 193,
+      "sha256": "16a31761f6e9f4b9460a1e9f705dc92941a87ed27b3e2d8155cb3f8c2f7aa12f",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/HighwayMerging.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 305,
+      "sha256": "1800a12e2c421ddd3dfe6d732119f2fb81a0b0642f6b6335922964e8f39fd812",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/Highways.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 209,
+      "sha256": "f64266f90a59462995c268e9992b56b6bf290750be017384973f512b43cb1008",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/Input.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 3072,
+      "sha256": "6cf14c7af81a7740ad34ae3caa21c210725fd2fd40319651c8d35518967446e2",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/Junctions.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 123,
+      "sha256": "e0681d1010953e55f2a86b1d335c2f186020233a4bd5de082b59b71ea3e6a487",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/LaneChoice.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 264,
+      "sha256": "db821562ef82ce535ad834c26ab650b293fe05c5f5bd313c221307b666c8aa1b",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/Lanes.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 150,
+      "sha256": "60178da725541d7fec8d5e43433d23f8f3deb9c1cdbf25f4c6df649924eb7abd",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/Loans.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 133,
+      "sha256": "637a9391f3d91d54727a8c45efdd820376a9883e939f34a8495bbcf80a24c8b6",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/LongRun.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 103,
+      "sha256": "82e8ba27eac490aaa72e0c8006b2d736c408f6b72f9f7c2db455a8c12204dfeb",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/MapExpansion.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 273,
+      "sha256": "0f25fc2ad1df8a84e6dedd602780692319ee5a48c0af3250030908b8b205af87",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/MapExpansionInput.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 188,
+      "sha256": "955827a75c67d11ad8ae42785da1bd58e24e5ac44ed132465d2c9c16b828722f",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/NegativeSkewPedestrians.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 309,
+      "sha256": "8172ccf2952978c1dc28c18b4796badc26d2a1fed7351e54f4cf2049e9e4b4b2",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/Pedestrians.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 309,
+      "sha256": "8172ccf2952978c1dc28c18b4796badc26d2a1fed7351e54f4cf2049e9e4b4b2",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/Police.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 130,
+      "sha256": "76e7b212f3622bae76655c03850d1a86add894e3e76ce8fd19b91ed8f129a2be",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/PositiveSkewPedestrians.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 309,
+      "sha256": "8172ccf2952978c1dc28c18b4796badc26d2a1fed7351e54f4cf2049e9e4b4b2",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/ProblemGUIUnverified.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 125,
+      "sha256": "d150d55a38847b581eec8c1a21d5a3b0ae41221e533706d49b65ef80d59f44c1",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/ResidentIdentity.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 170,
+      "sha256": "1f9d9dc66ef4e50587e257648655fbd5edb538bc4538c7503edb3b60be05724d",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/Result.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 878,
+      "sha256": "e2d95d9eceb06b9bcd8edbd31ec4486967e00308d07a0c1ad08bc73d8974870e",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/RoadDirection.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 85,
+      "sha256": "d7defdbbc514727e1e8810a0e72eaffcbc2610d78ace1321085a4b3cfec6c675",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/RoadTypes.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 145,
+      "sha256": "b3b09a8fabea38d7f3dec52d53b2af98718e933126bf9329a5b5cbc52b9612ad",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/ServiceRoadChanges.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 125,
+      "sha256": "c1732166e0f3b1fe5b5d292df674cbaad65868602c6ef974cfb4aea5436ec5e7",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/TerrainSpanApproaches.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 147,
+      "sha256": "6197b1ad1b5a4d1038d575bb0dceafcfac70b299a33f6f3fd31dac1662c8bf12",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/TerrainSpanInput.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 166,
+      "sha256": "1ff3d646d95aed7013a9d5ff991ea86e6052cfc80ff94bee89f41b4187a7ac81",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/TrafficControls.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 250,
+      "sha256": "abc0f2945b3cf253e08c31703526722f09bac636b739c4ed228d3af907920773",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/UtilityAllocation.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 142,
+      "sha256": "20e235fff87fd949b4d26beb697412ef06b01212fd0f2fc5a39520e2fa3f5941",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/VehicleTurns.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 246,
+      "sha256": "b0108b84d822dcd042e5fcbbbd1b27cf9609cf4d8850b838557e8fa762371a6b",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/WasteProcessing.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 120,
+      "sha256": "3d3cb9267f692296735e3b39bf19d424ab054811c49ed5dc90550a90af29ccbb",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/WideConnections.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 198,
+      "sha256": "07b42346eaaa337dd62f59b9f857f5a71c0f91e8781aabc4f72721175b1b6492",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/WidePedestrians.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 309,
+      "sha256": "8172ccf2952978c1dc28c18b4796badc26d2a1fed7351e54f4cf2049e9e4b4b2",
+      "format": "text"
+    },
+    {
+      "path": "native-validation/WideRoads.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 192,
+      "sha256": "75d077924b313cc0a9a071545a9e6246d441956849ecae1d37a99876115b4781",
+      "format": "text"
+    },
+    {
+      "path": "paired-summary.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 973,
+      "sha256": "75798fd7512948893f641f6945d970e0ee110bebcc24638206b02b9b55abd77c",
+      "format": "csv",
+      "rows": 3,
+      "columns": {
+        "mode": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "before_mean_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "after_mean_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "reduction_mean_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "before_p95_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "after_p95_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "reduction_p95_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "before_p99_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "after_p99_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "reduction_p99_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "before_profiler_gc_bytes_per_step": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "after_profiler_gc_bytes_per_step": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "reduction_profiler_gc": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "PairVerification.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 2128,
+      "sha256": "01f0cbb783a349df72a8965c8cea11b4007cd5de2f213f3a5282a94d22505c60",
+      "format": "text"
+    },
+    {
+      "path": "README.md",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 1327,
+      "sha256": "5895c7595d5e3cd69c3e8db183a51db63950ef2c1c4e7467af610610fb1537d1",
+      "format": "text"
+    },
+    {
+      "path": "replay/index/step-states.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 24710,
+      "sha256": "aac13ce52b4b7078a31ef01e2aae0eca72be5102103159658e4ef5e123919d95",
+      "format": "csv",
+      "rows": 339,
+      "columns": {
+        "0": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "273": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "D9CB1AC12888AD865C005DAA23AF0CB1D4FFFE30A877032E40F05F6D0E5265EB": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "replay/scan/step-states.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 24710,
+      "sha256": "aac13ce52b4b7078a31ef01e2aae0eca72be5102103159658e4ef5e123919d95",
+      "format": "csv",
+      "rows": 339,
+      "columns": {
+        "0": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "273": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "D9CB1AC12888AD865C005DAA23AF0CB1D4FFFE30A877032E40F05F6D0E5265EB": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "ReplayVerification.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 346,
+      "sha256": "5bad4eccec9501e0dabe6afc2fccd8cbcf9d8ff2f96534ade33f47f70a1b0b26",
+      "format": "text"
+    },
+    {
+      "path": "scan/build-options.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 97,
+      "sha256": "22b80c39cc26c023ad3948725731f4493ea24cc4a2079082323da925b1d37bc2",
+      "format": "text"
+    },
+    {
+      "path": "scan/build-source.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 7995,
+      "sha256": "372fc3a06a0b953ef292fa5bc29704f2d6c863ef1f717c1217c019cf1fba9d39",
+      "format": "text"
+    },
+    {
+      "path": "scan/configuration.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 472,
+      "sha256": "80ce7962a0165070739e109af0ad36afd172c7f109e0364274d149e3fb0492f2",
+      "format": "text"
+    },
+    {
+      "path": "scan/frames.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 213596,
+      "sha256": "666a4a5cfbcd483e7ca17cf97e0e25e2def091074ee53c5f6db96851395d9297",
+      "format": "csv",
+      "rows": 2113,
+      "columns": {
+        "ordinal": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "run": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "mode": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "delta": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "unscaled_delta": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "maximum_delta": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "requested_seconds": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "steps": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "advance_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "tasks": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "partial": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "scan/live-summary.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 380,
+      "sha256": "65def46c81feaf4951ebd9b0bb4453bcb055878ced375af6d66164b68ab47145",
+      "format": "csv",
+      "rows": 2,
+      "columns": {
+        "mode": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "frames": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "wall_seconds": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "requested_sim_seconds": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "steps": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "observed_sim_seconds_per_wall_second": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "mean_frame_advance_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "mean_steps_per_frame": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "scan/module-summary.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 10106,
+      "sha256": "1e4f50e670bae22eab9a2113372a60427b9e19c5854c93da9c63506385c40725",
+      "format": "csv",
+      "rows": 108,
+      "columns": {
+        "mode": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "node": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "total_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "self_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "calls": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gc_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "scan/PASS.txt",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 119,
+      "sha256": "0f3259b3da985e98b189ddfefe571b8d1dcf2dc05d14d37db982d261e3d3b42f",
+      "format": "text"
+    },
+    {
+      "path": "scan/profiler-frames.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 69935,
+      "sha256": "26c32513d9471248512da59b8d54e042164af81576f91309edc9fa46de64b38b",
+      "format": "csv",
+      "rows": 2113,
+      "columns": {
+        "ordinal": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "profiler_frame": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "wall_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "source": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "scan/steps.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 66246,
+      "sha256": "d998ec347edcbfc8d03a5ef030ee34729b5adb20d49b95de08c283ea41dc7fd8",
+      "format": "csv",
+      "rows": 2700,
+      "columns": {
+        "run": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "mode": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "step": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gc_bytes": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "tasks": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    },
+    {
+      "path": "scan/summary.csv",
+      "role": "historical",
+      "digest_mode": "utf8-lf",
+      "bytes": 1137,
+      "sha256": "1db70a4a43eda913672f9d89b7dca4339384153b22e7e83c8e8a4bab2a957c92",
+      "format": "csv",
+      "rows": 9,
+      "columns": {
+        "run": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "mode": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "mean_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "p95_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "p99_ms": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "gc_bytes_per_step": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "min_tasks": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "max_tasks": {
+          "type": "text",
+          "unit": "unknown"
+        },
+        "state_sha256": {
+          "type": "text",
+          "unit": "unknown"
+        }
+      }
+    }
+  ],
+  "local_assets": [],
+  "local_inventory": {
+    "scope": "Original shared files only; historical local resources not rediscovered or measured.",
+    "limitations": "Other local raw files are registered separately in the local Profiler inventory. Missing historical captures are unknown, not implicitly exported or successfully sampled."
+  }
+}

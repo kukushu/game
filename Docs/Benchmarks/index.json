@@ -1,0 +1,366 @@
+{
+  "schema_version": 1,
+  "packages": [
+    {
+      "id": "2026-10-12-FollowingIndex",
+      "manifest": "2026-10-12-FollowingIndex/manifest.json",
+      "title": "2026-10-12-FollowingIndex",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 72,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-12-RadiusCache",
+      "manifest": "2026-10-12-RadiusCache/manifest.json",
+      "title": "2026-10-12-RadiusCache",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 15,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-12-RoadHashProduction",
+      "manifest": "2026-10-12-RoadHashProduction/manifest.json",
+      "title": "2026-10-12-RoadHashProduction",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 107,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-12-WholeStep",
+      "manifest": "2026-10-12-WholeStep/manifest.json",
+      "title": "2026-10-12-WholeStep",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 98,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-13-CodeLayout",
+      "manifest": "2026-10-13-CodeLayout/manifest.json",
+      "title": "2026-10-13-CodeLayout",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 50,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-13-LogicalRoadRouting",
+      "manifest": "2026-10-13-LogicalRoadRouting/manifest.json",
+      "title": "2026-10-13-LogicalRoadRouting",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 75,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-13-RoadDraft",
+      "manifest": "2026-10-13-RoadDraft/manifest.json",
+      "title": "2026-10-13-RoadDraft",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 58,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-13-RoadQueries",
+      "manifest": "2026-10-13-RoadQueries/manifest.json",
+      "title": "2026-10-13-RoadQueries",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 18,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-13-RoadTopologyStage1",
+      "manifest": "2026-10-13-RoadTopologyStage1/manifest.json",
+      "title": "2026-10-13-RoadTopologyStage1",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 98,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-13-SharedRoadGeometry",
+      "manifest": "2026-10-13-SharedRoadGeometry/manifest.json",
+      "title": "2026-10-13-SharedRoadGeometry",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 65,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-14-CityCoreIndustry",
+      "manifest": "2026-10-14-CityCoreIndustry/manifest.json",
+      "title": "2026-10-14-CityCoreIndustry",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 6,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-14-ConnectionConflicts",
+      "manifest": "2026-10-14-ConnectionConflicts/manifest.json",
+      "title": "2026-10-14-ConnectionConflicts",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 3,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-14-DispatchBlueprint",
+      "manifest": "2026-10-14-DispatchBlueprint/manifest.json",
+      "title": "2026-10-14-DispatchBlueprint",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 4,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-14-LaneChange",
+      "manifest": "2026-10-14-LaneChange/manifest.json",
+      "title": "2026-10-14-LaneChange",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 3,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-14-MultiLane",
+      "manifest": "2026-10-14-MultiLane/manifest.json",
+      "title": "2026-10-14-MultiLane",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 2,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-14-ResidentIntegration",
+      "manifest": "2026-10-14-ResidentIntegration/manifest.json",
+      "title": "2026-10-14-ResidentIntegration",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 2,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-14-RoadAccess",
+      "manifest": "2026-10-14-RoadAccess/manifest.json",
+      "title": "2026-10-14-RoadAccess",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 7,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-14-RoadCore",
+      "manifest": "2026-10-14-RoadCore/manifest.json",
+      "title": "2026-10-14-RoadCore",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 9,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-14-RoadEdit",
+      "manifest": "2026-10-14-RoadEdit/manifest.json",
+      "title": "2026-10-14-RoadEdit",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 4,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-14-RoadRecovery",
+      "manifest": "2026-10-14-RoadRecovery/manifest.json",
+      "title": "2026-10-14-RoadRecovery",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 3,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-14-RoadUpgrade",
+      "manifest": "2026-10-14-RoadUpgrade/manifest.json",
+      "title": "2026-10-14-RoadUpgrade",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 2,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-14-TrafficScale",
+      "manifest": "2026-10-14-TrafficScale/manifest.json",
+      "title": "2026-10-14-TrafficScale",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 3,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-15-CityScenarios",
+      "manifest": "2026-10-15-CityScenarios/manifest.json",
+      "title": "2026-10-15-CityScenarios",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 67,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-16-CityWindow30000",
+      "manifest": "2026-10-16-CityWindow30000/manifest.json",
+      "title": "2026-10-16-CityWindow30000",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 121,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-16-ImportEndpoints",
+      "manifest": "2026-10-16-ImportEndpoints/manifest.json",
+      "title": "2026-10-16-ImportEndpoints",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 47,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-16-LocalImports",
+      "manifest": "2026-10-16-LocalImports/manifest.json",
+      "title": "2026-10-16-LocalImports",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 13,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-16-LogisticsAttribution",
+      "manifest": "2026-10-16-LogisticsAttribution/manifest.json",
+      "title": "2026-10-16-LogisticsAttribution",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 31,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-16-ScaleChallenge",
+      "manifest": "2026-10-16-ScaleChallenge/manifest.json",
+      "title": "2026-10-16-ScaleChallenge",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 170,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-16-ScaleProbe",
+      "manifest": "2026-10-16-ScaleProbe/manifest.json",
+      "title": "2026-10-16-ScaleProbe",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 6,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-17-Commute",
+      "manifest": "2026-10-17-Commute/manifest.json",
+      "title": "2026-10-17-Commute",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 35,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-17-LocalProfilerInventory",
+      "manifest": "2026-10-17-LocalProfilerInventory/manifest.json",
+      "title": "本机历史Profiler文件清单",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 1,
+      "local_assets": 1
+    },
+    {
+      "id": "2026-10-17-OccupancyReuse",
+      "manifest": "2026-10-17-OccupancyReuse/manifest.json",
+      "title": "2026-10-17-OccupancyReuse",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 18,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-17-Placement",
+      "manifest": "2026-10-17-Placement/manifest.json",
+      "title": "2026-10-17-Placement",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 4,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-17-ReturnPeak",
+      "manifest": "2026-10-17-ReturnPeak/manifest.json",
+      "title": "2026-10-17-ReturnPeak",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 20,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-17-RoadBuildPreview",
+      "manifest": "2026-10-17-RoadBuildPreview/manifest.json",
+      "title": "三种规模建路预览原生归因",
+      "kind": "attribution",
+      "source_commit": "b63ad3351353b252e9c17ea14ef56d7868c774cc",
+      "artifacts": 36,
+      "local_assets": 6
+    },
+    {
+      "id": "2026-10-17-SATExperiment",
+      "manifest": "2026-10-17-SATExperiment/manifest.json",
+      "title": "2026-10-17-SATExperiment",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 4,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-17-SpatialCache",
+      "manifest": "2026-10-17-SpatialCache/manifest.json",
+      "title": "2026-10-17-SpatialCache",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 18,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-17-TwoGoalRoutes",
+      "manifest": "2026-10-17-TwoGoalRoutes/manifest.json",
+      "title": "2026-10-17-TwoGoalRoutes",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 14,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-17-VehicleViews",
+      "manifest": "2026-10-17-VehicleViews/manifest.json",
+      "title": "2026-10-17-VehicleViews",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 22,
+      "local_assets": 0
+    },
+    {
+      "id": "2026-10-17-ZoningViews",
+      "manifest": "2026-10-17-ZoningViews/manifest.json",
+      "title": "2026-10-17-ZoningViews",
+      "kind": "legacy",
+      "source_commit": null,
+      "artifacts": 31,
+      "local_assets": 0
+    }
+  ],
+  "unregistered_legacy_directories": []
+}
