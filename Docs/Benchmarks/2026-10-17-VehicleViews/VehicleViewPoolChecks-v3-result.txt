@@ -1,0 +1,1 @@
+PASS 15079 native view lifecycle checks; all 3000 actors shown, stable IDs/position/cube/material/collider, repeated sync, actual settlement and new-task object reuse, world rebind/clear; full transport save unchanged. No city FPS claim.

@@ -73,8 +73,7 @@ namespace HarborCity
             constructionPreview.Show(anchored?startPoint:p,anchored,points,valid,utilityTool.HasValue ? .28f : wide?4:2,landscape==null?null:landscape.Height);
         }
         HarborCityZoningViews zoningViews;Material[] zoneMaterials;
-        readonly Dictionary<int,Transform> cars=new Dictionary<int,Transform>();
-        readonly HashSet<int> visibleIds=new HashSet<int>();readonly List<int> expiredIds=new List<int>();
+        HarborCityVehicleViews vehicleViews;
         readonly List<GameObject> roads=new List<GameObject>();
         HarborCityBuildingViews buildingViews;
         bool hasStart;Point startPoint;bool building,oneWay,wide;int origin,destination;float speed=1;
@@ -82,7 +81,10 @@ namespace HarborCity
         internal CityCoreIndustrySession ScenarioSession=>session;
         internal int ScenarioSteps=>lastSteps;
         internal float ScenarioCurrentRate=>speed;
-        internal int ScenarioVehicleViews=>cars.Count;
+        internal int ScenarioVehicleViews=>vehicleViews?.Count??0;
+        internal int ScenarioPooledVehicles=>vehicleViews?.Pooled??0;
+        internal int ScenarioCreatedVehicleViews=>vehicleViews?.Created??0;
+        internal int ScenarioReusedVehicleViews=>vehicleViews?.Reused??0;
         internal int ScenarioBuildingViews=>buildingViews?.Count??0;
         internal int ScenarioZonePlots=>zoningViews?.PlotCount??0;
         internal int ScenarioZoneRenderers=>zoningViews?.RendererCount??0;
@@ -164,14 +166,7 @@ namespace HarborCity
             if(ScenarioMeasuring){long end=System.Diagnostics.Stopwatch.GetTimestamp();ScenarioStructureMs=(end-sampleAt)*1000.0/System.Diagnostics.Stopwatch.Frequency;sampleAt=end;}
             using(viewsSample.Auto())
             {
-            visibleIds.Clear();foreach(var v in world.Vehicles)
-            {
-                visibleIds.Add(v.id);
-                Transform car;if(!cars.TryGetValue(v.id,out car)){var go=GameObject.CreatePrimitive(PrimitiveType.Cube);go.name="Freight "+v.id;go.GetComponent<Renderer>().sharedMaterial=carMaterial;go.transform.localScale=new Vector3(.65f,.5f,1);cars.Add(v.id,car=go.transform);}
-                car.gameObject.SetActive(v.status!=VehicleStatus.Delivered);car.position=V(world.Position(v))+Vector3.up*.4f;
-                if(v.status==VehicleStatus.Active){var d=world.Network.Get(v.Current);var direction=V(d.Geometry.Sample(v.distance+.1))-V(d.Geometry.Sample(Math.Max(0,v.distance-.1)));if(direction.sqrMagnitude>1e-8)car.rotation=Quaternion.LookRotation(direction);}
-            }
-            expiredIds.Clear();foreach(var pair in cars)if(!visibleIds.Contains(pair.Key))expiredIds.Add(pair.Key);foreach(int id in expiredIds){Destroy(cars[id].gameObject);cars.Remove(id);}
+                if(vehicleViews==null)vehicleViews=new HarborCityVehicleViews(carMaterial);vehicleViews.Sync(world);
             }
             if(ScenarioMeasuring)ScenarioVehicleMs=(System.Diagnostics.Stopwatch.GetTimestamp()-sampleAt)*1000.0/System.Diagnostics.Stopwatch.Frequency;
             // A scripted timing run observes normal simulation/views but must not
@@ -286,7 +281,7 @@ namespace HarborCity
             outsideViews?.Draw(cameraView,MenuBounds);roadEditor?.Bind(session);roadEditor?.Draw();observation?.Bind(session);observation?.Draw();financePanel?.Draw(session?.Simulation);
         }
         void Save(){try{string tmp=SavePath+".tmp";File.WriteAllBytes(tmp,session==null?SaveCodec.Write(world):CityCoreSave.Write(session));if(File.Exists(SavePath))File.Replace(tmp,SavePath,SavePath+".bak");else File.Move(tmp,SavePath);notice="新格式已保存；旧城市文件未改动";}catch(Exception e){notice=localization.Error(e);}}
-        void Load(){try{var bytes=File.ReadAllBytes(SavePath);var replacement=session==null?SaveCodec.Read(bytes):null;var restored=session==null?null:CityCoreSave.Read(bytes);foreach(var car in cars.Values)Destroy(car.gameObject);cars.Clear();session=restored;world=restored?.Transport??replacement;CancelTool();observation?.Bind(session);roadEditor?.Bind(session);if(landscape!=null&&session!=null)session.Simulation.Growth.Zoning.SetSurface(landscape.Height);shownBuildings=shownZones=shownNetwork=-1;RenderRoads();RenderBuildings();RenderZones();RenderUtilities();notice="新格式已加载";}catch(Exception e){notice="读取失败："+e.Message;}}
+        void Load(){try{var bytes=File.ReadAllBytes(SavePath);var replacement=session==null?SaveCodec.Read(bytes):null;var restored=session==null?null:CityCoreSave.Read(bytes);vehicleViews?.Clear();session=restored;world=restored?.Transport??replacement;CancelTool();observation?.Bind(session);roadEditor?.Bind(session);if(landscape!=null&&session!=null)session.Simulation.Growth.Zoning.SetSurface(landscape.Height);shownBuildings=shownZones=shownNetwork=-1;RenderRoads();RenderBuildings();RenderZones();RenderUtilities();notice="新格式已加载";}catch(Exception e){notice="读取失败："+e.Message;}}
         System.Collections.IEnumerator ValidateNative(string path)
         {
             Directory.CreateDirectory(path);speed=0;yield return null;
@@ -306,7 +301,7 @@ namespace HarborCity
             var rows=new List<string>{"vehicles,scenario,speed,frames,fps,mean_frame_ms,p95_frame_ms,p99_frame_ms,actual_sim_rate,gc_alloc_bytes_per_frame,gc_collections,steps_per_frame_max"};
             foreach(int count in new[]{1000,3000,10000})foreach(bool queued in new[]{false,true})foreach(int multiplier in new[]{1,3})
             {
-                speed=0;foreach(var car in cars.Values)Destroy(car.gameObject);cars.Clear();world=CityRoadCoreFixtures.Create(count,queued);RenderRoads();
+                speed=0;vehicleViews?.Clear();world=CityRoadCoreFixtures.Create(count,queued);RenderRoads();
                 cameraView.transform.position=queued?new Vector3(0,4500,-3000):new Vector3(400,1200,-700);cameraView.farClipPlane=12000;cameraView.transform.LookAt(queued?Vector3.zero:new Vector3(400,0,80));
                 speed=multiplier;previousTick=System.Diagnostics.Stopwatch.GetTimestamp();yield return new WaitForSecondsRealtime(3);
                 var recorder=ProfilerRecorder.StartNew(ProfilerCategory.Memory,"GC Allocated In Frame",1);
@@ -339,8 +334,8 @@ namespace HarborCity
             }
             catch(Exception e){File.WriteAllText(Path.Combine(path,"IndustryResult.txt"),"FAIL "+e);Application.Quit(1);yield break;}
             yield return null;
-            var visible=world.Vehicles.FirstOrDefault();Transform rendered;
-            if(visible==null||!cars.TryGetValue(visible.id,out rendered)){File.WriteAllText(Path.Combine(path,"IndustryResult.txt"),"FAIL no actual vehicle view");Application.Quit(1);yield break;}
+            var visible=world.Vehicles.FirstOrDefault();Transform rendered=visible==null?null:vehicleViews?.Instance(visible.id);
+            if(rendered==null){File.WriteAllText(Path.Combine(path,"IndustryResult.txt"),"FAIL no actual vehicle view");Application.Quit(1);yield break;}
             Vector3 previous=rendered.position;session.Advance(.1);yield return null;
             if(Vector3.Distance(previous,rendered.position)<.5f||Vector3.Distance(rendered.position,V(world.Position(visible))+Vector3.up*.4f)>.001f){File.WriteAllText(Path.Combine(path,"IndustryResult.txt"),"FAIL vehicle view did not track actual movement");Application.Quit(1);yield break;}
             File.AppendAllText(Path.Combine(path,"IndustryResult.txt"),"PASS rendered truck transform follows new-core state across actual Unity frames.\n");
@@ -479,6 +474,6 @@ namespace HarborCity
             observation.Close();Exception roadFault=null;yield return HarborCityRoadEditingValidation.Run(session,roadEditor,landscape.Height,path,e=>roadFault=e);if(roadFault!=null){File.AppendAllText(Path.Combine(path,"TradeResult.txt"),"\nFAIL road editor "+roadFault);Application.Quit(1);yield break;}File.AppendAllText(Path.Combine(path,"TradeResult.txt"),"\n"+File.ReadAllText(Path.Combine(path,"RoadEditingResult.txt")));
             session.Validate();yield return new WaitForEndOfFrame();ScreenCapture.CaptureScreenshot(Path.Combine(path,"Trade.png"));yield return null;Application.Quit(0);
         }
-        void OnDestroy(){outsideViews?.Dispose();constructionPreview?.Dispose();roadEditor?.Dispose();buildingViews?.Dispose();foreach(var go in roads){if(go!=null){var filter=go.GetComponent<MeshFilter>();if(filter!=null)Destroy(filter.sharedMesh);Destroy(go);}}zoningViews?.Dispose();if(zoneMaterials!=null)foreach(var m in zoneMaterials)Destroy(m);if(roadMaterial!=null)Destroy(roadMaterial);if(carMaterial!=null)Destroy(carMaterial);if(waterLineMaterial!=null)Destroy(waterLineMaterial);foreach(var view in utilityViews)if(view!=null)Destroy(view);}
+        void OnDestroy(){vehicleViews?.Dispose();outsideViews?.Dispose();constructionPreview?.Dispose();roadEditor?.Dispose();buildingViews?.Dispose();foreach(var go in roads){if(go!=null){var filter=go.GetComponent<MeshFilter>();if(filter!=null)Destroy(filter.sharedMesh);Destroy(go);}}zoningViews?.Dispose();if(zoneMaterials!=null)foreach(var m in zoneMaterials)Destroy(m);if(roadMaterial!=null)Destroy(roadMaterial);if(carMaterial!=null)Destroy(carMaterial);if(waterLineMaterial!=null)Destroy(waterLineMaterial);foreach(var view in utilityViews)if(view!=null)Destroy(view);}
     }
 }
