@@ -300,6 +300,53 @@ namespace HarborCity.RoadCore
             var result=new List<long>();for(int i=0;i<lanes.Count;i++){if(i>0)result.Add(ConnectionId(lanes[i-1],lanes[i]));result.Add(lanes[i]);}return result;
             }
         }
+        // Static free-flow scalar only. Two legal source/goal directions share one
+        // frontier; no vehicle plan or route reconstruction is needed for a quote.
+        internal double MinimumTravelSeconds(RoadAccess source,RoadAccess goal,RoadAccess alternateSource=null,RoadAccess alternateGoal=null)
+        {
+#if CITY_CORE_ATTRIBUTION
+            using var observation=CityCoreProfile.Measure(CityCoreProfile.Part.CostSearch);
+#endif
+            if(!ValidCostAccess(source))source=null;if(!ValidCostAccess(goal))goal=null;
+            if(!ValidCostAccess(alternateSource))alternateSource=null;if(!ValidCostAccess(alternateGoal))alternateGoal=null;
+            if(source==null&&alternateSource==null||goal==null&&alternateGoal==null)return double.PositiveInfinity;
+            var scratch=accessSearch??(accessSearch=new RouteScratch());
+            using(scratch.Acquire())
+            {
+                double best=double.PositiveInfinity;SeedCost(scratch,source,goal,alternateGoal,ref best);SeedCost(scratch,alternateSource,goal,alternateGoal,ref best);
+                while(scratch.queue.Count>0)
+                {
+                    var item=scratch.queue.Pop();if(item.cost>best)break;if(item.cost!=scratch.costs[item.id]||!scratch.settled.Add(item.id))continue;
+                    var current=Get(item.id);List<Drivable> next;if(!outgoing.TryGetValue(current.To,out next))continue;
+                    foreach(var lane in next)
+                    {
+                        long link=ConnectionId(current.Id,lane.Id);if(!Contains(link))continue;
+                        double prefix=item.cost+Get(link).Geometry.Length/Get(link).Speed;bool terminal=false;
+                        if(goal!=null&&lane.Id==goal.lane){double candidate=prefix+(goal.distance-lane.StartDistance)/lane.Speed;if(candidate<best)best=candidate;terminal=true;}
+                        if(alternateGoal!=null&&lane.Id==alternateGoal.lane){double candidate=prefix+(alternateGoal.distance-lane.StartDistance)/lane.Speed;if(candidate<best)best=candidate;terminal=true;}
+                        // Any continuation through a goal costs at least its valid
+                        // partial-lane arrival. It cannot improve the minimum quote.
+                        if(terminal||scratch.settled.Contains(lane.Id))continue;
+                        double cost=prefix+lane.TravelLength/lane.Speed,old;
+                        if(!scratch.costs.TryGetValue(lane.Id,out old)||cost<old){scratch.costs[lane.Id]=cost;scratch.queue.Push(lane.Id,cost);}
+                    }
+                }
+                return best;
+            }
+        }
+        bool ValidCostAccess(RoadAccess access)
+        {
+            if(access==null||!access.valid)return false;var d=Get(access.lane);
+            return !d.IsConnection&&access.distance>=d.StartDistance&&access.distance<=d.EndDistance;
+        }
+        void SeedCost(RouteScratch scratch,RoadAccess start,RoadAccess goal,RoadAccess otherGoal,ref double best)
+        {
+            if(start==null)return;var lane=Get(start.lane);
+            if(goal!=null&&start.lane==goal.lane&&goal.distance>=start.distance){double direct=0.0+(goal.distance-start.distance)/lane.Speed;if(direct<best)best=direct;}
+            if(otherGoal!=null&&start.lane==otherGoal.lane&&otherGoal.distance>=start.distance){double direct=0.0+(otherGoal.distance-start.distance)/lane.Speed;if(direct<best)best=direct;}
+            double initial=(lane.EndDistance-start.distance)/lane.Speed,prior;
+            if(!scratch.costs.TryGetValue(lane.Id,out prior)||initial<prior){scratch.costs[lane.Id]=initial;scratch.queue.Push(lane.Id,initial);}
+        }
         public void ValidateRoute(List<long> route)
         {
             if(route==null||route.Count==0||Get(route[0]).IsConnection||Get(route[route.Count-1]).IsConnection)throw new ArgumentException("Invalid route ends");

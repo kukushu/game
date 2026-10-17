@@ -25,6 +25,11 @@ namespace HarborCity.RoadCore
             }
             return best;
         }
+        public static double EstimateSeconds(Network network,RoadAccess source,RoadAccess target,bool bothDirections)
+        {
+            if(!source.valid||!target.valid)return double.PositiveInfinity;
+            return network.MinimumTravelSeconds(source,target,bothDirections?Opposite(network,source):null,bothDirections?Opposite(network,target):null);
+        }
         public static bool Matches(Network network,RoadAccess access,long lane,double distance,bool bothDirections)
         {
             if(access.lane==lane)return Math.Abs(access.distance-distance)<1e-7;if(!bothDirections)return false;var other=Opposite(network,access);return other!=null&&other.lane==lane&&Math.Abs(other.distance-distance)<1e-7;

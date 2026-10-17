@@ -1,0 +1,41 @@
+{
+  "note": "Same standalone Mono runtime, no CITY_CORE_ATTRIBUTION; 2400 real fixed steps. No Unity rendering/FPS claim.",
+  "runs": [
+    {
+      "name": "commute-normal-before",
+      "steps": 2400,
+      "mean_ms": 18.439413791666666,
+      "p95_ms": 26.5707,
+      "p99_ms": 83.8282,
+      "max_ms": 1838.7214,
+      "mean_allocated_bytes": 208020.08666666667,
+      "final_hash": "2596b3c6f2c80fdca74941df38049ae8d519eeb5ae95a7e0b9f344e2a9a59f27",
+      "resources": {
+        "wallSeconds": 63.8234674,
+        "timeoutSeconds": 600,
+        "peakWorkingSetBytes": 327401472,
+        "exitCode": 0,
+        "terminatedBy": null,
+        "note": "Bounded captured-city step probe; attributionEnabled identifies instrumented versus normal model; not Unity FPS or economic-health acceptance"
+      }
+    },
+    {
+      "name": "commute-normal-after",
+      "steps": 2400,
+      "mean_ms": 18.197958208333333,
+      "p95_ms": 27.2952,
+      "p99_ms": 83.0365,
+      "max_ms": 1834.4297,
+      "mean_allocated_bytes": 207009.27,
+      "final_hash": "2596b3c6f2c80fdca74941df38049ae8d519eeb5ae95a7e0b9f344e2a9a59f27",
+      "resources": {
+        "wallSeconds": 63.2301164,
+        "timeoutSeconds": 600,
+        "peakWorkingSetBytes": 268292096,
+        "exitCode": 0,
+        "terminatedBy": null,
+        "note": "Bounded captured-city step probe; attributionEnabled identifies instrumented versus normal model; not Unity FPS or economic-health acceptance"
+      }
+    }
+  ]
+}

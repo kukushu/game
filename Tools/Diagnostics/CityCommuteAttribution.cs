@@ -18,7 +18,7 @@ static class CityCommuteAttribution
   var group=(phase,q.Kind,q.Result,q.Context);if(!counts.TryGetValue(group,out var c))counts.Add(group,c=new Count());c.events++;var key=(q.Origin,q.Destination,q.BothDirections);c.pairs.Add(key);
   if(q.Kind==CityCoreProfile.QueryKind.Reset){epoch++;return;}
   if(q.Kind==CityCoreProfile.QueryKind.Evicted){evicted.Add(key);return;}
-  if(q.Kind==CityCoreProfile.QueryKind.Blueprint)
+  if(q.Kind==CityCoreProfile.QueryKind.Blueprint||q.Kind==CityCoreProfile.QueryKind.CostQuote)
   {if(q.Result==CityCoreProfile.QueryResult.Miss){if(!phaseMiss.Add((phase,q.Origin,q.Destination,q.BothDirections)))c.repeatedMiss++;if(ever.ContainsKey(key))c.previouslySeen++;if(evicted.Contains(key))c.evictedAgain++;evicted.Remove(key);}ever[key]=epoch;}
   if(q.Kind==CityCoreProfile.QueryKind.CommuteEstimate&&q.Result!=CityCoreProfile.QueryResult.Hit)
   {if(lastMiss.TryGetValue(q.Citizen,out var prior)&&prior.Item1==q.Origin&&prior.Item2==q.Destination&&tick-prior.Item3<=5)c.shortResidentRepeat++;lastMiss[q.Citizen]=(q.Origin,q.Destination,tick);}

@@ -11,7 +11,7 @@ namespace HarborCity.RoadCore
     // Never used to choose a route, reduce work or change simulation state.
     public static class CityCoreProfile
     {
-        public enum QueryKind {CommuteEstimate,Blueprint,Evicted,Reset}
+        public enum QueryKind {CommuteEstimate,Blueprint,Evicted,Reset,CostQuote,Materialized}
         public enum QueryResult {Hit,Absent,EndpointsChanged,NetworkChanged,AccessChanged,Miss}
         public readonly struct RouteQuery
         {
@@ -27,8 +27,8 @@ namespace HarborCity.RoadCore
             if(context==Part.RouteLookup&&depth>1)context=(Part)stack[depth-2].part;
             QueryObserver(new RouteQuery(kind,result,citizen,origin,destination,bothDirections,context));
         }
-        public enum Part {Step,Residents,Job,Production,Logistics,Dispatch,RouteLookup,RouteSearch,Admission,Occupancy,Movement,Settlement,Growth,Utilities,Population,Consumption,Trade,Payroll,ZoningRebuild,GrowthSearch,Placement,Finance,FinanceAccrual,Waste,ZoningGeometry,ZoningLandUse,ZoningOccupancy,UtilityRebuild,UtilityPowerCoverage,UtilityWaterCoverage,CommuteEstimate}
-        const int PartCount=31;
+        public enum Part {Step,Residents,Job,Production,Logistics,Dispatch,RouteLookup,RouteSearch,Admission,Occupancy,Movement,Settlement,Growth,Utilities,Population,Consumption,Trade,Payroll,ZoningRebuild,GrowthSearch,Placement,Finance,FinanceAccrual,Waste,ZoningGeometry,ZoningLandUse,ZoningOccupancy,UtilityRebuild,UtilityPowerCoverage,UtilityWaterCoverage,CommuteEstimate,CostSearch}
+        const int PartCount=32;
         public static bool Enabled;
         public static bool AllocationAvailable {get;}=ProbeAllocationCounter();
         static bool ProbeAllocationCounter(){long before=GC.GetAllocatedBytesForCurrentThread();var probe=new byte[128];GC.KeepAlive(probe);return GC.GetAllocatedBytesForCurrentThread()>before;}
@@ -38,7 +38,7 @@ namespace HarborCity.RoadCore
         struct Frame {public int part;public long start,bytes,children,childBytes;}
         static readonly Frame[] stack=new Frame[64];static int depth;
 #if UNITY_5_3_OR_NEWER
-        static readonly ProfilerMarker[] markers={new ProfilerMarker("City.Attribution.Step"),new ProfilerMarker("City.Attribution.Residents"),new ProfilerMarker("City.Attribution.Job"),new ProfilerMarker("City.Attribution.Production"),new ProfilerMarker("City.Attribution.Logistics"),new ProfilerMarker("City.Attribution.Dispatch"),new ProfilerMarker("City.Attribution.RouteLookup"),new ProfilerMarker("City.Attribution.RouteSearch"),new ProfilerMarker("City.Attribution.Admission"),new ProfilerMarker("City.Attribution.Occupancy"),new ProfilerMarker("City.Attribution.Movement"),new ProfilerMarker("City.Attribution.Settlement"),new ProfilerMarker("City.Attribution.Growth"),new ProfilerMarker("City.Attribution.Utilities"),new ProfilerMarker("City.Attribution.Population"),new ProfilerMarker("City.Attribution.Consumption"),new ProfilerMarker("City.Attribution.Trade"),new ProfilerMarker("City.Attribution.Payroll"),new ProfilerMarker("City.Attribution.ZoningRebuild"),new ProfilerMarker("City.Attribution.GrowthSearch"),new ProfilerMarker("City.Attribution.Placement"),new ProfilerMarker("City.Attribution.Finance"),new ProfilerMarker("City.Attribution.FinanceAccrual"),new ProfilerMarker("City.Attribution.Waste"),new ProfilerMarker("City.Attribution.ZoningGeometry"),new ProfilerMarker("City.Attribution.ZoningLandUse"),new ProfilerMarker("City.Attribution.ZoningOccupancy"),new ProfilerMarker("City.Attribution.UtilityRebuild"),new ProfilerMarker("City.Attribution.UtilityPowerCoverage"),new ProfilerMarker("City.Attribution.UtilityWaterCoverage"),new ProfilerMarker("City.Attribution.CommuteEstimate")};
+        static readonly ProfilerMarker[] markers={new ProfilerMarker("City.Attribution.Step"),new ProfilerMarker("City.Attribution.Residents"),new ProfilerMarker("City.Attribution.Job"),new ProfilerMarker("City.Attribution.Production"),new ProfilerMarker("City.Attribution.Logistics"),new ProfilerMarker("City.Attribution.Dispatch"),new ProfilerMarker("City.Attribution.RouteLookup"),new ProfilerMarker("City.Attribution.RouteSearch"),new ProfilerMarker("City.Attribution.Admission"),new ProfilerMarker("City.Attribution.Occupancy"),new ProfilerMarker("City.Attribution.Movement"),new ProfilerMarker("City.Attribution.Settlement"),new ProfilerMarker("City.Attribution.Growth"),new ProfilerMarker("City.Attribution.Utilities"),new ProfilerMarker("City.Attribution.Population"),new ProfilerMarker("City.Attribution.Consumption"),new ProfilerMarker("City.Attribution.Trade"),new ProfilerMarker("City.Attribution.Payroll"),new ProfilerMarker("City.Attribution.ZoningRebuild"),new ProfilerMarker("City.Attribution.GrowthSearch"),new ProfilerMarker("City.Attribution.Placement"),new ProfilerMarker("City.Attribution.Finance"),new ProfilerMarker("City.Attribution.FinanceAccrual"),new ProfilerMarker("City.Attribution.Waste"),new ProfilerMarker("City.Attribution.ZoningGeometry"),new ProfilerMarker("City.Attribution.ZoningLandUse"),new ProfilerMarker("City.Attribution.ZoningOccupancy"),new ProfilerMarker("City.Attribution.UtilityRebuild"),new ProfilerMarker("City.Attribution.UtilityPowerCoverage"),new ProfilerMarker("City.Attribution.UtilityWaterCoverage"),new ProfilerMarker("City.Attribution.CommuteEstimate"),new ProfilerMarker("City.Attribution.CostSearch")};
 #endif
         public readonly struct Scope:IDisposable
         {

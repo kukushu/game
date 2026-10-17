@@ -1,0 +1,47 @@
+{
+  "note": "Mono CITY_CORE_ATTRIBUTION enabled; observer null; fixed 2400 steps (120 simulated seconds). Not normal uninstrumented performance or FPS.",
+  "runs": [
+    {
+      "name": "commute-day-before",
+      "steps": 2400,
+      "mean_ms": 24.785359041666666,
+      "p95_ms": 32.6722,
+      "p99_ms": 92.3083,
+      "max_ms": 1862.2941,
+      "mean_allocated_bytes": 208020.08666666667,
+      "route_searches": 47750,
+      "cost_searches": 0,
+      "preparations": 11777,
+      "final_hash": "2596b3c6f2c80fdca74941df38049ae8d519eeb5ae95a7e0b9f344e2a9a59f27",
+      "resources": {
+        "note": "Attributed few-step probe; not a normal build performance or complete-city pass",
+        "timeoutSeconds": 600,
+        "peakWorkingSetBytes": 325296128,
+        "exitCode": 0,
+        "wallSeconds": 79.0825562,
+        "terminatedBy": null
+      }
+    },
+    {
+      "name": "commute-day-after",
+      "steps": 2400,
+      "mean_ms": 24.44909133333333,
+      "p95_ms": 33.738,
+      "p99_ms": 90.7901,
+      "max_ms": 1874.7442,
+      "mean_allocated_bytes": 207009.27,
+      "route_searches": 40750,
+      "cost_searches": 4290,
+      "preparations": 10027,
+      "final_hash": "2596b3c6f2c80fdca74941df38049ae8d519eeb5ae95a7e0b9f344e2a9a59f27",
+      "resources": {
+        "terminatedBy": null,
+        "timeoutSeconds": 600,
+        "wallSeconds": 78.3219874,
+        "note": "Attributed few-step probe; not a normal build performance or complete-city pass",
+        "peakWorkingSetBytes": 264851456,
+        "exitCode": 0
+      }
+    }
+  ]
+}
