@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-17-Example-Run01",
+  "measurement": {
+    "title": "填写本次测量问题",
+    "kind": "attribution",
+    "source_commit": null,
+    "captured_at_utc": null,
+    "unity_version": null,
+    "runtime": null,
+    "cpu": null,
+    "os": null,
+    "scenario": null,
+    "method": null,
+    "commands": [],
+    "unknown_reasons": {
+      "source_commit": "填写被测源码的完整SHA，不能用打包时HEAD冒充",
+      "captured_at_utc": "若原采样未记录，则标未知；打包日期不是测量日期",
+      "unity_version": "填写或说明为何未知",
+      "runtime": "填写Mono/.NET及构建类型和插桩开关",
+      "cpu": "填写实际测量环境，不能拿当前硬件冒充历史环境",
+      "os": "填写或说明为何未知",
+      "scenario": "写明人口、道路、车道、输入存档hash等或引用共享的environment.json",
+      "method": "写明暖跑/冷恢复、时间窗口、单位、采样开销及适用范围"
+    },
+    "limitations": ["尚未填写正式测量口径；示例不是有效的性能结论"]
+  },
+  "files": [
+    {
+      "source": "Temp/Example/scopes.csv",
+      "path": "data/scopes.csv",
+      "role": "samples",
+      "columns": {
+        "phase": {"type": "text", "unit": "label"},
+        "name": {"type": "text", "unit": "label"},
+        "ms": {"type": "number", "unit": "ms"}
+      }
+    },
+    {"source": "Temp/Example/environment.json", "path": "metadata/environment.json", "role": "environment"}
+  ],
+  "local_assets": [
+    {
+      "path": "C:/替换为完整本地路径/window.raw",
+      "kind": "profiler_raw",
+      "missing_reason": "示例路径；实际存在时prepare自动记录精确字节数与SHA256",
+      "export": {
+        "status": "not_exported",
+        "artifacts": [],
+        "included": "尚未导出",
+        "not_included": "所有原始CPU/GPU采样；采样CSV不是该raw的导出"
+      }
+    }
+  ],
+  "local_inventory": {
+    "scope": "本次测量明确引用的原始文件、输入存档与构建；不代表扫描全机",
+    "limitations": "原始文件不上传，远程verify不要求本地文件存在；verify --local才逐项核对"
+  }
+}

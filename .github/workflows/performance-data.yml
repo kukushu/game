@@ -1,0 +1,27 @@
+name: Performance evidence integrity
+on:
+  push:
+    paths:
+      - 'Docs/Benchmarks/**'
+      - 'Tools/PerformanceData*'
+      - 'Tools/PublishPerformanceData.ps1'
+      - 'Tools/ExportCityWindowProfile.ps1'
+      - 'Tools/Tests/test_performance_data.py'
+      - '.github/workflows/performance-data.yml'
+  pull_request:
+    paths:
+      - 'Docs/Benchmarks/**'
+      - 'Tools/PerformanceData*'
+      - 'Tools/PublishPerformanceData.ps1'
+      - 'Tools/ExportCityWindowProfile.ps1'
+      - 'Tools/Tests/test_performance_data.py'
+      - '.github/workflows/performance-data.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 Tools/PerformanceData.py verify --all
+      - run: python3 -m unittest discover -s Tools/Tests -p test_performance_data.py -v

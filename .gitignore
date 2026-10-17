@@ -30,3 +30,7 @@ UserSettings/
 # OS
 .DS_Store
 Thumbs.db
+
+# Python tooling caches
+__pycache__/
+*.pyc

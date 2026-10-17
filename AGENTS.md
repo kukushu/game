@@ -1,5 +1,9 @@
 # 开发约定
 
+## 性能数据共享维护（2026-10-17 最新补充）
+
+用户授权完善性能证据目录、元数据、自动校验与Git发布工具；本批不优化游戏算法、不重跑昂贵性能测试。后续正式性能分析沿用既有采样/导出器，按 [性能数据共享流程](Docs/Benchmarks/README.txt) 发布真实采样文件，不能只提交结论。入口为 `Tools/PerformanceData.py`、`Tools/PublishPerformanceData.ps1` 和 `Docs/Benchmarks/index.json`。旧批次保留原路径，历史未知项不能猜测补齐；raw/存档/Player继续本地保留，在manifest登记完整路径、精确SHA和导出覆盖范围。新批次使用独立ID，发布前执行 `verify --all`，不夹带其他已暂存修改。
+
 
 ## 当前工作状态：暂停并交接（2026-10-17，优先于历史自主开发授权）
 
