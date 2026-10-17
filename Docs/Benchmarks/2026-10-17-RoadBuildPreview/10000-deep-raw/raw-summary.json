@@ -1,0 +1,32 @@
+[
+  {
+    "frame": 0,
+    "preview_ms": 7405.721087999999,
+    "network_ms": 7297.724864,
+    "conflicts_ms": 7203.588159999999,
+    "pairs_ms": 7075.239168,
+    "gc_collect_ms": 38.9446,
+    "preview_gc_bytes": 317288084.0,
+    "note": "GC marker total, not proven complete pause total; GPU unknown"
+  },
+  {
+    "frame": 1,
+    "preview_ms": 7413.220351999999,
+    "network_ms": 7325.287936,
+    "conflicts_ms": 7219.003519999999,
+    "pairs_ms": 7091.8913919999995,
+    "gc_collect_ms": 40.5991,
+    "preview_gc_bytes": 317283342.0,
+    "note": "GC marker total, not proven complete pause total; GPU unknown"
+  },
+  {
+    "frame": 2,
+    "preview_ms": 7464.929792,
+    "network_ms": 7370.3381119999995,
+    "conflicts_ms": 7264.95936,
+    "pairs_ms": 7123.517887999999,
+    "gc_collect_ms": 32.6999,
+    "preview_gc_bytes": 317284170.0,
+    "note": "GC marker total, not proven complete pause total; GPU unknown"
+  }
+]
