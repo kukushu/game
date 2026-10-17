@@ -7,10 +7,12 @@ import subprocess, json, html, re, csv
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'Docs/Architecture'
-COMMIT = '14650d8'
+COMMIT = '559a5df'
 BASELINE = '110c4eaa24fa69d55b08a5db2a6d19ec6da5dd7f'
 R = 'Assets/Scripts/Runtime/'
 files = {
+ 'zoningviews':R+'Presentation/World/HarborCityZoningViews.cs',
+ 'surfacemesh':R+'Presentation/World/HarborCitySurfaceMesh.cs',
  'development':R+'Simulation/Growth/CityDevelopment.cs',
  'employmentreadout':R+'Presentation/UI/HarborCityEmploymentReadout.cs',
  'outsideviews':R+'Presentation/World/HarborCityOutsideViews.cs',
@@ -599,6 +601,16 @@ for c in cards:
 flowdata['current']['note']+=' 通勤估计只求合法方向最低自由流秒数；实际派车仍用原Find。估计不拥有车辆位置，不改出勤和工资。'
 evidence.extend([dict(title='实际：静态标量多起终点查询',source=ref('network','internal double MinimumTravelSeconds')),dict(title='实际：同一LRU项按需生成导航',source=ref('dispatch','public double GetTravelSeconds'))])
 
+card('zoningviews','HarborCityZoningViews','Presentation / 空间合批','derived','zoningviews','public sealed class HarborCityZoningViews','borrowed materials / owned objects + meshes / PlotCount','Sync · Dispose','Unity宿主独占；只读规划格和高度采样。','没有土地用途/建筑/道路/车辆事实；Mesh不入存档。','原逐格全部顶点/绕序按64单位块和材质合并；90733格对应256Renderer。','仅替换显示对象；失败保留旧显示，借用材质不销毁。','宿主按道路/用途/建筑修订调用；候选完成后整批换；卸载释放。','ZoneCell只读规划投影、共享AppendPlot表现算法、Unity Mesh。','仍整批重建；近景剔除比逐格粗。未改车辆同步或后台成本。','275206冻结几何检查和全屏像素0差；暂停60FPS、1×38FPS，3×实际仅1.29，不能宣称模拟达标。')
+graphs['classes']['nodes'].append(node('zoningviews','HarborCityZoningViews','all original plots / local mesh batches','derived'))
+graphs['classes']['edges'].extend([edge('host','zoningviews','owns display lifetime'),edge('zoningviews','corezoning','reads planning cells; no writes','dash')])
+graphs['ownership']['nodes'].extend([node('host','Unity宿主（表现）','组装会话；拥有视图，不以Transform写事实','derived'),node('zoningviews','分区Mesh / GameObject','独立可重建显示，不是土地数据库','derived')])
+graphs['ownership']['edges'].extend([edge('host','session','组装持有会话'),edge('host','zoningviews','独占显示资源'),edge('host','observationpanel','拥有UI选择/节流状态'),edge('plots','zoningviews','只读派生格；不回写','dash')])
+graphs['global-current']['nodes'].append(node('zoningviews','分区显示合批','只读全部地块；不降几何精度','derived'))
+graphs['global-current']['edges'].extend([edge('host','zoningviews','版本变化后重建显示'),edge('zoningviews','coregrowth','只读其Zoning规划结果','dash')])
+flowdata['current']['note']+=' Unity表现帧在0到多个完整固定步之外运行；分区视图只在修订变化后重建，Mesh不参与模拟或存档。'
+evidence.extend([dict(title='实际：分区显示独立所有权',source=ref('zoningviews','public void Sync')),dict(title='实际：不降精度的共享逐格表现几何',source=ref('surfacemesh','public static void AppendPlot'))])
+
 payload=dict(commit=COMMIT,baseline=BASELINE,cards=cards,graphs=graphs,flows=flowdata,readings=readingdata,perf=perf,evidence=evidence)
 
 page=r'''<!doctype html>
@@ -782,6 +794,8 @@ commute=(OUT/'CommuteOptimization20261017.md').read_text(encoding='utf-8-sig')
 page=page.replace('<section id="review">','<section id="review"><details open><summary>最新通勤性能：标量先行与剩余真实窗口瓶颈</summary><div class="doccontent">'+markdown(commute)+'</div></details>')
 frames_review=(OUT/'CityWindowFrames20261017.md').read_text(encoding='utf-8')
 page=page.replace('<section id="review">','<section id="review"><details open><summary>最新真实长帧：暂停显示成本、关键帧与测量隔离</summary><div class="doccontent">'+markdown(frames_review)+'</div></details>')
+zoning_batch=(OUT/'ZoningViewBatching20261017.md').read_text(encoding='utf-8')
+page=page.replace('<section id="review">','<section id="review"><details open><summary>最新默认：保留全部几何的分区空间合批与真实窗口</summary><div class="doccontent">'+markdown(zoning_batch)+'</div></details>')
 (OUT/'HarborCityArchitecture.html').write_text(page,encoding='utf-8')
 (OUT/'SourceEvidence.md').write_text('# 固定源码定位证据\n\n审查commit：`'+COMMIT+'`。以下行号由固定源码生成，而非当前工作树。\n\n'+ '\n'.join('## '+e['title']+'\n\n['+e['source']['file']+':'+str(e['source']['line'])+']('+e['source']['url']+')\n\n方法/语句：`'+e['source']['token']+'`\n' for e in evidence),encoding='utf-8')
 print(f'Created {OUT / "HarborCityArchitecture.html"}; {len(cards)} class cards, {len(graphs)} graphs, {len(flowdata)} flows; pinned {COMMIT}')
