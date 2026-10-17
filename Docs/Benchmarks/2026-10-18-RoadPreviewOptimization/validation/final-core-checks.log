@@ -1,0 +1,10 @@
+﻿
+﻿
+﻿PASS 3310 core checks; direction, topology, safety, split/reverse/removal, freight/cash, binary continuation. Lane change verified; pedestrian/full city not yet connected.
+spaced-twenty-corridors,1000,300,0.39018,0.41810,0.51490,1403.9,15,0.11727
+queued-three-approach-merge,1000,300,0.36529,0.38280,0.41290,383.3,15,0.10962
+spaced-twenty-corridors,3000,300,1.20615,1.24730,1.34770,1403.8,15,0.36189
+queued-three-approach-merge,3000,300,1.15180,1.29360,1.39660,383.3,15,0.34558
+spaced-twenty-corridors,10000,300,4.36925,4.59590,4.69970,2267.9,15,1.31084
+queued-three-approach-merge,10000,300,4.14373,4.39030,4.54920,383.3,15,1.24320
+﻿

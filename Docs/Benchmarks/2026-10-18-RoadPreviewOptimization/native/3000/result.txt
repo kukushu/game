@@ -1,0 +1,10 @@
+population=3000
+active=707
+initialRoads=85
+finalRoads=86
+initialRoadViews=604
+finalRoadViews=606
+previewUnchanged=True
+roundtrip=True
+paid=267
+Programmatic UI-call-path construction attribution in native Unity; not mouse acceptance or FPS benchmark.

@@ -1,0 +1,1 @@
+PASS original transaction, 267 fee, unchanged preview/duplicate failure, exact physical positions, 240 normal steps and 80-step warm/cold in-flight replay. Compare replay.csv between old/new sources; not FPS.

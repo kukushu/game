@@ -1,0 +1,4499 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-18-RoadPreviewOptimization",
+  "packaged_at_utc": "2026-10-17T17:07:12.478092+00:00",
+  "measurement": {
+    "title": "道路鼠标预览、静态冲突查询与道路显示优化：最终采样及精确对照",
+    "kind": "attribution",
+    "source_commit": "8c22ac132c83c4764fc46907ce8cc2ae0aedfc85",
+    "captured_at_utc": "2026-10-17T17:02:21.3245656Z",
+    "unity_version": "6000.6.3f1",
+    "runtime": "Native Unity development Mono attribution; steady Mono without attribution; transaction replay .NET 10 x64",
+    "cpu": "Intel(R) Core(TM) i5-14600KF",
+    "os": "Microsoft Windows NT 10.0.26200.0",
+    "scenario": "Same regenerated 3000/10006/30000 cities; input hashes in native run.json. 600 measured steps after 80 warmup on 30000 input, ABBA CPU affinity 1.",
+    "method": "Reused original native baseline at 8de67ef Docs/Benchmarks/2026-10-17-RoadBuildPreview. Final native action scopes run sequentially; 1 first and 2 warm previews each. Raw capture is separate instrumented repetition. Fixed .05-second simulation steps retained. Not a FPS or real mouse acceptance test. See Report.txt and exact source hashes.",
+    "commands": [
+      [
+        "python",
+        "Tools/Diagnostics/SummarizeRoadPreview20261018.py"
+      ],
+      [
+        "powershell",
+        "-File",
+        "Tools/VerifyConnectionConflicts.ps1"
+      ],
+      [
+        "powershell",
+        "-File",
+        "Tools/ExportCityWindowProfile.ps1",
+        "-Capture",
+        "Temp/RoadPreviewOptimization-20261018/native-final/30000-raw"
+      ]
+    ],
+    "unknown_reasons": {},
+    "limitations": [
+      "Historical baseline reused rather than fresh native ABBA; small native sample count, instrumented timing, no FPS inference.",
+      "Preview intentionally changes to provisional yellow geometry; final exact validation remains on click.",
+      "Manual mouse acceptance skipped at user request after Windows firewall dialog.",
+      "Zoning view rebuild and first post-edit step remain long. Steady cache allocation tradeoff is reported.",
+      "Earlier Mono old transaction replay exceeded 180 seconds and failed; .NET x64 matched old/new comparison separately passed.",
+      "Native capture timestamp denotes first final native run; run.json per native capture records intervals. Oracle/replay earlier final-equivalent source tested before code commit; source hashes preserved."
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "native/3000/scopes.csv",
+      "role": "samples",
+      "digest_mode": "utf8-lf",
+      "bytes": 1679,
+      "sha256": "d750bfabe346f80c54c459f5b950a28fe37e67678049395e0aba4a2e56b8c798",
+      "format": "csv",
+      "rows": 63,
+      "columns": {
+        "phase": {
+          "type": "text",
+          "unit": "label"
+        },
+        "name": {
+          "type": "text",
+          "unit": "label"
+        },
+        "ms": {
+          "type": "number",
+          "unit": "ms"
+        }
+      }
+    },
+    {
+      "path": "native/3000/frames.csv",
+      "role": "samples",
+      "digest_mode": "utf8-lf",
+      "bytes": 164,
+      "sha256": "8087960485a966c5ddc24967c3e874e6a3d6363b875f8df49c4dc79cb41475a9",
+      "format": "csv",
+      "rows": 6,
+      "columns": {
+        "frame": {
+          "type": "number",
+          "unit": "count"
+        },
+        "phase": {
+          "type": "text",
+          "unit": "label"
+        },
+        "frame_ms": {
+          "type": "number",
+          "unit": "ms"
+        }
+      }
+    },
+    {
+      "path": "native/3000/result.txt",
+      "role": "validation",
+      "digest_mode": "utf8-lf",
+      "bytes": 250,
+      "sha256": "9957d3a1b732d1d13f98ac3e6c25d4afbe6ad4700c1eae3361bb86e8c00dcbca",
+      "format": "text"
+    },
+    {
+      "path": "native/3000/run.json",
+      "role": "environment",
+      "digest_mode": "utf8-lf",
+      "bytes": 358,
+      "sha256": "5dcbc32df8f256b91964f2222b208994414f93e2d32748b5822061315b3208b0",
+      "format": "json"
+    },
+    {
+      "path": "native/10000/scopes.csv",
+      "role": "samples",
+      "digest_mode": "utf8-lf",
+      "bytes": 1707,
+      "sha256": "e8b270c2cb64ff69246e5e371ce51e76623189b186add9591c42cbb8949d56c9",
+      "format": "csv",
+      "rows": 63,
+      "columns": {
+        "phase": {
+          "type": "text",
+          "unit": "label"
+        },
+        "name": {
+          "type": "text",
+          "unit": "label"
+        },
+        "ms": {
+          "type": "number",
+          "unit": "ms"
+        }
+      }
+    },
+    {
+      "path": "native/10000/frames.csv",
+      "role": "samples",
+      "digest_mode": "utf8-lf",
+      "bytes": 169,
+      "sha256": "6ba3fd56b316e2ea638e7e8b51e84a38922ff8c3c80fc8c1737109e5390b9d25",
+      "format": "csv",
+      "rows": 6,
+      "columns": {
+        "frame": {
+          "type": "number",
+          "unit": "count"
+        },
+        "phase": {
+          "type": "text",
+          "unit": "label"
+        },
+        "frame_ms": {
+          "type": "number",
+          "unit": "ms"
+        }
+      }
+    },
+    {
+      "path": "native/10000/result.txt",
+      "role": "validation",
+      "digest_mode": "utf8-lf",
+      "bytes": 256,
+      "sha256": "0e9504d9139042516e8f685701ff8664b48f07e049166e541fb4edd19aabf8ca",
+      "format": "text"
+    },
+    {
+      "path": "native/10000/run.json",
+      "role": "environment",
+      "digest_mode": "utf8-lf",
+      "bytes": 358,
+      "sha256": "35a16994cf6aa8aab675486e71f038c560fa386123696fe898089a966b8893fc",
+      "format": "json"
+    },
+    {
+      "path": "native/30000/scopes.csv",
+      "role": "samples",
+      "digest_mode": "utf8-lf",
+      "bytes": 1716,
+      "sha256": "d96f57788deb868b61de00e2256920c256db5bbeec11974cc68370a83d8bab4e",
+      "format": "csv",
+      "rows": 63,
+      "columns": {
+        "phase": {
+          "type": "text",
+          "unit": "label"
+        },
+        "name": {
+          "type": "text",
+          "unit": "label"
+        },
+        "ms": {
+          "type": "number",
+          "unit": "ms"
+        }
+      }
+    },
+    {
+      "path": "native/30000/frames.csv",
+      "role": "samples",
+      "digest_mode": "utf8-lf",
+      "bytes": 165,
+      "sha256": "68a91f81f31383e6a89ea176182a57acb7f1e79dde1b7f4cbeb31feeafacd65e",
+      "format": "csv",
+      "rows": 6,
+      "columns": {
+        "frame": {
+          "type": "number",
+          "unit": "count"
+        },
+        "phase": {
+          "type": "text",
+          "unit": "label"
+        },
+        "frame_ms": {
+          "type": "number",
+          "unit": "ms"
+        }
+      }
+    },
+    {
+      "path": "native/30000/result.txt",
+      "role": "validation",
+      "digest_mode": "utf8-lf",
+      "bytes": 258,
+      "sha256": "e7cc26cc87791aa0199cb7432933d4c4beb953a7eab717bed8f72576d3565cae",
+      "format": "text"
+    },
+    {
+      "path": "native/30000/run.json",
+      "role": "environment",
+      "digest_mode": "utf8-lf",
+      "bytes": 358,
+      "sha256": "beb31b03fda5c82270bacd416598236671a67c6b9fe1f9b736884c283320ca89",
+      "format": "json"
+    },
+    {
+      "path": "native/30000-raw/scopes.csv",
+      "role": "samples",
+      "digest_mode": "utf8-lf",
+      "bytes": 1722,
+      "sha256": "b8228f5ce02a03f1d35f4951363f5f28fb734a5f78148bd50d61b1f615a5b6f1",
+      "format": "csv",
+      "rows": 63,
+      "columns": {
+        "phase": {
+          "type": "text",
+          "unit": "label"
+        },
+        "name": {
+          "type": "text",
+          "unit": "label"
+        },
+        "ms": {
+          "type": "number",
+          "unit": "ms"
+        }
+      }
+    },
+    {
+      "path": "native/30000-raw/frames.csv",
+      "role": "samples",
+      "digest_mode": "utf8-lf",
+      "bytes": 169,
+      "sha256": "a1bf7cef58f13afe2017a613c44a0bccbcb97d57fea2371632ff5e33a9b70ad3",
+      "format": "csv",
+      "rows": 6,
+      "columns": {
+        "frame": {
+          "type": "number",
+          "unit": "count"
+        },
+        "phase": {
+          "type": "text",
+          "unit": "label"
+        },
+        "frame_ms": {
+          "type": "number",
+          "unit": "ms"
+        }
+      }
+    },
+    {
+      "path": "native/30000-raw/result.txt",
+      "role": "validation",
+      "digest_mode": "utf8-lf",
+      "bytes": 258,
+      "sha256": "e7cc26cc87791aa0199cb7432933d4c4beb953a7eab717bed8f72576d3565cae",
+      "format": "text"
+    },
+    {
+      "path": "native/30000-raw/run.json",
+      "role": "environment",
+      "digest_mode": "utf8-lf",
+      "bytes": 358,
+      "sha256": "d6f931f6359c4eab3275f6ba07175dae1036f3986c16c212c314c3dfb5a01b16",
+      "format": "json"
+    },
+    {
+      "path": "native/30000-raw/hierarchy.csv",
+      "role": "samples",
+      "digest_mode": "utf8-lf",
+      "bytes": 79563,
+      "sha256": "beb1ff0dfd8c3e2a2dbc90138fd5d5192a55f050635c9f392d0088a4162ac881",
+      "format": "csv",
+      "rows": 279,
+      "columns": {
+        "frame": {
+          "type": "number",
+          "unit": "count"
+        },
+        "thread": {
+          "type": "text",
+          "unit": "label"
+        },
+        "path": {
+          "type": "text",
+          "unit": "label"
+        },
+        "total_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "gc_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        }
+      }
+    },
+    {
+      "path": "native/30000-raw/threads.csv",
+      "role": "samples",
+      "digest_mode": "utf8-lf",
+      "bytes": 804,
+      "sha256": "414a58e88f731b52dbe058ef704713d22a66dfecc1d6632c42f8189c6b72d8cf",
+      "format": "csv",
+      "rows": 20,
+      "columns": {
+        "frame": {
+          "type": "number",
+          "unit": "count"
+        },
+        "thread": {
+          "type": "text",
+          "unit": "label"
+        },
+        "frame_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "gpu_ms": {
+          "type": "number",
+          "unit": "ms"
+        }
+      }
+    },
+    {
+      "path": "native/30000-raw/export-receipt.json",
+      "role": "environment",
+      "digest_mode": "utf8-lf",
+      "bytes": 2874,
+      "sha256": "c874598741c74e7e6b8f896b628cd58fdcaa447dd7b1b7f850f1de4c438d711a",
+      "format": "json"
+    },
+    {
+      "path": "native/30000-raw/export-resources.json",
+      "role": "environment",
+      "digest_mode": "utf8-lf",
+      "bytes": 105,
+      "sha256": "e83ce4b0ec05e145b3f23168d60b544c5cc001a851dc6b8a4c8df5f94ed0e4ce",
+      "format": "json"
+    },
+    {
+      "path": "steady/a1/steps.csv",
+      "role": "samples",
+      "digest_mode": "utf8-lf",
+      "bytes": 631310,
+      "sha256": "1d4c0f11cfadf6ece5636c5402e4099903b4f39758d589d73916af8d619b5aa8",
+      "format": "csv",
+      "rows": 600,
+      "columns": {
+        "probe_tick": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "allocated": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "probe_active": {
+          "type": "number",
+          "unit": "count"
+        },
+        "tick": {
+          "type": "number",
+          "unit": "count"
+        },
+        "active": {
+          "type": "number",
+          "unit": "count"
+        },
+        "route_preparations": {
+          "type": "number",
+          "unit": "count"
+        },
+        "gc0": {
+          "type": "number",
+          "unit": "count"
+        },
+        "gc1": {
+          "type": "number",
+          "unit": "count"
+        },
+        "gc2": {
+          "type": "number",
+          "unit": "count"
+        },
+        "unreachable": {
+          "type": "number",
+          "unit": "count"
+        },
+        "source_blocked": {
+          "type": "number",
+          "unit": "count"
+        },
+        "cache_flushes": {
+          "type": "number",
+          "unit": "count"
+        },
+        "cache_hits": {
+          "type": "number",
+          "unit": "count"
+        },
+        "cache_evictions": {
+          "type": "number",
+          "unit": "count"
+        },
+        "commute_estimate_hits": {
+          "type": "number",
+          "unit": "count"
+        },
+        "commute_estimate_misses": {
+          "type": "number",
+          "unit": "count"
+        },
+        "allocation_counter_supported": {
+          "type": "number",
+          "unit": "count"
+        },
+        "zoning_candidate_pairs": {
+          "type": "number",
+          "unit": "count"
+        },
+        "zoning_exact_overlaps": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Step_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Step_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Step_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Step_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Step_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Residents_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Residents_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Residents_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Residents_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Residents_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Job_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Job_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Job_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Job_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Job_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Production_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Production_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Production_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Production_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Production_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Logistics_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Logistics_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Logistics_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Logistics_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Logistics_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Dispatch_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Dispatch_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Dispatch_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Dispatch_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Dispatch_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "RouteLookup_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "RouteLookup_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "RouteLookup_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "RouteLookup_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "RouteLookup_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "RouteSearch_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "RouteSearch_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "RouteSearch_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "RouteSearch_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "RouteSearch_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Admission_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Admission_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Admission_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Admission_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Admission_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Occupancy_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Occupancy_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Occupancy_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Occupancy_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Occupancy_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Movement_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Movement_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Movement_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Movement_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Movement_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Settlement_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Settlement_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Settlement_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Settlement_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Settlement_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Growth_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Growth_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Growth_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Growth_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Growth_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Utilities_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Utilities_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Utilities_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Utilities_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Utilities_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Population_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Population_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Population_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Population_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Population_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Consumption_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Consumption_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Consumption_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Consumption_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Consumption_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Trade_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Trade_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Trade_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Trade_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Trade_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Payroll_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Payroll_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Payroll_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Payroll_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Payroll_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningRebuild_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningRebuild_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningRebuild_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ZoningRebuild_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningRebuild_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "GrowthSearch_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "GrowthSearch_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "GrowthSearch_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "GrowthSearch_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "GrowthSearch_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Placement_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Placement_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Placement_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Placement_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Placement_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Finance_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Finance_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Finance_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Finance_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Finance_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "FinanceAccrual_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "FinanceAccrual_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "FinanceAccrual_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "FinanceAccrual_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "FinanceAccrual_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Waste_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Waste_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Waste_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Waste_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Waste_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningGeometry_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningGeometry_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningGeometry_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ZoningGeometry_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningGeometry_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningLandUse_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningLandUse_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningLandUse_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ZoningLandUse_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningLandUse_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningOccupancy_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningOccupancy_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningOccupancy_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ZoningOccupancy_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningOccupancy_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "UtilityRebuild_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "UtilityRebuild_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "UtilityRebuild_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "UtilityRebuild_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "UtilityRebuild_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "UtilityPowerCoverage_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "UtilityPowerCoverage_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "UtilityPowerCoverage_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "UtilityPowerCoverage_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "UtilityPowerCoverage_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "UtilityWaterCoverage_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "UtilityWaterCoverage_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "UtilityWaterCoverage_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "UtilityWaterCoverage_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "UtilityWaterCoverage_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "CommuteEstimate_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "CommuteEstimate_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "CommuteEstimate_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "CommuteEstimate_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "CommuteEstimate_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "CostSearch_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "CostSearch_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "CostSearch_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "CostSearch_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "CostSearch_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "PlacementTerrain_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "PlacementTerrain_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "PlacementTerrain_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "PlacementTerrain_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "PlacementTerrain_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "PlacementBuildings_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "PlacementBuildings_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "PlacementBuildings_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "PlacementBuildings_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "PlacementBuildings_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ClearanceQuery_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ClearanceQuery_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ClearanceQuery_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ClearanceQuery_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ClearanceQuery_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ClearanceOverlap_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ClearanceOverlap_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ClearanceOverlap_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ClearanceOverlap_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ClearanceOverlap_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningCellKey_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningCellKey_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningCellKey_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ZoningCellKey_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningCellKey_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "CommuteLookup_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "CommuteLookup_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "CommuteLookup_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "CommuteLookup_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "CommuteLookup_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "OccupancyClear_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "OccupancyClear_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "OccupancyClear_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "OccupancyClear_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "OccupancyClear_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "OccupancyActors_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "OccupancyActors_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "OccupancyActors_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "OccupancyActors_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "OccupancyActors_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "OccupancySort_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "OccupancySort_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "OccupancySort_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "OccupancySort_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "OccupancySort_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        }
+      }
+    },
+    {
+      "path": "steady/a1/environment.json",
+      "role": "environment",
+      "digest_mode": "utf8-lf",
+      "bytes": 20906,
+      "sha256": "deb7e66690046e40778ac283fd3361e1ea63902e249dc570d755c32df3d7c99c",
+      "format": "json"
+    },
+    {
+      "path": "steady/a1/resources.json",
+      "role": "environment",
+      "digest_mode": "utf8-lf",
+      "bytes": 320,
+      "sha256": "d7a23359b497938e8a4f16d1b6d487e6aff79ae610f130e676fdf3a7f865f8a3",
+      "format": "json"
+    },
+    {
+      "path": "steady/b1/steps.csv",
+      "role": "samples",
+      "digest_mode": "utf8-lf",
+      "bytes": 631311,
+      "sha256": "5a2961c504482d06752decd55f62b56985915dffb52b13752919698dde5c5964",
+      "format": "csv",
+      "rows": 600,
+      "columns": {
+        "probe_tick": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "allocated": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "probe_active": {
+          "type": "number",
+          "unit": "count"
+        },
+        "tick": {
+          "type": "number",
+          "unit": "count"
+        },
+        "active": {
+          "type": "number",
+          "unit": "count"
+        },
+        "route_preparations": {
+          "type": "number",
+          "unit": "count"
+        },
+        "gc0": {
+          "type": "number",
+          "unit": "count"
+        },
+        "gc1": {
+          "type": "number",
+          "unit": "count"
+        },
+        "gc2": {
+          "type": "number",
+          "unit": "count"
+        },
+        "unreachable": {
+          "type": "number",
+          "unit": "count"
+        },
+        "source_blocked": {
+          "type": "number",
+          "unit": "count"
+        },
+        "cache_flushes": {
+          "type": "number",
+          "unit": "count"
+        },
+        "cache_hits": {
+          "type": "number",
+          "unit": "count"
+        },
+        "cache_evictions": {
+          "type": "number",
+          "unit": "count"
+        },
+        "commute_estimate_hits": {
+          "type": "number",
+          "unit": "count"
+        },
+        "commute_estimate_misses": {
+          "type": "number",
+          "unit": "count"
+        },
+        "allocation_counter_supported": {
+          "type": "number",
+          "unit": "count"
+        },
+        "zoning_candidate_pairs": {
+          "type": "number",
+          "unit": "count"
+        },
+        "zoning_exact_overlaps": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Step_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Step_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Step_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Step_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Step_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Residents_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Residents_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Residents_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Residents_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Residents_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Job_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Job_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Job_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Job_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Job_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Production_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Production_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Production_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Production_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Production_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Logistics_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Logistics_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Logistics_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Logistics_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Logistics_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Dispatch_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Dispatch_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Dispatch_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Dispatch_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Dispatch_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "RouteLookup_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "RouteLookup_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "RouteLookup_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "RouteLookup_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "RouteLookup_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "RouteSearch_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "RouteSearch_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "RouteSearch_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "RouteSearch_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "RouteSearch_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Admission_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Admission_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Admission_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Admission_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Admission_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Occupancy_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Occupancy_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Occupancy_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Occupancy_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Occupancy_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Movement_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Movement_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Movement_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Movement_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Movement_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Settlement_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Settlement_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Settlement_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Settlement_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Settlement_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Growth_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Growth_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Growth_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Growth_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Growth_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Utilities_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Utilities_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Utilities_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Utilities_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Utilities_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Population_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Population_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Population_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Population_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Population_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Consumption_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Consumption_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Consumption_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Consumption_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Consumption_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Trade_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Trade_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Trade_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Trade_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Trade_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Payroll_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Payroll_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Payroll_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Payroll_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Payroll_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningRebuild_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningRebuild_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningRebuild_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ZoningRebuild_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningRebuild_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "GrowthSearch_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "GrowthSearch_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "GrowthSearch_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "GrowthSearch_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "GrowthSearch_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Placement_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Placement_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Placement_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Placement_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Placement_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Finance_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Finance_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Finance_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Finance_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Finance_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "FinanceAccrual_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "FinanceAccrual_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "FinanceAccrual_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "FinanceAccrual_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "FinanceAccrual_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Waste_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Waste_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Waste_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Waste_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Waste_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningGeometry_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningGeometry_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningGeometry_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ZoningGeometry_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningGeometry_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningLandUse_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningLandUse_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningLandUse_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ZoningLandUse_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningLandUse_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningOccupancy_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningOccupancy_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningOccupancy_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ZoningOccupancy_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningOccupancy_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "UtilityRebuild_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "UtilityRebuild_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "UtilityRebuild_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "UtilityRebuild_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "UtilityRebuild_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "UtilityPowerCoverage_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "UtilityPowerCoverage_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "UtilityPowerCoverage_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "UtilityPowerCoverage_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "UtilityPowerCoverage_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "UtilityWaterCoverage_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "UtilityWaterCoverage_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "UtilityWaterCoverage_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "UtilityWaterCoverage_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "UtilityWaterCoverage_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "CommuteEstimate_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "CommuteEstimate_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "CommuteEstimate_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "CommuteEstimate_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "CommuteEstimate_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "CostSearch_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "CostSearch_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "CostSearch_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "CostSearch_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "CostSearch_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "PlacementTerrain_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "PlacementTerrain_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "PlacementTerrain_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "PlacementTerrain_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "PlacementTerrain_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "PlacementBuildings_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "PlacementBuildings_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "PlacementBuildings_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "PlacementBuildings_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "PlacementBuildings_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ClearanceQuery_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ClearanceQuery_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ClearanceQuery_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ClearanceQuery_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ClearanceQuery_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ClearanceOverlap_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ClearanceOverlap_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ClearanceOverlap_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ClearanceOverlap_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ClearanceOverlap_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningCellKey_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningCellKey_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningCellKey_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ZoningCellKey_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningCellKey_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "CommuteLookup_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "CommuteLookup_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "CommuteLookup_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "CommuteLookup_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "CommuteLookup_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "OccupancyClear_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "OccupancyClear_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "OccupancyClear_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "OccupancyClear_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "OccupancyClear_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "OccupancyActors_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "OccupancyActors_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "OccupancyActors_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "OccupancyActors_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "OccupancyActors_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "OccupancySort_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "OccupancySort_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "OccupancySort_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "OccupancySort_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "OccupancySort_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        }
+      }
+    },
+    {
+      "path": "steady/b1/environment.json",
+      "role": "environment",
+      "digest_mode": "utf8-lf",
+      "bytes": 20940,
+      "sha256": "47932f6b5230c35eadd965e20ffe4ea7b27885f4f1b5904c80d083d9fc1542b0",
+      "format": "json"
+    },
+    {
+      "path": "steady/b1/resources.json",
+      "role": "environment",
+      "digest_mode": "utf8-lf",
+      "bytes": 320,
+      "sha256": "95ec84b93000e7982559eee9a38a1370fb1fadf54109e5a2df13f1b3fbfa3ce1",
+      "format": "json"
+    },
+    {
+      "path": "steady/b2/steps.csv",
+      "role": "samples",
+      "digest_mode": "utf8-lf",
+      "bytes": 631313,
+      "sha256": "65c8879bc1399de8675c690528ac9e41eb6893948cf23c1f7154f24eee85c27b",
+      "format": "csv",
+      "rows": 600,
+      "columns": {
+        "probe_tick": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "allocated": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "probe_active": {
+          "type": "number",
+          "unit": "count"
+        },
+        "tick": {
+          "type": "number",
+          "unit": "count"
+        },
+        "active": {
+          "type": "number",
+          "unit": "count"
+        },
+        "route_preparations": {
+          "type": "number",
+          "unit": "count"
+        },
+        "gc0": {
+          "type": "number",
+          "unit": "count"
+        },
+        "gc1": {
+          "type": "number",
+          "unit": "count"
+        },
+        "gc2": {
+          "type": "number",
+          "unit": "count"
+        },
+        "unreachable": {
+          "type": "number",
+          "unit": "count"
+        },
+        "source_blocked": {
+          "type": "number",
+          "unit": "count"
+        },
+        "cache_flushes": {
+          "type": "number",
+          "unit": "count"
+        },
+        "cache_hits": {
+          "type": "number",
+          "unit": "count"
+        },
+        "cache_evictions": {
+          "type": "number",
+          "unit": "count"
+        },
+        "commute_estimate_hits": {
+          "type": "number",
+          "unit": "count"
+        },
+        "commute_estimate_misses": {
+          "type": "number",
+          "unit": "count"
+        },
+        "allocation_counter_supported": {
+          "type": "number",
+          "unit": "count"
+        },
+        "zoning_candidate_pairs": {
+          "type": "number",
+          "unit": "count"
+        },
+        "zoning_exact_overlaps": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Step_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Step_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Step_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Step_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Step_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Residents_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Residents_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Residents_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Residents_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Residents_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Job_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Job_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Job_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Job_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Job_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Production_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Production_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Production_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Production_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Production_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Logistics_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Logistics_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Logistics_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Logistics_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Logistics_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Dispatch_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Dispatch_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Dispatch_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Dispatch_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Dispatch_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "RouteLookup_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "RouteLookup_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "RouteLookup_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "RouteLookup_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "RouteLookup_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "RouteSearch_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "RouteSearch_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "RouteSearch_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "RouteSearch_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "RouteSearch_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Admission_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Admission_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Admission_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Admission_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Admission_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Occupancy_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Occupancy_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Occupancy_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Occupancy_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Occupancy_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Movement_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Movement_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Movement_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Movement_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Movement_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Settlement_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Settlement_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Settlement_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Settlement_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Settlement_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Growth_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Growth_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Growth_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Growth_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Growth_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Utilities_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Utilities_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Utilities_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Utilities_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Utilities_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Population_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Population_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Population_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Population_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Population_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Consumption_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Consumption_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Consumption_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Consumption_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Consumption_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Trade_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Trade_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Trade_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Trade_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Trade_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Payroll_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Payroll_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Payroll_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Payroll_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Payroll_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningRebuild_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningRebuild_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningRebuild_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ZoningRebuild_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningRebuild_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "GrowthSearch_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "GrowthSearch_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "GrowthSearch_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "GrowthSearch_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "GrowthSearch_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Placement_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Placement_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Placement_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Placement_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Placement_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Finance_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Finance_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Finance_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Finance_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Finance_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "FinanceAccrual_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "FinanceAccrual_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "FinanceAccrual_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "FinanceAccrual_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "FinanceAccrual_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Waste_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Waste_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Waste_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Waste_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Waste_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningGeometry_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningGeometry_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningGeometry_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ZoningGeometry_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningGeometry_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningLandUse_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningLandUse_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningLandUse_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ZoningLandUse_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningLandUse_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningOccupancy_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningOccupancy_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningOccupancy_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ZoningOccupancy_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningOccupancy_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "UtilityRebuild_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "UtilityRebuild_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "UtilityRebuild_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "UtilityRebuild_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "UtilityRebuild_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "UtilityPowerCoverage_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "UtilityPowerCoverage_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "UtilityPowerCoverage_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "UtilityPowerCoverage_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "UtilityPowerCoverage_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "UtilityWaterCoverage_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "UtilityWaterCoverage_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "UtilityWaterCoverage_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "UtilityWaterCoverage_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "UtilityWaterCoverage_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "CommuteEstimate_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "CommuteEstimate_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "CommuteEstimate_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "CommuteEstimate_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "CommuteEstimate_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "CostSearch_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "CostSearch_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "CostSearch_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "CostSearch_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "CostSearch_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "PlacementTerrain_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "PlacementTerrain_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "PlacementTerrain_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "PlacementTerrain_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "PlacementTerrain_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "PlacementBuildings_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "PlacementBuildings_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "PlacementBuildings_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "PlacementBuildings_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "PlacementBuildings_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ClearanceQuery_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ClearanceQuery_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ClearanceQuery_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ClearanceQuery_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ClearanceQuery_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ClearanceOverlap_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ClearanceOverlap_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ClearanceOverlap_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ClearanceOverlap_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ClearanceOverlap_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningCellKey_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningCellKey_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningCellKey_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ZoningCellKey_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningCellKey_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "CommuteLookup_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "CommuteLookup_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "CommuteLookup_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "CommuteLookup_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "CommuteLookup_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "OccupancyClear_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "OccupancyClear_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "OccupancyClear_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "OccupancyClear_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "OccupancyClear_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "OccupancyActors_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "OccupancyActors_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "OccupancyActors_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "OccupancyActors_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "OccupancyActors_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "OccupancySort_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "OccupancySort_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "OccupancySort_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "OccupancySort_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "OccupancySort_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        }
+      }
+    },
+    {
+      "path": "steady/b2/environment.json",
+      "role": "environment",
+      "digest_mode": "utf8-lf",
+      "bytes": 21000,
+      "sha256": "5becd5a1d9369c08147fa53c7b7905945279aec5a5707974c5910b24c4def1ca",
+      "format": "json"
+    },
+    {
+      "path": "steady/b2/resources.json",
+      "role": "environment",
+      "digest_mode": "utf8-lf",
+      "bytes": 320,
+      "sha256": "66bc9820aacb4131440852944e55b76dd5766318ac0592ea09c6b0ffd34f7b32",
+      "format": "json"
+    },
+    {
+      "path": "steady/a2/steps.csv",
+      "role": "samples",
+      "digest_mode": "utf8-lf",
+      "bytes": 631295,
+      "sha256": "de7aee418cd1097cabf858962281cc25c932b4ec1a7a65e7c2340f79131c23a1",
+      "format": "csv",
+      "rows": 600,
+      "columns": {
+        "probe_tick": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "allocated": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "probe_active": {
+          "type": "number",
+          "unit": "count"
+        },
+        "tick": {
+          "type": "number",
+          "unit": "count"
+        },
+        "active": {
+          "type": "number",
+          "unit": "count"
+        },
+        "route_preparations": {
+          "type": "number",
+          "unit": "count"
+        },
+        "gc0": {
+          "type": "number",
+          "unit": "count"
+        },
+        "gc1": {
+          "type": "number",
+          "unit": "count"
+        },
+        "gc2": {
+          "type": "number",
+          "unit": "count"
+        },
+        "unreachable": {
+          "type": "number",
+          "unit": "count"
+        },
+        "source_blocked": {
+          "type": "number",
+          "unit": "count"
+        },
+        "cache_flushes": {
+          "type": "number",
+          "unit": "count"
+        },
+        "cache_hits": {
+          "type": "number",
+          "unit": "count"
+        },
+        "cache_evictions": {
+          "type": "number",
+          "unit": "count"
+        },
+        "commute_estimate_hits": {
+          "type": "number",
+          "unit": "count"
+        },
+        "commute_estimate_misses": {
+          "type": "number",
+          "unit": "count"
+        },
+        "allocation_counter_supported": {
+          "type": "number",
+          "unit": "count"
+        },
+        "zoning_candidate_pairs": {
+          "type": "number",
+          "unit": "count"
+        },
+        "zoning_exact_overlaps": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Step_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Step_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Step_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Step_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Step_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Residents_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Residents_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Residents_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Residents_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Residents_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Job_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Job_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Job_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Job_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Job_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Production_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Production_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Production_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Production_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Production_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Logistics_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Logistics_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Logistics_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Logistics_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Logistics_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Dispatch_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Dispatch_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Dispatch_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Dispatch_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Dispatch_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "RouteLookup_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "RouteLookup_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "RouteLookup_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "RouteLookup_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "RouteLookup_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "RouteSearch_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "RouteSearch_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "RouteSearch_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "RouteSearch_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "RouteSearch_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Admission_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Admission_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Admission_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Admission_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Admission_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Occupancy_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Occupancy_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Occupancy_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Occupancy_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Occupancy_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Movement_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Movement_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Movement_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Movement_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Movement_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Settlement_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Settlement_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Settlement_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Settlement_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Settlement_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Growth_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Growth_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Growth_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Growth_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Growth_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Utilities_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Utilities_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Utilities_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Utilities_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Utilities_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Population_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Population_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Population_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Population_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Population_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Consumption_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Consumption_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Consumption_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Consumption_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Consumption_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Trade_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Trade_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Trade_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Trade_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Trade_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Payroll_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Payroll_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Payroll_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Payroll_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Payroll_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningRebuild_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningRebuild_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningRebuild_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ZoningRebuild_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningRebuild_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "GrowthSearch_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "GrowthSearch_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "GrowthSearch_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "GrowthSearch_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "GrowthSearch_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Placement_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Placement_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Placement_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Placement_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Placement_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Finance_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Finance_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Finance_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Finance_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Finance_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "FinanceAccrual_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "FinanceAccrual_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "FinanceAccrual_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "FinanceAccrual_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "FinanceAccrual_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Waste_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Waste_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Waste_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Waste_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Waste_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningGeometry_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningGeometry_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningGeometry_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ZoningGeometry_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningGeometry_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningLandUse_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningLandUse_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningLandUse_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ZoningLandUse_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningLandUse_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningOccupancy_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningOccupancy_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningOccupancy_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ZoningOccupancy_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningOccupancy_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "UtilityRebuild_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "UtilityRebuild_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "UtilityRebuild_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "UtilityRebuild_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "UtilityRebuild_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "UtilityPowerCoverage_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "UtilityPowerCoverage_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "UtilityPowerCoverage_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "UtilityPowerCoverage_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "UtilityPowerCoverage_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "UtilityWaterCoverage_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "UtilityWaterCoverage_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "UtilityWaterCoverage_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "UtilityWaterCoverage_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "UtilityWaterCoverage_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "CommuteEstimate_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "CommuteEstimate_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "CommuteEstimate_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "CommuteEstimate_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "CommuteEstimate_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "CostSearch_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "CostSearch_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "CostSearch_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "CostSearch_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "CostSearch_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "PlacementTerrain_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "PlacementTerrain_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "PlacementTerrain_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "PlacementTerrain_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "PlacementTerrain_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "PlacementBuildings_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "PlacementBuildings_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "PlacementBuildings_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "PlacementBuildings_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "PlacementBuildings_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ClearanceQuery_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ClearanceQuery_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ClearanceQuery_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ClearanceQuery_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ClearanceQuery_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ClearanceOverlap_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ClearanceOverlap_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ClearanceOverlap_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ClearanceOverlap_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ClearanceOverlap_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningCellKey_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningCellKey_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningCellKey_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ZoningCellKey_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningCellKey_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "CommuteLookup_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "CommuteLookup_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "CommuteLookup_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "CommuteLookup_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "CommuteLookup_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "OccupancyClear_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "OccupancyClear_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "OccupancyClear_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "OccupancyClear_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "OccupancyClear_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "OccupancyActors_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "OccupancyActors_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "OccupancyActors_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "OccupancyActors_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "OccupancyActors_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "OccupancySort_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "OccupancySort_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "OccupancySort_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "OccupancySort_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "OccupancySort_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        }
+      }
+    },
+    {
+      "path": "steady/a2/environment.json",
+      "role": "environment",
+      "digest_mode": "utf8-lf",
+      "bytes": 21068,
+      "sha256": "cb8198ee9e71eae847eeeae59535d59dc871300591f613c664a3bc08d1424ea5",
+      "format": "json"
+    },
+    {
+      "path": "steady/a2/resources.json",
+      "role": "environment",
+      "digest_mode": "utf8-lf",
+      "bytes": 320,
+      "sha256": "ecef78ad0c78855b147262a9df665c84c07c7b3fbed2f120e8726e28f2044e19",
+      "format": "json"
+    },
+    {
+      "path": "replay/old/replay.csv",
+      "role": "samples",
+      "digest_mode": "utf8-lf",
+      "bytes": 595,
+      "sha256": "ae792ff6babea733a7d2ced4e07e404e542557ce9e9a352ac67556cf907acaf3",
+      "format": "csv",
+      "rows": 6,
+      "columns": {
+        "stage": {
+          "type": "text",
+          "unit": "label"
+        },
+        "state_sha256": {
+          "type": "text",
+          "unit": "label"
+        },
+        "roads": {
+          "type": "number",
+          "unit": "count"
+        },
+        "population": {
+          "type": "number",
+          "unit": "count"
+        },
+        "active": {
+          "type": "number",
+          "unit": "count"
+        }
+      }
+    },
+    {
+      "path": "replay/old/environment.json",
+      "role": "validation",
+      "digest_mode": "utf8-lf",
+      "bytes": 167,
+      "sha256": "6de0c0ec5d853c1001c218ccfce3d4f8188a9ec71e47995f8635f7340984ce71",
+      "format": "json"
+    },
+    {
+      "path": "replay/old/Result.txt",
+      "role": "validation",
+      "digest_mode": "utf8-lf",
+      "bytes": 209,
+      "sha256": "bba4d58be60b09a9998daca0fa6e50fce6e1fb72a89dd12e7c87c496e9011887",
+      "format": "text"
+    },
+    {
+      "path": "replay/old/build-sources.json",
+      "role": "validation",
+      "digest_mode": "utf8-lf",
+      "bytes": 25616,
+      "sha256": "c1a8c73cb931e5b7333fbb30fa9ee1ca09aabef90cb5a2d0db785eba848277b7",
+      "format": "json"
+    },
+    {
+      "path": "replay/new/replay.csv",
+      "role": "samples",
+      "digest_mode": "utf8-lf",
+      "bytes": 595,
+      "sha256": "ae792ff6babea733a7d2ced4e07e404e542557ce9e9a352ac67556cf907acaf3",
+      "format": "csv",
+      "rows": 6,
+      "columns": {
+        "stage": {
+          "type": "text",
+          "unit": "label"
+        },
+        "state_sha256": {
+          "type": "text",
+          "unit": "label"
+        },
+        "roads": {
+          "type": "number",
+          "unit": "count"
+        },
+        "population": {
+          "type": "number",
+          "unit": "count"
+        },
+        "active": {
+          "type": "number",
+          "unit": "count"
+        }
+      }
+    },
+    {
+      "path": "replay/new/environment.json",
+      "role": "validation",
+      "digest_mode": "utf8-lf",
+      "bytes": 167,
+      "sha256": "49d17d7ba15654c0de7d18c4be1978a0fa9a7ad629240635af043691ea11bbac",
+      "format": "json"
+    },
+    {
+      "path": "replay/new/Result.txt",
+      "role": "validation",
+      "digest_mode": "utf8-lf",
+      "bytes": 209,
+      "sha256": "bba4d58be60b09a9998daca0fa6e50fce6e1fb72a89dd12e7c87c496e9011887",
+      "format": "text"
+    },
+    {
+      "path": "replay/new/build-sources.json",
+      "role": "validation",
+      "digest_mode": "utf8-lf",
+      "bytes": 25612,
+      "sha256": "1f5fabf3930ee0fd76b0b41e3c4a3552a8f35162fbf4c183c82ecbc223d5af76",
+      "format": "json"
+    },
+    {
+      "path": "native-final-summary.csv",
+      "role": "summary",
+      "digest_mode": "utf8-lf",
+      "bytes": 446,
+      "sha256": "6299ea7de63bd6fa0bfccb8a873109b4309743bb12ecfacbd3145bdc6391341c",
+      "format": "csv",
+      "rows": 3,
+      "columns": {
+        "scenario_population": {
+          "type": "number",
+          "unit": "count"
+        },
+        "first_action_preview_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "warm_action_preview_median_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "warm_preview_median_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "click_plan_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "click_check_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "commit_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "road_views_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "zone_views_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "first_post_edit_step_ms": {
+          "type": "number",
+          "unit": "ms"
+        }
+      }
+    },
+    {
+      "path": "steady-final-summary.csv",
+      "role": "summary",
+      "digest_mode": "utf8-lf",
+      "bytes": 531,
+      "sha256": "242019831cef9de7f2545c2f99787331b7c688331d65f6b603be30da3bb1b190",
+      "format": "csv",
+      "rows": 4,
+      "columns": {
+        "run": {
+          "type": "text",
+          "unit": "label"
+        },
+        "variant": {
+          "type": "text",
+          "unit": "label"
+        },
+        "steps": {
+          "type": "number",
+          "unit": "count"
+        },
+        "mean_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "p99_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "allocated_per_step_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "final_sha256": {
+          "type": "text",
+          "unit": "label"
+        }
+      }
+    },
+    {
+      "path": "validation/conflict-oracle.json",
+      "role": "validation",
+      "digest_mode": "utf8-lf",
+      "bytes": 2709,
+      "sha256": "083a777dc3ac94187e9f80255e9648e594b0418d283c35cb2d737506488cb73b",
+      "format": "json"
+    },
+    {
+      "path": "validation/RoadViews.txt",
+      "role": "validation",
+      "digest_mode": "utf8-lf",
+      "bytes": 74,
+      "sha256": "18134160b970376b9199904e2e08ab58039804fc1ced6ecc385607739a25aabb",
+      "format": "text"
+    },
+    {
+      "path": "validation/TradeResult.txt",
+      "role": "validation",
+      "digest_mode": "utf8-lf",
+      "bytes": 1457,
+      "sha256": "8b4d6f8b5ff605735712f89b3625d2c4d836e99e01fc0939948efff56f9a0b74",
+      "format": "text"
+    },
+    {
+      "path": "validation/final-core-checks.log",
+      "role": "validation",
+      "digest_mode": "utf8-lf",
+      "bytes": 645,
+      "sha256": "bdf5aee5ef50ad2b1d91e17880246f1540a40112e327bc3420a609749f42d538",
+      "format": "text"
+    },
+    {
+      "path": "validation/final-city-checks.log",
+      "role": "validation",
+      "digest_mode": "utf8-lf",
+      "bytes": 724,
+      "sha256": "7da2c32c8b3d9cf5d5c7c23308d76b0a229ae26cf7a0ae263a7451a560f3cd67",
+      "format": "text"
+    },
+    {
+      "path": "validation/failed-mono-old-environment.json",
+      "role": "validation",
+      "digest_mode": "utf8-lf",
+      "bytes": 25267,
+      "sha256": "8779eb9592abd7a1ea36380042d24a408fdfe6ba190787eb674a440b19e22931",
+      "format": "json"
+    },
+    {
+      "path": "method/prepare-native.py",
+      "role": "source",
+      "digest_mode": "utf8-lf",
+      "bytes": 7496,
+      "sha256": "94c5b03e701bd85b670807c249115388c7149a30b3753cf164bf072fc7a367e1",
+      "format": "text"
+    },
+    {
+      "path": "method/summarize.py",
+      "role": "source",
+      "digest_mode": "utf8-lf",
+      "bytes": 2297,
+      "sha256": "fb540fcf5073efcd6ac95a37abef506e6017406993185ff8cd5fd0f411f72ad3",
+      "format": "text"
+    },
+    {
+      "path": "Report.txt",
+      "role": "analysis",
+      "digest_mode": "utf8-lf",
+      "bytes": 7489,
+      "sha256": "b4463a28d35bc804bed46b99b632adf09bf9b4016dbc38e52753b40c91389ab8",
+      "format": "text"
+    }
+  ],
+  "local_assets": [
+    {
+      "path": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadPreviewOptimization-20261018\\native-final\\30000-raw\\window.raw",
+      "kind": "profiler_raw",
+      "export": {
+        "status": "partial",
+        "artifacts": [
+          "native/30000-raw/hierarchy.csv",
+          "native/30000-raw/threads.csv"
+        ],
+        "included": "CPU main/render/Gfx threads; City.* / PlayerLoop / GC.Collect or Self>=0.2ms hierarchy rows; recorded frame/thread durations.",
+        "not_included": "Other threads and small generic scopes are filtered. Full raw events are local. Unsupported GPU timings are -1; no GPU data invented."
+      },
+      "present_at_inventory": true,
+      "inventoried_at_utc": "2026-10-17T17:07:12.478148+00:00",
+      "bytes": 781077833,
+      "sha256": "edd637f34d9d8959984aff9ca8a8ad3fa176e09a3975695593c2fefa52759b08"
+    },
+    {
+      "path": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\CityScenarios\\regenerated3000-20261017\\city.hcity",
+      "kind": "input_save",
+      "present_at_inventory": true,
+      "inventoried_at_utc": "2026-10-17T17:07:13.009770+00:00",
+      "bytes": 3622640,
+      "sha256": "35411ad5df2241625c35d3d54492544b435bbb17f83c4dd7ca0c685308799780"
+    },
+    {
+      "path": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\CityScenarios\\regenerated10000-20261017\\city.hcity",
+      "kind": "input_save",
+      "present_at_inventory": true,
+      "inventoried_at_utc": "2026-10-17T17:07:13.012748+00:00",
+      "bytes": 12492095,
+      "sha256": "3a48bbd082188b43b605d952c08f1b577ac6c2c6ceb5cb56f17ce6381f4da2e0"
+    },
+    {
+      "path": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\CityScenarios\\regenerated30000-20261017\\city.hcity",
+      "kind": "input_save",
+      "present_at_inventory": true,
+      "inventoried_at_utc": "2026-10-17T17:07:13.021581+00:00",
+      "bytes": 37120578,
+      "sha256": "3f49bd1a02879bb686c24d5517902cc581c657220ce2b955107d89b6fa870b4e"
+    },
+    {
+      "path": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadPreviewOptimization-20261018\\NativeFinal\\HarborCity_Data\\Managed\\Assembly-CSharp.dll",
+      "kind": "binary",
+      "present_at_inventory": true,
+      "inventoried_at_utc": "2026-10-17T17:07:13.047179+00:00",
+      "bytes": 1024000,
+      "sha256": "b9bf5f07df54dcf41765119cfaf7c4dfd2a5ab5f9420f55245c6dc20a45e9604"
+    },
+    {
+      "path": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\ManualCityPlayer\\HarborCity_Data\\Managed\\Assembly-CSharp.dll",
+      "kind": "binary",
+      "present_at_inventory": true,
+      "inventoried_at_utc": "2026-10-17T17:07:13.048184+00:00",
+      "bytes": 1017856,
+      "sha256": "8388bd3b7efed45e4610bda097919de9f504ecdf8ad4ebbd7188e0d60b3b2da7"
+    },
+    {
+      "path": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadPreviewOptimization-20261018\\steady-final-a1\\final.hcity",
+      "kind": "input_save",
+      "present_at_inventory": true,
+      "inventoried_at_utc": "2026-10-17T17:07:13.049138+00:00",
+      "bytes": 37131653,
+      "sha256": "92d7210dfb3c00f2b9a91259edb87312e9d2d7e4b9c91893e7456864172c893e"
+    },
+    {
+      "path": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadPreviewOptimization-20261018\\steady-final-a1\\warm-boundary.hcity",
+      "kind": "input_save",
+      "present_at_inventory": true,
+      "inventoried_at_utc": "2026-10-17T17:07:13.074742+00:00",
+      "bytes": 37100757,
+      "sha256": "0bf9a7a963dfa8c7b3d81667d6ef1a2f54f8c04fe45b36e7dd482c6c0e319a3e"
+    },
+    {
+      "path": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadPreviewOptimization-20261018\\steady-final-b1\\final.hcity",
+      "kind": "input_save",
+      "present_at_inventory": true,
+      "inventoried_at_utc": "2026-10-17T17:07:13.100520+00:00",
+      "bytes": 37131653,
+      "sha256": "92d7210dfb3c00f2b9a91259edb87312e9d2d7e4b9c91893e7456864172c893e"
+    },
+    {
+      "path": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadPreviewOptimization-20261018\\steady-final-b1\\warm-boundary.hcity",
+      "kind": "input_save",
+      "present_at_inventory": true,
+      "inventoried_at_utc": "2026-10-17T17:07:13.126213+00:00",
+      "bytes": 37100757,
+      "sha256": "0bf9a7a963dfa8c7b3d81667d6ef1a2f54f8c04fe45b36e7dd482c6c0e319a3e"
+    },
+    {
+      "path": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadPreviewOptimization-20261018\\steady-final-b2\\final.hcity",
+      "kind": "input_save",
+      "present_at_inventory": true,
+      "inventoried_at_utc": "2026-10-17T17:07:13.152067+00:00",
+      "bytes": 37131653,
+      "sha256": "92d7210dfb3c00f2b9a91259edb87312e9d2d7e4b9c91893e7456864172c893e"
+    },
+    {
+      "path": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadPreviewOptimization-20261018\\steady-final-b2\\warm-boundary.hcity",
+      "kind": "input_save",
+      "present_at_inventory": true,
+      "inventoried_at_utc": "2026-10-17T17:07:13.177839+00:00",
+      "bytes": 37100757,
+      "sha256": "0bf9a7a963dfa8c7b3d81667d6ef1a2f54f8c04fe45b36e7dd482c6c0e319a3e"
+    },
+    {
+      "path": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadPreviewOptimization-20261018\\steady-final-a2\\final.hcity",
+      "kind": "input_save",
+      "present_at_inventory": true,
+      "inventoried_at_utc": "2026-10-17T17:07:13.203678+00:00",
+      "bytes": 37131653,
+      "sha256": "92d7210dfb3c00f2b9a91259edb87312e9d2d7e4b9c91893e7456864172c893e"
+    },
+    {
+      "path": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadPreviewOptimization-20261018\\steady-final-a2\\warm-boundary.hcity",
+      "kind": "input_save",
+      "present_at_inventory": true,
+      "inventoried_at_utc": "2026-10-17T17:07:13.229761+00:00",
+      "bytes": 37100757,
+      "sha256": "0bf9a7a963dfa8c7b3d81667d6ef1a2f54f8c04fe45b36e7dd482c6c0e319a3e"
+    },
+    {
+      "path": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadPreviewOptimization-20261018\\road-replay-dotnet-old\\final.hcity",
+      "kind": "input_save",
+      "present_at_inventory": true,
+      "inventoried_at_utc": "2026-10-17T17:07:13.255612+00:00",
+      "bytes": 36976660,
+      "sha256": "a9b8c25b3e322ce58b1e29312c9725aad6997378dd81cba12a442e397c5770b2"
+    },
+    {
+      "path": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadPreviewOptimization-20261018\\road-replay-dotnet-new\\final.hcity",
+      "kind": "input_save",
+      "present_at_inventory": true,
+      "inventoried_at_utc": "2026-10-17T17:07:13.291072+00:00",
+      "bytes": 36976660,
+      "sha256": "a9b8c25b3e322ce58b1e29312c9725aad6997378dd81cba12a442e397c5770b2"
+    }
+  ],
+  "local_inventory": {
+    "scope": "Final native raw, three input saves, final diagnostic/product assemblies, steady boundaries and exact replay saves for this optimization. Historical baseline raw inventory remains in its immutable package.",
+    "limitations": "Intermediate V1/V2 experiments remain local under Temp/RoadPreviewOptimization-20261018; they are not final-source measurements. This manifest does not inventory all Temp or the entire machine. Raw hierarchy/threads are filtered partial exports; no raw binaries uploaded."
+  }
+}

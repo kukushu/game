@@ -360,6 +360,15 @@
       "source_commit": null,
       "artifacts": 31,
       "local_assets": 0
+    },
+    {
+      "id": "2026-10-18-RoadPreviewOptimization",
+      "manifest": "2026-10-18-RoadPreviewOptimization/manifest.json",
+      "title": "道路鼠标预览、静态冲突查询与道路显示优化：最终采样及精确对照",
+      "kind": "attribution",
+      "source_commit": "8c22ac132c83c4764fc46907ce8cc2ae0aedfc85",
+      "artifacts": 51,
+      "local_assets": 16
     }
   ],
   "unregistered_legacy_directories": []

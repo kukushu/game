@@ -1,0 +1,1 @@
+PASS 145 native road view geometry/lifecycle checks; not mouse acceptance.

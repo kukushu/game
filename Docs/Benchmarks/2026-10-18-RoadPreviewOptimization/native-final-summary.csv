@@ -1,0 +1,4 @@
+scenario_population,first_action_preview_ms,warm_action_preview_median_ms,warm_preview_median_ms,click_plan_ms,click_check_ms,commit_ms,road_views_ms,zone_views_ms,first_post_edit_step_ms
+3000,2.2511,0.029900000000000003,0.02635,26.1336,3.1027,4.0188,0.3871,127.1348,40.6187
+10000,2.2647,0.030350000000000002,0.02675,149.3511,24.3014,21.9076,1.9008,494.3997,108.0546
+30000,2.3198,0.0287,0.02525,392.4534,86.6115,57.9693,5.3578,1411.0172,390.9484
