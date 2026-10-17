@@ -17,9 +17,9 @@ namespace HarborCity
             start.startWidth=start.endWidth=.18f;Hide();
         }
         public void Hide(){if(start!=null)start.enabled=false;if(path!=null)path.enabled=false;}
-        public void Show(Point origin,bool anchored,Point[] points,bool valid,float width,Func<float,float,float> height)
+        public void Show(Point origin,bool anchored,Point[] points,bool valid,float width,Func<float,float,float> height,bool provisional=false)
         {
-            start.enabled=true;material.color=valid?new Color(.15f,1,.6f):new Color(1,.2f,.15f);
+            start.enabled=true;material.color=!valid?new Color(1,.2f,.15f):provisional?new Color(1,.75f,.15f):new Color(.15f,1,.6f);
             for(int i=0;i<32;i++){double a=i*Math.PI/16;var p=new Point(origin.x+Math.Cos(a)*.7,origin.y,origin.z+Math.Sin(a)*.7);start.SetPosition(i,HarborCitySurfaceMesh.Visible(p,height,.28f));}
             path.enabled=anchored&&points!=null;if(!path.enabled)return;
             path.startWidth=path.endWidth=width;path.positionCount=points.Length;

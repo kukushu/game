@@ -592,6 +592,10 @@
     {
       "key": "ui.time.pending",
       "text": "待模拟时间：{0} 秒（保留全部欠步）"
+    },
+    {
+      "key": "ui.build.preview_unchecked",
+      "text": "道路示意 {0} 米；点击后完整校验并建设（黄色不代表已获准建设）。"
     }
   ]
 }

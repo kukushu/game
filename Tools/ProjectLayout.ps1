@@ -36,7 +36,7 @@ function Sync-CityWorkspaceProject([string]$SourceRoot,[string]$ProjectRoot) {
 }
 
 # Optional 64-bit test host; same model and entry source, no alternative simulator.
-function Build-CityDotNetHost([string]$ProjectRoot,[string]$OutputDirectory,[string]$Entry,[string]$Defines='',[string]$WorldReference='',[string]$WorldSource='') {
+function Build-CityDotNetHost([string]$ProjectRoot,[string]$OutputDirectory,[string]$Entry,[string]$Defines='',[string]$WorldReference='',[string]$WorldSource='',[hashtable]$SourceOverrides=@{}) {
     $sources=Get-CityModelSources $ProjectRoot
     if($WorldSource){
         if($WorldReference){throw 'Choose a reference or instrumented source, not both'}
@@ -48,6 +48,13 @@ function Build-CityDotNetHost([string]$ProjectRoot,[string]$OutputDirectory,[str
         foreach($argument in @('-C',$ProjectRoot,'show',($WorldReference+':Assets/Scripts/Runtime/Traffic/CityRoadCoreWorld.cs'))){$start.ArgumentList.Add($argument)}
         $reader=[Diagnostics.Process]::Start($start);$old=$reader.StandardOutput.ReadToEnd();$reader.WaitForExit();if($reader.ExitCode -ne 0){throw 'Reference source unavailable'}
         [IO.File]::WriteAllText($override,$old);$sources=@($sources|Where-Object {$_ -notlike '*CityRoadCoreWorld.cs'})+$override
+    }
+    if($SourceOverrides.ContainsKey('CityRoadCoreWorld.cs') -and ($WorldSource -or $WorldReference)){throw 'World override specified twice'}
+    foreach($sourceName in $SourceOverrides.Keys){
+        if([IO.Path]::GetFileName($sourceName) -ne $sourceName){throw 'Override keys must be existing model source basenames'}
+        $matchingSources=@($sources|Where-Object {[IO.Path]::GetFileName($_) -eq $sourceName})
+        if($matchingSources.Count -ne 1){throw "Expected one model source to override: $sourceName"}
+        $sources=@($sources|Where-Object {[IO.Path]::GetFileName($_) -ne $sourceName})+(Resolve-Path -LiteralPath $SourceOverrides[$sourceName]).Path
     }
     $sources+=@($Entry,(Join-Path $ProjectRoot 'Tools/Diagnostics/CityScenarioJson.cs'))
     $items=($sources|ForEach-Object {'<Compile Include="'+[Security.SecurityElement]::Escape($_)+'" />'}) -join "`n"

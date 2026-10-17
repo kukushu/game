@@ -196,7 +196,7 @@ namespace HarborCity.RoadCore
                 }
             }
             connectionConflicts=new ConnectionConflicts(this);
-            foreach(var d in drivables.Values)if(d.IsConnection&&connectionConflicts.HasOther(d.Id))conflictJunctions.Add(d.JunctionId);
+            foreach(var d in drivables.Values)if(d.IsConnection&&!conflictJunctions.Contains(d.JunctionId)&&connectionConflicts.HasOther(d.Id))conflictJunctions.Add(d.JunctionId);
         }
         static bool Finite(Point p)=>!(double.IsNaN(p.x)||double.IsNaN(p.y)||double.IsNaN(p.z)||double.IsInfinity(p.x)||double.IsInfinity(p.y)||double.IsInfinity(p.z));
         void AddLane(PhysicalRoad road,bool reverse,int index)

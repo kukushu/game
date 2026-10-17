@@ -592,6 +592,10 @@
     {
       "key": "ui.time.pending",
       "text": "Pending simulation: {0} seconds (all steps retained)"
+    },
+    {
+      "key": "ui.build.preview_unchecked",
+      "text": "Road sketch {0} m; click to validate and build (yellow is provisional)."
     }
   ]
 }

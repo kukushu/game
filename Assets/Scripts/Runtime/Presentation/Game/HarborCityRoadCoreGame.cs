@@ -36,7 +36,7 @@ namespace HarborCity
         {if(session==null)return;foreach(var port in session.City.trade.connections)if(port.active&&port.flow==flow){constructionCamera?.Focus(port.x,port.z);return;}notice=localization.Get("ui.trade.no_endpoint");}
         HarborCityConstructionCamera constructionCamera;
         HarborCityConstructionPreview constructionPreview;
-        Vector2 menuScroll;string previewText="";double previewDue;Point previewPoint,previewStart;
+        Vector2 menuScroll;string previewText="";Point previewPoint,previewStart;
         bool previewAnchored,previewOneWay,previewWide;int previewVersion=-1,previewMoney;
         Rect MenuBounds=>new Rect(8,8,Math.Min(Screen.width-16,780),Math.Min(440,Math.Max(180,Screen.height-80)));
         bool BlocksWorldInput(Vector2 p)=>MenuBounds.Contains(new Vector2(p.x,Screen.height-p.y))||financePanel.BlocksInput(p)||observation.BlocksInput(p)||roadEditor.BlocksInput(p);
@@ -60,21 +60,22 @@ namespace HarborCity
         void Preview(Point p)
         {
             bool anchored=hasStart;
-            if(Time.realtimeSinceStartupAsDouble<previewDue&&previewVersion==world.NetworkGeneration&&previewAnchored==anchored&&previewOneWay==oneWay&&previewWide==wide)return;
             if(previewVersion==world.NetworkGeneration&&previewAnchored==anchored&&previewOneWay==oneWay&&previewWide==wide&&previewMoney==(session?.City.money??0)&&Point.Distance(previewPoint,p)<.05&&Point.Distance(previewStart,startPoint)<.05)return;
-            previewDue=Time.realtimeSinceStartupAsDouble+.12;previewPoint=p;previewStart=startPoint;previewAnchored=anchored;previewVersion=world.NetworkGeneration;previewOneWay=oneWay;previewWide=wide;previewMoney=session?.City.money??0;
+            previewPoint=p;previewStart=startPoint;previewAnchored=anchored;previewVersion=world.NetworkGeneration;previewOneWay=oneWay;previewWide=wide;previewMoney=session?.City.money??0;
             Point[] points=null;bool valid=true;
             try
             {
-                if(anchored){points=utilityTool.HasValue?new[]{startPoint,p}:RoadStroke(p);if(building){var plan=world.PlanConnectedRoad(points,oneWay,snap:4,lanes:wide?2:1);int quote=session==null?0:session.Construction.CheckRoadPlacement(plan);previewText=localization.Get("ui.build.preview",Point.Distance(startPoint,p).ToString("F1"),quote);}else previewText=localization.Get("ui.build.pipe_end");}
+                // Cursor geometry is provisional, never a prepared transaction.
+                // Final click below still creates and checks the complete plan.
+                if(anchored){points=utilityTool.HasValue?new[]{startPoint,p}:RoadStroke(p);previewText=localization.Get(building?"ui.build.preview_unchecked":"ui.build.pipe_end",Point.Distance(startPoint,p).ToString("F1"));}
                 else{if(p.y<=.15)throw new CityRuleException("ui.build.water");previewText=localization.Get(utilityTool.HasValue?"ui.build.pipe_start":"ui.build.choose_start");}
             }
             catch(Exception e){valid=false;previewText=building?RoadError(e):localization.Error(e);if(anchored&&points==null)points=new[]{startPoint,p};}
-            constructionPreview.Show(anchored?startPoint:p,anchored,points,valid,utilityTool.HasValue ? .28f : wide?4:2,landscape==null?null:landscape.Height);
+            constructionPreview.Show(anchored?startPoint:p,anchored,points,valid,utilityTool.HasValue ? .28f : wide?4:2,landscape==null?null:landscape.Height,provisional:building&&anchored);
         }
         HarborCityZoningViews zoningViews;Material[] zoneMaterials;
         HarborCityVehicleViews vehicleViews;
-        readonly List<GameObject> roads=new List<GameObject>();
+        HarborCityRoadViews roadViews;
         HarborCityBuildingViews buildingViews;
         bool hasStart;Point startPoint;bool building,oneWay,wide;int origin,destination;float speed=1;
         long previousTick;int lastSteps;
@@ -88,7 +89,7 @@ namespace HarborCity
         internal int ScenarioBuildingViews=>buildingViews?.Count??0;
         internal int ScenarioZonePlots=>zoningViews?.PlotCount??0;
         internal int ScenarioZoneRenderers=>zoningViews?.RendererCount??0;
-        internal int ScenarioRoadViews=>roads.Count;
+        internal int ScenarioRoadViews=>roadViews?.Count??0;
         internal int ScenarioUtilityViews=>utilityViews.Count;
         internal bool ScenarioMeasuring;
         internal double ScenarioAdvanceMs,ScenarioVehicleMs,ScenarioStructureMs;
@@ -226,13 +227,8 @@ namespace HarborCity
         }
         void RenderRoads()
         {
-            foreach(var go in roads){Destroy(go.GetComponent<MeshFilter>().sharedMesh);Destroy(go);}roads.Clear();
-            foreach(var d in world.Network.Drivables)
-            {
-                if(d.TravelLength<1e-8)continue;
-                var mesh=HarborCitySurfaceMesh.Ribbon(d.Geometry,d.StartDistance,d.EndDistance,landscape==null?null:landscape.Height);mesh.name="Shared lane geometry "+d.Id;
-                var go=new GameObject(mesh.name);go.AddComponent<MeshFilter>().sharedMesh=mesh;go.AddComponent<MeshRenderer>().sharedMaterial=roadMaterial;roads.Add(go);
-            }
+            if(roadViews==null)roadViews=new HarborCityRoadViews(roadMaterial);
+            roadViews.Sync(world,landscape==null?null:landscape.Height);
         }
         void RenderBuildings()
         {
@@ -474,6 +470,6 @@ namespace HarborCity
             observation.Close();Exception roadFault=null;yield return HarborCityRoadEditingValidation.Run(session,roadEditor,landscape.Height,path,e=>roadFault=e);if(roadFault!=null){File.AppendAllText(Path.Combine(path,"TradeResult.txt"),"\nFAIL road editor "+roadFault);Application.Quit(1);yield break;}File.AppendAllText(Path.Combine(path,"TradeResult.txt"),"\n"+File.ReadAllText(Path.Combine(path,"RoadEditingResult.txt")));
             session.Validate();yield return new WaitForEndOfFrame();ScreenCapture.CaptureScreenshot(Path.Combine(path,"Trade.png"));yield return null;Application.Quit(0);
         }
-        void OnDestroy(){vehicleViews?.Dispose();outsideViews?.Dispose();constructionPreview?.Dispose();roadEditor?.Dispose();buildingViews?.Dispose();foreach(var go in roads){if(go!=null){var filter=go.GetComponent<MeshFilter>();if(filter!=null)Destroy(filter.sharedMesh);Destroy(go);}}zoningViews?.Dispose();if(zoneMaterials!=null)foreach(var m in zoneMaterials)Destroy(m);if(roadMaterial!=null)Destroy(roadMaterial);if(carMaterial!=null)Destroy(carMaterial);if(waterLineMaterial!=null)Destroy(waterLineMaterial);foreach(var view in utilityViews)if(view!=null)Destroy(view);}
+        void OnDestroy(){vehicleViews?.Dispose();outsideViews?.Dispose();constructionPreview?.Dispose();roadEditor?.Dispose();buildingViews?.Dispose();roadViews?.Dispose();zoningViews?.Dispose();if(zoneMaterials!=null)foreach(var m in zoneMaterials)Destroy(m);if(roadMaterial!=null)Destroy(roadMaterial);if(carMaterial!=null)Destroy(carMaterial);if(waterLineMaterial!=null)Destroy(waterLineMaterial);foreach(var view in utilityViews)if(view!=null)Destroy(view);}
     }
 }
