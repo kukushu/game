@@ -38,12 +38,17 @@ namespace HarborCity
         }
         public static Mesh Plot(CityBuilding pose,Func<float,float,float> height)
         {
+            var vertices=new List<Vector3>();var indices=new List<int>();AppendPlot(pose,height,vertices,indices);
+            var mesh=new Mesh{name="Terrain-following zoning overlay"};mesh.SetVertices(vertices);mesh.SetTriangles(indices,0);mesh.RecalculateNormals();return mesh;
+        }
+        // Preserve the existing per-cell tessellation without a temporary Mesh.
+        public static void AppendPlot(CityBuilding pose,Func<float,float,float> height,List<Vector3> vertices,List<int> indices)
+        {
             int nx=Math.Max(1,(int)Math.Ceiling(pose.width/.5f)),nz=Math.Max(1,(int)Math.Ceiling(pose.depth/.5f));
-            var vertices=new Vector3[(nx+1)*(nz+1)];var indices=new int[nx*nz*6];var rotation=Quaternion.Euler(0,pose.yaw,0);
+            int offset=vertices.Count;var rotation=Quaternion.Euler(0,pose.yaw,0);
             for(int z=0;z<=nz;z++)for(int x=0;x<=nx;x++)
-            {var p=rotation*new Vector3((pose.width-.12f)*(x/(float)nx-.5f),0,(pose.depth-.12f)*(z/(float)nz-.5f))+new Vector3(pose.x,0,pose.z);p.y=(height==null?pose.groundY:height(p.x,p.z))+.16f;vertices[z*(nx+1)+x]=p;}
-            for(int z=0;z<nz;z++)for(int x=0;x<nx;x++){int a=z*(nx+1)+x,b=(z*nx+x)*6;indices[b]=a;indices[b+1]=a+nx+1;indices[b+2]=a+1;indices[b+3]=a+1;indices[b+4]=a+nx+1;indices[b+5]=a+nx+2;}
-            var mesh=new Mesh{name="Terrain-following zoning overlay"};mesh.vertices=vertices;mesh.triangles=indices;mesh.RecalculateNormals();return mesh;
+            {var p=rotation*new Vector3((pose.width-.12f)*(x/(float)nx-.5f),0,(pose.depth-.12f)*(z/(float)nz-.5f))+new Vector3(pose.x,0,pose.z);p.y=(height==null?pose.groundY:height(p.x,p.z))+.16f;vertices.Add(p);}
+            for(int z=0;z<nz;z++)for(int x=0;x<nx;x++){int a=offset+z*(nx+1)+x;indices.Add(a);indices.Add(a+nx+1);indices.Add(a+1);indices.Add(a+1);indices.Add(a+nx+1);indices.Add(a+nx+2);}
         }
     }
 }

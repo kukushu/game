@@ -1,0 +1,40 @@
+{
+  "targetFps": 60,
+  "vsync": 0,
+  "playerPath": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\ManualCityPlayer\\HarborCity.exe",
+  "managedHash": "E2A17DD36B066742977386D472F71A6B6A5320FA4BD34E6FA4096F4D8A832EF4",
+  "rawProfile": false,
+  "networkReference": null,
+  "checkRestore": false,
+  "rates": [
+    0
+  ],
+  "playerHash": "4C93A4BB060A12B9044AB2103835DD1565AEC9AA8381372FA84FBBC14A19B989",
+  "unity": [
+    "m_EditorVersion: 6000.6.3f1",
+    "m_EditorVersionWithRevision: 6000.6.3f1 (45d8eee7de74)"
+  ],
+  "rawStartTick": 0,
+  "dirty": [
+    " M Assets/Scripts/Diagnostics/Runtime/HarborCityScenarioWindowProbe.cs",
+    " M Assets/Scripts/Editor/CityWindowProfilerExport.cs",
+    " M Assets/Scripts/Runtime/Presentation/Game/HarborCityRoadCoreGame.cs",
+    " M Docs/Architecture/HarborCityArchitecture.html",
+    " M Docs/Architecture/SourceEvidence.md",
+    " M Tools/BuildArchitectureDocs.py",
+    " M Tools/RunCityScenarioWindow.ps1",
+    " M Tools/VerifyArchitectureDocs.cjs",
+    " M Tools/VerifyCityScenarioWindow.py"
+  ],
+  "inputHash": "E78C47DAAFFCB989FFC57EB0048575C3B6AA6DC66386DD6689C9C8EACD5DB7D8",
+  "cpu": "Intel(R) Core(TM) i5-14600KF",
+  "resolution": "1440x900",
+  "inputPath": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\CityScenarios\\challenge30000-traffic10000\\threshold.hcity",
+  "warmupSeconds": 8,
+  "rawFrameLimit": 60,
+  "measureSeconds": 60,
+  "commit": "14650d883534a646b272280d3fe51b5f92ca75ec",
+  "os": "Microsoft Windows NT 10.0.26200.0",
+  "routingReference": null,
+  "utc": "2026-10-17T02:16:52.6108401Z"
+}

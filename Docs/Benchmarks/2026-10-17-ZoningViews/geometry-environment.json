@@ -1,0 +1,13 @@
+{
+  "dirty": [
+    " M Assets/Scripts/Runtime/Presentation/Game/HarborCityRoadCoreGame.cs",
+    " M Assets/Scripts/Runtime/Presentation/World/HarborCitySurfaceMesh.cs",
+    "?? Assets/Scripts/Runtime/Presentation/World/HarborCityZoningViews.cs",
+    "?? Assets/Scripts/Runtime/Presentation/World/HarborCityZoningViews.cs.meta",
+    "?? Tools/Diagnostics/HarborCityZoningBatchValidation.cs",
+    "?? Tools/VerifyZoneViewBatches.ps1"
+  ],
+  "fixture": "Frozen original Plot source, actual Unity Vector3/Quaternion/Mesh; not a city performance test",
+  "commit": "2542b35b7ea8d3be9c9f9edde018ced2252312cf",
+  "reference": "2542b35b7ea8d3be9c9f9edde018ced2252312cf"
+}

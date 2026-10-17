@@ -72,7 +72,7 @@ namespace HarborCity
             catch(Exception e){valid=false;previewText=building?RoadError(e):localization.Error(e);if(anchored&&points==null)points=new[]{startPoint,p};}
             constructionPreview.Show(anchored?startPoint:p,anchored,points,valid,utilityTool.HasValue ? .28f : wide?4:2,landscape==null?null:landscape.Height);
         }
-        readonly List<GameObject> zones=new List<GameObject>();Material[] zoneMaterials;
+        HarborCityZoningViews zoningViews;Material[] zoneMaterials;
         readonly Dictionary<int,Transform> cars=new Dictionary<int,Transform>();
         readonly HashSet<int> visibleIds=new HashSet<int>();readonly List<int> expiredIds=new List<int>();
         readonly List<GameObject> roads=new List<GameObject>();
@@ -84,8 +84,8 @@ namespace HarborCity
         internal float ScenarioCurrentRate=>speed;
         internal int ScenarioVehicleViews=>cars.Count;
         internal int ScenarioBuildingViews=>buildingViews?.Count??0;
-        internal int ScenarioZonePlots=>zones.Count;
-        internal int ScenarioZoneRenderers=>zones.Count;
+        internal int ScenarioZonePlots=>zoningViews?.PlotCount??0;
+        internal int ScenarioZoneRenderers=>zoningViews?.RendererCount??0;
         internal int ScenarioRoadViews=>roads.Count;
         internal int ScenarioUtilityViews=>utilityViews.Count;
         internal bool ScenarioMeasuring;
@@ -246,9 +246,9 @@ namespace HarborCity
         }
         void RenderZones()
         {
-            foreach(var go in zones){Destroy(go.GetComponent<MeshFilter>().sharedMesh);Destroy(go);}zones.Clear();if(session==null||!session.Simulation.Growth.Zoning.Ready)return;
+            if(session==null||!session.Simulation.Growth.Zoning.Ready){zoningViews?.Dispose();return;}
             if(zoneMaterials==null){zoneMaterials=new Material[4];var colours=new[]{new Color(.35f,.5f,.4f),new Color(.25f,.8f,.4f),new Color(.25f,.65f,1),new Color(1,.7f,.2f)};for(int i=0;i<4;i++)zoneMaterials[i]=new Material(roadMaterial){color=colours[i]};}
-            foreach(var cell in session.Simulation.Growth.Zoning.Cells()){if(cell.occupiedBuilding>=0)continue;var go=new GameObject("Zone "+cell.key);go.AddComponent<MeshFilter>().sharedMesh=HarborCitySurfaceMesh.Plot(cell.pose,landscape==null?null:landscape.Height);go.AddComponent<MeshRenderer>().sharedMaterial=zoneMaterials[cell.use==LandUse.Residential?1:cell.use==LandUse.Commercial?2:cell.use==LandUse.Industrial?3:0];zones.Add(go);}
+            if(zoningViews==null)zoningViews=new HarborCityZoningViews(zoneMaterials);zoningViews.Sync(session.Simulation.Growth.Zoning.Cells(),landscape==null?null:landscape.Height);
         }
         void RenderUtilities()
         {
@@ -479,6 +479,6 @@ namespace HarborCity
             observation.Close();Exception roadFault=null;yield return HarborCityRoadEditingValidation.Run(session,roadEditor,landscape.Height,path,e=>roadFault=e);if(roadFault!=null){File.AppendAllText(Path.Combine(path,"TradeResult.txt"),"\nFAIL road editor "+roadFault);Application.Quit(1);yield break;}File.AppendAllText(Path.Combine(path,"TradeResult.txt"),"\n"+File.ReadAllText(Path.Combine(path,"RoadEditingResult.txt")));
             session.Validate();yield return new WaitForEndOfFrame();ScreenCapture.CaptureScreenshot(Path.Combine(path,"Trade.png"));yield return null;Application.Quit(0);
         }
-        void OnDestroy(){outsideViews?.Dispose();constructionPreview?.Dispose();roadEditor?.Dispose();buildingViews?.Dispose();foreach(var go in roads){if(go!=null){var filter=go.GetComponent<MeshFilter>();if(filter!=null)Destroy(filter.sharedMesh);Destroy(go);}}foreach(var go in zones)if(go!=null){Destroy(go.GetComponent<MeshFilter>().sharedMesh);Destroy(go);}if(zoneMaterials!=null)foreach(var m in zoneMaterials)Destroy(m);if(roadMaterial!=null)Destroy(roadMaterial);if(carMaterial!=null)Destroy(carMaterial);if(waterLineMaterial!=null)Destroy(waterLineMaterial);foreach(var view in utilityViews)if(view!=null)Destroy(view);}
+        void OnDestroy(){outsideViews?.Dispose();constructionPreview?.Dispose();roadEditor?.Dispose();buildingViews?.Dispose();foreach(var go in roads){if(go!=null){var filter=go.GetComponent<MeshFilter>();if(filter!=null)Destroy(filter.sharedMesh);Destroy(go);}}zoningViews?.Dispose();if(zoneMaterials!=null)foreach(var m in zoneMaterials)Destroy(m);if(roadMaterial!=null)Destroy(roadMaterial);if(carMaterial!=null)Destroy(carMaterial);if(waterLineMaterial!=null)Destroy(waterLineMaterial);foreach(var view in utilityViews)if(view!=null)Destroy(view);}
     }
 }
