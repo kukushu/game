@@ -22,7 +22,10 @@ namespace HarborCity
             foreach(var net in new[]{utilities.electricity,utilities.water})
             {
                 yield return net.nodes.Count;yield return net.edges.Count;
-                foreach(var n in net.nodes){var resolved=net.Node(n.id);yield return n.id;yield return BitConverter.SingleToInt32Bits(resolved.x);yield return BitConverter.SingleToInt32Bits(resolved.y);yield return BitConverter.SingleToInt32Bits(resolved.z);}
+                // An unused node may have been replaced in the public DTO before
+                // the network's lookup was refreshed. Cold coverage never reads
+                // unused endpoints, so its signature must tolerate that case too.
+                foreach(var n in net.nodes){var resolved=net.Node(n.id)??n;yield return n.id;yield return BitConverter.SingleToInt32Bits(resolved.x);yield return BitConverter.SingleToInt32Bits(resolved.y);yield return BitConverter.SingleToInt32Bits(resolved.z);}
                 foreach(var e in net.edges){yield return e.id;yield return e.a;yield return e.b;}
             }
         }

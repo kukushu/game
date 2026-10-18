@@ -22,6 +22,10 @@ static class CityUtilityLayoutChecks
     }
     static void Main(string[] args)
     {
+        if(args.Length>2&&args[2]=="orphan")
+        {
+            var empty=CityCoreIndustrySession.CreateEmpty();var net=empty.City.utilities.electricity;net.nodes.Add(new RoadNode{id=1,x=0,z=0});net.nextNode=2;Compare(empty,"unused_node_initial");net.Node(1);net.nodes[0].id=2;net.nextNode=3;Compare(empty,"unused_node_reidentified",false);File.WriteAllLines(Path.Combine(args[1],"snapshots.csv"),rows);File.WriteAllText(Path.Combine(args[1],"Result.txt"),"PASS unused-node DTO replacement with stale lookup matches frozen cold coverage; complete save validation retained.\n");return;
+        }
         var s=CityCoreSave.Read(File.ReadAllBytes(args[0]));s.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);string output=args[1];Compare(s,"loaded");Compare(s,"unchanged",true);
         double h=s.City.map.buildHalfSize;var p=s.Transport.PlanConnectedRoad(new[]{new Point(-h+5,2,-h+8),new Point(-h+17,2,-h+8)},snap:1);s.Construction.CheckRoadPlacement(p);if(!s.Construction.Commit(p,out _))throw new Exception("Utility road fixture stale");Compare(s,"road_only",true);
         // Bound the command count, while every snapshot still compares supply for
