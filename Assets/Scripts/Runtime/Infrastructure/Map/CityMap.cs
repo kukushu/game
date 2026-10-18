@@ -2,8 +2,8 @@ using System;
 
 namespace HarborCity
 {
-    // Persisted map bounds are authoritative. Version 3 is an explicit large flat
-    // diagnostic profile; normal new games still use version 2 and original bounds.
+    // Persisted map bounds and terrain profile are authoritative. Version 2 retains
+    // the original hills; version 3 is flat, also used by new games at original bounds.
     [Serializable] public sealed class CityMapState
     {
         public const float TerrainHalfSize=240f, BuildHalfSize=168f;

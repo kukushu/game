@@ -123,7 +123,14 @@ namespace HarborCity
                 if(!inspecting){var probe=gameObject.AddComponent<HarborCityScenarioWindowProbe>();probe.Configure(this,args[index+1],args[index+2],float.Parse(args[index+3],System.Globalization.CultureInfo.InvariantCulture));}
             }
             else if(args.Any(a=>a.StartsWith("-harbor-",StringComparison.Ordinal)&&a!="-harbor-city-construction-validate"&&a!="-harbor-city-trade-validate"&&a!="-harbor-city-growing-profile")){session=CityCoreIndustrySession.Create();world=session.Transport;origin=1;destination=2;RenderBuildings();}
-            else {session=CityCoreIndustrySession.CreateEmpty(HarborCityEconomyAsset.Load());world=session.Transport;var land=new GameObject("City landscape");land.transform.SetParent(transform);landscape=land.AddComponent<CityLandscape>();landscape.Build();session.Simulation.Growth.Zoning.SetSurface(landscape.Height);constructionCamera=new HarborCityConstructionCamera(cameraView,landscape,session.City.map.buildHalfSize);notice=localization.Get("ui.stage.current");}
+            else
+            {
+                session=CityCoreIndustrySession.CreateEmpty(HarborCityEconomyAsset.Load());
+                // Keep existing original-terrain validation inputs comparable; normal Play starts flat.
+                bool originalTerrainCheck=args.Any(a=>a=="-harbor-city-construction-validate"||a=="-harbor-city-trade-validate"||a=="-harbor-city-growing-profile");
+                if(!originalTerrainCheck)session.City.map=CityMapState.DiagnosticFlat(CityMapState.BuildHalfSize);
+                world=session.Transport;BindLandscape();notice=localization.Get("ui.stage.current");
+            }
             RenderRoads();
             previousTick=System.Diagnostics.Stopwatch.GetTimestamp();
             int flag=Array.IndexOf(args,"-harbor-core-validate");if(flag>=0&&flag+1<args.Length)StartCoroutine(ValidateNative(args[flag+1]));
@@ -277,7 +284,15 @@ namespace HarborCity
             outsideViews?.Draw(cameraView,MenuBounds);roadEditor?.Bind(session);roadEditor?.Draw();observation?.Bind(session);observation?.Draw();financePanel?.Draw(session?.Simulation);
         }
         void Save(){try{string tmp=SavePath+".tmp";File.WriteAllBytes(tmp,session==null?SaveCodec.Write(world):CityCoreSave.Write(session));if(File.Exists(SavePath))File.Replace(tmp,SavePath,SavePath+".bak");else File.Move(tmp,SavePath);notice="新格式已保存；旧城市文件未改动";}catch(Exception e){notice=localization.Error(e);}}
-        void Load(){try{var bytes=File.ReadAllBytes(SavePath);var replacement=session==null?SaveCodec.Read(bytes):null;var restored=session==null?null:CityCoreSave.Read(bytes);vehicleViews?.Clear();session=restored;world=restored?.Transport??replacement;CancelTool();observation?.Bind(session);roadEditor?.Bind(session);if(landscape!=null&&session!=null)session.Simulation.Growth.Zoning.SetSurface(landscape.Height);shownBuildings=shownZones=shownNetwork=-1;RenderRoads();RenderBuildings();RenderZones();RenderUtilities();notice="新格式已加载";}catch(Exception e){notice="读取失败："+e.Message;}}
+        void BindLandscape()
+        {
+            if(landscape==null){var land=new GameObject("City landscape");land.transform.SetParent(transform);landscape=land.AddComponent<CityLandscape>();}
+            landscape.Build(session.City.map);
+            session.Simulation.Growth.Zoning.SetSurface(landscape.Height);
+            constructionCamera=new HarborCityConstructionCamera(cameraView,landscape,session.City.map.buildHalfSize);
+            roadViews?.InvalidateSurface();zoningViews?.InvalidateSurface();
+        }
+        void Load(){try{var bytes=File.ReadAllBytes(SavePath);var replacement=session==null?SaveCodec.Read(bytes):null;var restored=session==null?null:CityCoreSave.Read(bytes);vehicleViews?.Clear();session=restored;world=restored?.Transport??replacement;CancelTool();observation?.Bind(session);roadEditor?.Bind(session);if(session!=null)BindLandscape();shownBuildings=shownZones=shownNetwork=-1;RenderRoads();RenderBuildings();RenderZones();RenderUtilities();notice="新格式已加载";}catch(Exception e){notice="读取失败："+e.Message;}}
         System.Collections.IEnumerator ValidateNative(string path)
         {
             Directory.CreateDirectory(path);speed=0;yield return null;

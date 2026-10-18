@@ -58,7 +58,14 @@ namespace HarborCity
 
 
         float? builtFlat;
+        static void Release(Object asset){if(Application.isPlaying)Destroy(asset);else DestroyImmediate(asset);}
+        public bool IsFlat => builtFlat.HasValue;
         public void Build()=>BuildSurface(null);
+        public void Build(CityMapState map)
+        {
+            if(map==null||!map.Valid())throw new System.ArgumentException("Invalid landscape map");
+            BuildSurface(map.terrainVersion==3 ? 2f : (float?)null,map.terrainHalfSize);
+        }
         public void BuildDiagnosticFlat(float height,float terrainExtent=CityMapState.TerrainHalfSize)=>BuildSurface(height,terrainExtent);
         void BuildSurface(float? flat,float extent=HalfSize)
         {
@@ -67,10 +74,11 @@ namespace HarborCity
             // A live script reload can retain the old Terrain. Replace it before rebuilding city meshes.
             if(terrain!=null)
             {
-                terrain.gameObject.SetActive(false);Destroy(terrain.gameObject);
+                var oldTerrain=terrain.gameObject;oldTerrain.SetActive(false);
                 if(ground!=null)ground.terrainData=null;
                 terrain.terrainData=null;terrain=null;ground=null;
-                foreach(var asset in ownedAssets)if(asset!=null)Destroy(asset);
+                Release(oldTerrain);
+                foreach(var asset in ownedAssets)if(asset!=null)Release(asset);
                 ownedAssets.Clear();data=null;
             }
 
@@ -579,7 +587,7 @@ namespace HarborCity
         {
             if (ground != null) ground.terrainData = null;
             if (terrain != null) terrain.terrainData = null;
-            foreach (var asset in ownedAssets) if (asset != null) Destroy(asset);
+            foreach (var asset in ownedAssets) if (asset != null) Release(asset);
         }
     }
 

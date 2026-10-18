@@ -7,6 +7,32 @@ namespace HarborCity
 {
     public static class CityLandscapeChecks
     {
+        // Run in an isolated batch project; never writes the player's save file.
+        public static void ValidateFlatNewCity()
+        {
+            if(!Application.isBatchMode)throw new InvalidOperationException("Use an isolated batch project");
+            UnityEditor.SceneManagement.EditorSceneManager.NewScene(UnityEditor.SceneManagement.NewSceneSetup.EmptyScene);
+            var game=new GameObject("Flat new city check").AddComponent<HarborCityRoadCoreGame>();
+            var flags=System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic;
+            var type=typeof(HarborCityRoadCoreGame);
+            type.GetMethod("Start",flags).Invoke(game,null);
+            var field=type.GetField("session",flags);
+            var session=(CityCoreIndustrySession)field.GetValue(game);
+            var land=(CityLandscape)type.GetField("landscape",flags).GetValue(game);
+            if(session.City.map.terrainVersion!=3||session.City.map.buildHalfSize!=CityMapState.BuildHalfSize)
+                throw new Exception("New city must use flat terrain at original build bounds");
+            Validate();
+            foreach(float z in new[]{-239f,-168f,0f,168f,239f})foreach(float x in new[]{-239f,-168f,0f,168f,239f})
+                if(Mathf.Abs(land.Height(x,z)-2)>.002f)throw new Exception("Flat map edge changed height");
+            var bytes=CityCoreSave.Write(session);var restored=CityCoreSave.Read(bytes);
+            if(!System.Linq.Enumerable.SequenceEqual(bytes,CityCoreSave.Write(restored)))throw new Exception("Flat city save round trip changed state");
+            field.SetValue(game,restored);type.GetMethod("BindLandscape",flags).Invoke(game,null);Validate();
+            restored.City.map=new CityMapState();type.GetMethod("BindLandscape",flags).Invoke(game,null);
+            if(land.IsFlat)throw new Exception("Old version-2 terrain was flattened");
+            Validate();
+            restored.City.map=session.City.map;type.GetMethod("BindLandscape",flags).Invoke(game,null);Validate();
+            Debug.Log("PASS normal new-city startup, flat height and collider picking, map edges, complete save round trip, old hills reload and return to flat. No user save written.");
+        }
         [MenuItem("Harbor/Validate terrain")]
         public static void Validate()
         {
@@ -27,7 +53,9 @@ namespace HarborCity
                     || Mathf.Abs(hit.y - h) > .04f) throw new Exception("Terrain height and picking disagree at " + px + ", " + pz);
                 minimum = Mathf.Min(minimum,h); maximum = Mathf.Max(maximum,h); samples++;
             }
-            if (maximum - minimum < 20) throw new Exception("Landscape lacks expected elevation range.");
+            if(terrain.IsFlat)
+            {if(Mathf.Abs(minimum-2)>.002f||Mathf.Abs(maximum-2)>.002f)throw new Exception("Flat landscape must remain at height 2.");}
+            else if (maximum - minimum < 20) throw new Exception("Landscape lacks expected elevation range.");
             var game=UnityEngine.Object.FindAnyObjectByType<HarborCityGame>();
             if(game!=null)
             {
