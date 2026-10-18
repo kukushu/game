@@ -684,6 +684,14 @@
     {
       "key": "ui.finance.unlimited",
       "text": "无限资金（临时测试；取消勾选恢复有限资金）"
+    },
+    {
+      "key": "ui.utility.road_conduits",
+      "text": "道路自带电力、水/排污通道；仍需建设电站、供水站和排污设施。"
+    },
+    {
+      "key": "ui.utility.facility_road",
+      "text": "已建市政设施 #{0}；沿路自动接入管网，仍需同网电站、供水和排污设施及足够容量。"
     }
   ]
 }

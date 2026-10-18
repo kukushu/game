@@ -5,14 +5,15 @@ namespace HarborCity
     public sealed class CityCoreConstruction
     {
         readonly CityModel city;readonly CityEntities entities;readonly World world;readonly CityCoreFinance finance;readonly WasteRules waste;
-        internal CityCoreConstruction(CityModel city,CityEntities entities,World world,CityCoreFinance finance,WasteRules waste){this.city=city;this.entities=entities;this.world=world;this.finance=finance;this.waste=waste;}
+        readonly CityCoreUtilities utilities;
+        internal CityCoreConstruction(CityModel city,CityEntities entities,World world,CityCoreFinance finance,WasteRules waste,CityCoreUtilities utilities){this.city=city;this.entities=entities;this.world=world;this.finance=finance;this.waste=waste;this.utilities=utilities;}
         static double RoadValue(Network network){double sum=0;foreach(int id in network.RoadIds)sum+=network.Centreline(id).Length*network.Settings(id).lanes*(40.0/3);return sum;}
         public int Quote(RoadEditPlan plan)
         {if(plan==null||plan.owner!=world||!ReferenceEquals(plan.source,world.Network))throw new InvalidOperationException("道路方案已过期，请重新绘制");double amount=Math.Ceiling(Math.Max(0,RoadValue(plan.Preview)-RoadValue(world.Network)-1e-6));if(amount>int.MaxValue||double.IsNaN(amount)||double.IsInfinity(amount))throw new InvalidOperationException("道路费用超出支持范围");return (int)amount;}
         public bool Commit(RoadEditPlan plan,out int paid)
-        {entities.StructuralBoundary();paid=Quote(plan);finance.CheckSpend(paid);if(!plan.TryCommit())return false;finance.SpendApproved(paid);return true;}
+        {entities.StructuralBoundary();paid=Quote(plan);finance.CheckSpend(paid);if(!plan.TryCommit())return false;finance.SpendApproved(paid);if(city.utilities.roadConduits)utilities.Refresh();return true;}
         public void RemoveRoad(int id)
-        {entities.StructuralBoundary();finance.CheckSpend(40);world.RemoveRoad(id);finance.SpendApproved(40);}
+        {entities.StructuralBoundary();finance.CheckSpend(40);world.RemoveRoad(id);finance.SpendApproved(40);if(city.utilities.roadConduits)utilities.Refresh();}
         // UI sends a stable road ID, never holds a prepared plan across frames.
         // Build and validate the candidate at this healthy boundary, then pay once.
         public int UpgradeRoad(int id,int lanes,RoadDirection direction)

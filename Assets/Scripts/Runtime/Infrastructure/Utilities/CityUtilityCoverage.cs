@@ -43,12 +43,16 @@ namespace HarborCity
         {if(!cells.TryGetValue((x,z),out var list))cells.Add((x,z),list=new List<int>());list.Add(edge);}
         internal void Query(CityBuilding building,float reach,List<UtilityEdge> result)
         {
-            result.Clear();ordered.Clear();if(stamp==int.MaxValue){Array.Clear(visited,0,visited.Length);stamp=0;}stamp++;
             // Same centre-distance/half-minimum-footprint rule as LineDistance.
             // Conservative guard covers float rounding; exact predicate still filters.
             double radius=reach+Math.Min(building.width,building.depth)/2+.01;
-            int loX=(int)Math.Floor((building.x-radius)/Cell),hiX=(int)Math.Floor((building.x+radius)/Cell);
-            int loZ=(int)Math.Floor((building.z-radius)/Cell),hiZ=(int)Math.Floor((building.z+radius)/Cell);
+            QueryBounds(building.x-radius,building.z-radius,building.x+radius,building.z+radius,result);
+        }
+        internal void QueryBounds(double minX,double minZ,double maxX,double maxZ,List<UtilityEdge> result)
+        {
+            result.Clear();ordered.Clear();if(stamp==int.MaxValue){Array.Clear(visited,0,visited.Length);stamp=0;}stamp++;
+            int loX=(int)Math.Floor(minX/Cell),hiX=(int)Math.Floor(maxX/Cell);
+            int loZ=(int)Math.Floor(minZ/Cell),hiZ=(int)Math.Floor(maxZ/Cell);
             for(int x=loX;x<=hiX;x++)for(int z=loZ;z<=hiZ;z++)if(cells.TryGetValue((x,z),out var list))foreach(int index in list)
             {if(visited[index]==stamp)continue;visited[index]=stamp;ordered.Add(index);}
             ordered.Sort();foreach(int index in ordered)result.Add(network.edges[index]);

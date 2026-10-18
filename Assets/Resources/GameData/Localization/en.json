@@ -684,6 +684,14 @@
     {
       "key": "ui.finance.unlimited",
       "text": "Unlimited funds (temporary test; uncheck for normal budget)"
+    },
+    {
+      "key": "ui.utility.road_conduits",
+      "text": "Roads carry electricity, water and sewage. Power, water and sewage facilities are still required."
+    },
+    {
+      "key": "ui.utility.facility_road",
+      "text": "Built facility #{0}. Roadside utilities connect automatically; power, water and sewage facilities and sufficient capacity are still required."
     }
   ]
 }

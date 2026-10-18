@@ -11,12 +11,14 @@ namespace HarborCity
         sealed class UtilityLayout
         {
             internal CityUtilityNetwork power,water;internal long[] key;
+            internal HarborCity.RoadCore.Network roads;
             internal readonly List<List<int>> powerGroups=new List<List<int>>();
             internal readonly Dictionary<int,List<int>> pipeGroups=new Dictionary<int,List<int>>();
         }
         [NonSerialized] UtilityLayout utilityLayout;
         IEnumerable<long> UtilityLayoutKey()
         {
+            yield return utilities.roadConduits?1:0;
             yield return buildings.Count;
             foreach(var b in buildings){yield return b.id;yield return (int)b.Use;yield return BitConverter.SingleToInt32Bits(b.x);yield return BitConverter.SingleToInt32Bits(b.z);yield return BitConverter.SingleToInt32Bits(b.width);yield return BitConverter.SingleToInt32Bits(b.depth);}
             foreach(var net in new[]{utilities.electricity,utilities.water})
@@ -31,14 +33,15 @@ namespace HarborCity
         }
         UtilityLayout SupplyLayout()
         {
-            var old=utilityLayout;
-            if(old!=null&&ReferenceEquals(old.power,utilities.electricity)&&ReferenceEquals(old.water,utilities.water))
+            var roads=utilities.roadConduits?RoadUtilitySource?.Invoke():null;var old=utilityLayout;
+            if(old!=null&&ReferenceEquals(old.roads,roads)&&ReferenceEquals(old.power,utilities.electricity)&&ReferenceEquals(old.water,utilities.water))
             {
                 int at=0;bool same=true;foreach(long value in UtilityLayoutKey()){if(at>=old.key.Length||old.key[at++]!=value){same=false;break;}}
                 if(same&&at==old.key.Length)return old;
             }
-            var layout=new UtilityLayout{power=utilities.electricity,water=utilities.water};
-            var powerNet=utilities.electricity;var components=powerNet.Components();
+            var layout=new UtilityLayout{power=utilities.electricity,water=utilities.water,roads=roads};
+            var roadPower=roads==null?null:new CityRoadUtilityConduits(roads,utilities.electricity);
+            var powerNet=roadPower?.network??utilities.electricity;var components=roadPower?.components??powerNet.Components();
             var adjacency=buildings.ToDictionary(b=>b.id,b=>new List<int>());
             // Maximum validated footprint is 8.9; 16-unit buckets plus adjacent
             // buckets cover every pair within the 6-unit transfer radius.
@@ -75,7 +78,8 @@ namespace HarborCity
                 while(queue.Count>0){int id=queue.Dequeue();group.Add(id);foreach(int next in adjacency[id])if(visited.Add(next))queue.Enqueue(next);}
                 layout.powerGroups.Add(group);
             }
-            var waterNet=utilities.water;var pipeComponents=waterNet.Components();
+            var roadWater=roads==null?null:new CityRoadUtilityConduits(roads,utilities.water);
+            var waterNet=roadWater?.network??utilities.water;var pipeComponents=roadWater?.components??waterNet.Components();
             var pipeBuildings=layout.pipeGroups;
             {
 #if CITY_CORE_ATTRIBUTION
@@ -84,8 +88,14 @@ namespace HarborCity
             var coverage=new CityUtilityCoverage(waterNet);var candidates=new List<UtilityEdge>();var covered=new HashSet<int>();
             foreach(var b in buildings)
             {
-                float reach=b.Use==LandUse.Water||b.Use==LandUse.Sewage?1:PipeReach;coverage.Query(b,reach,candidates);covered.Clear();
-                foreach(var edge in candidates)if(LineDistance(b,waterNet,edge)<=reach)
+                bool facility=b.Use==LandUse.Water||b.Use==LandUse.Sewage;
+                float reach=facility&&roadWater==null?1:PipeReach;coverage.Query(b,reach,candidates);covered.Clear();
+                // One automatic service drop per source/outlet: a plant beside two
+                // disconnected roads must not duplicate its capacity into both systems.
+                int roadComponent=-1;float bestRoadDistance=float.PositiveInfinity;
+                if(facility&&roadWater!=null)foreach(var edge in candidates)if(edge.id>=roadWater.firstRoadEdge)
+                {float distance=LineDistance(b,waterNet,edge);if(distance<=PipeReach&&distance<bestRoadDistance){bestRoadDistance=distance;roadComponent=pipeComponents[edge.a];}}
+                foreach(var edge in candidates)if((!facility||roadWater==null||edge.id<roadWater.firstRoadEdge||pipeComponents[edge.a]==roadComponent)&&LineDistance(b,waterNet,edge)<=(facility&&(roadWater==null||edge.id<roadWater.firstRoadEdge)?1:PipeReach))
                 {int component=pipeComponents[edge.a];if(!covered.Add(component))continue;if(!pipeBuildings.ContainsKey(component))pipeBuildings[component]=new List<int>();pipeBuildings[component].Add(b.id);}
             }
             }

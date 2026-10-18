@@ -77,7 +77,7 @@ namespace HarborCity
             Residents=new CityCoreResidents(city,Transport,Entities,commuteEnabled,calendarOffset);Business.Residents=Residents;
             Simulation=new CitySimulation(city,Transport,timeline,Entities,Residents,Business,calendarOffset,nextDispatchTick,rules,payrollDay,treasury,waste);
             Entities.Simulation=Simulation;
-            Business.Economy=Simulation.Design.Economy;Business.Trade=Simulation.Trade;Construction=new CityCoreConstruction(city,Entities,Transport,Simulation.Finance,Simulation.Design.Waste);
+            Business.Economy=Simulation.Design.Economy;Business.Trade=Simulation.Trade;Construction=new CityCoreConstruction(city,Entities,Transport,Simulation.Finance,Simulation.Design.Waste,Simulation.Utilities);
         }
         public int Advance(double seconds)=>Simulation.Advance(seconds);
         public static CityCoreIndustrySession CreateEmpty(GameDesignData design=null,NetworkData initialRoads=null)

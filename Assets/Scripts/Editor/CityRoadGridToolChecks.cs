@@ -21,6 +21,7 @@ namespace HarborCity
             type.GetMethod("Start",flags).Invoke(game,null);
             var session=(CityCoreIndustrySession)type.GetField("session",flags).GetValue(game);
             if(!session.Simulation.Finance.UnlimitedFunds)throw new Exception("Normal gameplay must start with temporary unlimited funds");
+            if(!session.City.utilities.roadConduits)throw new Exception("Normal roads must carry utilities by default");
             session.Simulation.Finance.UnlimitedFunds=false;
             var land=(CityLandscape)type.GetField("landscape",flags).GetValue(game);
             var tool=type.GetField("gridTool",flags).GetValue(game);var drag=tool.GetType().GetMethod("Drag",flags);

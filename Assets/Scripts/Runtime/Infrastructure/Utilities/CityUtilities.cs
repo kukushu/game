@@ -9,6 +9,7 @@ namespace HarborCity
 {
     [Serializable] public sealed class CityUtilityState
     {
+        public bool roadConduits;
         public CityUtilityNetwork electricity=new CityUtilityNetwork(),water=new CityUtilityNetwork();
         public bool Valid(float buildExtent=CityModel.BuildHalfSize)=>electricity!=null && water!=null && electricity.Valid(buildExtent) && water.Valid(buildExtent);
     }
@@ -34,6 +35,7 @@ namespace HarborCity
     public sealed partial class CityModel
     {
         public CityUtilityState utilities=new CityUtilityState();
+        [NonSerialized] internal Func<HarborCity.RoadCore.Network> RoadUtilitySource;
         // Distances/capacities are provisional world-scale parameters. Networks,
         // adjacency and independent pipe coverage follow the CS1 base-game manual.
         public const float ElectricityReach=6,PipeReach=6;

@@ -13,7 +13,7 @@ namespace HarborCity
     // Save is a cold path; reflection preserves every original business scalar's exact bits.
     public static class CityCoreSave
     {
-        const int Magic=0x48434932,Version=16,MaximumCount=1000000;
+        const int Magic=0x48434932,Version=17,MaximumCount=1000000;
         static readonly Dictionary<Type,FieldInfo[]> fields=new Dictionary<Type,FieldInfo[]>();
         static FieldInfo[] Fields(Type type)
         {FieldInfo[] result;if(!fields.TryGetValue(type,out result)){result=type.GetFields(BindingFlags.Public|BindingFlags.Instance).Where(f=>!f.IsNotSerialized).OrderBy(f=>f.Name,StringComparer.Ordinal).ToArray();fields.Add(type,result);}return result;}
@@ -29,15 +29,19 @@ namespace HarborCity
             var members=Fields(type);writer.Write(type.FullName);writer.Write(members.Length);foreach(var field in members){writer.Write(field.Name);Put(writer,field.FieldType,field.GetValue(value));}
         }
         static int Count(BinaryReader reader){int count=reader.ReadInt32();if(count<0||count>MaximumCount)throw new InvalidDataException("Invalid business count");return count;}
-        static object Get(BinaryReader reader,Type type)
+        static object Get(BinaryReader reader,Type type,bool legacy=false)
         {
             if(!type.IsValueType&&!reader.ReadBoolean())return null;
             if(type==typeof(string))return reader.ReadString();if(type==typeof(long))return reader.ReadInt64();if(type==typeof(int))return reader.ReadInt32();if(type==typeof(float))return reader.ReadSingle();if(type==typeof(double))return reader.ReadDouble();if(type==typeof(bool))return reader.ReadBoolean();if(type.IsEnum)return Enum.ToObject(type,reader.ReadInt32());
-            if(type.IsArray){int count=Count(reader);var result=Array.CreateInstance(type.GetElementType(),count);for(int i=0;i<count;i++)result.SetValue(Get(reader,type.GetElementType()),i);return result;}
-            if(type.IsGenericType&&type.GetGenericTypeDefinition()==typeof(List<>)){int count=Count(reader);var result=(IList)Activator.CreateInstance(type);for(int i=0;i<count;i++)result.Add(Get(reader,type.GetGenericArguments()[0]));return result;}
+            if(type.IsArray){int count=Count(reader);var result=Array.CreateInstance(type.GetElementType(),count);for(int i=0;i<count;i++)result.SetValue(Get(reader,type.GetElementType(),legacy),i);return result;}
+            if(type.IsGenericType&&type.GetGenericTypeDefinition()==typeof(List<>)){int count=Count(reader);var result=(IList)Activator.CreateInstance(type);for(int i=0;i<count;i++)result.Add(Get(reader,type.GetGenericArguments()[0],legacy));return result;}
             if(type.Namespace!="HarborCity"&&type!=typeof(SimulationClockData))throw new InvalidDataException("Unsupported business schema");
-            var members=Fields(type);if(reader.ReadString()!=type.FullName||Count(reader)!=members.Length)throw new InvalidDataException("Business schema changed; start a new city");
-            var value=Activator.CreateInstance(type);foreach(var field in members){if(reader.ReadString()!=field.Name)throw new InvalidDataException("Business field schema changed");field.SetValue(value,Get(reader,field.FieldType));}return value;
+            var members=Fields(type);if(reader.ReadString()!=type.FullName)throw new InvalidDataException("Business schema changed; start a new city");int memberCount=Count(reader);
+            // The only v16 schema difference is the new explicit road-conduit rule.
+            // Old cities retain manual utility behaviour until enabled by the player host.
+            if(legacy&&type==typeof(CityUtilityState)&&memberCount==2)members=members.Where(f=>f.Name!="roadConduits").ToArray();
+            if(memberCount!=members.Length)throw new InvalidDataException("Business schema changed; start a new city");
+            var value=Activator.CreateInstance(type);foreach(var field in members){if(reader.ReadString()!=field.Name)throw new InvalidDataException("Business field schema changed");field.SetValue(value,Get(reader,field.FieldType,legacy));}return value;
         }
         public static byte[] Write(CityCoreIndustrySession session)
         {
@@ -53,11 +57,11 @@ namespace HarborCity
         }
         public static CityCoreIndustrySession Read(byte[] bytes)
         {
-            if(bytes==null||bytes.Length<40||BitConverter.ToInt32(bytes,0)!=Magic||BitConverter.ToInt32(bytes,4)!=Version)throw new InvalidDataException("Unsupported city-core save. Legacy city/demo saves cannot be loaded.");
+            if(bytes==null||bytes.Length<40||BitConverter.ToInt32(bytes,0)!=Magic||(BitConverter.ToInt32(bytes,4)!=Version&&BitConverter.ToInt32(bytes,4)!=16))throw new InvalidDataException("Unsupported city-core save. Legacy city/demo saves cannot be loaded.");
             byte[] digest;using(var sha=SHA256.Create())digest=sha.ComputeHash(bytes,0,bytes.Length-32);for(int i=0;i<32;i++)if(digest[i]!=bytes[bytes.Length-32+i])throw new InvalidDataException("Corrupted city-core save");
             using(var stream=new MemoryStream(bytes,0,bytes.Length-32,false))using(var reader=new BinaryReader(stream))
             {
-                reader.ReadInt32();reader.ReadInt32();var data=(CityCoreBusinessData)Get(reader,typeof(CityCoreBusinessData));if(data.version!=8)throw new InvalidDataException("Unsupported business version");
+                reader.ReadInt32();bool legacy=reader.ReadInt32()==16;var data=(CityCoreBusinessData)Get(reader,typeof(CityCoreBusinessData),legacy);if(data.version!=8)throw new InvalidDataException("Unsupported business version");
                 if(data.waste==null||data.waste.totals==null)throw new InvalidDataException("Missing waste facts");
                 if(data.treasury==null||data.loans==null)throw new InvalidDataException("Missing fiscal facts");
                 if(data.design==null)throw new InvalidDataException("Missing saved design profile");

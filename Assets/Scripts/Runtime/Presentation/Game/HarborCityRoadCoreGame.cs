@@ -135,7 +135,8 @@ namespace HarborCity
                 if(!originalTerrainCheck)session.City.map=CityMapState.DiagnosticFlat(CityMapState.BuildHalfSize);
                 world=session.Transport;BindLandscape();notice=localization.Get("ui.stage.current");
             }
-            if(session!=null)session.Simulation.Finance.UnlimitedFunds=!args.Any(a=>a.StartsWith("-harbor-",StringComparison.Ordinal))||Array.IndexOf(args,"-harbor-city-inspect")>=0;
+            bool playerSession=!args.Any(a=>a.StartsWith("-harbor-",StringComparison.Ordinal))||Array.IndexOf(args,"-harbor-city-inspect")>=0;
+            if(session!=null){session.Simulation.Finance.UnlimitedFunds=playerSession;if(playerSession){session.City.utilities.roadConduits=true;session.Simulation.Utilities.Refresh();}}
             RenderRoads();
             previousTick=System.Diagnostics.Stopwatch.GetTimestamp();
             int flag=Array.IndexOf(args,"-harbor-core-validate");if(flag>=0&&flag+1<args.Length)StartCoroutine(ValidateNative(args[flag+1]));
@@ -206,7 +207,7 @@ namespace HarborCity
             if(!click)return;
             if(roadEditor.IsSelecting){roadEditor.Pick(p);return;}
             if(outsideTool){try{int id=session.Simulation.Trade.ConnectBorder(p);notice=localization.Get("ui.trade.connected",id);}catch(Exception e){notice=localization.Error(e);}return;}
-            if(facilityTool!=LandUse.Empty){try{int id=session.Construction.PlaceFacility(facilityTool,hit.x,hit.z,facilityYaw,session.Simulation.Growth.Zoning);session.Simulation.Utilities.Refresh();notice="已建市政设施 #"+id+"；供水和排污须接管线，设施需要电力。";RenderBuildings();}catch(Exception e){notice=localization.Error(e);}return;}
+            if(facilityTool!=LandUse.Empty){try{int id=session.Construction.PlaceFacility(facilityTool,hit.x,hit.z,facilityYaw,session.Simulation.Growth.Zoning);session.Simulation.Utilities.Refresh();notice=session.City.utilities.roadConduits?localization.Get("ui.utility.facility_road",id):"已建市政设施 #"+id+"；供水和排污须接管线，设施需要电力。";RenderBuildings();}catch(Exception e){notice=localization.Error(e);}return;}
             if(zoneTool!=LandUse.Empty){var selection=session.Simulation.Growth.Zoning.Cells().Where(c=>(c.pose.x-hit.x)*(c.pose.x-hit.x)+(c.pose.z-hit.z)*(c.pose.z-hit.z)<=9).ToArray();int changed=session.Simulation.Growth.Zoning.Paint(selection,zoneTool==LandUse.Bulldoze?LandUse.Empty:zoneTool);notice="已修改 "+changed+" 格土地用途；私人建筑由城市时钟逐步生长。";RenderZones();return;}
             if(!hasStart){if(p.y<=.15){notice=localization.Get("ui.build.water");return;}startPoint=p;hasStart=true;previewVersion=-1;Preview(p);notice=localization.Get(utilityTool.HasValue?"ui.build.pipe_end":"ui.build.choose_end");return;}
             if(!utilityTool.HasValue&&Point.Distance(startPoint,p)<4){notice=localization.Get("ui.build.too_short");return;}
@@ -281,6 +282,7 @@ namespace HarborCity
                 if(gridTool.Enabled)gridTool.DrawSettings();
             }
             if(session!=null)session.Simulation.Finance.UnlimitedFunds=GUILayout.Toggle(session.Simulation.Finance.UnlimitedFunds,localization.Get("ui.finance.unlimited"));
+            if(session!=null&&session.City.utilities.roadConduits)GUILayout.Label(localization.Get("ui.utility.road_conduits"));
             if(session!=null)GUILayout.Label(localization.Get("ui.time.pending",session.Simulation.PendingSeconds.ToString("F2")));
             GUILayout.BeginHorizontal();
             if(session!=null&&GUILayout.Button(localization.Get("ui.road.open"))){building=false;outsideTool=false;ResetGesture();zoneTool=facilityTool=LandUse.Empty;utilityTool=null;observation.Close();roadEditor.Bind(session);roadEditor.Begin();}
@@ -306,7 +308,7 @@ namespace HarborCity
             constructionCamera=new HarborCityConstructionCamera(cameraView,landscape,session.City.map.buildHalfSize);
             roadViews?.InvalidateSurface();zoningViews?.InvalidateSurface();
         }
-        void Load(){try{var bytes=File.ReadAllBytes(SavePath);var replacement=session==null?SaveCodec.Read(bytes):null;var restored=session==null?null:CityCoreSave.Read(bytes);if(restored!=null)restored.Simulation.Finance.UnlimitedFunds=session.Simulation.Finance.UnlimitedFunds;vehicleViews?.Clear();session=restored;world=restored?.Transport??replacement;CancelTool();observation?.Bind(session);roadEditor?.Bind(session);if(session!=null)BindLandscape();shownBuildings=shownZones=shownNetwork=-1;RenderRoads();RenderBuildings();RenderZones();RenderUtilities();notice="新格式已加载";}catch(Exception e){notice="读取失败："+e.Message;}}
+        void Load(){try{var bytes=File.ReadAllBytes(SavePath);var replacement=session==null?SaveCodec.Read(bytes):null;var restored=session==null?null:CityCoreSave.Read(bytes);if(restored!=null){restored.Simulation.Finance.UnlimitedFunds=session.Simulation.Finance.UnlimitedFunds;restored.City.utilities.roadConduits=true;restored.Simulation.Utilities.Refresh();}vehicleViews?.Clear();session=restored;world=restored?.Transport??replacement;CancelTool();observation?.Bind(session);roadEditor?.Bind(session);if(session!=null)BindLandscape();shownBuildings=shownZones=shownNetwork=-1;RenderRoads();RenderBuildings();RenderZones();RenderUtilities();notice="新格式已加载";}catch(Exception e){notice="读取失败："+e.Message;}}
         System.Collections.IEnumerator ValidateNative(string path)
         {
             Directory.CreateDirectory(path);speed=0;yield return null;

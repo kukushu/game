@@ -10,17 +10,18 @@ namespace HarborCity
         int entityVersion=-1,roadVersion=-1,powerVersion=-1,waterVersion=-1;
         CityUtilityNetwork power,water;
         bool dirty=true;
+        bool roadConduits;
         internal CityCoreFinance Finance;
-        public CityCoreUtilities(CityModel city,CityEntities entities,World world){this.city=city;this.entities=entities;this.world=world;}
+        public CityCoreUtilities(CityModel city,CityEntities entities,World world){this.city=city;this.entities=entities;this.world=world;city.RoadUtilitySource=()=>world.Network;}
         public void Invalidate(){dirty=true;}
         public void Refresh()
         {
             if(!city.development.enabled)return;
-            if(!dirty&&entityVersion==entities.Revision&&roadVersion==world.NetworkGeneration&&ReferenceEquals(power,city.utilities.electricity)&&ReferenceEquals(water,city.utilities.water)&&powerVersion==power.revision&&waterVersion==water.revision)return;
+            if(!dirty&&roadConduits==city.utilities.roadConduits&&entityVersion==entities.Revision&&roadVersion==world.NetworkGeneration&&ReferenceEquals(power,city.utilities.electricity)&&ReferenceEquals(water,city.utilities.water)&&powerVersion==power.revision&&waterVersion==water.revision)return;
 #if CITY_CORE_ATTRIBUTION
             using var rebuildObservation=CityCoreProfile.Measure(CityCoreProfile.Part.UtilityRebuild);
 #endif
-            city.RecalculateUtilities();dirty=false;entityVersion=entities.Revision;roadVersion=world.NetworkGeneration;power=city.utilities.electricity;water=city.utilities.water;powerVersion=power.revision;waterVersion=water.revision;
+            city.RecalculateUtilities();dirty=false;roadConduits=city.utilities.roadConduits;entityVersion=entities.Revision;roadVersion=world.NetworkGeneration;power=city.utilities.electricity;water=city.utilities.water;powerVersion=power.revision;waterVersion=water.revision;
         }
         public void SetBudget(CityServiceKind kind,int percent)
         {
