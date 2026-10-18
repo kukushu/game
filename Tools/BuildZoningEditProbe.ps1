@@ -12,7 +12,7 @@ if($Reference){
     }
 }
 if($CoreReference){
-    foreach($relative in @('Assets/Scripts/Runtime/Traffic/CityRoadCoreWorld.cs','Assets/Scripts/Runtime/Infrastructure/Roads/CityRoadCoreConstruction.cs')){
+    foreach($relative in @('Assets/Scripts/Runtime/Traffic/CityRoadCoreWorld.cs','Assets/Scripts/Runtime/Infrastructure/Roads/CityRoadCoreConstruction.cs','Assets/Scripts/Runtime/Infrastructure/Roads/CityRoadCoreNetwork.cs','Assets/Scripts/Runtime/Infrastructure/Roads/CityLaneConnection.cs')){
         $frozen=& git show ($CoreReference+':'+$relative);if($LASTEXITCODE -ne 0){throw 'Core reference unavailable'}
         [IO.File]::WriteAllLines((Join-Path $root ('Temp/RoadCoreUnity/'+$relative)),$frozen)
     }

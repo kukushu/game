@@ -147,7 +147,7 @@ namespace HarborCity.RoadCore
         {
             var n=CloneNetwork(state.network);n.nextRoad=Math.Max(n.nextRoad,data.network.nextRoad);n.nextJunction=Math.Max(n.nextJunction,data.network.nextJunction);
             foreach(var depot in data.depots)if(!n.junctions.Exists(j=>j.id==depot.junction)){var current=data.network.junctions.Find(j=>j.id==depot.junction);n.junctions.Add(new Junction{id=current.id,position=current.position});}
-            var candidate=new Network(n);var oldAccess=new Dictionary<int,RoadAccess>();foreach(var access in state.accesses)oldAccess.Add(access.endpoint,access);var proposed=new List<RoadAccess>();var hits=new List<SpatialHit>();
+            var candidate=new Network(n,Network);var oldAccess=new Dictionary<int,RoadAccess>();foreach(var access in state.accesses)oldAccess.Add(access.endpoint,access);var proposed=new List<RoadAccess>();var hits=new List<SpatialHit>();
             foreach(var access in data.accesses)
             {
                 RoadAccess prior;if(oldAccess.TryGetValue(access.endpoint,out prior)){proposed.Add(prior.Copy());continue;}var restored=access.Copy();if(restored.valid){candidate.Project(Network.Get(access.lane).Geometry.Sample(access.distance),1e-6,false,hits);if(hits.Count==0){restored.valid=false;restored.lane=0;restored.distance=0;}else{restored.lane=hits[0].drivable;restored.distance=hits[0].distance;restored.preferredIndex=candidate.Get(restored.lane).LaneIndex;}}proposed.Add(restored);
@@ -166,7 +166,7 @@ namespace HarborCity.RoadCore
         }
         public int AddJunction(Point point)
         {
-            var n=CopyNetwork();int id=n.nextJunction++;n.junctions.Add(new Junction{id=id,position=point});var replacement=new Network(n);if(!new RoadEditPlan(this,n,replacement).TryCommit())throw new InvalidOperationException("Road plan became stale");return id;
+            var n=CopyNetwork();int id=n.nextJunction++;n.junctions.Add(new Junction{id=id,position=point});var replacement=new Network(n,Network);if(!new RoadEditPlan(this,n,replacement).TryCommit())throw new InvalidOperationException("Road plan became stale");return id;
         }
         public Point JunctionPosition(int id){foreach(var j in data.network.junctions)if(j.id==id)return j.position;throw new ArgumentException("Missing junction");}
         public int SnapJunction(Point p,double radius)
@@ -176,11 +176,11 @@ namespace HarborCity.RoadCore
             int id=data.network.nextRoad;var plan=PlanRoad(from,to,points,oneWay,speed,lanes);if(!plan.TryCommit())throw new InvalidOperationException("Road plan became stale");return id;
         }
         public RoadEditPlan PlanRoad(int from,int to,Point[] points,bool oneWay=false,double speed=12,int lanes=1)
-        {var n=CopyNetwork();int id=n.nextRoad++;n.roads.Add(new PhysicalRoad{id=id,from=from,to=to,points=(Point[])points.Clone(),direction=oneWay?RoadDirection.Forward:RoadDirection.Both,lanes=lanes,speed=speed});var network=new Network(n);ValidateEditReservations(network,null);return new RoadEditPlan(this,n,network);}
+        {var n=CopyNetwork();int id=n.nextRoad++;n.roads.Add(new PhysicalRoad{id=id,from=from,to=to,points=(Point[])points.Clone(),direction=oneWay?RoadDirection.Forward:RoadDirection.Both,lanes=lanes,speed=speed});var network=new Network(n,Network);ValidateEditReservations(network,null);return new RoadEditPlan(this,n,network);}
         public RoadEditPlan PlanConnectedRoad(Point[] center,bool oneWay=false,double speed=12,double snap=3,int lanes=1)=>RoadConstruction.Connect(this,center,oneWay,speed,snap,lanes);
         public RoadEditPlan PlanUpgradeRoad(int id,int lanes,double speed,RoadDirection direction)
         {
-            var n=CopyNetwork();var road=n.roads.Find(r=>r.id==id);if(road==null)throw new ArgumentException("Missing road");road.lanes=lanes;road.speed=speed;road.direction=direction;var candidate=new Network(n);
+            var n=CopyNetwork();var road=n.roads.Find(r=>r.id==id);if(road==null)throw new ArgumentException("Missing road");road.lanes=lanes;road.speed=speed;road.direction=direction;var candidate=new Network(n,Network);
             foreach(var v in data.vehicles)if(Network.Contains(v.Current)&&!candidate.Contains(v.Current)||v.changeTarget!=0&&!candidate.Contains(v.changeTarget))throw new InvalidOperationException("待撤方向/车道仍有车辆，等待驶离后再升级；城市未修改。");
             var proposed=new List<RoadAccess>();foreach(var original in data.accesses)
             {
@@ -268,7 +268,7 @@ namespace HarborCity.RoadCore
         public bool RebindAccesses(IReadOnlyList<AccessBinding> bindings)
         {
             if(bindings==null||bindings.Count==0)return false;var replacements=new Dictionary<int,RoadAccess>();foreach(var binding in bindings){var old=GetAccess(binding.endpoint);var road=Network.Get(binding.lane);if(old==null||old.valid)return false;if(road.IsConnection||binding.distance<road.StartDistance||binding.distance>road.EndDistance||double.IsNaN(binding.distance)||double.IsInfinity(binding.distance))throw new ArgumentException("Invalid replacement access");replacements.Add(binding.endpoint,new RoadAccess{endpoint=binding.endpoint,preferredIndex=road.LaneIndex,lane=binding.lane,distance=binding.distance,use=old.use});}
-            var proposed=new List<RoadAccess>();foreach(var access in data.accesses){RoadAccess replacement;proposed.Add(replacements.TryGetValue(access.endpoint,out replacement)?replacement:access.Copy());}var networkData=CopyNetwork();return new RoadEditPlan(this,networkData,new Network(networkData),accesses:proposed).TryCommit();
+            var proposed=new List<RoadAccess>();foreach(var access in data.accesses){RoadAccess replacement;proposed.Add(replacements.TryGetValue(access.endpoint,out replacement)?replacement:access.Copy());}var networkData=CopyNetwork();return new RoadEditPlan(this,networkData,new Network(networkData,Network),accesses:proposed).TryCommit();
         }
         public bool TryResumeStranded(int id)
         {
@@ -625,7 +625,7 @@ namespace HarborCity.RoadCore
             Array.Copy(vectors,sample,suffix.rightVectors,0,suffix.rightVectors.Length);
             var tangent=Network.Tangent(r.points[sample-1],r.points[sample+1]);suffix.startTangent=tangent;r.endTangent=tangent;
             var prefix=new Point[sample+1];Array.Copy(r.points,prefix,prefix.Length);r.points=prefix;r.rightVectors=new Point[sample+1];Array.Copy(vectors,r.rightVectors,r.rightVectors.Length);r.to=junction;n.roads.Add(suffix);
-            var replacement=new Network(n);
+            var replacement=new Network(n,Network);
             var accessPlan=new List<RoadAccess>();
             foreach(var existing in data.accesses)
             {
@@ -687,7 +687,7 @@ namespace HarborCity.RoadCore
         }
         public void RemoveRoad(int id)
         {
-            var n=CopyNetwork();if(n.roads.RemoveAll(r=>r.id==id)==0)throw new ArgumentException("Missing road");var replacement=new Network(n);
+            var n=CopyNetwork();if(n.roads.RemoveAll(r=>r.id==id)==0)throw new ArgumentException("Missing road");var replacement=new Network(n,Network);
             var remaps=new List<Remap>();var interrupted=new List<KeyValuePair<Vehicle,Point>>();
             foreach(var v in data.vehicles)
             {

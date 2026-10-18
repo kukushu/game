@@ -15,6 +15,7 @@ namespace HarborCity.RoadCore
         public JunctionPort Entry {get;private set;}
         public JunctionPort Exit {get;private set;}
         internal Lane(long id,int road,int from,int to,bool reverse,double speed,Point[] points):base(id,road,from,to,0,reverse,speed,points){}
+        internal Lane(long id,int road,int from,int to,bool reverse,double speed,Geometry geometry):base(id,road,from,to,0,reverse,speed,geometry){}
         internal void ConfigurePorts(bool trimEntry,bool trimExit)
         {Entry=new JunctionPort(this,From,trimEntry?ProtectedClearance:0);Exit=new JunctionPort(this,To,Geometry.Length-(trimExit?ProtectedClearance:0));StartDistance=Entry.Station;EndDistance=Exit.Station;}
     }
@@ -23,8 +24,15 @@ namespace HarborCity.RoadCore
         public readonly Lane Incoming,Outgoing;
         public JunctionPort Entry=>Incoming.Exit;
         public JunctionPort Exit=>Outgoing.Entry;
-        internal LaneConnection(long id,Lane incoming,Lane outgoing):base(id,0,incoming.To,incoming.To,incoming.To,false,Math.Min(incoming.Speed,outgoing.Speed),Curve(incoming.Exit,outgoing.Entry))
+        internal LaneConnection(long id,Lane incoming,Lane outgoing,LaneConnection prior=null):base(id,0,incoming.To,incoming.To,incoming.To,false,Math.Min(incoming.Speed,outgoing.Speed),GeometryFor(incoming.Exit,outgoing.Entry,prior))
         {Incoming=incoming;Outgoing=outgoing;}
+        static Geometry GeometryFor(JunctionPort a,JunctionPort b,LaneConnection prior)
+        {
+            // Curve depends only on these four vectors, not speed, lane count,
+            // road identity or another candidate's mutable JunctionPort objects.
+            if(prior!=null&&Geometry.Same(a.Position,prior.Entry.Position)&&Geometry.Same(a.Direction,prior.Entry.Direction)&&Geometry.Same(b.Position,prior.Exit.Position)&&Geometry.Same(b.Direction,prior.Exit.Direction))return prior.Geometry;
+            return new Geometry(Curve(a,b));
+        }
         static Point[] Curve(JunctionPort a,JunctionPort b)
         {
             double distance=Point.Distance(a.Position,b.Position);if(distance<1e-8)return new[]{a.Position,b.Position};

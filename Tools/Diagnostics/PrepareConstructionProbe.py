@@ -33,7 +33,8 @@ scopes('Infrastructure/Roads/CityRoadCoreConstruction.cs', [
     ('static int Attach(World draft,Point point,double radius)', 'Road.Attach'),
     ('static void JoinCoincidentRoads(World draft,int junction)', 'Road.JoinCoincident'),
 ])
-scopes('Infrastructure/Roads/CityRoadCoreNetwork.cs', [('void Rebuild()', 'Network.Rebuild')])
+network_source = (root / 'Infrastructure/Roads/CityRoadCoreNetwork.cs').read_text(encoding='utf-8-sig')
+scopes('Infrastructure/Roads/CityRoadCoreNetwork.cs', [('void Rebuild(Network prior)' if 'void Rebuild(Network prior)' in network_source else 'void Rebuild()', 'Network.Rebuild')])
 scopes('Simulation/Core/CityCoreConstruction.cs', [
     ('public int CheckRoadPlacement(RoadEditPlan plan)', 'Construction.Placement'),
     ('public bool Commit(RoadEditPlan plan,out int paid)', 'Construction.Commit'),

@@ -17,3 +17,8 @@ HarborCity 玩家施工事务优化，2026-10-18
 
 限制：目前仍有三次候选Network全量构造、五次私有World快照、完整车辆和全城建筑检查；这些是下一层实测热点。繁忙城拓宽/删除原安全规则拒绝，需明确区分拒绝成本，不能称成功操作。隐藏原生Player没有物理鼠标验收；不能把函数时间称点击到输入恢复的实测延迟。
 工具复用BuildZoningEditProbe/RunZoningEditProbe/ExportCityWindowProfile，额外PrepareConstructionProbe仅改Temp副本。所有昂贵存档断言在独立验证阶段，不计入施工帧。正式原始CSV、源码和配置通过既有PerformanceData流程发布。
+
+第二步：候选Network之间只共享不可变Geometry，不共享可变Drivable。
+新Network构造接受上一版只作临时查找，不持有prior引用，不形成版本链；中心线/车道只在每个Point的double位完全一致时共享Geometry。路口曲线只在Curve算法的四个输入向量（两端Position/Direction）逐位一致时共享。连接速度、端口站距、车道方向、裁剪、clearance、拓扑、所有索引和冲突缓存在新Network重新计算。所有旧输入合法性检查保留，无旧Geometry或输入不同即运行原算法。Geometry没有外部可变数组入口，Slice仍返回独立数组。
+新增16组五臂双车道、坡度、曲线、右向量/端点切向、方向、宽度/速度变更与不变场景；冷算法与复用构造逐点/累计里程/元数据/精确冲突对照，旧Network构造前后不变，可变Drivable无共享，非有限输入仍拒绝。核心总135628检查通过。replay-geometry所有完整状态阶段与原547bb6a回放相同，原生最终保存仍6835ebb8…。
+geometry-stages原生Profiler：三次Network 128.41→58.01ms，事务325.30→264.35ms。正常运行running-c1：事务新增165.93ms、连接211.39ms；操作窗口最长帧新增246.64ms、连接230.31ms、连续279.07ms。正常模拟追赶可能使最长帧不等于事务耗时，因此两者分别记录。后续仍需最终重复和五万人配对。

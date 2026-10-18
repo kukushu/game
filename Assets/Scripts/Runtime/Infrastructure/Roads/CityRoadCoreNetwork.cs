@@ -40,6 +40,12 @@ namespace HarborCity.RoadCore
         public int Count=>points.Length;
         public Point this[int i]=>points[i];
         public double At(int i)=>cumulative[i];
+        internal bool Matches(Point[] source)
+        {
+            if(source==null||source.Length!=points.Length)return false;
+            for(int i=0;i<source.Length;i++)if(!Same(source[i],points[i]))return false;return true;
+        }
+        internal static bool Same(Point a,Point b)=>BitConverter.DoubleToInt64Bits(a.x)==BitConverter.DoubleToInt64Bits(b.x)&&BitConverter.DoubleToInt64Bits(a.y)==BitConverter.DoubleToInt64Bits(b.y)&&BitConverter.DoubleToInt64Bits(a.z)==BitConverter.DoubleToInt64Bits(b.z);
         public Geometry(Point[] source)
         {
             if(source==null||source.Length<2)throw new ArgumentException("A centerline needs two points");
@@ -88,7 +94,9 @@ namespace HarborCity.RoadCore
         public double ProtectedClearance {get;internal set;}
         public int ParallelLaneCount {get;internal set;}
         internal Drivable(long id,int road,int from,int to,int junction,bool reverse,double speed,Point[] points)
-        {Id=id;RoadId=road;From=from;To=to;JunctionId=junction;Reverse=reverse;Speed=speed;Geometry=new Geometry(points);EndDistance=Geometry.Length;ProtectedClearance=Math.Min(2,Geometry.Length/3);}
+            :this(id,road,from,to,junction,reverse,speed,new Geometry(points)){}
+        internal Drivable(long id,int road,int from,int to,int junction,bool reverse,double speed,Geometry geometry)
+        {Id=id;RoadId=road;From=from;To=to;JunctionId=junction;Reverse=reverse;Speed=speed;Geometry=geometry;EndDistance=Geometry.Length;ProtectedClearance=Math.Min(2,Geometry.Length/3);}
         public bool IsConnection=>JunctionId!=0;
         public int LaneIndex=>IsConnection?-1:(int)((Id>>1)&31);
     }
@@ -126,7 +134,10 @@ namespace HarborCity.RoadCore
         public bool ContainsRoad(int roadId)=>settings.ContainsKey(roadId);
         public RoadSettings Settings(int roadId){if(!settings.TryGetValue(roadId,out var road))throw new ArgumentException("Missing road");return road;}
         public bool HasParallelLanes {get;private set;}
-        public Network(NetworkData data){this.data=data??throw new ArgumentNullException(nameof(data));Rebuild();}
+        public Network(NetworkData data):this(data,null){}
+        // Prior contributes immutable Geometry only. Mutable lanes/ports, indexes,
+        // reachability, scratch and reservation caches belong to this candidate.
+        internal Network(NetworkData data,Network prior){this.data=data??throw new ArgumentNullException(nameof(data));Rebuild(prior);}
         public Drivable Get(long id){Drivable d;if(!drivables.TryGetValue(id,out d))throw new InvalidOperationException("Missing drivable "+id);return d;}
         public bool Contains(long id)=>drivables.ContainsKey(id);
         public bool IsConflictJunction(int id)=>conflictJunctions.Contains(id);
@@ -149,7 +160,7 @@ namespace HarborCity.RoadCore
             if(road.rightVectors!=null)return (Point[])road.rightVectors.Clone();int n=road.points.Length;var result=new Point[n];
             for(int i=0;i<n;i++){Point tangent=i==0?road.startTangent:i==n-1?road.endTangent:Tangent(road.points[i-1],road.points[i+1]);if(Point.Distance(tangent,new Point())<1e-9)tangent=Tangent(road.points[Math.Max(0,i-1)],road.points[Math.Min(n-1,i+1)]);result[i]=Offset(new Point(),tangent,1);}return result;
         }
-        void Rebuild()
+        void Rebuild(Network prior)
         {
             var junctions=new Dictionary<int,Junction>();int maxJ=0,maxR=0;
             foreach(var j in data.junctions){if(j.id<=0||junctions.ContainsKey(j.id)||!Finite(j.position))throw new ArgumentException("Duplicate/invalid junction");junctions.Add(j.id,j);maxJ=Math.Max(maxJ,j.id);}
@@ -157,11 +168,11 @@ namespace HarborCity.RoadCore
             foreach(var r in data.roads)
             {
                 if(r.id<=0||r.id>MaximumRoadId||!roads.Add(r.id)||!junctions.ContainsKey(r.from)||!junctions.ContainsKey(r.to)||r.from==r.to||r.direction<RoadDirection.Both||r.direction>RoadDirection.Backward||r.lanes<1||r.lanes>8||r.speed<=0||double.IsNaN(r.speed)||double.IsInfinity(r.speed))throw new ArgumentException("Invalid road identity/direction/speed/lanes");
-                var g=new Geometry(r.points);if(g.Length<.1||!Finite(r.startTangent)||!Finite(r.endTangent)||Point.Distance(r.points[0],junctions[r.from].position)>1e-6||Point.Distance(r.points[r.points.Length-1],junctions[r.to].position)>1e-6)throw new ArgumentException("Road endpoints/tangents disagree with junctions");
+                Geometry previous;var g=prior!=null&&prior.centrelines.TryGetValue(r.id,out previous)&&previous.Matches(r.points)?previous:new Geometry(r.points);if(g.Length<.1||!Finite(r.startTangent)||!Finite(r.endTangent)||Point.Distance(r.points[0],junctions[r.from].position)>1e-6||Point.Distance(r.points[r.points.Length-1],junctions[r.to].position)>1e-6)throw new ArgumentException("Road endpoints/tangents disagree with junctions");
                 for(int i=0;i<r.points.Length;i++)if(!Finite(r.points[i])||(i>0&&Point.Distance(r.points[i-1],r.points[i])<1e-8))throw new ArgumentException("Invalid geometry sample");
                 if(r.rightVectors!=null){if(r.rightVectors.Length!=r.points.Length)throw new ArgumentException("Cross-section count mismatch");foreach(var right in r.rightVectors)if(!Finite(right)||Math.Abs(right.y)>1e-9||Point.Distance(right,new Point())>1.000001)throw new ArgumentException("Invalid road cross-section");}
                 centrelines.Add(r.id,g);settings.Add(r.id,new RoadSettings(r));
-                maxR=Math.Max(maxR,r.id);laneCounts.Add(r.id,r.lanes);HasParallelLanes|=r.lanes>1;double radius=(r.lanes-.5)*1.1+1;double prior;junctionRadii.TryGetValue(r.from,out prior);junctionRadii[r.from]=Math.Max(prior,radius);junctionRadii.TryGetValue(r.to,out prior);junctionRadii[r.to]=Math.Max(prior,radius);for(int lane=0;lane<r.lanes;lane++){if(r.direction!=RoadDirection.Backward)AddLane(r,false,lane);if(r.direction!=RoadDirection.Forward)AddLane(r,true,lane);}
+                maxR=Math.Max(maxR,r.id);laneCounts.Add(r.id,r.lanes);HasParallelLanes|=r.lanes>1;double radius=(r.lanes-.5)*1.1+1;double priorRadius;junctionRadii.TryGetValue(r.from,out priorRadius);junctionRadii[r.from]=Math.Max(priorRadius,radius);junctionRadii.TryGetValue(r.to,out priorRadius);junctionRadii[r.to]=Math.Max(priorRadius,radius);for(int lane=0;lane<r.lanes;lane++){if(r.direction!=RoadDirection.Backward)AddLane(r,false,lane,prior);if(r.direction!=RoadDirection.Forward)AddLane(r,true,lane,prior);}
             }
             if(data.nextRoad<=maxR||data.nextJunction<=maxJ)throw new ArgumentException("Identity allocator is behind live entities");
             foreach(var lane in drivables.Values){double from,to;junctionRadii.TryGetValue(lane.From,out from);junctionRadii.TryGetValue(lane.To,out to);lane.ProtectedClearance=Math.Min(Math.Max(2,Math.Max(from,to)),lane.Geometry.Length/3);}
@@ -192,21 +203,22 @@ namespace HarborCity.RoadCore
                     // Real intersections may connect different lane indices; explicit
                     // turn restrictions and lane-change intentions are separate rules.
                     if(!IsConflictJunction(a.To)&&b.LaneIndex!=Math.Min(a.LaneIndex,LaneCount(b.RoadId)-1))continue;
-                    long id=ConnectionId(a.Id,b.Id);drivables.Add(id,new LaneConnection(id,(Lane)a,(Lane)b));
+                    long id=ConnectionId(a.Id,b.Id);Drivable previous;LaneConnection old=prior!=null&&prior.drivables.TryGetValue(id,out previous)?previous as LaneConnection:null;drivables.Add(id,new LaneConnection(id,(Lane)a,(Lane)b,old));
                 }
             }
             connectionConflicts=new ConnectionConflicts(this);
             foreach(var d in drivables.Values)if(d.IsConnection&&!conflictJunctions.Contains(d.JunctionId)&&connectionConflicts.HasOther(d.Id))conflictJunctions.Add(d.JunctionId);
         }
         static bool Finite(Point p)=>!(double.IsNaN(p.x)||double.IsNaN(p.y)||double.IsNaN(p.z)||double.IsInfinity(p.x)||double.IsInfinity(p.y)||double.IsInfinity(p.z));
-        void AddLane(PhysicalRoad road,bool reverse,int index)
+        void AddLane(PhysicalRoad road,bool reverse,int index,Network prior)
         {
             int n=road.points.Length;var p=new Point[n];var right=RightVectors(road);
             for(int i=0;i<n;i++)
             {
                 double offset=(.55+index*1.1)*(reverse?-1:1);p[reverse?n-1-i:i]=new Point(road.points[i].x+right[i].x*offset,road.points[i].y,road.points[i].z+right[i].z*offset);
             }
-            var d=new Lane(LaneId(road.id,reverse,index),road.id,reverse?road.to:road.from,reverse?road.from:road.to,reverse,road.speed,p);
+            long id=LaneId(road.id,reverse,index);Drivable previous;Geometry geometry=prior!=null&&prior.drivables.TryGetValue(id,out previous)&&previous.Geometry.Matches(p)?previous.Geometry:new Geometry(p);
+            var d=new Lane(id,road.id,reverse?road.to:road.from,reverse?road.from:road.to,reverse,road.speed,geometry);
             d.ParallelLaneCount=road.lanes;
             drivables.Add(d.Id,d);List<Drivable> list;if(!outgoing.TryGetValue(d.From,out list))outgoing.Add(d.From,list=new List<Drivable>());list.Add(d);
         }

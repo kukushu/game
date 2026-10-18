@@ -83,8 +83,39 @@ public static class RoadCoreChecks
         }
         Check(w.ActiveCount==0&&w.Delivered==3&&w.Tasks.Count==0,"Service return did not retire exactly once");
     }
+    static void GeometryReuse()
+    {
+        var w=new World();int center=w.AddJunction(new Point(0,0,0));
+        for(int i=0;i<5;i++){double angle=i*2*Math.PI/5;var p=new Point(40*Math.Cos(angle),i*.3,40*Math.Sin(angle));int j=w.AddJunction(p);w.AddRoad(j,center,new[]{p,Point.Lerp(p,new Point(),.6),new Point()},lanes:2);}
+        Network prior=w.Network;
+        Func<Network,string> signature=n=>string.Join("|",n.Drivables.OrderBy(d=>d.Id).Select(d=>d.Id+":"+d.StartDistance.ToString("R",CultureInfo.InvariantCulture)+":"+d.EndDistance.ToString("R",CultureInfo.InvariantCulture)+":"+string.Join(";",Enumerable.Range(0,d.Geometry.Count).Select(i=>BitConverter.DoubleToInt64Bits(d.Geometry[i].x)+","+BitConverter.DoubleToInt64Bits(d.Geometry[i].y)+","+BitConverter.DoubleToInt64Bits(d.Geometry[i].z)))));
+        for(int variant=0;variant<16;variant++)
+        {
+            var data=w.Snapshot().network;var r=data.roads[0];
+            if(variant%4==0)r.lanes=1+variant/4;
+            if(variant%4==1)r.direction=(RoadDirection)((variant/4)%3);
+            if(variant%4==2){var a=r.points[0];var b=r.points[r.points.Length-1];r.points=new[]{a,Point.Lerp(a,b,.5),b};r.points[1]=new Point(r.points[1].x+variant*.13,variant*.1,r.points[1].z);r.speed+=variant;}
+            if(variant%4==3){r.startTangent=new Point(1,0,.17*variant);r.endTangent=new Point(.2,0,1);r.rightVectors=Enumerable.Repeat(new Point(.4,0,.3),r.points.Length).ToArray();}
+            string before=signature(prior);var warm=new Network(data,prior);var cold=new Network(data);
+            Check(before==signature(prior),"Candidate changed prior geometry/ports");
+            Check(warm.RoadCount==cold.RoadCount&&warm.JunctionCount==cold.JunctionCount,"Network cache changed topology");
+            var expected=cold.Drivables.OrderBy(d=>d.Id).ToArray();var actual=warm.Drivables.OrderBy(d=>d.Id).ToArray();Check(expected.Length==actual.Length,"Cached drivable count");
+            for(int i=0;i<actual.Length;i++)
+            {
+                var a=actual[i];var b=expected[i];Check(!prior.Contains(a.Id)||!ReferenceEquals(a,prior.Get(a.Id)),"Mutable drivable shared between Networks");
+                Check(a.Id==b.Id&&a.From==b.From&&a.To==b.To&&a.RoadId==b.RoadId&&a.JunctionId==b.JunctionId&&a.Reverse==b.Reverse&&a.Speed==b.Speed&&a.StartDistance==b.StartDistance&&a.EndDistance==b.EndDistance&&a.ProtectedClearance==b.ProtectedClearance&&a.ParallelLaneCount==b.ParallelLaneCount&&a.Geometry.Count==b.Geometry.Count,"Cached drivable metadata");
+                for(int j=0;j<a.Geometry.Count;j++)Check(Geometry.Same(a.Geometry[j],b.Geometry[j])&&BitConverter.DoubleToInt64Bits(a.Geometry.At(j))==BitConverter.DoubleToInt64Bits(b.Geometry.At(j)),"Cached geometry/cumulative differs from cold algorithm");
+                Check(warm.IsConflictJunction(a.From)==cold.IsConflictJunction(b.From)&&warm.IsConflictJunction(a.To)==cold.IsConflictJunction(b.To),"Cached conflict junction");
+            }
+            foreach(var a in actual.Where(d=>d.IsConnection))foreach(var b in actual.Where(d=>d.IsConnection&&d.JunctionId==a.JunctionId))Check(warm.MovementsConflict(a.Id,b.Id)==cold.MovementsConflict(a.Id,b.Id),"Cached exact movement conflict");
+            prior=warm;
+        }
+        var unchanged=new Network(w.Snapshot().network,w.Network);Check(unchanged.Drivables.All(d=>ReferenceEquals(d.Geometry,w.Network.Get(d.Id).Geometry)),"Unchanged immutable geometry was not reused");
+        var invalid=w.Snapshot().network;invalid.roads[0].points[0]=new Point(double.NaN,0,0);Reject(()=>new Network(invalid,w.Network),"Geometry reuse accepted nonfinite input");
+    }
     static void Tests()
     {
+        GeometryReuse();
         IndexReuseTests();
         ServiceTests();
         PositionTests();
