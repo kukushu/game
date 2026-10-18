@@ -18,6 +18,24 @@ static class CityZoningEditReplay
         }
         add(-h+5,-h+80,-h+17,-h+80);record("continuous_a");add(-h+5,-h+104,-h+17,-h+104);record("continuous_b");
         foreach(var pair in positions){var p=s.Transport.Position(s.Transport.FindVehicle(pair.Key));if(p.x!=pair.Value.x||p.y!=pair.Value.y||p.z!=pair.Value.z)throw new Exception("Margin edit moved an existing vehicle");}
+        if(args.Length>2&&args[2]=="expanded")
+        {
+            var outcomes=new List<string>{"operation,status,reason"};
+            Action<string,Action> attempt=(name,command)=>{var before=CityCoreSave.Write(s);try{command();outcomes.Add(name+",accepted,none");}catch(Exception error)when(error is InvalidOperationException||error is ArgumentException){if(!before.SequenceEqual(CityCoreSave.Write(s)))throw new Exception(name+" rejection changed full state");outcomes.Add(name+",rejected,\""+error.Message.Replace("\"","\"\"")+"\"");}record(name);};
+            attempt("margin_reverse",()=>s.Construction.UpgradeRoad(ordinary,1,RoadDirection.Backward));
+            var busy=s.Transport.Vehicles.First(v=>v.status==VehicleStatus.Active&&!s.Transport.Network.Get(v.Current).IsConnection);int busyRoad=s.Transport.Network.Get(busy.Current).RoadId;var settings=s.Transport.Network.Settings(busyRoad);
+            attempt("occupied_widen",()=>s.Construction.UpgradeRoad(busyRoad,settings.lanes+1,settings.direction));
+            attempt("occupied_reverse",()=>s.Construction.UpgradeRoad(busyRoad,settings.lanes,settings.direction==RoadDirection.Backward?RoadDirection.Forward:RoadDirection.Backward));
+            var line=s.Transport.Network.Centreline(busyRoad);var middle=line.Sample(line.Length*.5);var direction=line.DirectionAt(line.Length*.5);
+            attempt("occupied_cross",()=>add(middle.x-direction.z*8,middle.z+direction.x*8,middle.x+direction.z*8,middle.z-direction.x*8));
+            attempt("occupied_delete",()=>s.Construction.RemoveRoad(busyRoad));
+            attempt("invalid_zero_stroke",()=>add(-h+5,-h+128,-h+5,-h+128));
+            var stale=s.Transport.PlanConnectedRoad(new[]{new Point(-h+5,2,-h+128),new Point(-h+17,2,-h+128)},snap:1);
+            var paid=s.Transport.PlanConnectedRoad(new[]{new Point(-h+5,2,-h+152),new Point(-h+17,2,-h+152)},snap:1);s.Construction.CheckRoadPlacement(paid);if(!s.Construction.Commit(paid,out _))throw new Exception("Fresh payment fixture stale");record("payment_once");
+            var afterPayment=CityCoreSave.Write(s);attempt("stale_commit",()=>s.Construction.Commit(stale,out _));if(!afterPayment.SequenceEqual(CityCoreSave.Write(s)))throw new Exception("Stale plan charged or changed facts");
+            attempt("double_commit",()=>s.Construction.Commit(paid,out _));if(!afterPayment.SequenceEqual(CityCoreSave.Write(s)))throw new Exception("Repeated commit charged or changed facts");
+            File.WriteAllLines(Path.Combine(output,"expanded-operations.csv"),outcomes);
+        }
         for(int i=0;i<160;i++)if(s.Advance(.05)!=1)throw new Exception("Lost normal step");record("after160");
         var checkpoint=CityCoreSave.Write(s);var restored=CityCoreSave.Read(checkpoint);restored.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);
         for(int i=0;i<80;i++){s.Advance(.05);restored.Advance(.05);}if(!CityCoreSave.Write(s).SequenceEqual(CityCoreSave.Write(restored)))throw new Exception("In-flight warm/cold restore diverged");record("after240_restore");
