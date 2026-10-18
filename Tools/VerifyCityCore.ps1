@@ -15,6 +15,12 @@ if($LASTEXITCODE -ne 0){throw 'Job allocation checks compile failed'}
 & $mono $probe
 if($LASTEXITCODE -ne 0){throw 'Job allocation checks failed'}
 
+$gridCheck=Join-Path $root 'Temp/RoadCore/GridChecks.exe'
+& $mono $compiler /nologo /langversion:latest ('/out:'+$gridCheck) (Get-CityModelSources $root) (Join-Path $root 'Tools/Diagnostics/CityRoadGridChecks.cs')
+if($LASTEXITCODE -ne 0){throw 'Grid checks compile failed'}
+& $mono $gridCheck
+if($LASTEXITCODE -ne 0){throw 'Grid checks failed'}
+
 if($Attribution){
     $profileCheck=Join-Path $root 'Temp/RoadCore/CityProfileChecks.exe'
     & $mono $compiler /nologo /langversion:latest /define:CITY_CORE_ATTRIBUTION ('/out:'+$profileCheck) (Get-CityModelSources $root) (Join-Path $root 'Tools/Diagnostics/CityProfileChecks.cs')

@@ -10,10 +10,19 @@ namespace HarborCity.RoadCore
         struct Cut {public double distance;public Point point;public int junction;}
         static double Cross(double ax,double az,double bx,double bz)=>ax*bz-az*bx;
         public static RoadEditPlan Connect(World owner,Point[] center,bool oneWay,double speed,double snap,int lanes)
+            =>ConnectMany(owner,new[]{center},oneWay,speed,snap,lanes);
+        public static RoadEditPlan ConnectMany(World owner,Point[][] strokes,bool oneWay,double speed,double snap,int lanes)
+        {
+            if(strokes==null||strokes.Length==0||strokes.Length>18)throw new ArgumentException("A road batch needs 1 to 18 strokes");
+            var draft=owner.EditDraft();
+            foreach(var stroke in strokes)Append(draft,stroke,oneWay,speed,snap,lanes);
+            return owner.PlanFromDraft(draft);
+        }
+        static void Append(World draft,Point[] center,bool oneWay,double speed,double snap,int lanes)
         {
             if(center==null||center.Length<2)throw new ArgumentException("A road stroke needs two points");
             if(snap<0||double.IsNaN(snap)||double.IsInfinity(snap))throw new ArgumentOutOfRangeException(nameof(snap));
-            var draft=owner.EditDraft();var points=(Point[])center.Clone();
+            var points=(Point[])center.Clone();
             int start=Attach(draft,points[0],snap),end=Attach(draft,points[points.Length-1],snap);
             points[0]=draft.JunctionPosition(start);points[points.Length-1]=draft.JunctionPosition(end);var geometry=new Geometry(points);
             var cuts=new List<Cut>{new Cut{distance=0,point=points[0],junction=start},new Cut{distance=geometry.Length,point=points[points.Length-1],junction=end}};
@@ -44,7 +53,6 @@ namespace HarborCity.RoadCore
                 for(int sample=1;sample<geometry.Count-1;sample++)if(geometry.At(sample)>resolved[i-1].distance+.01&&geometry.At(sample)<resolved[i].distance-.01)piece.Add(geometry[sample]);
                 piece.Add(draft.JunctionPosition(resolved[i].junction));draft.AddRoad(resolved[i-1].junction,resolved[i].junction,piece.ToArray(),oneWay,speed,lanes);
             }
-            return owner.PlanFromDraft(draft);
         }
         static int Attach(World draft,Point point,double radius)
         {

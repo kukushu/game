@@ -594,6 +594,42 @@
       "text": "待模拟时间：{0} 秒（保留全部欠步）"
     },
     {
+      "key": "ui.grid.open",
+      "text": "方格路网（拖拽批量修路）"
+    },
+    {
+      "key": "ui.grid.mode",
+      "text": "方格路网"
+    },
+    {
+      "key": "ui.grid.close",
+      "text": "结束方格路网"
+    },
+    {
+      "key": "ui.grid.spacing",
+      "text": "街道间距"
+    },
+    {
+      "key": "ui.grid.help",
+      "text": "在地图上按住左键拖出矩形，松开施工；Esc取消。每次最多8×8街区。单行模式交替方向。"
+    },
+    {
+      "key": "ui.grid.preview",
+      "text": "{0}×{1}街区，{2}条街道；黄色仅为示意，松开后统一校验与扣款。"
+    },
+    {
+      "key": "ui.grid.success",
+      "text": "已建成{0}×{1}方格路网，花费{2}。"
+    },
+    {
+      "key": "ui.grid.too_small",
+      "text": "请向横、纵两个方向各拖出至少{0}米。"
+    },
+    {
+      "key": "ui.grid.outside",
+      "text": "请从地图可建设范围内开始拖拽。"
+    },
+    {
       "key": "ui.build.preview_unchecked",
       "text": "道路示意 {0} 米；点击后完整校验并建设（黄色不代表已获准建设）。"
     }

@@ -596,6 +596,42 @@
     {
       "key": "ui.build.preview_unchecked",
       "text": "Road sketch {0} m; click to validate and build (yellow is provisional)."
+    },
+    {
+      "key": "ui.grid.open",
+      "text": "Grid roads (drag to build)"
+    },
+    {
+      "key": "ui.grid.mode",
+      "text": "Grid roads"
+    },
+    {
+      "key": "ui.grid.close",
+      "text": "Finish grid roads"
+    },
+    {
+      "key": "ui.grid.spacing",
+      "text": "Street spacing"
+    },
+    {
+      "key": "ui.grid.help",
+      "text": "Hold the left mouse button and drag a rectangle; release to build. Esc cancels. Up to 8 x 8 blocks per drag. One-way streets alternate directions."
+    },
+    {
+      "key": "ui.grid.preview",
+      "text": "{0} x {1} blocks, {2} streets. Yellow is provisional; release for full validation and payment."
+    },
+    {
+      "key": "ui.grid.success",
+      "text": "Built a {0} x {1} road grid for {2}."
+    },
+    {
+      "key": "ui.grid.too_small",
+      "text": "Drag at least {0} metres in both directions."
+    },
+    {
+      "key": "ui.grid.outside",
+      "text": "Start dragging inside the buildable map."
     }
   ]
 }
