@@ -1,0 +1,1 @@
+PASS 30 ordered zoning snapshots / 12160 exact cells including key/block/column/row/side/use/availability/owner/float geometry; frozen 8273ffa oracle. Scope is the explicitly selected full, dense, locality or occupied edit suite; see stdout and snapshots.csv.

@@ -1,0 +1,16 @@
+{
+  "inventoried_at_utc": "2026-10-18T05:08:41.0430150Z",
+  "note": "Hardware inventory read after native captures on the same host. Renderer and graphics API are also recorded in each player.log. WMI AdapterRAM omitted because its uint32 value cannot represent this GPU VRAM reliably.",
+  "cpu": "Intel(R) Core(TM) i5-14600KF",
+  "ramBytes": 34188214272,
+  "gpu": [
+    {
+      "Name": "Todesk Virtual Display Adapter",
+      "DriverVersion": "16.44.2.509"
+    },
+    {
+      "Name": "NVIDIA GeForce RTX 3090",
+      "DriverVersion": "32.0.16.1088"
+    }
+  ]
+}

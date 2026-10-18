@@ -1,0 +1,65 @@
+frame,thread,path,total_ms,self_ms,calls,gc_bytes
+0,"Main Thread","Main Thread",683.42771199999993,1.263488,1,391100453
+0,"Main Thread","Main Thread/PostLateUpdate.ProfilerEndFrame/Profiler.FlushCounters/Profiler.FlushMemoryCounters",1.9996999999999998,1.9996999999999998,1,0
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction",674.834304,542.459808,1,391094164
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/GC.Alloc",71.013312,71.013312,2524261,385823836
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/GC.Collect",39.5856,39.5856,13,0
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.RoadCore.Occupancy",22.691699999999997,0.0063999999999999994,9,5266232
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.RoadCore.Occupancy/City.RoadCore.Occupancy.Clear",0.0156,0.015099999999999999,9,240
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.RoadCore.Occupancy/City.RoadCore.Occupancy.Actors",13.8097,12.7486,9,4556360
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.RoadCore.Occupancy/City.RoadCore.Occupancy.Actors/GC.Alloc",1.0611,1.0611,36239,4556360
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.RoadCore.Occupancy/City.RoadCore.Occupancy.Sort",8.86,8.6652,9,709632
+0,"Main Thread","Main Thread/City.ZoningEdit.RoadViews",4.8979,0.0014,1,5424
+0,"Main Thread","Main Thread/City.ZoningEdit.RoadViews/City.Views.Roads.Sync",4.8964,4.8454999999999995,1,5296
+0,"Render Thread","",683.451072,680.844672,1,0
+0,"Render Thread","RenderLoop/PlayerEndOfFrame",0.6232,0.5099,1,0
+0,"Render Thread","Gfx.WaitForGfxCommandsFromMainThread/Semaphore.WaitForSignal",1.8475,1.8475,4,0
+1,"Main Thread","Main Thread/PlayerLoop",1700.180736,0.049664,1,350146846
+1,"Main Thread","Main Thread/PlayerLoop/TimeUpdate.WaitForLastPresentationAndUpdateTime/WaitForTargetFPS/GarbageCollector.CollectIncremental",1.0095,1.0095,1,0
+1,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.Simulation",9.9999999999999991E-05,9.9999999999999991E-05,1,0
+1,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.RoadCore.Views",1.9890999999999999,0.0009,1,40
+1,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.RoadCore.Views/City.Views.Vehicles.Sync",1.9882,1.9881,1,40
+1,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.ZoningEdit.ZoneViews",1690.745088,0.24064,1,350140770
+1,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.ZoningEdit.ZoneViews/City.ZoningEdit.ZoningCells",1409.4448639999998,1254.934976,1,240728084
+1,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.ZoningEdit.ZoneViews/City.ZoningEdit.ZoningCells/GC.Alloc",116.135488,116.135488,4139989,240728084
+1,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.ZoningEdit.ZoneViews/City.ZoningEdit.ZoningCells/GC.Collect",39.055299999999995,39.055299999999995,9,0
+1,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.ZoningEdit.ZoneViews/City.ZoningEdit.ZoningDisplay",281.0592,0.00060799999999999993,1,109411678
+1,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.ZoningEdit.ZoneViews/City.ZoningEdit.ZoningDisplay/City.Views.Zoning.Build",281.058592,2.1688639999999997,1,109411678
+1,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.ZoningEdit.ZoneViews/City.ZoningEdit.ZoningDisplay/City.Views.Zoning.Build/City.ZoningEdit.MeshGeometry",248.5444,238.89589999999998,1,109179028
+1,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.ZoningEdit.ZoneViews/City.ZoningEdit.ZoningDisplay/City.Views.Zoning.Build/City.ZoningEdit.MeshGeometry/GC.Alloc",0.2912,0.2912,7384,109179028
+1,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.ZoningEdit.ZoneViews/City.ZoningEdit.ZoningDisplay/City.Views.Zoning.Build/City.ZoningEdit.MeshGeometry/GC.Collect",9.3573,9.3573,3,0
+1,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.ZoningEdit.ZoneViews/City.ZoningEdit.ZoningDisplay/City.Views.Zoning.Build/City.ZoningEdit.MeshUpload",27.588099999999997,12.2949,256,0
+1,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.ZoningEdit.ZoneViews/City.ZoningEdit.ZoningDisplay/City.Views.Zoning.Build/City.ZoningEdit.MeshUpload/Mesh.RecalculateNormals",15.293199999999999,9.7401,256,0
+1,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.ZoningEdit.ZoneViews/City.ZoningEdit.ZoningDisplay/City.Views.Zoning.Build/City.ZoningEdit.MeshUpload/Mesh.RecalculateNormals/CopyChannels",5.5531,5.5531,256,0
+1,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.ZoningEdit.ZoneViews/City.ZoningEdit.ZoningDisplay/City.Views.Zoning.Build/City.ZoningEdit.GameObjects",2.5377,0.87869999999999993,256,35840
+1,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.ZoningEdit.ZoneViews/City.ZoningEdit.ZoningDisplay/City.Views.Zoning.Build/City.ZoningEdit.GameObjects/GameObject.AddComponent",1.5262,1.4999,768,0
+1,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunDelayedDynamicFrameRate/CoroutinesDelayedCalls/Destroy",0.73549999999999993,0.6514,512,0
+1,"Main Thread","Main Thread/PlayerLoop/PostLateUpdate.ProfilerEndFrame/Profiler.FlushCounters/Profiler.FlushMemoryCounters",1.7221,1.7221,1,0
+1,"Main Thread","Main Thread/PlayerLoop/PostLateUpdate.ProfilerEndFrame/Profiler.FlushCounters/Profiler.CollectLegacyStats/Profiler.CollectUIToolkitStats",3.2668999999999997,3.2626999999999997,1,4798
+1,"Render Thread","Gfx.WaitForGfxCommandsFromMainThread/Semaphore.WaitForSignal",1700.067456,1700.067456,5,0
+2,"Main Thread","Main Thread/PlayerLoop",16.6415,0.0349,1,2439
+2,"Main Thread","Main Thread/PlayerLoop/TimeUpdate.WaitForLastPresentationAndUpdateTime/WaitForTargetFPS",10.4104,0.8911,1,0
+2,"Main Thread","Main Thread/PlayerLoop/TimeUpdate.WaitForLastPresentationAndUpdateTime/WaitForTargetFPS/GarbageCollector.CollectIncremental",9.5193,7.9182,1,0
+2,"Main Thread","Main Thread/PlayerLoop/TimeUpdate.WaitForLastPresentationAndUpdateTime/WaitForTargetFPS/GarbageCollector.CollectIncremental/GC.Collect",1.6011,1.6011,1,0
+2,"Main Thread","Main Thread/PlayerLoop/EarlyUpdate.PollPlayerConnection/PlayerConnection.Poll/PlayerConnection.Poll",0.27899999999999997,0.2784,1,0
+2,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.Simulation",9.9999999999999991E-05,9.9999999999999991E-05,1,0
+2,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.RoadCore.Views",2.0345999999999997,0.0006,1,40
+2,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.RoadCore.Views/City.Views.Vehicles.Sync",2.034,2.0337,1,40
+2,"Main Thread","Main Thread/PlayerLoop/PreLateUpdate.UIElementsUpdatePanels/UnityEngine.UIElementsModule.dll!UnityEngine.UIElements::UIElementsRuntimeUtilityNative.UpdatePanels() [Invoke]",1.8901999999999999,1.5535999999999999,1,1852
+2,"Main Thread","Main Thread/PlayerLoop/PreLateUpdate.UIElementsUpdatePanels/UnityEngine.UIElementsModule.dll!UnityEngine.UIElements::UIElementsRuntimeUtilityNative.UpdatePanels() [Invoke]/UIElements.PreUpdatePanelRenderers",0.3307,0.3306,1,48
+2,"Main Thread","Main Thread/PlayerLoop/PostLateUpdate.ProfilerEndFrame/Profiler.FlushCounters/Profiler.FlushMemoryCounters",1.6280999999999999,1.6280999999999999,1,0
+2,"Render Thread","Gfx.WaitForGfxCommandsFromMainThread/Semaphore.WaitForSignal",16.5001,16.5001,5,0
+3,"Main Thread","Main Thread/PlayerLoop",16.6466,0.0349,1,315
+3,"Main Thread","Main Thread/PlayerLoop/TimeUpdate.WaitForLastPresentationAndUpdateTime/WaitForTargetFPS",12.5413,3.5509,1,0
+3,"Main Thread","Main Thread/PlayerLoop/TimeUpdate.WaitForLastPresentationAndUpdateTime/WaitForTargetFPS/GarbageCollector.CollectIncremental",8.9904,7.0012,1,0
+3,"Main Thread","Main Thread/PlayerLoop/TimeUpdate.WaitForLastPresentationAndUpdateTime/WaitForTargetFPS/GarbageCollector.CollectIncremental/GC.Collect",1.9891999999999999,1.9891999999999999,1,0
+3,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.Simulation",9.9999999999999991E-05,9.9999999999999991E-05,1,0
+3,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.RoadCore.Views",1.9929,0.0005,1,40
+3,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.RoadCore.Views/City.Views.Vehicles.Sync",1.9924,1.9923,1,40
+3,"Main Thread","Main Thread/PlayerLoop/PostLateUpdate.ProfilerEndFrame/Profiler.FlushCounters/Profiler.FlushMemoryCounters",1.7217,1.7217,1,0
+3,"Render Thread","Gfx.WaitForGfxCommandsFromMainThread/Semaphore.WaitForSignal",16.5758,16.5758,6,0
+4,"Main Thread","Main Thread/PlayerLoop",2.5046999999999997,0.0138,1,294
+4,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.Simulation",9.9999999999999991E-05,9.9999999999999991E-05,1,0
+4,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.RoadCore.Views",2.1900999999999997,0.0006,1,40
+4,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.RoadCore.Views/City.Views.Vehicles.Sync",2.1895,2.1895,1,40
+4,"Render Thread","Gfx.WaitForGfxCommandsFromMainThread/Semaphore.WaitForSignal",2.4760999999999997,2.4760999999999997,2,0

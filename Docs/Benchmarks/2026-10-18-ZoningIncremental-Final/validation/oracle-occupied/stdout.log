@@ -1,0 +1,34 @@
+﻿
+﻿
+﻿PASS pending_split_initial 408
+PASS pending_split_edited 392
+PASS pending_split_continued 392
+PASS pending_widen_initial 408
+PASS pending_widen_edited 400
+PASS pending_widen_continued 400
+PASS pending_reverse_initial 408
+PASS pending_reverse_edited 408
+PASS pending_reverse_continued 408
+PASS pending_delete_initial 408
+PASS pending_delete_edited 0
+PASS pending_delete_continued 0
+PASS pending_add_initial 408
+PASS pending_add_edited 816
+PASS pending_add_continued 816
+PASS built_split_initial 408
+PASS built_split_edited 392
+PASS built_split_continued 392
+PASS built_widen_initial 408
+REJECTED unchanged built_widen
+PASS built_widen_edited 408
+PASS built_widen_continued 408
+PASS built_reverse_initial 408
+PASS built_reverse_edited 408
+PASS built_reverse_continued 408
+PASS built_delete_initial 408
+PASS built_delete_edited 0
+PASS built_delete_continued 0
+PASS built_add_initial 408
+PASS built_add_edited 816
+PASS built_add_continued 816
+﻿

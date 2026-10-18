@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "export_recorded_at_utc": "2026-10-18T04:55:53.414918+00:00",
+  "raw_asset": {
+    "path": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\ZoningOptimization-20261018\\fullraw-a\\raw-connect_split\\window.raw",
+    "kind": "profiler_raw",
+    "export": {
+      "status": "partial",
+      "artifacts": [
+        "hierarchy.csv",
+        "threads.csv"
+      ],
+      "included": "CPU main/render/Gfx threads; City.* / PlayerLoop / GC.Collect or Self>=0.2ms hierarchy rows; recorded frame/thread durations.",
+      "not_included": "Other threads and small generic scopes are filtered. Full raw events are local. Unsupported GPU timings are -1; no GPU data invented."
+    },
+    "present_at_inventory": true,
+    "inventoried_at_utc": "2026-10-18T04:55:53.208652+00:00",
+    "bytes": 297818010,
+    "sha256": "77001274e49760fc593320fb72c65f1ba22e5892ae2f52de090209844fded1f2"
+  },
+  "artifacts": [
+    {
+      "path": "hierarchy.csv",
+      "role": "samples",
+      "digest_mode": "utf8-lf",
+      "bytes": 10253,
+      "sha256": "b70e1e445c3d31ae144e92c4b1974c5e4bc1365d1db11dd32a13cad569295018",
+      "format": "csv",
+      "rows": 57,
+      "columns": {
+        "frame": {
+          "type": "number",
+          "unit": "count"
+        },
+        "thread": {
+          "type": "text",
+          "unit": "label"
+        },
+        "path": {
+          "type": "text",
+          "unit": "label"
+        },
+        "total_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "gc_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        }
+      }
+    },
+    {
+      "path": "threads.csv",
+      "role": "samples",
+      "digest_mode": "utf8-lf",
+      "bytes": 403,
+      "sha256": "5a92cef97cd8032cfae982af8b21680cd450a29548bf43f3c6cf0b1fc58d0e4c",
+      "format": "csv",
+      "rows": 10,
+      "columns": {
+        "frame": {
+          "type": "number",
+          "unit": "count"
+        },
+        "thread": {
+          "type": "text",
+          "unit": "label"
+        },
+        "frame_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "gpu_ms": {
+          "type": "number",
+          "unit": "ms"
+        }
+      }
+    }
+  ],
+  "exporter": {
+    "path": "C:\\Users\\16934\\Documents\\unity_game\\test\\Assets\\Scripts\\Editor\\CityWindowProfilerExport.cs",
+    "sha256": "eb3951c5a4d42d7c353e3aa5a776f6994707fda6c0bc9c4efb7cbf1324fce7e4"
+  },
+  "resources": {
+    "peakWorkingSetBytes": 2511843328,
+    "wallSeconds": 11.8953526,
+    "exitCode": 0,
+    "stopped": null
+  },
+  "note": "Receipt creation time is not capture time. This records an existing export; no Unity run or measurement is launched."
+}

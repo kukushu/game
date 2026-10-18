@@ -1,0 +1,16 @@
+﻿
+﻿
+﻿WASTE generated=166 collected=149 processed=146 waiting=17 active=2
+population,buildings,roads,day,active_peak,steps,mean_ms,p95_ms,p99_ms,allocated_per_step,produced,raw_delivered,exported,consumed,retail_payments
+30,27,13,6,14,12000,0.007186,0.011300,0.021400,527,216,386,176,0,0
+PASS 23461 integrated industry/resident checks; original labour/inventory/finance, real RoadCore commuting, exact new city save, interruption and full unloading.
+2,4,2,3,4,300,0.003886,0.005300,0.005600,365,15,0.001197
+﻿
+﻿
+﻿
+﻿PASS 10000 indexed CityModel.Job calls allocate zero bytes
+﻿
+﻿
+﻿
+﻿PASS 6000 paired profiling on/off real city steps; all new phase call counts, full-save state and allocation availability
+﻿

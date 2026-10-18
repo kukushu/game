@@ -1,0 +1,29 @@
+{
+  "note": "Original failed attempts retained locally, never counted as passed samples.",
+  "attempts": [
+    {
+      "path": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\ZoningOptimization-20261018\\baseline-build.log",
+      "result": "Diagnostic compile error world.Clock.Tick; fixed to Simulation.Tick before formal runs"
+    },
+    {
+      "path": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\ZoningOptimization-20261018\\baseline-normal\\player.log",
+      "result": "Setup stroke intersected occupied grid; original invalid lane access rejection; no zoning optimization conclusion"
+    },
+    {
+      "path": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\ZoningOptimization-20261018\\baseline-normal-v3\\player.log",
+      "result": "Original busy-world widening safety rejection initially unhandled by probe; later recorded as unchanged rejection"
+    },
+    {
+      "path": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\ZoningOptimization-20261018\\oracle-v1.log",
+      "result": "Invalid test map extent for version2; fixed fixture to valid DiagnosticFlat(180), retained exact assertions"
+    },
+    {
+      "path": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\ZoningOptimization-20261018\\baseline-fine-v4\\export-resources.json",
+      "result": "4.25GB raw export stopped for memory; exact resource record included"
+    },
+    {
+      "path": "native/paired-*/frames.csv",
+      "result": "Early ABBA failed-operation frame included full-save validation IO. Rejected accepted_frame_peak_ms is -1. Final pair and fullraw use separate validation frames; successful-operation frames are valid in all formal paired captures"
+    }
+  ]
+}

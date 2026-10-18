@@ -1,0 +1,1 @@
+PASS 275206 frozen-source triangle checks: flat/slope/rotated/unassigned/occupied/reserved/paint/move/clear/failure and >65535 vertices. No simulation or pixel/FPS claim.

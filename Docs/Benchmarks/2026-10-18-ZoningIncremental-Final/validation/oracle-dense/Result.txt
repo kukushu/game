@@ -1,0 +1,1 @@
+PASS 54 ordered zoning snapshots / 100596 exact cells including key/block/column/row/side/use/availability/owner/float geometry; frozen 8273ffa oracle, painting, growth, projects, edited in-flight warm/cold continuation or explicitly selected dense edit stress.

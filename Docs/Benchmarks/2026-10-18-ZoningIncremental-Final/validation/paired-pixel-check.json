@@ -1,0 +1,32 @@
+{
+  "paired-a1": {
+    "changed_pixels": 0,
+    "width": 1440,
+    "height": 900
+  },
+  "paired-b1": {
+    "changed_pixels": 0,
+    "width": 1440,
+    "height": 900
+  },
+  "paired-b2": {
+    "changed_pixels": 0,
+    "width": 1440,
+    "height": 900
+  },
+  "paired-a2": {
+    "changed_pixels": 0,
+    "width": 1440,
+    "height": 900
+  },
+  "final-a": {
+    "changed_pixels": 0,
+    "width": 1440,
+    "height": 900
+  },
+  "final-b": {
+    "changed_pixels": 0,
+    "width": 1440,
+    "height": 900
+  }
+}

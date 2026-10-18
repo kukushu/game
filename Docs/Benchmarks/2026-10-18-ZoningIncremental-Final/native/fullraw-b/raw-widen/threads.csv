@@ -1,0 +1,11 @@
+frame,thread,frame_ms,gpu_ms
+0,"Main Thread",189.76719665527344,-1
+0,"Render Thread",189.787109375,-1
+1,"Main Thread",16.661300659179688,-1
+1,"Render Thread",16.687999725341797,-1
+2,"Main Thread",16.667900085449219,-1
+2,"Render Thread",16.668800354003906,-1
+3,"Main Thread",16.664499282836914,-1
+3,"Render Thread",16.660900115966797,-1
+4,"Main Thread",2.0601000785827637,-1
+4,"Render Thread",2.0172998905181885,-1

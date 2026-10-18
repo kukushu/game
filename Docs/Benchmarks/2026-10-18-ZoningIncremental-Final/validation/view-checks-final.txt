@@ -1,0 +1,1 @@
+PASS 835 exact group vertices/triangles/normals/colours and chunk retention, painting, occupancy, cross-boundary move, terrain invalidation, failure atomicity, clear and borrowed materials.

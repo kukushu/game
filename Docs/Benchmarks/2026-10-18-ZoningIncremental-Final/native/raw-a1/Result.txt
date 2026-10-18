@@ -1,0 +1,1 @@
+PASS construction suite and full save roundtrip; operations.csv distinguishes accepted commands and unchanged failures. Scripted domain commands in native Unity, no physical mouse acceptance or FPS claim.

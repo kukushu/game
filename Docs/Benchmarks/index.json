@@ -369,6 +369,15 @@
       "source_commit": "8c22ac132c83c4764fc46907ce8cc2ae0aedfc85",
       "artifacts": 51,
       "local_assets": 16
+    },
+    {
+      "id": "2026-10-18-ZoningIncremental-Final",
+      "manifest": "2026-10-18-ZoningIncremental-Final/manifest.json",
+      "title": "Road edit zoning candidates and 64-unit view chunks: frozen equivalence and 30000/50000 native pairs",
+      "kind": "attribution",
+      "source_commit": "3a3ca6ecc6f6fff7f720b4ca0ffe35a16ef5b389",
+      "artifacts": 243,
+      "local_assets": 34
     }
   ],
   "unregistered_legacy_directories": []

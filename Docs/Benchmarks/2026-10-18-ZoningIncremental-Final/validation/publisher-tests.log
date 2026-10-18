@@ -1,0 +1,35 @@
+Prepared Docs\Benchmarks\2026-10-17-Test01 (1 files)
+C:\Users\16934\AppData\Local\Temp\tmpkl2h0hrr\capture\export-receipt.json
+Prepared Docs\Benchmarks\2026-10-17-Test01 (4 files)
+Prepared Docs\Benchmarks\2026-10-17-Test01 (1 files)
+PASS: 1 packages; 1 files
+{"branch": "evidence-test", "paths": ["Docs/Benchmarks/2026-10-17-Test01", "Docs/Benchmarks/index.json"], "push": true, "dry_run": false}
+Prepared Docs\Benchmarks\2026-10-17-Test01 (1 files)
+Prepared Docs\Benchmarks\2026-10-17-Test01 (1 files)
+Prepared Docs\Benchmarks\2026-10-17-Unselected (1 files)
+PASS: 2 packages; 2 files
+Prepared Docs\Benchmarks\2026-10-17-Test01 (1 files)
+Prepared Docs\Benchmarks\2026-10-17-Test01 (1 files)
+PASS: 1 packages; 1 files
+Prepared Docs\Benchmarks\2026-10-17-Test01 (1 files)
+PASS: 1 packages; 1 files
+{"branch": "evidence-test", "paths": ["Docs/Benchmarks/2026-10-17-Test01", "Docs/Benchmarks/index.json"], "push": false, "dry_run": true}
+PASS: 1 packages; 1 files
+...............s.
+----------------------------------------------------------------------
+{"branch": "evidence-test", "paths": ["Docs/Benchmarks/2026-10-17-Test01", "Docs/Benchmarks/index.json"], "push": false, "dry_run": false}
+Local commit b0364db66aa5def6f7612d88d5e6d944e430e61e
+https://github.com/example/evidence/blob/b0364db66aa5def6f7612d88d5e6d944e430e61e/Docs/Benchmarks/index.json
+https://raw.githubusercontent.com/example/evidence/b0364db66aa5def6f7612d88d5e6d944e430e61e/Docs/Benchmarks/index.json
+https://github.com/example/evidence/blob/b0364db66aa5def6f7612d88d5e6d944e430e61e/Docs/Benchmarks/2026-10-17-Test01/manifest.json
+https://raw.githubusercontent.com/example/evidence/b0364db66aa5def6f7612d88d5e6d944e430e61e/Docs/Benchmarks/2026-10-17-Test01/manifest.json
+https://github.com/example/evidence/blob/b0364db66aa5def6f7612d88d5e6d944e430e61e/Docs/Benchmarks/2026-10-17-Test01/data/sample.csv
+https://raw.githubusercontent.com/example/evidence/b0364db66aa5def6f7612d88d5e6d944e430e61e/Docs/Benchmarks/2026-10-17-Test01/data/sample.csv
+Prepared Docs\Benchmarks\2026-10-17-Test01 (1 files)
+PASS: 1 packages; 1 files
+Ran 17 tests in 2.647s
+
+OK (skipped=1)
+PASS: 1 packages; 1 files
+Prepared Docs\Benchmarks\2026-10-17-Test01 (1 files)
+Prepared Docs\Benchmarks\2026-10-17-Test01 (1 files)

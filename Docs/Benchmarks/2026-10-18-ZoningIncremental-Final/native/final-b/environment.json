@@ -1,0 +1,31 @@
+{
+  "input_sha256": "3F49BD1A02879BB686C24D5517902CC581C657220CE2B955107D89B6FA870B4E",
+  "started_at_utc": "2026-10-18T05:03:33.2879168Z",
+  "dirty": [
+    " M Docs/Architecture/HarborCityArchitecture.html",
+    " M Docs/Architecture/SourceEvidence.md",
+    " M Tools/BuildArchitectureDocs.py",
+    " M Tools/Diagnostics/CityZoningIncrementalChecks.cs",
+    " M Tools/Diagnostics/PrepareZoningEditProbe.py",
+    " M Tools/Diagnostics/SummarizeZoningEdits20261018.py",
+    " M Tools/RunZoningEditProbe.ps1",
+    " M Tools/VerifyArchitectureDocs.cjs",
+    " M Tools/VerifyZoningIncremental.ps1",
+    " M \"\\346\\237\\245\\347\\234\\213\\344\\270\\200\\344\\270\\207\\344\\272\\272\\345\\237\\216\\345\\270\\202.cmd\"",
+    " M \"\\346\\237\\245\\347\\234\\213\\344\\270\\211\\344\\270\\207\\344\\272\\272\\345\\237\\216\\345\\270\\202.cmd\"",
+    " M \"\\346\\237\\245\\347\\234\\213\\344\\270\\211\\345\\215\\203\\344\\272\\272\\345\\237\\216\\345\\270\\202.cmd\""
+  ],
+  "os": "Microsoft Windows NT 10.0.26200.0",
+  "stopped": null,
+  "finished_at_utc": "2026-10-18T05:04:09.0020235Z",
+  "exitCode": 0,
+  "peakWorkingSetBytes": 2225500160,
+  "cpu": "Intel(R) Core(TM) i5-14600KF",
+  "player": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\ZoningOptimization-20261018\\IncrementalGc\\HarborCity.exe",
+  "raw": false,
+  "rawOperation": "add",
+  "assembly_sha256": "93D9FCFC04C360478AB406A04231CD2757280F290690F601D795489CC716E90B",
+  "input": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\CityScenarios\\regenerated30000-20261017\\city.hcity",
+  "fine": false,
+  "commit": "3a3ca6ecc6f6fff7f720b4ca0ffe35a16ef5b389"
+}

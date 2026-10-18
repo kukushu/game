@@ -1,0 +1,10 @@
+{
+  "mutable_path": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\ManualCityPlayer\\HarborCity_Data\\Managed\\Assembly-CSharp.dll",
+  "historical_package": "2026-10-18-RoadPreviewOptimization",
+  "matching_old_delivery_copies": [],
+  "checked_at_utc": "2026-10-18T05:14:28.8338352Z",
+  "expected_historical_sha256": "8388bd3b7efed45e4610bda097919de9f504ecdf8ad4ebbd7188e0d60b3b2da7",
+  "current_sha256": "b658e88014fabe2e68af3e27ac5f2934a7d59a2a058d87f3ffc23020fbb372e3",
+  "note": "Updating the playable game replaced the prior mutable delivery DLL. Its exact old delivery SHA was not found among local assembly copies; historical global verify --all --local correctly reports that path drift. Original versioned performance capture Players/raw remain preserved. Current formal package uses a versioned delivery snapshot and verifies locally; shared historical packages remain immutable. No raw/CSV baseline changed.",
+  "current_versioned_snapshot": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\ZoningOptimization-20261018\\ProductSnapshot-3a3ca6e\\Assembly-CSharp.dll"
+}
