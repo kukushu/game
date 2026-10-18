@@ -97,6 +97,7 @@ namespace HarborCity.RoadCore
             return dispatchRoutes.Get(Network,origin,destination,source,target,false,business as IJunctionEndpointProvider).seconds;
         }
         bool indexDirty=true;
+        readonly bool constructionDraft;
         readonly Dictionary<long,double> entries=new Dictionary<long,double>(CityRoadKeyComparer.Instance);
         readonly List<Intent> intents=new List<Intent>();
         struct Intent { public Vehicle vehicle;public long drivable;public int cursor;public double distance,limit; }
@@ -113,10 +114,11 @@ namespace HarborCity.RoadCore
         // Only private transaction copies may transfer ownership and reuse their
         // already built immutable geometry. Public restore still makes a deep copy.
         // Validation and occupancy checks are identical on both paths.
-        World(WorldData state,SimulationClock clock,IEnumerable<int> endpoints,bool owned,Network prepared)
+        World(WorldData state,SimulationClock clock,IEnumerable<int> endpoints,bool owned,Network prepared,bool draft=false)
         {
             if(state==null||state.coreFormat!=15||state.externalBusiness!=(clock!=null))throw new ArgumentException("Unsupported road-core save or missing business owner. Legacy city saves are not supported.");
             if(state.externalBusiness&&(state.standaloneClock.tick!=0||state.standaloneClock.pendingSeconds!=0))throw new ArgumentException("City transport cannot own a second clock");
+            constructionDraft=draft;
             data=state; // Take ownership of a private copy, never the caller's mutable save DTO.
             timeline=clock??new SimulationClock(state.standaloneClock);data=owned?state:Snapshot();if(endpoints!=null)data.availableEndpoints=new List<int>(endpoints);arrivalsView=arrivals.AsReadOnly();foreach(int endpoint in data.availableEndpoints)if(endpoint<=0||!availableEndpoints.Add(endpoint))throw new ArgumentException("Duplicate/invalid endpoint");vehicleView=data.vehicles.AsReadOnly();taskView=data.tasks.AsReadOnly();foreach(var t in data.tasks)tasksById.Add(t.id,t);depotView=data.depots.AsReadOnly();foreach(var depot in data.depots)depotsById.Add(depot.id,depot);
             if(data.externalBusiness&&data.depots.Count!=0)throw new ArgumentException("External city cannot contain duplicate fixture inventories");foreach(var access in data.accesses)accesses.Add(access.endpoint,access);
@@ -207,7 +209,7 @@ namespace HarborCity.RoadCore
             }
             return new RoadEditPlan(this,n,candidate,remaps,interrupted,proposed);
         }
-        internal World EditDraft()=>new World(Snapshot(),data.externalBusiness?timeline.Copy():null,null,true,Network);
+        internal World EditDraft()=>new World(Snapshot(),data.externalBusiness?timeline.Copy():null,null,true,Network,true);
         internal RoadEditPlan PlanFromDraft(World draft)
         {
             // The synchronous private draft escapes only through this plan. Its
@@ -226,6 +228,16 @@ namespace HarborCity.RoadCore
             if(!ReferenceEquals(plan.owner,this)||!ReferenceEquals(plan.source,Network)||plan.epoch!=EditEpoch)return false;
             ValidateEditReservations(plan.network,plan.remaps);
             foreach(var remap in plan.remaps){if(remap.vehicle.status!=VehicleStatus.Stranded)plan.network.ValidateRoute(remap.route);long target=RemappedChangeTarget(remap.vehicle,plan.network,remap.route[remap.cursor]);if(Point.Distance(Position(remap.vehicle),LaneChanges.Position(plan.network,remap.route[remap.cursor],remap.distance,target,remap.vehicle.changeElapsed))>1e-7)throw new InvalidOperationException("Edit moved an existing vehicle");}
+            if(constructionDraft)
+            {
+                // This world is already an isolated deep copy, held only by the
+                // synchronous Connect call. A failed step discards the whole draft.
+                // Run the same full validators on it, instead of cloning it again.
+                // Task/endpoint/depot identities never change during road planning;
+                // their dictionaries were built and validated at draft creation.
+                ApplyRoadFacts(plan);dispatchRoutes.Reset(Network);lostOccupancy.Reset(Network);occupancy.Clear();
+                Validate();AssertSafety();data.networkRevision++;EditEpoch++;return true;
+            }
             var staged=Snapshot();staged.network=plan.data;if(plan.accesses!=null)staged.accesses=plan.accesses;
             var stagedVehicles=new Dictionary<int,Vehicle>();foreach(var vehicle in staged.vehicles)stagedVehicles.Add(vehicle.id,vehicle);
             foreach(var remap in plan.remaps){var vehicle=stagedVehicles[remap.vehicle.id];vehicle.Plan.segments=remap.route;vehicle.CommitPosition(remap.route[remap.cursor],remap.distance,remap.cursor);vehicle.changeTarget=RemappedChangeTarget(remap.vehicle,plan.network,vehicle.Current);if(vehicle.status!=VehicleStatus.Stranded)vehicle.Plan.EndDistance=remap.arrival;}
@@ -234,10 +246,15 @@ namespace HarborCity.RoadCore
             // together before the first live write. No business callback mutates inventory.
             new World(staged,data.externalBusiness?timeline.Copy():null,null,true,plan.network);
             // Every fallible geometry/migration/reservation check precedes these writes.
+            ApplyRoadFacts(plan);
+            data.networkRevision++;EditEpoch++;dispatchRoutes.Reset(Network);lostOccupancy.Reset(Network);occupancy.Clear();Reindex();return true;
+        }
+        void ApplyRoadFacts(RoadEditPlan plan)
+        {
             foreach(var remap in plan.remaps){long target=RemappedChangeTarget(remap.vehicle,plan.network,remap.route[remap.cursor]);remap.vehicle.Plan.segments=remap.route;remap.vehicle.CommitPosition(remap.route[remap.cursor],remap.distance,remap.cursor);remap.vehicle.changeTarget=target;if(remap.vehicle.status!=VehicleStatus.Stranded)remap.vehicle.Plan.EndDistance=remap.arrival;}
             foreach(var item in plan.interruptions){item.Key.Freeze(item.Value);}
             if(plan.accesses!=null){data.accesses=plan.accesses;accesses.Clear();foreach(var access in plan.accesses)accesses.Add(access.endpoint,access);}
-            data.network=plan.data;Network=plan.network;data.networkRevision++;EditEpoch++;dispatchRoutes.Reset(Network);lostOccupancy.Reset(Network);occupancy.Clear();Reindex();return true;
+            data.network=plan.data;Network=plan.network;
         }
         public int AddDepot(int junction,int stock=100)
         {if(data.externalBusiness)throw new InvalidOperationException("City owns its inventories; synthetic depots are disabled");JunctionPosition(junction);if(stock<0||stock>100000)throw new ArgumentOutOfRangeException(nameof(stock));int id=data.nextDepot++;var depot=new Depot{id=id,junction=junction,stock=stock};data.depots.Add(depot);depotsById.Add(id,depot);return id;}

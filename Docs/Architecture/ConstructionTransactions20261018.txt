@@ -36,3 +36,9 @@ CityUtilityLayout是CityModel独占的非序列化私有派生缓存，只存原
 早期utility-oracle的入口失效夹具留下非零lane，原Validator正确拒绝；已改为合法失效入口并恢复原字段。全设施扫描v2有界中止，正式选每种设施两处代表但每个快照仍比较全城全部供应。另一次冷恢复漏接地形导致growth/employment/settledDay不同、运输完全相同；补回与原城相同的Flat采样器，完整断言原样通过。失败日志/差异保留，不计作成功样本。
 utility-running仅开启细分计时、无raw，UtilityRebuild12.488ms，电力/水覆盖几何查询调用均0；其配置与after-edit-fine的raw不同，数字只作归因，不作严格成对毫秒结论。最终无Profiler配对另列。
 utility-normal关闭细分计时与raw，三万人正常运行新增最长帧147.07ms，连接204.36ms，连续编辑201.14ms；正常帧峰27.62ms，加载与预热另列排除。
+
+第五步：已隔离的施工草稿直接应用并完整验证，避免再次克隆自身。
+constructionDraft仅可由私有构造和内部EditDraft创建；只有同步RoadConstruction.Connect持有，绝不暴露为可游玩的World。最初仍深复制整个World并执行完整构造校验。私有节点/道路/切割每次提交仍逐项验证预约、路线、迁移位置，再在私有副本应用并执行完整Validate与AssertSafety；失败整个Connect退出，丢弃草稿，真实World完全不变。任务、端点、库存、时钟身份在草稿道路操作中不变化，初次构造的身份索引仍唯一且有效，不需再复制重建。真实城市TryCommit路径继续保留独立staged快照和完整冷验证，所有可能失败检查仍在真实事实与资金写入前；过期/重复提交语义保持。
+draft-stages原生Profiler：Snapshot14→2次、World.Create5→2次、Network.Rebuild8→3次；完整World.Validate仍5次。事务135.18ms；原生完整保存仍6835ebb8…，新旧扩展回放全部阶段/成功拒绝结果完全一致，含真实在途车辆/过期方案/重复扣费/160+80固定步恢复。150936核心、23461综合城、10000索引零分配通过。draft-normal1无Profiler正常运行新增最长帧142.96ms、连接199.50ms、连续136.50ms；施工后通勤成本失效仍有必要的保守重算，不能宣称完全消除所有长帧。
+第二轮新增最长帧169.77ms，单帧噪声仍存在；五万人utility-scale→draft-scale1新增事务306.26→260.02ms，最终操作窗口最长帧297.50ms；连接事务409.20→398.42ms，窗口448.02ms。五万人原始547bb6a与最终实现扩展编辑/240正常步全部阶段完整保存和成功拒绝结果相同，最终SHA e118e94b4e29416c043e0fac940e676a4c2ec5e6d27c0cb7aeea718abe1fecb0。
+原生raw实际Construction分配391117062→61880310字节（约391→62MB），内层范围有包含关系，不叠加。stage回放关闭正常模拟只做分项归因，正式窗口最长帧取预热后正常宿主运行，详见measurements.csv；这不是物理鼠标输入到恢复的实测延迟。原probe的profile.csv gc0/gc1/gc2及route_preparations传入0占位，不能视作实测零，GC以raw hierarchy实际字节为准。

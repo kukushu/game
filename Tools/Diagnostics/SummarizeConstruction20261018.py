@@ -33,6 +33,7 @@ for directory in sorted(base.iterdir()):
         selected = [f for f in frames if f['operation'] == name]
         normal = [float(f['frame_ms']) for f in frames if f['operation'] == 'normal']
         measurements.append(dict(run=directory.name, mode=mode, operation=name, status=operation['status'],
+            fine=int(bool(environment.get('fine'))), raw=int(bool(environment.get('raw'))),
             transaction_peak_ms=max(times, default=-1), transaction_sum_ms=sum(times),
             player_frame_peak_ms=max((float(f['frame_ms']) for f in selected), default=-1),
             normal_frame_peak_ms=max(normal, default=-1), click_to_input_ms=-1,
@@ -61,11 +62,11 @@ for directory in sorted(base.iterdir()):
         allocations.extend(dict(run=directory.name, stage=stage, inclusive_ms=ms, allocated_bytes=allocated, calls=calls)
             for stage, (ms, allocated, calls) in sorted(totals.items()))
 
-write('measurements.csv', measurements, ['run','mode','operation','status','transaction_peak_ms','transaction_sum_ms','player_frame_peak_ms','normal_frame_peak_ms','click_to_input_ms','tick_min','tick_max','active_min'])
+write('measurements.csv', measurements, ['run','mode','operation','status','fine','raw','transaction_peak_ms','transaction_sum_ms','player_frame_peak_ms','normal_frame_peak_ms','click_to_input_ms','tick_min','tick_max','active_min'])
 write('stage-summary.csv', stages, ['run','operation','stage','inclusive_ms','calls'])
 write('gc-summary.csv', allocations, ['run','stage','inclusive_ms','allocated_bytes','calls'])
 pairs = {}
-for run in ('baseline-complete','owned-stages','geometry-stages','spatial-stages'):
+for run in ('baseline-complete','owned-stages','geometry-stages','spatial-stages','draft-stages'):
     path = base / run / 'final.hcity'
     if path.exists():
         pairs[run] = hashlib.sha256(path.read_bytes()).hexdigest()
@@ -76,6 +77,12 @@ for run in ('replay-before','replay-after','replay-geometry','replay-spatial'):
     if path.exists():
         replays[run] = read(path)
 assert all(rows == next(iter(replays.values())) for rows in replays.values()), 'Deterministic full replay differs'
+expanded = {}
+for run in ('expanded-old','expanded-utility','expanded-draft'):
+    if (base / run / 'Result.txt').exists():
+        expanded[run] = dict(states=read(base/run/'replay.csv'), outcomes=read(base/run/'expanded-operations.csv'))
+assert all(rows == next(iter(expanded.values())) for rows in expanded.values()), 'Expanded frozen/current whole-state or outcome differs'
 (base / 'state-check.json').write_text(json.dumps(dict(paused_native=pairs, deterministic_replay=replays,
+    expanded=expanded,
     note='Realtime running captures occur at different wall-clock ticks and are not full-save equivalence pairs. Assertions/save IO excluded from running construction frames; click-to-input unknown=-1.'), indent=2), encoding='utf-8')
 print(f'Summarized {len(measurements)} operations; exact paired state checks passed')

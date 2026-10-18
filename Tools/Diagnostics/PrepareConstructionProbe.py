@@ -15,7 +15,8 @@ def scopes(relative, methods):
     path.write_text(source, encoding='utf-8')
 
 world_source = (root / 'Traffic/CityRoadCoreWorld.cs').read_text(encoding='utf-8-sig')
-constructor = ('World(WorldData state,SimulationClock clock,IEnumerable<int> endpoints,bool owned,Network prepared)'
+constructor = ('World(WorldData state,SimulationClock clock,IEnumerable<int> endpoints,bool owned,Network prepared,bool draft=false)'
+    if 'bool draft=false' in world_source else 'World(WorldData state,SimulationClock clock,IEnumerable<int> endpoints,bool owned,Network prepared)'
     if 'bool owned,Network prepared' in world_source else 'public World(WorldData state,SimulationClock clock=null,IEnumerable<int> endpoints=null)')
 scopes('Traffic/CityRoadCoreWorld.cs', [
     (constructor, 'World.Create'),
