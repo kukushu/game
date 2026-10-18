@@ -692,6 +692,222 @@
     {
       "key": "ui.utility.facility_road",
       "text": "Built facility #{0}. Roadside utilities connect automatically; power, water and sewage facilities and sufficient capacity are still required."
+    },
+    {
+      "key": "ui.hud.page.roads",
+      "text": "Roads"
+    },
+    {
+      "key": "ui.hud.page.zones",
+      "text": "Zoning"
+    },
+    {
+      "key": "ui.hud.page.utilities",
+      "text": "Utilities"
+    },
+    {
+      "key": "ui.hud.page.trade",
+      "text": "Trade"
+    },
+    {
+      "key": "ui.hud.page.city",
+      "text": "City"
+    },
+    {
+      "key": "ui.hud.page.game",
+      "text": "Game"
+    },
+    {
+      "key": "ui.hud.active.grid",
+      "text": "Grid roads"
+    },
+    {
+      "key": "ui.hud.active.road",
+      "text": "Build road"
+    },
+    {
+      "key": "ui.hud.active.pipe",
+      "text": "Lay conduit"
+    },
+    {
+      "key": "ui.hud.active.facility",
+      "text": "Place facility"
+    },
+    {
+      "key": "ui.hud.active.zone",
+      "text": "Zone land"
+    },
+    {
+      "key": "ui.hud.active.outside",
+      "text": "Outside connection"
+    },
+    {
+      "key": "ui.hud.active.edit",
+      "text": "Edit road"
+    },
+    {
+      "key": "ui.hud.active.inspect",
+      "text": "Inspect map"
+    },
+    {
+      "key": "ui.hud.cancel",
+      "text": "Cancel tool"
+    },
+    {
+      "key": "ui.hud.pause",
+      "text": "Pause"
+    },
+    {
+      "key": "ui.hud.paused",
+      "text": "Paused"
+    },
+    {
+      "key": "ui.hud.collapse",
+      "text": "Collapse"
+    },
+    {
+      "key": "ui.hud.end_road",
+      "text": "End road"
+    },
+    {
+      "key": "ui.hud.oneway",
+      "text": "One way"
+    },
+    {
+      "key": "ui.hud.wide",
+      "text": "Two lanes each way"
+    },
+    {
+      "key": "ui.hud.edit_road",
+      "text": "Edit / widen / remove road"
+    },
+    {
+      "key": "ui.hud.road_help",
+      "text": "Click two points to build; drag for grid roads. Esc cancels."
+    },
+    {
+      "key": "ui.hud.no_zones",
+      "text": "Zoning is unavailable in this diagnostic scene."
+    },
+    {
+      "key": "ui.hud.residential",
+      "text": "Residential"
+    },
+    {
+      "key": "ui.hud.commercial",
+      "text": "Commercial"
+    },
+    {
+      "key": "ui.hud.industrial",
+      "text": "Industrial"
+    },
+    {
+      "key": "ui.hud.erase",
+      "text": "Erase zoning"
+    },
+    {
+      "key": "ui.hud.zone_help",
+      "text": "Drag a rectangle on the map; release to apply zoning."
+    },
+    {
+      "key": "ui.hud.no_utilities",
+      "text": "Utilities are unavailable in this diagnostic scene."
+    },
+    {
+      "key": "ui.hud.power",
+      "text": "Power station"
+    },
+    {
+      "key": "ui.hud.water",
+      "text": "Water station"
+    },
+    {
+      "key": "ui.hud.sewage",
+      "text": "Sewage outlet"
+    },
+    {
+      "key": "ui.hud.facility_help",
+      "text": "Click the map to place a facility."
+    },
+    {
+      "key": "ui.hud.electric_line",
+      "text": "Power line"
+    },
+    {
+      "key": "ui.hud.pipe",
+      "text": "Water / sewage pipe"
+    },
+    {
+      "key": "ui.hud.rotate",
+      "text": "Rotate facility 90°"
+    },
+    {
+      "key": "ui.hud.dispatch",
+      "text": "Dispatch A → B"
+    },
+    {
+      "key": "ui.hud.no_freight",
+      "text": "No available access, stock or route."
+    },
+    {
+      "key": "ui.hud.freight_sent",
+      "text": "Dispatched and stock deducted; payment on arrival."
+    },
+    {
+      "key": "ui.hud.save",
+      "text": "Save city"
+    },
+    {
+      "key": "ui.hud.load",
+      "text": "Load city"
+    },
+    {
+      "key": "ui.hud.controls",
+      "text": "WASD moves the camera; Esc cancels. Click the active category or Collapse to hide its panel and continue on the map."
+    },
+    {
+      "key": "ui.hud.population",
+      "text": "Population  {0}     Active vehicles  {1}"
+    },
+    {
+      "key": "ui.hud.balance_time",
+      "text": "Funds  {0}     Simulation  {1} s"
+    },
+    {
+      "key": "ui.hud.rate",
+      "text": "Target {0}× · Actual rate depends on city load"
+    },
+    {
+      "key": "ui.hud.supply",
+      "text": "Power / capacity {0} / {1}\nWater / supply {2} / {3}\nSewage capacity {4}"
+    },
+    {
+      "key": "ui.hud.delivered",
+      "text": "Total deliveries {0}"
+    },
+    {
+      "key": "ui.hud.depot",
+      "text": "Depot #{0} Stock {1} / {2} Cash {3}"
+    },
+    {
+      "key": "ui.hud.network",
+      "text": "Roads {0} · Junctions {1}"
+    },
+    {
+      "key": "ui.hud.projects",
+      "text": "Jobs {0} · Construction projects {1}"
+    },
+    {
+      "key": "ui.hud.factory",
+      "text": "Factory raw goods {0} · Shop stock {1}"
+    },
+    {
+      "key": "ui.hud.save_path",
+      "text": "Save location:\n{0}"
+    },
+    {
+      "key": "ui.hud.welcome",
+      "text": "Select a tool below; WASD moves the camera, Esc cancels."
     }
   ]
 }

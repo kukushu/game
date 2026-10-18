@@ -13,7 +13,7 @@ namespace HarborCity
         public bool IsSelecting {get;private set;}
         public int Selected=>selected;
         public Action Changed;
-        Rect Bounds=>new Rect(Math.Max(8,Screen.width-380),Math.Min(410,Screen.height-120),Math.Min(372,Screen.width-16),Math.Max(120,Screen.height-Math.Min(410,Screen.height-120)-12));
+        Rect Bounds=>new Rect(Math.Max(8,Screen.width-380),148,Math.Min(372,Screen.width-16),Math.Max(60,Screen.height-258));
         public HarborCityRoadEditor(CityLocalization text,Material source){this.text=text;this.source=source;}
         public void Bind(CityCoreIndustrySession current){if(ReferenceEquals(session,current))return;session=current;Clear();}
         public void Begin(){Clear();IsSelecting=session!=null;}

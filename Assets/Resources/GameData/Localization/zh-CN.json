@@ -692,6 +692,222 @@
     {
       "key": "ui.utility.facility_road",
       "text": "已建市政设施 #{0}；沿路自动接入管网，仍需同网电站、供水和排污设施及足够容量。"
+    },
+    {
+      "key": "ui.hud.page.roads",
+      "text": "道路"
+    },
+    {
+      "key": "ui.hud.page.zones",
+      "text": "分区"
+    },
+    {
+      "key": "ui.hud.page.utilities",
+      "text": "水电设施"
+    },
+    {
+      "key": "ui.hud.page.trade",
+      "text": "对外贸易"
+    },
+    {
+      "key": "ui.hud.page.city",
+      "text": "城市观察"
+    },
+    {
+      "key": "ui.hud.page.game",
+      "text": "游戏"
+    },
+    {
+      "key": "ui.hud.active.grid",
+      "text": "方格路网"
+    },
+    {
+      "key": "ui.hud.active.road",
+      "text": "修建道路"
+    },
+    {
+      "key": "ui.hud.active.pipe",
+      "text": "铺设管线"
+    },
+    {
+      "key": "ui.hud.active.facility",
+      "text": "放置设施"
+    },
+    {
+      "key": "ui.hud.active.zone",
+      "text": "划分区域"
+    },
+    {
+      "key": "ui.hud.active.outside",
+      "text": "对外连接"
+    },
+    {
+      "key": "ui.hud.active.edit",
+      "text": "编辑道路"
+    },
+    {
+      "key": "ui.hud.active.inspect",
+      "text": "观察地图"
+    },
+    {
+      "key": "ui.hud.cancel",
+      "text": "取消工具"
+    },
+    {
+      "key": "ui.hud.pause",
+      "text": "暂停"
+    },
+    {
+      "key": "ui.hud.paused",
+      "text": "已暂停"
+    },
+    {
+      "key": "ui.hud.collapse",
+      "text": "收起"
+    },
+    {
+      "key": "ui.hud.end_road",
+      "text": "结束修路"
+    },
+    {
+      "key": "ui.hud.oneway",
+      "text": "单行道"
+    },
+    {
+      "key": "ui.hud.wide",
+      "text": "每方向两车道"
+    },
+    {
+      "key": "ui.hud.edit_road",
+      "text": "编辑 / 拓宽 / 拆除道路"
+    },
+    {
+      "key": "ui.hud.road_help",
+      "text": "点击两点修路；方格路网按住拖拽。Esc 取消。"
+    },
+    {
+      "key": "ui.hud.no_zones",
+      "text": "当前诊断场景未启用分区。"
+    },
+    {
+      "key": "ui.hud.residential",
+      "text": "住宅区"
+    },
+    {
+      "key": "ui.hud.commercial",
+      "text": "商业区"
+    },
+    {
+      "key": "ui.hud.industrial",
+      "text": "工业区"
+    },
+    {
+      "key": "ui.hud.erase",
+      "text": "清除分区"
+    },
+    {
+      "key": "ui.hud.zone_help",
+      "text": "在地图上拖拽框选，松开应用分区。"
+    },
+    {
+      "key": "ui.hud.no_utilities",
+      "text": "当前诊断场景未启用市政设施。"
+    },
+    {
+      "key": "ui.hud.power",
+      "text": "电站"
+    },
+    {
+      "key": "ui.hud.water",
+      "text": "供水站"
+    },
+    {
+      "key": "ui.hud.sewage",
+      "text": "排污口"
+    },
+    {
+      "key": "ui.hud.facility_help",
+      "text": "点击地图放置设施。"
+    },
+    {
+      "key": "ui.hud.electric_line",
+      "text": "电线"
+    },
+    {
+      "key": "ui.hud.pipe",
+      "text": "水 / 排污管"
+    },
+    {
+      "key": "ui.hud.rotate",
+      "text": "设施转向 90°"
+    },
+    {
+      "key": "ui.hud.dispatch",
+      "text": "发货 A → B"
+    },
+    {
+      "key": "ui.hud.no_freight",
+      "text": "暂无可用入口/库存/路线"
+    },
+    {
+      "key": "ui.hud.freight_sent",
+      "text": "已发车，库存已扣；到达后才付款"
+    },
+    {
+      "key": "ui.hud.save",
+      "text": "保存城市"
+    },
+    {
+      "key": "ui.hud.load",
+      "text": "读取城市"
+    },
+    {
+      "key": "ui.hud.controls",
+      "text": "WASD 移动相机；Esc 取消工具。点击当前分类或“收起”可关闭面板并继续操作地图。"
+    },
+    {
+      "key": "ui.hud.population",
+      "text": "人口  {0}     活动车辆  {1}"
+    },
+    {
+      "key": "ui.hud.balance_time",
+      "text": "资金  {0}     模拟时间  {1} s"
+    },
+    {
+      "key": "ui.hud.rate",
+      "text": "目标速度 {0}× · 实际推进受城市负载限制"
+    },
+    {
+      "key": "ui.hud.supply",
+      "text": "用电 / 容量 {0} / {1}\n用水 / 供水 {2} / {3}\n排污容量 {4}"
+    },
+    {
+      "key": "ui.hud.delivered",
+      "text": "累计交付 {0}"
+    },
+    {
+      "key": "ui.hud.depot",
+      "text": "仓库 #{0} 库存 {1} / {2} 现金 {3}"
+    },
+    {
+      "key": "ui.hud.network",
+      "text": "道路 {0} · 路口 {1}"
+    },
+    {
+      "key": "ui.hud.projects",
+      "text": "真实岗位 {0} · 建设项目 {1}"
+    },
+    {
+      "key": "ui.hud.factory",
+      "text": "工厂原料 {0} · 商店库存 {1}"
+    },
+    {
+      "key": "ui.hud.save_path",
+      "text": "存档位置：\n{0}"
+    },
+    {
+      "key": "ui.hud.welcome",
+      "text": "从底部选择建设工具；WASD 移动相机，Esc 取消。"
     }
   ]
 }

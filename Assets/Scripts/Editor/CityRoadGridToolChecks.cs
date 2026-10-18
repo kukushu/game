@@ -22,6 +22,7 @@ namespace HarborCity
             var session=(CityCoreIndustrySession)type.GetField("session",flags).GetValue(game);
             if(!session.Simulation.Finance.UnlimitedFunds)throw new Exception("Normal gameplay must start with temporary unlimited funds");
             if(!session.City.utilities.roadConduits)throw new Exception("Normal roads must carry utilities by default");
+            CheckHud(game,session);
             session.Simulation.Finance.UnlimitedFunds=false;
             var land=(CityLandscape)type.GetField("landscape",flags).GetValue(game);
             var tool=type.GetField("gridTool",flags).GetValue(game);var drag=tool.GetType().GetMethod("Drag",flags);
@@ -77,6 +78,41 @@ namespace HarborCity
             if(!painted.SequenceEqual(CityCoreSave.Write(session))||!message.Contains("没有需要"))throw new Exception("Empty rectangle changed city or lacked feedback");
             Debug.Log("PASS Unity R/C/I rectangle outline and read-only preview, release painting, cancellation, rectangle erase and empty-selection feedback. Programmatic handler test; physical mouse not tested.");
         }
+        static void CheckHud(HarborCityRoadCoreGame game,CityCoreIndustrySession session)
+        {
+            const BindingFlags flags=BindingFlags.Instance|BindingFlags.NonPublic;
+            var type=game.GetType();var select=type.GetMethod("SelectPage",flags);var page=type.GetField("toolPage",flags);
+            var before=CityCoreSave.Write(session);
+            Func<string,Rect> rect=name=>(Rect)type.GetProperty(name,flags).GetValue(game);
+            Func<Vector2,bool> blocked=point=>(bool)type.GetMethod("BlocksWorldInput",flags).Invoke(game,new object[]{new Vector2(point.x,Screen.height-point.y)});
+            if(rect("ToolPanelBounds").width!=0||!blocked(rect("StatusBounds").center)||!blocked(rect("ToolbarBounds").center))throw new Exception("HUD initial visibility/input boundaries incorrect");
+            // The old upper-left menu must release its map input area.
+            if(Screen.width>=800&&Screen.height>=480&&blocked(new Vector2(24,24)))throw new Exception("Closed HUD still blocks old menu/map area");
+            foreach(string name in new[]{"Roads","Zones","Utilities","Trade","City","Options"})
+            {
+                var value=Enum.Parse(page.FieldType,name);select.Invoke(game,new[]{value});
+                if(!blocked(rect("ToolPanelBounds").center))throw new Exception("Open category leaks map input: "+name);
+                if(name=="Roads")type.GetField("building",flags).SetValue(game,true);
+                select.Invoke(game,new[]{value});
+                if(rect("ToolPanelBounds").width!=0)throw new Exception("Same category did not collapse");
+                if(name=="Roads"&&!(bool)type.GetField("building",flags).GetValue(game))throw new Exception("Collapse cancelled the selected tool");
+            }
+            if((bool)type.GetField("building",flags).GetValue(game)||!before.SequenceEqual(CityCoreSave.Write(session)))throw new Exception("Category changes changed city or retained unrelated tool");
+            var probe=ScriptableObject.CreateInstance<CityHudGuiProbe>();
+            try
+            {
+                probe.Game=game;probe.position=new Rect(0,0,1280,720);probe.ShowUtility();
+                foreach(string name in new[]{"None","Roads","Zones","Utilities","Trade","City","Options"})
+                {
+                    page.SetValue(game,Enum.Parse(page.FieldType,name));
+                    probe.SendEvent(new Event{type=EventType.Layout});probe.SendEvent(new Event{type=EventType.Repaint});
+                    if(probe.Failure!=null)throw new Exception("HUD GUI rendering failed: "+name,probe.Failure);
+                }
+                if(probe.Draws<14)throw new Exception("HUD GUI events were not rendered");
+            }
+            finally{probe.Close();page.SetValue(game,Enum.Parse(page.FieldType,"None"));}
+            Debug.Log("PASS compact HUD: categories start collapsed, collapse retains tool, switching cancels unrelated tool, open UI blocks map input, old menu area freed, complete city state unchanged. Programmatic check, not physical mouse/UI rendering acceptance.");
+        }
         static void Capture(HarborCityRoadCoreGame game,string name)
         {
             var folder=Environment.GetEnvironmentVariable("HARBOR_GRID_CHECK_IMAGES");if(string.IsNullOrEmpty(folder))return;
@@ -85,6 +121,17 @@ namespace HarborCity
             var target=new RenderTexture(800,600,24);var previous=RenderTexture.active;camera.targetTexture=target;camera.Render();RenderTexture.active=target;
             var image=new Texture2D(800,600,TextureFormat.RGB24,false);image.ReadPixels(new Rect(0,0,800,600),0,0);image.Apply();File.WriteAllBytes(Path.Combine(folder,name+".png"),image.EncodeToPNG());
             camera.targetTexture=null;RenderTexture.active=previous;UnityEngine.Object.DestroyImmediate(image);target.Release();UnityEngine.Object.DestroyImmediate(target);
+        }
+    }
+    // Exercise real IMGUI layout/repaint events in the isolated Editor, not camera-only captures.
+    public sealed class CityHudGuiProbe:EditorWindow
+    {
+        public HarborCityRoadCoreGame Game;public Exception Failure;public int Draws;
+        void OnGUI()
+        {
+            if(Game==null)return;
+            try{Game.GetType().GetMethod("DrawInterface",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(Game,null);Draws++;}
+            catch(Exception error){Failure=error;}
         }
     }
 }
