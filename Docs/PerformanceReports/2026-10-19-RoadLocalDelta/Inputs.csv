@@ -1,0 +1,3 @@
+scale,input,input_sha256,cpu,os
+30k,C:\Users\16934\Documents\unity_game\test\Temp\CityScenarios\regenerated30000-20261017\city.hcity,3F49BD1A02879BB686C24D5517902CC581C657220CE2B955107D89B6FA870B4E,Intel(R) Core(TM) i5-14600KF,Microsoft Windows NT 10.0.26200.0
+50k,C:\Users\16934\Documents\unity_game\test\Temp\ZoningOptimization-20261018\scale50000\final.hcity,357448E241BB58632872169271F6B41D48C495711D51ABB45DF223605E02E1CE,Intel(R) Core(TM) i5-14600KF,Microsoft Windows NT 10.0.26200.0
