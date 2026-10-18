@@ -53,6 +53,26 @@ namespace HarborCity
             if(!extended.SequenceEqual(CityCoreSave.Write(session))||!feedback.Contains("至少"))throw new Exception("Small drag missing visible reason");
             Debug.Log("PASS Unity grid drag handler, six pooled preview lines, preview read-only, 2x2 connected road mesh creation, one payment, release cleanup and cancellation. Programmatic handler test; physical mouse not tested.");
             Debug.Log("PASS snapped shared-border extension, no repeat payment, parallel-overlap rejection and persistent visible failure reasons.");
+            var zoneTool=type.GetField("zoneBoxTool",flags).GetValue(game);var zoneDrag=zoneTool.GetType().GetMethod("Drag",flags);
+            Action<Point,bool,bool,LandUse,double> zone=(point,pressed,released,use,time)=>zoneDrag.Invoke(zoneTool,new object[]{point,pressed,released,land,session,use,time,notice,(Action)(()=>type.GetMethod("RenderZones",flags).Invoke(game,null))});
+            var low=new Point(-25,2,-25);var high=new Point(25,2,25);double time=0;
+            foreach(var use in new[]{LandUse.Residential,LandUse.Commercial,LandUse.Industrial})
+            {
+                var unpainted=CityCoreSave.Write(session);zone(low,true,false,use,time++);zone(high,false,false,use,time++);
+                var outline=UnityEngine.Object.FindObjectsByType<LineRenderer>().Single(l=>l.name=="Zoning rectangle selection");
+                if(!outline.enabled||outline.positionCount!=64||!unpainted.SequenceEqual(CityCoreSave.Write(session)))throw new Exception("Zoning preview changed city or missing outline");
+                if(use==LandUse.Residential)Capture(game,"zoning-box-preview");zone(high,false,true,use,time++);
+                var chosen=session.Simulation.Growth.Zoning.Cells().Where(c=>c.pose.x>=-25&&c.pose.x<=25&&c.pose.z>=-25&&c.pose.z<=25).ToArray();
+                if(outline.enabled||chosen.Length==0||chosen.Any(c=>c.use!=use)||!message.Contains("已修改"))throw new Exception("Box zoning release failed: "+message);
+            }
+            var painted=CityCoreSave.Write(session);zone(low,true,false,LandUse.Residential,time++);zone(high,false,false,LandUse.Residential,time++);
+            zoneTool.GetType().GetMethod("Cancel").Invoke(zoneTool,null);zone(high,false,true,LandUse.Residential,time++);
+            if(!painted.SequenceEqual(CityCoreSave.Write(session)))throw new Exception("Cancelled zoning changed facts");
+            zone(low,true,false,LandUse.Bulldoze,time++);zone(high,false,true,LandUse.Bulldoze,time++);
+            if(session.City.zoning.designations.Count!=0)throw new Exception("Rectangle clear left painted cells");
+            painted=CityCoreSave.Write(session);zone(new Point(150,2,150),true,false,LandUse.Residential,time++);zone(new Point(160,2,160),false,true,LandUse.Residential,time++);
+            if(!painted.SequenceEqual(CityCoreSave.Write(session))||!message.Contains("没有需要"))throw new Exception("Empty rectangle changed city or lacked feedback");
+            Debug.Log("PASS Unity R/C/I rectangle outline and read-only preview, release painting, cancellation, rectangle erase and empty-selection feedback. Programmatic handler test; physical mouse not tested.");
         }
         static void Capture(HarborCityRoadCoreGame game,string name)
         {

@@ -644,6 +644,42 @@
     {
       "key": "ui.grid.cancelled_ui",
       "text": "Released over a menu: construction cancelled, no charge. Release over the map to build."
+    },
+    {
+      "key": "ui.zone.selection",
+      "text": "Selection"
+    },
+    {
+      "key": "ui.zone.box",
+      "text": "Rectangle"
+    },
+    {
+      "key": "ui.zone.brush",
+      "text": "Click brush"
+    },
+    {
+      "key": "ui.zone.box_help",
+      "text": "Drag with the left mouse button; release to zone. Esc cancels. Cells are selected by their centres; existing buildings are preserved."
+    },
+    {
+      "key": "ui.zone.brush_help",
+      "text": "Click roadside zoning cells to paint."
+    },
+    {
+      "key": "ui.zone.preview",
+      "text": "{0} cells selected. Release to paint."
+    },
+    {
+      "key": "ui.zone.painted",
+      "text": "Changed {0} zoning cells. Buildings develop through normal city simulation."
+    },
+    {
+      "key": "ui.zone.no_change",
+      "text": "No zoning cells need changing. Select roadside cells or a different land use."
+    },
+    {
+      "key": "ui.zone.cancelled",
+      "text": "Rectangle cancelled; zoning was not changed."
     }
   ]
 }

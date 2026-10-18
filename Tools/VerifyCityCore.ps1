@@ -21,6 +21,12 @@ if($LASTEXITCODE -ne 0){throw 'Grid checks compile failed'}
 & $mono $gridCheck
 if($LASTEXITCODE -ne 0){throw 'Grid checks failed'}
 
+$zoneCheck=Join-Path $root 'Temp/RoadCore/ZoneSelectionChecks.exe'
+& $mono $compiler /nologo /langversion:latest ('/out:'+$zoneCheck) (Get-CityModelSources $root) (Join-Path $root 'Tools/Diagnostics/CityZoneSelectionChecks.cs')
+if($LASTEXITCODE -ne 0){throw 'Zone selection checks compile failed'}
+& $mono $zoneCheck
+if($LASTEXITCODE -ne 0){throw 'Zone selection checks failed'}
+
 if($Attribution){
     $profileCheck=Join-Path $root 'Temp/RoadCore/CityProfileChecks.exe'
     & $mono $compiler /nologo /langversion:latest /define:CITY_CORE_ATTRIBUTION ('/out:'+$profileCheck) (Get-CityModelSources $root) (Join-Path $root 'Tools/Diagnostics/CityProfileChecks.cs')

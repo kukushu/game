@@ -644,6 +644,42 @@
     {
       "key": "ui.grid.cancelled_ui",
       "text": "在菜单上松开已取消本次施工，没有扣款。请在地图上松开鼠标。"
+    },
+    {
+      "key": "ui.zone.selection",
+      "text": "划区方式"
+    },
+    {
+      "key": "ui.zone.box",
+      "text": "矩形框选"
+    },
+    {
+      "key": "ui.zone.brush",
+      "text": "点选"
+    },
+    {
+      "key": "ui.zone.box_help",
+      "text": "按住左键拖出矩形，松开划区；Esc取消。范围内格子按中心点选取，已有建筑不会拆除。"
+    },
+    {
+      "key": "ui.zone.brush_help",
+      "text": "点击道路旁的分区格划区。"
+    },
+    {
+      "key": "ui.zone.preview",
+      "text": "框选 {0} 格；松开后统一划区。"
+    },
+    {
+      "key": "ui.zone.painted",
+      "text": "已修改 {0} 格分区；建筑仍由正常城市模拟逐步生长。"
+    },
+    {
+      "key": "ui.zone.no_change",
+      "text": "没有需要修改的分区格：请框选道路旁的格子，或选择不同用途。"
+    },
+    {
+      "key": "ui.zone.cancelled",
+      "text": "本次框选已取消，没有修改分区。"
     }
   ]
 }

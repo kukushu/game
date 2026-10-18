@@ -123,6 +123,14 @@ namespace HarborCity
                 cell.available=!occupancyIndex.Find(cell.pose,out int owner);cell.occupiedBuilding=owner;
             }
         }
+        public void SelectRectangle(float x0,float z0,float x1,float z1,List<ZoneCell> selection)
+        {
+            if(selection==null)throw new ArgumentNullException(nameof(selection));
+            if(float.IsNaN(x0)||float.IsInfinity(x0)||float.IsNaN(x1)||float.IsInfinity(x1)||float.IsNaN(z0)||float.IsInfinity(z0)||float.IsNaN(z1)||float.IsInfinity(z1))throw new ArgumentException("Invalid zoning rectangle");
+            float left=Math.Min(x0,x1),right=Math.Max(x0,x1),bottom=Math.Min(z0,z1),top=Math.Max(z0,z1);
+            var cells=Cells();if(ReferenceEquals(selection,cells))throw new ArgumentException("Selection must not alias zoning cells");
+            selection.Clear();foreach(var cell in cells)if(cell.pose.x>=left&&cell.pose.x<=right&&cell.pose.z>=bottom&&cell.pose.z<=top)selection.Add(cell);
+        }
         public int Paint(IEnumerable<ZoneCell> selection,LandUse use)
         {
             entities.StructuralBoundary();Cells();if(use!=LandUse.Empty&&!CityZoningState.ZoneUse(use))throw new ArgumentException("Invalid zoning use");var lookup=city.zoning.designations.ToDictionary(d=>d.key);int changed=0;
