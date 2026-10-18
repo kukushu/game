@@ -7,10 +7,11 @@ import subprocess, json, html, re, csv
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'Docs/Architecture'
-COMMIT = '8c22ac1'
+COMMIT = '3a3ca6e'
 BASELINE = '110c4eaa24fa69d55b08a5db2a6d19ec6da5dd7f'
 R = 'Assets/Scripts/Runtime/'
 files = {
+ 'zonegeometry':R+'Infrastructure/Zoning/CityCoreZoningGeometry.cs',
  'roadviews':R+'Presentation/World/HarborCityRoadViews.cs',
  'vehicleviews':R+'Presentation/World/HarborCityVehicleViews.cs',
  'zoningviews':R+'Presentation/World/HarborCityZoningViews.cs',
@@ -330,7 +331,7 @@ flowdata['current']['stages'][7]['detail']='意图读取物理锚点，导航只
 flowdata['save']['note']='城市10 / 核心13：独立位置/冻结模式、任务与导航，旧格式拒绝。'
 # R3-A: actual normal startup is empty terrain, not the diagnostic commuter city.
 for ident,name,module,kind,key,token,fields,description in [
- ('corezoning','CityCoreZoning','Zoning','derived','corezoning','public sealed class CityCoreZoning','世界用途印章 / 版本规划格 / 地形采样', '保存的世界用途是事实；沿路格与空间印章桶为派生。建筑仍是独立实体，不恢复旧格子数据库。'),
+ ('corezoning','CityCoreZoning','Zoning','derived','corezoning','public sealed partial class CityCoreZoning','世界用途印章 / 版本规划格 / 地形采样', '保存的世界用途是事实；沿路格与空间印章桶为派生。建筑仍是独立实体，不恢复旧格子数据库。'),
  ('coregrowth','CityCoreGrowth','Growth','temporary','coregrowth','public sealed class CityCoreGrowth','Zoning / nextGrowth / projects', '健康步边界推进私人建设计划，完工后通过CityEntities注册建筑、岗位与入口；演员阶段不增删结构。'),
  ('coreconstruction','CityCoreConstruction','Construction','temporary','coreconstruction','public sealed class CityCoreConstruction','city / entities / world', '预算检查、RoadEditPlan原子提交和一次扣款；失败/过期编辑不扣费。市政建筑也走实体生命周期。'),
  ('coreutilities','CityCoreUtilities','Utilities','derived','coreutilities','public sealed class CityCoreUtilities','版本 / 原连通管网 / 供给缓存', '读取真实RoadAccess，按实体/路网/管线及负荷变化重建供给；原CityUtilityState为唯一管网事实，不用旧交通图。'),
@@ -422,7 +423,7 @@ for n in graphs['ownership']['nodes']:
     if n['id']=='plots':n.update(sub='单一派生格集合；三类失效')
 for filename in ['Docs/Architecture/Results/R3ZoningCache/paired-before.csv','Docs/Architecture/Results/R3ZoningCache/paired-after.csv','Docs/Architecture/Results/R3ZoningCache/normal-window.csv']:
     with (ROOT/filename).open(encoding='utf-8-sig') as f:perf.append(dict(file=filename,rows=list(csv.DictReader(f))))
-evidence.extend([dict(title='生长尖峰与分配采样',source=ref('corezoning','void RebuildGeometry()')),dict(title='占用不再重建几何',source=ref('corezoning','void RefreshOccupancy()'))])
+evidence.extend([dict(title='按实际变化传播的道路候选缓存',source=ref('zonegeometry','void RebuildGeometry()')),dict(title='占用不再重建几何',source=ref('corezoning','void RefreshOccupancy('))])
 for c in cards:
     if c['id']=='save':c.update(fields='城市15 / 业务7 / 设计3 / 道路核心15；维护计提、实际纳税和捕获贷款条款',facts='财政账本核对唯一city.money，合同不保存第二日界；完整在途与配置共同恢复。',risk='旧格式拒绝；垃圾、完整服务和观察仍未恢复。')
     if c['id']=='design':c.update(fields='Economy / Employment / Retail / Production / Finance冻结规则')
@@ -638,6 +639,16 @@ for c in cards:
         c['owner']='Network生成真实LaneConnection并持有静态派生查询；World独占动态预约。'
     if c['id']=='host':
         c['derived']+=' 黄色道路预览仅表示长度/地形示意，点击才做完整施工事务；HarborCityRoadViews持有全部道路Mesh。'
+card('zonecache','CityCoreZoning.Run / Claim','Zoning / 静态派生缓存','derived','zonegeometry','sealed class Run','Road ID→候选/接受格；16单位候选索引；原1.5单位占用桶；上一Network通行几何','Generate · TouchDrivable · Resolve · Propagate','CityCoreZoning唯一拥有，随会话丢弃；不是另一套分区系统。','道路、用途印章、建筑与项目仍是唯一事实；派生缓存不入保存。','比较旧新全部Drivable几何及裁剪；局部静态校验；按Road ID原优先级传播真实接受变化。','只维护派生候选/接受格；失败后冷缓存回退；不写钱、车辆、时间。','冷启动/SetSurface/边界改变全重建；连续道路编辑以最后观察到的Network差异更新。','同一CanPlace/RoadSpatialIndex/精确SAT/ZoneCell.Key；无Unity依赖。','仍扫描道路通行几何及拼接接受格；重叠传播最坏可到全城；缓存增加常驻内存。','三万人约1400ms→22–26ms，远处79000格对象复用；全量冻结对照和实际采样见报告。')
+graphs['classes']['nodes'].append(node('zonecache','CityCoreZoning.Run / Claim','派生候选缓存 / 按优先级传播','derived'))
+graphs['classes']['edges'].extend([edge('corezoning','zonecache','私有拥有'),edge('zonecache','network','比较不可变输出几何','dash')])
+graphs['ownership']['nodes'].append(node('zonecache','候选/接受格与重叠桶','唯一CityCoreZoning拥有；不入保存','derived'))
+graphs['ownership']['edges'].extend([edge('plots','zonecache','派生更新所需缓存'),edge('network','zonecache','旧新几何只读差异','dash')])
+for c in cards:
+    if c['id']=='corezoning':c.update(fields='Road ID候选缓存 / 单一接受格列表 / 用途印章桶 / 占用索引',facts='保存的道路、世界用途、建筑与项目为唯一事实；接受格仅派生。',risk='全局用途/建筑/项目修订仍刷新全部相关投影；列表拼接线性，复杂重叠可传播到全城。',life='局部道路变化按通行几何和重叠依赖失效；SetSurface/边界/冷读取全量，异常后冷回退。')
+    if c['id']=='zoningviews':c.update(fields='64单位块/用途→只读Plot值快照 + 独占Mesh/GameObject',derived='原三万人90733个显示格全部保留；按原顺序分组，逐值比较全部浮点位；只为变化块运行原AppendPlot。',life='全部变化块成功生成后替换；失败保留旧显示；更换高度采样器或InvalidateSurface全量显示重建。',risk='分组和快照比较仍O(显示格)，不宣称所有显示工作O(局部)；原位地形编辑需显式InvalidateSurface。',decision='835组几何/生命周期、275206冻结三角形及三万人最终画面0像素差；分区计算+显示22–26ms；不等于全施工16ms或3×达标。')
+flowdata['current']['note']+=' 道路编辑后，CityCoreZoning比较旧新Drivable和候选依赖；按原优先级传播接受格变化，地形/道路规则原样。显示比较64单位块的实际Plot值，只重建变化块；缓存不是分区用途或建筑事实。'
+evidence.extend([dict(title='实际：变动通行几何保守影响范围',source=ref('zonegeometry','void TouchDrivable')),dict(title='实际：不截断的后续优先级依赖传播',source=ref('zonegeometry','void Propagate')),dict(title='实际：块值比较与失败原子替换',source=ref('zoningviews','static bool Same'))])
 payload=dict(commit=COMMIT,baseline=BASELINE,cards=cards,graphs=graphs,flows=flowdata,readings=readingdata,perf=perf,evidence=evidence)
 
 page=r'''<!doctype html>
@@ -835,6 +846,9 @@ page=page.replace('<section id="review">','<section id="review"><details open><s
 road_report=ROOT/'Docs/Benchmarks/2026-10-18-RoadPreviewOptimization/Report.txt'
 if road_report.exists():
     page=page.replace('<section id="review">','<section id="review"><details open><summary>2026-10-18 当前道路预览优化、精确对照与剩余长帧</summary><pre>'+html.escape(road_report.read_text(encoding='utf-8'))+'</pre></details>')
+zoning_report=ROOT/'Docs/Architecture/ZoningIncremental20261018.txt'
+if zoning_report.exists():
+    page=page.replace('<section id="review">','<section id="review"><details open><summary>2026-10-18 当前施工分区：真实局部计算与空间块显示更新</summary><pre>'+html.escape(zoning_report.read_text(encoding='utf-8'))+'</pre></details>')
 (OUT/'HarborCityArchitecture.html').write_text(page,encoding='utf-8')
 (OUT/'SourceEvidence.md').write_text('# 固定源码定位证据\n\n审查commit：`'+COMMIT+'`。以下行号由固定源码生成，而非当前工作树。\n\n'+ '\n'.join('## '+e['title']+'\n\n['+e['source']['file']+':'+str(e['source']['line'])+']('+e['source']['url']+')\n\n方法/语句：`'+e['source']['token']+'`\n' for e in evidence),encoding='utf-8')
 print(f'Created {OUT / "HarborCityArchitecture.html"}; {len(cards)} class cards, {len(graphs)} graphs, {len(flowdata)} flows; pinned {COMMIT}')

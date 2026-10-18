@@ -86,5 +86,29 @@ static class CityZoningIncrementalChecks
         if(zoning.LastGeometryFull||zoning.LastGeometryRoads>=s.Transport.Network.RoadCount/4)throw new Exception("Isolated local edit recomputed global candidates");
         Console.WriteLine("PASS remote reused="+remote.Length+" geometry roads="+zoning.LastGeometryRoads+" resolved roads="+zoning.LastResolvedRoads);
     }
-    static void Main(string[] args){Directory.CreateDirectory(args[1]);if(args.Length>2&&args[2]=="stress")Stress();else if(args.Length>2&&args[2]=="locality")Locality(args[0]);else{Busy(args[0]);Fixtures();}File.WriteAllLines(Path.Combine(args[1],"snapshots.csv"),rows);File.WriteAllText(Path.Combine(args[1],"Result.txt"),"PASS "+snapshots+" ordered zoning snapshots / "+cellsChecked+" exact cells including key/block/column/row/side/use/availability/owner/float geometry; frozen 8273ffa oracle. Scope is the explicitly selected full, dense or locality suite; see stdout and snapshots.csv.\n");}
+    static void OccupiedEdits()
+    {
+        // Reuse the existing production-growth fixture pattern: paint three
+        // uses and let normal timed construction create projects/buildings.
+        var s=CityCoreIndustrySession.CreateEmpty();Bind(s,CityScenarioBuilder.Flat);Add(s,-40,0,40,0);var zoning=s.Simulation.Growth.Zoning;
+        zoning.Paint(zoning.Cells().Where(c=>c.side>0).ToArray(),LandUse.Residential);zoning.Paint(zoning.Cells().Where(c=>c.side<0&&c.pose.x<0).ToArray(),LandUse.Commercial);zoning.Paint(zoning.Cells().Where(c=>c.side<0&&c.pose.x>=0).ToArray(),LandUse.Industrial);
+        s.Advance(6);if(s.City.development.projects.Count!=3)throw new Exception("Mixed normal projects fixture missing");var pending=CityCoreSave.Write(s);s.Advance(16);
+        if(!new[]{LandUse.Residential,LandUse.Commercial,LandUse.Industrial}.All(use=>s.Entities.Buildings.Any(b=>b.Use==use)))throw new Exception("Normal growth did not create all three actual building uses");var built=CityCoreSave.Write(s);
+        foreach(var checkpoint in new[]{pending,built})foreach(string operation in new[]{"split","widen","reverse","delete","add"})
+        {
+            var clone=CityCoreSave.Read(checkpoint);var oracle=Bind(clone,CityScenarioBuilder.Flat);string label=(ReferenceEquals(checkpoint,pending)?"pending_":"built_")+operation;Compare(clone,oracle,label+"_initial");var before=CityCoreSave.Write(clone);
+            try
+            {
+                if(operation=="split")clone.Transport.SplitRoadAt(1,33.7);
+                if(operation=="widen")clone.Construction.UpgradeRoad(1,2,RoadDirection.Both);
+                if(operation=="reverse")clone.Construction.UpgradeRoad(1,1,RoadDirection.Backward);
+                if(operation=="delete")clone.Construction.RemoveRoad(1);
+                if(operation=="add")Add(clone,-40,30,40,30);
+            }
+            catch(InvalidOperationException){if(!before.SequenceEqual(CityCoreSave.Write(clone)))throw new Exception(label+" rejected transaction changed facts");Console.WriteLine("REJECTED unchanged "+label);}
+            catch(ArgumentException){if(!before.SequenceEqual(CityCoreSave.Write(clone)))throw new Exception(label+" rejected geometry changed facts");Console.WriteLine("REJECTED unchanged "+label);}
+            Compare(clone,oracle,label+"_edited");clone.Advance(16);Compare(clone,oracle,label+"_continued");clone.Validate();
+        }
+    }
+    static void Main(string[] args){Directory.CreateDirectory(args[1]);if(args.Length>2&&args[2]=="stress")Stress();else if(args.Length>2&&args[2]=="locality")Locality(args[0]);else if(args.Length>2&&args[2]=="occupied")OccupiedEdits();else{Busy(args[0]);Fixtures();}File.WriteAllLines(Path.Combine(args[1],"snapshots.csv"),rows);File.WriteAllText(Path.Combine(args[1],"Result.txt"),"PASS "+snapshots+" ordered zoning snapshots / "+cellsChecked+" exact cells including key/block/column/row/side/use/availability/owner/float geometry; frozen 8273ffa oracle. Scope is the explicitly selected full, dense, locality or occupied edit suite; see stdout and snapshots.csv.\n");}
 }

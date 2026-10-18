@@ -44,10 +44,13 @@ probe=r'''
             int ordinary=0;var profiles=new List<string>{"operation,"+CityCoreProfile.Header()};var statuses=new List<string>{"operation,status,reason"};var counts=new List<string>{"operation,cells,geometry_roads,resolved_roads,full_rebuild,renderers,rebuilt_chunks"};
             Func<object,string,string> property=(o,name)=>o.GetType().GetProperty(name)?.GetValue(o)?.ToString()??"-1";
             bool raw=Array.IndexOf(args,"-harbor-zone-raw")>=0;
+            int rawFlag=Array.IndexOf(args,"-harbor-zone-raw-operation");string rawOperation=rawFlag>=0?args[rawFlag+1]:"add";
             foreach(string operation in new[]{"add","connect_split","widen","delete","continuous"})
             {
                 byte[] beforeOperation=CityCoreSave.Write(session);yield return null;
                 ZoningEditProbeScope.Phase=operation;ZoningEditProbeScope.Enabled=true;CityCoreProfile.Enabled=Array.IndexOf(args,"-harbor-zone-fine")>=0;CityCoreProfile.Reset();recorder.Phase=operation;
+                bool capture=raw&&(rawOperation==operation||rawOperation=="all"),failed=false;
+                if(capture){string capturePath=rawOperation=="all"?Path.Combine(output,"raw-"+operation):output;Directory.CreateDirectory(capturePath);UnityEngine.Profiling.Profiler.logFile=Path.Combine(capturePath,"window.raw");UnityEngine.Profiling.Profiler.enableBinaryLog=true;UnityEngine.Profiling.Profiler.enabled=true;}
                 try{using(new ZoningEditProbeScope("Construction"))
                 {
                     if(operation=="add"){add(-h+5,-h+56,-h+17,-h+56);ordinary=world.Network.RoadIds.Max();}
@@ -57,19 +60,19 @@ probe=r'''
                     if(operation=="continuous")add(-h+5,-h+80,-h+17,-h+80);
                 }
                 statuses.Add(operation+",accepted,none");}
-                catch(Exception error){if(!beforeOperation.SequenceEqual(CityCoreSave.Write(session)))throw new Exception("Failed operation changed full save",error);statuses.Add(operation+",rejected,\""+error.Message.Replace("\"","\"\"")+"\"");}
+                catch(Exception error){failed=true;statuses.Add(operation+",rejected,\""+error.Message.Replace("\"","\"\"")+"\"");}
                 RenderRoads();
-                if(raw&&operation=="add"){UnityEngine.Profiling.Profiler.logFile=Path.Combine(output,"window.raw");UnityEngine.Profiling.Profiler.enableBinaryLog=true;UnityEngine.Profiling.Profiler.enabled=true;}
                 for(int i=0;i<4;i++)yield return null;
                 if(operation=="continuous")
                 {
                     using(new ZoningEditProbeScope("Construction"))add(-h+5,-h+104,-h+17,-h+104);
                     RenderRoads();for(int i=0;i<4;i++)yield return null;
                 }
-                if(raw&&operation=="add"){UnityEngine.Profiling.Profiler.enabled=false;UnityEngine.Profiling.Profiler.enableBinaryLog=false;}
+                if(capture){UnityEngine.Profiling.Profiler.enabled=false;UnityEngine.Profiling.Profiler.enableBinaryLog=false;}
                 profiles.Add(operation+","+CityCoreProfile.Row(session.Simulation.Tick,world.ActiveCount,0,0,0,0));
                 var zone=session.Simulation.Growth.Zoning;bool accepted=statuses[statuses.Count-1].StartsWith(operation+",accepted,",StringComparison.Ordinal);counts.Add(operation+","+zone.Cells().Count+","+(accepted?property(zone,"LastGeometryRoads"):"0")+","+(accepted?property(zone,"LastResolvedRoads"):"0")+","+(accepted?property(zone,"LastGeometryFull"):"False")+","+zoningViews.RendererCount+","+(accepted?property(zoningViews,"RebuiltChunks"):"0"));
                 ZoningEditProbeScope.Enabled=false;CityCoreProfile.Enabled=false;recorder.Phase="between";
+                if(failed){recorder.Phase="validation";if(!beforeOperation.SequenceEqual(CityCoreSave.Write(session)))throw new Exception("Failed operation changed full save");yield return null;recorder.Phase="between";}
             }
             ZoningEditProbeScope.Write(output);recorder.Write(output);File.WriteAllLines(Path.Combine(output,"profile.csv"),profiles);File.WriteAllLines(Path.Combine(output,"operations.csv"),statuses);File.WriteAllLines(Path.Combine(output,"counts.csv"),counts);
             session.Validate();var bytes=CityCoreSave.Write(session);File.WriteAllBytes(Path.Combine(output,"final.hcity"),bytes);
