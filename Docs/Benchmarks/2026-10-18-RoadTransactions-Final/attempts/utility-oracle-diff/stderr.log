@@ -1,0 +1,2 @@
+Unhandled exception. System.Exception: Utility warm/cold continuation differs; complete JSON facts retained
+   at CityUtilityLayoutChecks.Main(String[] args) in C:\Users\16934\Documents\unity_game\test\Tools\Diagnostics\CityUtilityLayoutChecks.cs:line 49

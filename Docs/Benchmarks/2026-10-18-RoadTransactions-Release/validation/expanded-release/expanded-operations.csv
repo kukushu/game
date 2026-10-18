@@ -1,0 +1,9 @@
+operation,status,reason
+margin_reverse,rejected,"施工节点安全区内有冲突车辆，请等待它们驶离后重试；道路和任务未修改。"
+occupied_widen,rejected,"road.widen_obstructed"
+occupied_reverse,rejected,"待撤方向/车道仍有车辆，等待驶离后再升级；城市未修改。"
+occupied_cross,rejected,"Invalid lane access"
+occupied_delete,rejected,"施工节点安全区内有冲突车辆，请等待它们驶离后重试；道路和任务未修改。"
+invalid_zero_stroke,accepted,none
+stale_commit,rejected,"道路方案已过期，请重新绘制"
+double_commit,rejected,"道路方案已过期，请重新绘制"

@@ -1,0 +1,115 @@
+frame,thread,path,total_ms,self_ms,calls,gc_bytes
+0,"Main Thread","Main Thread",139.7372,1.190768,1,61887699
+0,"Main Thread","Main Thread/PostLateUpdate.ProfilerEndFrame/Profiler.FlushCounters/Profiler.FlushMemoryCounters",1.6309,1.6309,1,0
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction",134.3612,0.272912,1,61880310
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect",82.000496,0.254608,1,46506186
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.World.Snapshot",8.5759999999999987,0.8468,1,5445296
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.World.Snapshot/GC.Alloc",0.2892,0.2892,7845,538912
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.World.Snapshot/City.ZoningEdit.Network.Copy",0.3388,0.26539999999999997,1,208776
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.World.Snapshot/City.ZoningEdit.Snapshot.TasksAndVehicles",7.1011999999999995,5.4754,1,4697608
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.World.Snapshot/City.ZoningEdit.Snapshot.TasksAndVehicles/GC.Alloc",1.6258,1.6258,57916,4697608
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.Network.Copy",0.6352,0.5071,2,417744
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.World.Create",9.2563,0.92519999999999991,1,3605464
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.World.Create/City.ZoningEdit.World.Validate",6.074,6.0100999999999996,1,1118480
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.World.Create/City.ZoningEdit.World.AssertSafety",2.2521,0.051899999999999995,1,420600
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.World.Create/City.ZoningEdit.World.AssertSafety/City.ZoningEdit.World.Reindex",2.1999999999999997,0.00039999999999999996,1,420296
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.World.Create/City.ZoningEdit.World.AssertSafety/City.ZoningEdit.World.Reindex/City.RoadCore.Occupancy",2.1995999999999998,0.0005,1,420296
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.World.Create/City.ZoningEdit.World.AssertSafety/City.ZoningEdit.World.Reindex/City.RoadCore.Occupancy/City.RoadCore.Occupancy.Clear",0.0015999999999999999,0.0015,1,48
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.World.Create/City.ZoningEdit.World.AssertSafety/City.ZoningEdit.World.Reindex/City.RoadCore.Occupancy/City.RoadCore.Occupancy.Actors",1.1877,1.0838999999999999,1,341400
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.World.Create/City.ZoningEdit.World.AssertSafety/City.ZoningEdit.World.Reindex/City.RoadCore.Occupancy/City.RoadCore.Occupancy.Sort",1.0098,0.9881,1,78848
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.Road.Attach",42.4509,0.624,2,24592994
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.Road.Attach/City.ZoningEdit.Network.Copy",1.1983,0.9567,4,835200
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.Road.Attach/City.ZoningEdit.Network.Copy/GC.Alloc",0.24159999999999998,0.24159999999999998,8610,835200
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.Road.Attach/City.ZoningEdit.Network.Rebuild",24.1196,20.5537,2,19783864
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.Road.Attach/City.ZoningEdit.Network.Rebuild/GC.Alloc",3.5658999999999996,3.5658999999999996,123298,19783864
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.Road.Attach/City.ZoningEdit.World.TryCommit",16.3635,0.0545,2,3699366
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.Road.Attach/City.ZoningEdit.World.TryCommit/City.ZoningEdit.World.Validate",9.3986,9.2691,2,2236960
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.Road.Attach/City.ZoningEdit.World.TryCommit/City.ZoningEdit.World.AssertSafety",4.1768,0.0881,2,615504
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.Road.Attach/City.ZoningEdit.World.TryCommit/City.ZoningEdit.World.AssertSafety/City.ZoningEdit.World.Reindex",4.0885,0.00079999999999999993,2,615056
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.Road.Attach/City.ZoningEdit.World.TryCommit/City.ZoningEdit.World.AssertSafety/City.ZoningEdit.World.Reindex/City.RoadCore.Occupancy",4.0877,0.0014,2,615056
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.Road.Attach/City.ZoningEdit.World.TryCommit/City.ZoningEdit.World.AssertSafety/City.ZoningEdit.World.Reindex/City.RoadCore.Occupancy/City.RoadCore.Occupancy.Clear",0.003,0.003,2,0
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.Road.Attach/City.ZoningEdit.World.TryCommit/City.ZoningEdit.World.AssertSafety/City.ZoningEdit.World.Reindex/City.RoadCore.Occupancy/City.RoadCore.Occupancy.Actors",2.1578999999999997,1.9566999999999999,2,457360
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.Road.Attach/City.ZoningEdit.World.TryCommit/City.ZoningEdit.World.AssertSafety/City.ZoningEdit.World.Reindex/City.RoadCore.Occupancy/City.RoadCore.Occupancy.Actors/GC.Alloc",0.2012,0.2012,6532,457360
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.Road.Attach/City.ZoningEdit.World.TryCommit/City.ZoningEdit.World.AssertSafety/City.ZoningEdit.World.Reindex/City.RoadCore.Occupancy/City.RoadCore.Occupancy.Sort",1.9254,1.8811,2,157696
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.Road.Attach/City.ZoningEdit.World.TryCommit/City.ZoningEdit.World.EditReservations",2.7325,2.6264,2,845400
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.Network.Rebuild",11.647699999999999,9.9201,1,9895252
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.Network.Rebuild/GC.Alloc",1.7276,1.7276,61677,9895252
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.World.TryCommit",7.4273,0.0186,1,1463250
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.World.TryCommit/City.ZoningEdit.World.Validate",4.5647,4.5004,1,1118480
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.World.TryCommit/City.ZoningEdit.World.AssertSafety",2.065,0.0388,1,308296
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.World.TryCommit/City.ZoningEdit.World.AssertSafety/City.ZoningEdit.World.Reindex",2.0261,0.0003,1,307528
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.World.TryCommit/City.ZoningEdit.World.AssertSafety/City.ZoningEdit.World.Reindex/City.RoadCore.Occupancy",2.0258,0.0009,1,307528
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.World.TryCommit/City.ZoningEdit.World.AssertSafety/City.ZoningEdit.World.Reindex/City.RoadCore.Occupancy/City.RoadCore.Occupancy.Clear",0.0021999999999999997,0.0021999999999999997,1,0
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.World.TryCommit/City.ZoningEdit.World.AssertSafety/City.ZoningEdit.World.Reindex/City.RoadCore.Occupancy/City.RoadCore.Occupancy.Actors",1.0695,0.9711,1,228680
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.World.TryCommit/City.ZoningEdit.World.AssertSafety/City.ZoningEdit.World.Reindex/City.RoadCore.Occupancy/City.RoadCore.Occupancy.Sort",0.95319999999999994,0.9318,1,78848
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.World.TryCommit/City.ZoningEdit.World.EditReservations",0.7786,0.7671,1,35772
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.World.EditReservations",1.3191,1.2688,1,422700
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Road.Connect/City.ZoningEdit.World.PlanFromDraft",0.4306,0.42969999999999997,1,655752
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Construction.Placement",27.9258,19.6347,1,4554152
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Construction.Placement/GC.Alloc",0.5446,0.5446,16305,1187596
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Construction.Placement/City.ZoningEdit.Network.SpatialBuild",7.7464999999999993,7.7426999999999992,1,3366556
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Construction.Commit",24.007099999999998,0.0511,1,10814040
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Construction.Commit/City.ZoningEdit.World.TryCommit",23.9559,5.0945,1,10813728
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Construction.Commit/City.ZoningEdit.World.TryCommit/City.ZoningEdit.World.Snapshot",7.7048999999999994,0.5508,1,5444854
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Construction.Commit/City.ZoningEdit.World.TryCommit/City.ZoningEdit.World.Snapshot/GC.Alloc",0.2143,0.2143,7841,538470
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Construction.Commit/City.ZoningEdit.World.TryCommit/City.ZoningEdit.World.Snapshot/City.ZoningEdit.Network.Copy",0.312,0.2535,1,208776
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Construction.Commit/City.ZoningEdit.World.TryCommit/City.ZoningEdit.World.Snapshot/City.ZoningEdit.Snapshot.TasksAndVehicles",6.6278,5.0526,1,4697608
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Construction.Commit/City.ZoningEdit.World.TryCommit/City.ZoningEdit.World.Snapshot/City.ZoningEdit.Snapshot.TasksAndVehicles/GC.Alloc",1.5752,1.5752,57916,4697608
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Construction.Commit/City.ZoningEdit.World.TryCommit/City.ZoningEdit.World.Create",8.0332999999999988,0.8068,1,3604576
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Construction.Commit/City.ZoningEdit.World.TryCommit/City.ZoningEdit.World.Create/City.ZoningEdit.World.Validate",5.2047,5.1457,1,1118480
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Construction.Commit/City.ZoningEdit.World.TryCommit/City.ZoningEdit.World.Create/City.ZoningEdit.World.AssertSafety",2.0159,0.036,1,420520
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Construction.Commit/City.ZoningEdit.World.TryCommit/City.ZoningEdit.World.Create/City.ZoningEdit.World.AssertSafety/City.ZoningEdit.World.Reindex",1.9798,0.00039999999999999996,1,420296
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Construction.Commit/City.ZoningEdit.World.TryCommit/City.ZoningEdit.World.Create/City.ZoningEdit.World.AssertSafety/City.ZoningEdit.World.Reindex/City.RoadCore.Occupancy",1.9793999999999998,0.0006,1,420296
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Construction.Commit/City.ZoningEdit.World.TryCommit/City.ZoningEdit.World.Create/City.ZoningEdit.World.AssertSafety/City.ZoningEdit.World.Reindex/City.RoadCore.Occupancy/City.RoadCore.Occupancy.Clear",0.0015999999999999999,0.0015,1,48
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Construction.Commit/City.ZoningEdit.World.TryCommit/City.ZoningEdit.World.Create/City.ZoningEdit.World.AssertSafety/City.ZoningEdit.World.Reindex/City.RoadCore.Occupancy/City.RoadCore.Occupancy.Actors",1.0494999999999999,0.9536,1,341400
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Construction.Commit/City.ZoningEdit.World.TryCommit/City.ZoningEdit.World.Create/City.ZoningEdit.World.AssertSafety/City.ZoningEdit.World.Reindex/City.RoadCore.Occupancy/City.RoadCore.Occupancy.Sort",0.9277,0.90609999999999991,1,78848
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Construction.Commit/City.ZoningEdit.World.TryCommit/City.ZoningEdit.World.Reindex",1.8612,0.00039999999999999996,1,307528
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Construction.Commit/City.ZoningEdit.World.TryCommit/City.ZoningEdit.World.Reindex/City.RoadCore.Occupancy",1.8608,0.00039999999999999996,1,307528
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Construction.Commit/City.ZoningEdit.World.TryCommit/City.ZoningEdit.World.Reindex/City.RoadCore.Occupancy/City.RoadCore.Occupancy.Clear",0.001,0.001,1,0
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Construction.Commit/City.ZoningEdit.World.TryCommit/City.ZoningEdit.World.Reindex/City.RoadCore.Occupancy/City.RoadCore.Occupancy.Actors",1.0006,0.9015,1,228680
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Construction.Commit/City.ZoningEdit.World.TryCommit/City.ZoningEdit.World.Reindex/City.RoadCore.Occupancy/City.RoadCore.Occupancy.Sort",0.8588,0.83739999999999992,1,78848
+0,"Main Thread","Main Thread/City.ZoningEdit.Construction/City.ZoningEdit.Construction.Commit/City.ZoningEdit.World.TryCommit/City.ZoningEdit.World.EditReservations",1.2597,1.2469999999999999,1,1002616
+0,"Main Thread","Main Thread/City.ZoningEdit.RoadViews",2.2117,0.0010999999999999998,1,5424
+0,"Main Thread","Main Thread/City.ZoningEdit.RoadViews/City.Views.Roads.Sync",2.2106,2.1677,1,5296
+0,"Render Thread","",139.757904,137.698204,1,0
+0,"Render Thread","RenderLoop/PlayerEndOfFrame",0.4723,0.3902,1,0
+0,"Render Thread","Gfx.WaitForGfxCommandsFromMainThread/Semaphore.WaitForSignal",1.53,1.53,3,0
+1,"Main Thread","Main Thread/PlayerLoop",36.7123,0.0342,1,9693013
+1,"Main Thread","Main Thread/PlayerLoop/TimeUpdate.WaitForLastPresentationAndUpdateTime/WaitForTargetFPS/GarbageCollector.CollectIncremental",6.2203,0.9417,1,0
+1,"Main Thread","Main Thread/PlayerLoop/TimeUpdate.WaitForLastPresentationAndUpdateTime/WaitForTargetFPS/GarbageCollector.CollectIncremental/GC.Collect",5.2786,5.2786,1,0
+1,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.Simulation",9.9999999999999991E-05,9.9999999999999991E-05,1,0
+1,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.RoadCore.Views",1.851,0.0007,1,40
+1,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.RoadCore.Views/City.Views.Vehicles.Sync",1.8502999999999998,1.8502999999999998,1,40
+1,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.ZoningEdit.ZoneViews",23.3084,0.0538,1,9686748
+1,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.ZoningEdit.ZoneViews/City.ZoningEdit.ZoningCells",9.059,5.8812,1,2393116
+1,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.ZoningEdit.ZoneViews/City.ZoningEdit.ZoningCells/GC.Collect",2.9968,2.9968,1,0
+1,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.ZoningEdit.ZoneViews/City.ZoningEdit.ZoningDisplay",14.1953,0.00039999999999999996,1,7292900
+1,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.ZoningEdit.ZoneViews/City.ZoningEdit.ZoningDisplay/City.Views.Zoning.Build",14.194899999999999,3.0772999999999997,1,7292900
+1,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.ZoningEdit.ZoneViews/City.ZoningEdit.ZoningDisplay/City.Views.Zoning.Build/City.ZoningEdit.ChunkMembership",8.4688,8.3978,1,6229908
+1,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.ZoningEdit.ZoneViews/City.ZoningEdit.ZoningDisplay/City.Views.Zoning.Build/City.ZoningEdit.MeshGeometry",2.3588999999999998,2.3117,2,1030928
+1,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.ZoningEdit.ZoneViews/City.ZoningEdit.ZoningDisplay/City.Views.Zoning.Build/City.ZoningEdit.MeshUpload",0.22219999999999998,0.0968,2,0
+1,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.ZoningEdit.ZoneViews/City.ZoningEdit.ZoningDisplay/City.Views.Zoning.Build/City.ZoningEdit.GameObjects",0.0559,0.0209,2,284
+1,"Main Thread","Main Thread/PlayerLoop/PostLateUpdate.ProfilerEndFrame/Profiler.FlushCounters/Profiler.FlushMemoryCounters",1.5915,1.5915,1,0
+1,"Main Thread","Main Thread/PlayerLoop/PostLateUpdate.ProfilerEndFrame/Profiler.FlushCounters/Profiler.CollectLegacyStats/Profiler.CollectUIToolkitStats",3.1797999999999997,3.1759,1,4798
+1,"Render Thread","Gfx.WaitForGfxCommandsFromMainThread/Semaphore.WaitForSignal",36.6299,36.6299,6,0
+2,"Main Thread","Main Thread/PlayerLoop",16.644,0.029099999999999997,1,2484
+2,"Main Thread","Main Thread/PlayerLoop/TimeUpdate.WaitForLastPresentationAndUpdateTime/WaitForTargetFPS",11.062,11.0616,1,0
+2,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.Simulation",9.9999999999999991E-05,9.9999999999999991E-05,1,0
+2,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.RoadCore.Views",1.9178,0.00039999999999999996,1,40
+2,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.RoadCore.Views/City.Views.Vehicles.Sync",1.9174,1.9173,1,40
+2,"Main Thread","Main Thread/PlayerLoop/PreLateUpdate.UIElementsUpdatePanels/UnityEngine.UIElementsModule.dll!UnityEngine.UIElements::UIElementsRuntimeUtilityNative.UpdatePanels() [Invoke]",1.8264,1.4792999999999998,1,1852
+2,"Main Thread","Main Thread/PlayerLoop/PreLateUpdate.UIElementsUpdatePanels/UnityEngine.UIElementsModule.dll!UnityEngine.UIElements::UIElementsRuntimeUtilityNative.UpdatePanels() [Invoke]/UIElements.PreUpdatePanelRenderers",0.3413,0.3412,1,48
+2,"Main Thread","Main Thread/PlayerLoop/PostLateUpdate.ProfilerEndFrame/Profiler.FlushCounters/Profiler.FlushMemoryCounters",1.5502,1.5502,1,0
+2,"Render Thread","Gfx.WaitForGfxCommandsFromMainThread/Semaphore.WaitForSignal",16.5956,16.5956,5,0
+3,"Main Thread","Main Thread/PlayerLoop",16.6508,0.0248,1,603
+3,"Main Thread","Main Thread/PlayerLoop/TimeUpdate.WaitForLastPresentationAndUpdateTime/WaitForTargetFPS",12.8903,12.8897,1,0
+3,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.Simulation",9.9999999999999991E-05,9.9999999999999991E-05,1,0
+3,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.RoadCore.Views",1.8362999999999998,0.00039999999999999996,1,40
+3,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.RoadCore.Views/City.Views.Vehicles.Sync",1.8358999999999999,1.8358999999999999,1,40
+3,"Main Thread","Main Thread/PlayerLoop/PostLateUpdate.ProfilerEndFrame/Profiler.FlushCounters/Profiler.FlushMemoryCounters",1.6260999999999999,1.6260999999999999,1,0
+3,"Render Thread","Gfx.WaitForGfxCommandsFromMainThread/Semaphore.WaitForSignal",16.5149,16.5149,4,0
+4,"Main Thread","Main Thread/PlayerLoop",2.0242999999999998,0.0096,1,577
+4,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.Simulation",9.9999999999999991E-05,9.9999999999999991E-05,1,0
+4,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.RoadCore.Views",1.8628,0.0003,1,40
+4,"Main Thread","Main Thread/PlayerLoop/Update.ScriptRunBehaviourUpdate/BehaviourUpdate/Assembly-CSharp.dll!HarborCity::HarborCityRoadCoreGame.Update() [Invoke]/City.RoadCore.Views/City.Views.Vehicles.Sync",1.8624999999999998,1.8624999999999998,1,40
+4,"Render Thread","Gfx.WaitForGfxCommandsFromMainThread/Semaphore.WaitForSignal",2.0002999999999997,2.0002999999999997,2,0

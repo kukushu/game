@@ -1,0 +1,7 @@
+{
+  "main_performance_package": "2026-10-18-RoadTransactions-Final",
+  "measured_main_source": "451ec46a82c22f4eef9977cd25cb80c651b6e7da",
+  "release_source": "7a06a4667e7f5043b2edc4397bf4b10973c7b803",
+  "note": "Main immutable package retains all phased native/raw pairs and original full-state oracles. This supplemental release fixes a reproduced unused-node lookup boundary; it contains its own final native frames, pinned delivered binary, 240-step full-state replay, cold-algorithm regression and native functional validation. Realtime runs are not deterministic output-state pairs.",
+  "unit_limitation": "profile.csv gc0/gc1/gc2 and route_preparations are legacy passed-zero placeholders; actual GC evidence is the raw hierarchy in the main package; click-to-input remains unmeasured."
+}

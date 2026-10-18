@@ -1,0 +1,711 @@
+{
+    "dirty":  [
+                  " M Assets/Scripts/Runtime/Infrastructure/Roads/CityRoadCoreConstruction.cs",
+                  " M Assets/Scripts/Runtime/Traffic/CityRoadCoreWorld.cs",
+                  " M Tools/BuildZoningEditProbe.ps1",
+                  " M Tools/RunZoningEditProbe.ps1",
+                  " M \"\\346\\237\\245\\347\\234\\213\\344\\270\\200\\344\\270\\207\\344\\272\\272\\345\\237\\216\\345\\270\\202.cmd\"",
+                  " M \"\\346\\237\\245\\347\\234\\213\\344\\270\\211\\344\\270\\207\\344\\272\\272\\345\\237\\216\\345\\270\\202.cmd\"",
+                  " M \"\\346\\237\\245\\347\\234\\213\\344\\270\\211\\345\\215\\203\\344\\272\\272\\345\\237\\216\\345\\270\\202.cmd\"",
+                  "?? Tools/Diagnostics/PrepareConstructionProbe.py"
+              ],
+    "sources":  [
+                    {
+                        "sha256":  "85868E89664E21E61F51E1EDDAD4F9786FF9EDA1C6D9F6A986C72E17D690B870",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Diagnostics\\Runtime\\CityCoreProfile.cs"
+                    },
+                    {
+                        "sha256":  "6F40F1BAA28E8E4CE23C3952F806695C8B1B4E460484D76C07CB259B9B2B3458",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Diagnostics\\Runtime\\CityGrowingGridFixture.cs"
+                    },
+                    {
+                        "sha256":  "A4859363356BF0D5695EA99A0590E63E7377B3F77A5203C856379CAE6BDDEAFF",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Diagnostics\\Runtime\\CityIntegratedScaleFixture.cs"
+                    },
+                    {
+                        "sha256":  "916ED391E78089A9E5A2266249F6DA196ABF1F946E96B8EEED03FF28FC6A6FA3",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Diagnostics\\Runtime\\CityRoadCoreFixtures.cs"
+                    },
+                    {
+                        "sha256":  "17FF88EC3684FE4FA2197A8F6B3E1D543940FC030F0F1386FA4330AF6E9AE39E",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Diagnostics\\Runtime\\CityScenarioBuilder.cs"
+                    },
+                    {
+                        "sha256":  "7CCECDA6462CD1214BB3E9295704F10EE7619127795B77685AF9AAB613D67A0D",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Diagnostics\\Runtime\\CityTrafficAttribution.cs"
+                    },
+                    {
+                        "sha256":  "475C6095FF099059BEF409ED4590F8CC7FA854B5D5119AED49B4733B41032E11",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Diagnostics\\Runtime\\CityTrafficBenchmark.cs"
+                    },
+                    {
+                        "sha256":  "714E35070C6562174DF2B3249C88019538BA741B4E2467D85A4C4147FF3E5360",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Diagnostics\\Runtime\\CityWasteDiagnostics.cs"
+                    },
+                    {
+                        "sha256":  "877AD8E32F288EAC945CBBF75BF5E15DD142DB77CC723C303D3DEE7D676FF978",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Diagnostics\\Runtime\\HarborCityRoadEditingValidation.cs"
+                    },
+                    {
+                        "sha256":  "596B8B4BFE3C5D5408AD929E5DFB50DDAE97009844DA8772199A6AA51B726E32",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Diagnostics\\Runtime\\HarborCityRoadTopologyValidation.cs"
+                    },
+                    {
+                        "sha256":  "3A2B948711CA85A1C2F6C5C5EDAD9F6D6D0328CE31690B34033B563438D31CA1",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Diagnostics\\Runtime\\HarborCityScenarioWindowProbe.cs"
+                    },
+                    {
+                        "sha256":  "722DC6188C696F46C72CAF9E70761CB47316140C1BD19BEB66402B1D438C32A1",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Diagnostics\\Runtime\\HarborCityStandaloneValidation.cs"
+                    },
+                    {
+                        "sha256":  "D53B6B4C10F41E399078F66D1454C5807DFBD0E3C2F21A49658FC4AE28C9288B",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Diagnostics\\Runtime\\HarborCityWindowPerformance.cs"
+                    },
+                    {
+                        "sha256":  "8DF1E0DD6CBFB0713EFB2B6D262E739D0FC531C9749F27AD8715656D449DE0B0",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Diagnostics\\Runtime\\ZoningEditProbeScope.cs"
+                    },
+                    {
+                        "sha256":  "6CFBCAF04070D0B8439AE6A5503AA14C60BB953C05066F86DF098D2CCBDE18A4",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Editor\\CityBuildingChecks.cs"
+                    },
+                    {
+                        "sha256":  "812AA8DC7DFCFC3BB690D4A7FF6125A9B0CD9E0F69BC74F108A2E07C087EF1BF",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Editor\\CityCodeLayoutChecks.cs"
+                    },
+                    {
+                        "sha256":  "D269C6D065AF302A286506CA9DF4B725C7BE1DCC569D31BB550BBD3FF052EDE9",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Editor\\CityDashboardVisualPreview.cs"
+                    },
+                    {
+                        "sha256":  "C2472D8B9AAA8A28DAF645816521C3019C89528463508F726BFB55E4CE56F03B",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Editor\\CityHouseholdChecks.cs"
+                    },
+                    {
+                        "sha256":  "91445BD5F37B1CA38BB1C66723BF02FD3EDD00022B8908A04777262A4222A77A",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Editor\\CityLandscapeChecks.cs"
+                    },
+                    {
+                        "sha256":  "3B3AC01DEF662755762F2FA51AD099A7327B958752257FDA8DC381EA61823356",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Editor\\CityObservabilityChecks.cs"
+                    },
+                    {
+                        "sha256":  "D2C44296E14C86D20F275A279573A77C220DA1D57B804086ADD32764E3AB22EC",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Editor\\CityRoadChecks.cs"
+                    },
+                    {
+                        "sha256":  "4D4DCFBA09B8CDB4E3C940AF21E74E464A0C1E90E8FE1BD617C5B83A4182CAF1",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Editor\\CityRoadViewChecks.cs"
+                    },
+                    {
+                        "sha256":  "299A7E50599EAA78DB1F2430D160DFE5EB7413004CC95FE4C74CF3C032A35148",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Editor\\CityTrafficBenchmarkBuild.cs"
+                    },
+                    {
+                        "sha256":  "DDDF6CA1964987FF8C74546D171E47D823C4AAB94FA4939CDF1CBDA1F93BB703",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Editor\\CityTrafficChecks.cs"
+                    },
+                    {
+                        "sha256":  "C0CD328165F62AF72EE274268209B983689AB4D599B563895AC03E8DCDACF5F6",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Editor\\CityTrafficProfilerCapture.cs"
+                    },
+                    {
+                        "sha256":  "316157FE30F4125888402F881A7C75717EDA5CF51BA25C44A8024F601D44294E",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Editor\\CityTrafficReplayChecks.cs"
+                    },
+                    {
+                        "sha256":  "4552C7F15BEB43E2A47F6784C6DC207151E83A24C4DAA4F7863813199A7B92EC",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Editor\\CityUsabilityChecks.cs"
+                    },
+                    {
+                        "sha256":  "EB3951C5A4D42D7C353E3AA5A776F6994707FDA6C0BC9C4EFB7CBF1324FCE7E4",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Editor\\CityWindowProfilerExport.cs"
+                    },
+                    {
+                        "sha256":  "A4A37BC1CB8F7A1368B4A6ADEF3695C024A5627DF4CBAA18D4C57C1BBDC1721B",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Editor\\CityZoningChecks.cs"
+                    },
+                    {
+                        "sha256":  "9442C9B3E4188072483F49F5BFA87A11F2025476E8B7CD2C9BD8071A6A977CD2",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Editor\\CityZoningViewChecks.cs"
+                    },
+                    {
+                        "sha256":  "ADCD2826EAD20E68AF4A8875E5AAD4F0D6449DAEC31F6944B31A158BDA2970CA",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\GameData\\CityEmploymentDesign.cs"
+                    },
+                    {
+                        "sha256":  "A66B6668CF6D778AFAD2395603EEE28F4A9B73A956A6FDDEAD840D293BFA0BF0",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\GameData\\CityFinanceDesign.cs"
+                    },
+                    {
+                        "sha256":  "1F065A4D91A9C0098CB27BD0AC90D2988EB660584976CE97D5BAA24427E968CB",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\GameData\\CityGameDesign.cs"
+                    },
+                    {
+                        "sha256":  "DBFC4543180DA6D7E2038F862D32F8830AC000C3454539B759280FFDD6154441",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\GameData\\CityLocalization.cs"
+                    },
+                    {
+                        "sha256":  "536AF64943E7AEE8D4FB0988CAA9F4686F45CC0F418450080333A806A2E04623",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\GameData\\CityRetailDesign.cs"
+                    },
+                    {
+                        "sha256":  "9A20A78419EDADF5091BCE4DDF0C7719CA47B9CCDE7539F78ECF1D4D8F8BEFCB",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\GameData\\CityWasteDesign.cs"
+                    },
+                    {
+                        "sha256":  "D957CB0126E42125D06FA0DDB7DB1131B8EA6AF5DA25A575A5DF2974A8A27AE4",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\GameData\\HarborCityEconomyAsset.cs"
+                    },
+                    {
+                        "sha256":  "B26C7DAC8164FC8FE8D264BAB02452984B41CF3ABC59A0E185A8C3045F0BBB8B",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Infrastructure\\Map\\CityMap.cs"
+                    },
+                    {
+                        "sha256":  "D0331FE6F96E691C4FD92D5F81CA1047F29847CB9FA51EC59D330ACA4AE3B765",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Infrastructure\\Map\\CityMapViews.cs"
+                    },
+                    {
+                        "sha256":  "BFBE6F4BF7AB5437B40BAD95FDD43CE1B5518A62AA16393E1FEB868967481D7C",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityLaneConnection.cs"
+                    },
+                    {
+                        "sha256":  "DCA1431988CA8DDF54DAE28BD22FA69448631418204980D05FBE9FEF3D9F5BD7",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityLaneReachability.cs"
+                    },
+                    {
+                        "sha256":  "B877F300AC06FA38391374A16B343DE20B80D687AF3C96F3C35C90D46156AB63",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityLogicalRoadRouter.cs"
+                    },
+                    {
+                        "sha256":  "5D2C18719EF9AB47D101435AE67D38142EDD2ECE85B2A947A667A5BB7D5363E7",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityResidentRouteBounds.cs"
+                    },
+                    {
+                        "sha256":  "550E2CC4D8BA68A9AC999D69E9E0CA52615DB3AEB9681582DE0F2B00AAB15271",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadClearance.cs"
+                    },
+                    {
+                        "sha256":  "E435A2F670DE7CBC91D7AD87A38DAE6BE1CAEC3EE3B6FDE89019486D7E5C96A9",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadCoreAccess.cs"
+                    },
+                    {
+                        "sha256":  "A3A107A2AA8FE7EB128EBDE4CBF32A085C27B2D63B2D9F171ABBBA5532872B27",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadCoreAccessRouting.cs"
+                    },
+                    {
+                        "sha256":  "1F9B775BA805F4BB491696E69F456F92B82563EB48F59C6691E4664909796D0E",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadCoreConstruction.cs"
+                    },
+                    {
+                        "sha256":  "B5FE638013B7F7530147FBBDEA682BBCC2581041BC534DCC9B1BE8ADCD212A78",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadCoreEdit.cs"
+                    },
+                    {
+                        "sha256":  "DEC4BB6D265100C94CB196046B6CFF0054A904EBC5E7483FAC6AD781EF0AA060",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadCoreHistory.cs"
+                    },
+                    {
+                        "sha256":  "1C4CA51BCAE87B99B115155326766B34CB768026F08F56C10872D2C5E935994D",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadCoreNetwork.cs"
+                    },
+                    {
+                        "sha256":  "55402F0791177B0B8334ADE659D9E54AD96693FD9DDCABC85170B4AFFF31E09D",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadCoreSave.cs"
+                    },
+                    {
+                        "sha256":  "ABAAAC87C612B5097E4FA2C5D41CE7529806FE40892CBE747F76EDD5597275E3",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadCoreSpatial.cs"
+                    },
+                    {
+                        "sha256":  "3AE2D8F78F7A521B62AE58513BFECCCA548BDFD7E75041B4AC25DE5069F47725",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadDirection.cs"
+                    },
+                    {
+                        "sha256":  "AF08940C5596DA9CF964EDDB0E4EBB6DF9528D02C2BBED5A64ED743F3FED5405",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadElevation.cs"
+                    },
+                    {
+                        "sha256":  "FC85A93B32AF5147489B0B15ABD812AA0653C1F7361D4C489C68096F671702AF",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadGeometry.cs"
+                    },
+                    {
+                        "sha256":  "87B24D4322916460DE897D123E6D340869F936D5989EED38FE770180806800A9",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadKeyComparer.cs"
+                    },
+                    {
+                        "sha256":  "5F3F7C16CB35E841AA723D6D94C9D682CDB3ED7C327742F3380351E8C3B2DFA3",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoads.cs"
+                    },
+                    {
+                        "sha256":  "1F861A4212F38FC8AA13A099FE92411AC98B6CF4E9FCCF15081074721615B705",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadTopology.cs"
+                    },
+                    {
+                        "sha256":  "9E357AC73C207390B70A8C9A28491D1CE31552EE851640D9C22874100D234595",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadTopologyBuilder.cs"
+                    },
+                    {
+                        "sha256":  "0EEC8D17512DD6BD99BE4805D75FC644767B134C466EE57C5E75874653F95AFC",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadTypes.cs"
+                    },
+                    {
+                        "sha256":  "FF6A56FE0F9CA9A449AB48F6118B5742D97D5DDFB0AB41A90B17038ABF593146",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Infrastructure\\Roads\\CityRoadWidth.cs"
+                    },
+                    {
+                        "sha256":  "D9CD2BE58DEEADF350D95D5B07E1CC59C644DF3B60E127CB544109519770B59C",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Infrastructure\\Utilities\\CityUtilities.cs"
+                    },
+                    {
+                        "sha256":  "ADB76EAB933F90F7C8844DA3DC3C9C3D0576167AF034E6666726F91AA300FD5D",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Infrastructure\\Utilities\\CityUtilityCoverage.cs"
+                    },
+                    {
+                        "sha256":  "A285AF4E2FEDAC77B4C93F27FEA3D00EDCD8EB36EC34DB8B492E46899A0F2276",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Infrastructure\\Utilities\\CityUtilityNetwork.cs"
+                    },
+                    {
+                        "sha256":  "94FA2A0CCD9B7C7FB125A8299653B0392BD243E607C098F000791B6E8A828DCF",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Infrastructure\\Zoning\\CityCoreZoning.cs"
+                    },
+                    {
+                        "sha256":  "34448095035AF1DD9EB9BC14CCFBFC6659A97B2CD950C447D9A7D4449BEFB595",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Infrastructure\\Zoning\\CityCoreZoningGeometry.cs"
+                    },
+                    {
+                        "sha256":  "D973C176FB5DAA19A6C2311E546E78B17D3797B3AE761BF497ED0FC3287FBF4A",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Infrastructure\\Zoning\\CityZoning.cs"
+                    },
+                    {
+                        "sha256":  "8DD2BAB07346C2F632CAC25E32A824CE8948EADC64BD1085F8C3A732738BE1AF",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Observability\\CityAnalysisState.cs"
+                    },
+                    {
+                        "sha256":  "9210E18F6A01242225F4B47DCAA14FA184F41C8C4AC70A39659F1D7163DBF607",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Observability\\CityCoreObservation.cs"
+                    },
+                    {
+                        "sha256":  "9EC9E252E92B4B1FF081B42EE8C4AB9027DA7626DC341CBE26B49F2EF9802343",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Observability\\CityDailyAnalysis.cs"
+                    },
+                    {
+                        "sha256":  "8A3D1F477926C8B0ECF20ED43246582674EB3A4A1F05CE23DC38B2EC6D075FC8",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Observability\\CityDashboardPresentation.cs"
+                    },
+                    {
+                        "sha256":  "4ED714B574A5A39BA80A568790540DF9060B89E85EF9645D04711427120A4E3D",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Observability\\CitySimulationLog.cs"
+                    },
+                    {
+                        "sha256":  "279539EC285A4E85EB4B88EDA95E8EF56065B0D75652DFDFE87900F1AB55F124",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\Game\\HarborCityConstructionCamera.cs"
+                    },
+                    {
+                        "sha256":  "DFFA99A5588BD2651113BF6DF246C12651AA4BF376435C9CCD69F71B6A8F33DD",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\Game\\HarborCityGame.cs"
+                    },
+                    {
+                        "sha256":  "C2BF4313936B33F53BD809631996406BDAEC517917309CC2AF343F8A573A1AAB",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\Game\\HarborCityRoadCoreGame.cs"
+                    },
+                    {
+                        "sha256":  "B5B3E741E802C1A883AD13240080902F8E1D258CD550AD6274184037E613E2D4",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\Tools\\HarborCityBuildingTool.cs"
+                    },
+                    {
+                        "sha256":  "FC642314A70AB21D12AE10ECC1D8608B2ECB3AA6BCEA3105F65E11A6E1F270ED",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\Tools\\HarborCityConstructionPreview.cs"
+                    },
+                    {
+                        "sha256":  "45E3428072230201352DE0A7EC1061DDB21A803175815DBCC33E44CF7C48E568",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\Tools\\HarborCityRoadTool.cs"
+                    },
+                    {
+                        "sha256":  "5EAE2959E1338C4BD2433BAEAF22B6F96FDF476D36FF6793B00A8A501BB48620",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\Tools\\HarborCityUtilityTool.cs"
+                    },
+                    {
+                        "sha256":  "E7D54BA9933F685AC95654C8A85A53FA052F50F7E049A265F2B50EE0D6D52DF6",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\Tools\\HarborCityZoningTool.cs"
+                    },
+                    {
+                        "sha256":  "27575DA5D8C2F2469C9E5FFB13835FE475B7297424CD59D1E962EE427A794E3A",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\Traffic\\HarborCityTrafficControlView.cs"
+                    },
+                    {
+                        "sha256":  "93F5B476A3AA4A99E6E0CBC386526BFAF0FA13B5E450F59841BDEDCC7D28877E",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCityCommuteView.cs"
+                    },
+                    {
+                        "sha256":  "5A908A72F6B05C83A06A40929D665A35259435E8002BDD252BD69C67F1672175",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCityDashboard.cs"
+                    },
+                    {
+                        "sha256":  "E508E629252ED20BD9188B425A57DE1BDB7F62C06805B9DFDE24213C76BCE251",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCityDashboardVisuals.cs"
+                    },
+                    {
+                        "sha256":  "2BE7C056C1284094FDBA67BD719B6AF0C2FDAEFAA986935B5BFC4E5E902B65DC",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCityDeathcareUI.cs"
+                    },
+                    {
+                        "sha256":  "83773723B1F7FEA255C986DE316FE251961E290CD42C879AF0BB1FF0573AB459",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCityEconomyUI.cs"
+                    },
+                    {
+                        "sha256":  "CACC50D90BCCA4CE1C1E630F804DCA7CEDD05A644BEE0505E9A0A5D66D9C4E31",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCityEducationUI.cs"
+                    },
+                    {
+                        "sha256":  "A70510ED580530ED9224C22D7E286511EBB4B01F8304B2FC9F6DCB152D8A0112",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCityEmploymentReadout.cs"
+                    },
+                    {
+                        "sha256":  "A7FA6BD0A8382E9541C669C5712FC20EE543505721FBDFD7A8472C582C28EB12",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCityFinancePanel.cs"
+                    },
+                    {
+                        "sha256":  "5DD49895466556A5FCB53E5E7777C597ADA80A4710583B9184EF38219DE6F43F",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCityFireUI.cs"
+                    },
+                    {
+                        "sha256":  "3D66AFFDF9DD231D8D9C4A6EBF96FD697A80C7A79D204B34CC51A0D4B19A9594",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCityHealthcareUI.cs"
+                    },
+                    {
+                        "sha256":  "BCA55BACE3CD12C1399C2F482CB9028AFA89CF16F4A923C5165E2D4EA7CDFC51",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCityInfoViews.cs"
+                    },
+                    {
+                        "sha256":  "74C85A2956C38ED234D3DCA7220DAB79F9B22E6DE808DE6B3A3D5280D2567585",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCityLogging.cs"
+                    },
+                    {
+                        "sha256":  "16C2305BC486108CC25D9EF06BC5F23EB4828E01E3439B0C8CD3E8D48CCB976E",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCityObservationPanel.cs"
+                    },
+                    {
+                        "sha256":  "3B903B0833F5BD653A88C9280D895AB8BA8C36FC0996C4F2D28741C3F3B43F5D",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCityPoliceUI.cs"
+                    },
+                    {
+                        "sha256":  "BFA8C95B1FC89F741706C73BA8CD09B8931B346C25D8C840C83D8BB826127DF0",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCityProblemUI.cs"
+                    },
+                    {
+                        "sha256":  "49BD4EC502164129CCBD7F1AC30A4DFA088BFDE5D9E1F7EE566F6336A85C9F84",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCityResidentView.cs"
+                    },
+                    {
+                        "sha256":  "0CCE42AE76D59C4C509720B4DE0840E016890EA4BADAC951841F2FDF763FA9D9",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCityRoadEditor.cs"
+                    },
+                    {
+                        "sha256":  "50FAC84DC001AE0F5A6FCEE6F410DD953CE7409C2C44BA730CE4D6ED1E5F8E17",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCitySimulationUI.cs"
+                    },
+                    {
+                        "sha256":  "247C51B56577373CC3F3FE6584A31D53C35C3E3EE6C9BD8C5DFFBC29F6A6A239",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\UI\\HarborCityWasteUI.cs"
+                    },
+                    {
+                        "sha256":  "6837E5E21C1A0D74F7CF21356483B50588CF7393064D14EF82FD98E9AE74221C",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\World\\CityLandscape.cs"
+                    },
+                    {
+                        "sha256":  "5A47930B4EDE1E8E8123E9D6470D0D4D322ED1B35EED1204F341A7DB614B3B40",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\World\\CityRoadView.cs"
+                    },
+                    {
+                        "sha256":  "9CD90F512E6F39CEAA8F3049B0B1B690D01911F1AD155B3517056909878CBCFC",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\World\\HarborCityBuildingViews.cs"
+                    },
+                    {
+                        "sha256":  "6B3CDB3CB2F75B7E31B8FB1567E029F7E83B28CC73B58D9A35F0872988E6844E",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\World\\HarborCityDevelopmentView.cs"
+                    },
+                    {
+                        "sha256":  "BDF0B7631C3631099572592E9E178F68F1C9FD3B2FE6545E7651627AA4056FA2",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\World\\HarborCityMapBoundary.cs"
+                    },
+                    {
+                        "sha256":  "3032C41B444060DE5779BEF366B18E55E751E049703C77FE9B99D2A8B9EDD3D1",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\World\\HarborCityOutsideViews.cs"
+                    },
+                    {
+                        "sha256":  "CBFC734272F0E1C69C0F38CADE35036EA8C69528A95C135580B62A7BCA6B606F",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\World\\HarborCityRoadViews.cs"
+                    },
+                    {
+                        "sha256":  "9BD8A9B9FA9FBD4920D56DA3F9498E2D08CAFF171E08E3D47DA13E4D39F61418",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\World\\HarborCitySurfaceMesh.cs"
+                    },
+                    {
+                        "sha256":  "8A025303735F104C7E5FED09ECCA441501ADC466AB194614ADDEBB0EB469D475",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\World\\HarborCityVehicleViews.cs"
+                    },
+                    {
+                        "sha256":  "F7D1375C3715EBB4E4F41C263DA0E5EA926B28330A9F1CB34810B204664D9C69",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Presentation\\World\\HarborCityZoningViews.cs"
+                    },
+                    {
+                        "sha256":  "B476DE93E2675CC98C848AEAA2F48FFAD39922B0D3ABF325F835819AF62A5F3A",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Core\\CityBuildingConditions.cs"
+                    },
+                    {
+                        "sha256":  "E0CE56BD831ACB1FCDB31699616040BADD81CC932A2B4EC7E91D438A64B5E298",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Core\\CityBuildingProblems.cs"
+                    },
+                    {
+                        "sha256":  "21D38988B42408792BCAE758A74A2A8E932B3B8C939B2FD0173233996CA4446B",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Core\\CityBuildings.cs"
+                    },
+                    {
+                        "sha256":  "CC2CEEA34BB284FB372D9692E5FE7D9856EF26F7F0CA3E0A72031D0A7024F4C4",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Core\\CityCoreConstruction.cs"
+                    },
+                    {
+                        "sha256":  "6AD768D2919842DAB2C8D8043FE60B99BD24911CE6C91459C7F18A35633C162D",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Core\\CityCoreRoadBindings.cs"
+                    },
+                    {
+                        "sha256":  "A16B73614914FAE91428C79EBAE5722746415658368A786F6B85BD4FE44CEA00",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Core\\CityCoreSave.cs"
+                    },
+                    {
+                        "sha256":  "ABDF4CE68B9437E7FF049A831BF95E156C59E023A7CD4C15AACEFA6FA38836AE",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Core\\CityEntities.cs"
+                    },
+                    {
+                        "sha256":  "A0FEBAF9768C1A7D6530B779079E81D464F5BA10C74E840B3F0D8438321B44A3",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Core\\CityModel.cs"
+                    },
+                    {
+                        "sha256":  "E6D21DE8E051EE18005A76F4221D652C85E4FD735ADE0DD84930280E1518BD8C",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Core\\CitySaveData.cs"
+                    },
+                    {
+                        "sha256":  "980F4E84316C9CEE0D54FD093DB1CFA78E6830DBEABB7E7C2D9F50B5DCC46696",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Core\\CitySimulation.cs"
+                    },
+                    {
+                        "sha256":  "DDEBFE72E08C351F55595661AAFF68DCDEB649F366B24D5B68887731919FC27F",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Core\\CitySimulationClock.cs"
+                    },
+                    {
+                        "sha256":  "A829154DA65DE82E27D7061C6B4F893DFE45F3439FB525128B54B66874FE369D",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Economy\\CityCoreConsumption.cs"
+                    },
+                    {
+                        "sha256":  "CD0C2CD5BB0736F72FE368DCE0222BCD260A1FC324ECBE72EC84ABA52C440BA0",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Economy\\CityCoreFinance.cs"
+                    },
+                    {
+                        "sha256":  "ED8C31340C47CDB36770A64A803F5C3E0E267E218C5AAAF9C5346F12345B63F3",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Economy\\CityCorePayroll.cs"
+                    },
+                    {
+                        "sha256":  "A5A4219F7A591F39C1454DF5E1EF044266BE31D8B46CA33FACA3073E8B0C70DD",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Economy\\CityCoreTrade.cs"
+                    },
+                    {
+                        "sha256":  "9210B9295F01A69FB8F530E32B23A2164D94479FFE745DE7EAA936CF6212BE9F",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Economy\\CityImportSources.cs"
+                    },
+                    {
+                        "sha256":  "9591EBF46250B9E8A413F62D8687D1E7CBDB325C37C803AE2636D998014A951A",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Economy\\CityLoans.cs"
+                    },
+                    {
+                        "sha256":  "B56BFF5A280BB51344F358DB11BAB669F2409BDEBA2D645239B41A147BA6D52D",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Economy\\CityRetailIndex.cs"
+                    },
+                    {
+                        "sha256":  "BDCA4D02ADD0CBBEE1A17C5D20D4A212FB8F00107BEE6EAC268E84DE94D976B6",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Economy\\CityServiceBudgets.cs"
+                    },
+                    {
+                        "sha256":  "5865068A8D78087FDFC296E52A4DAB2295BAB434F9CE02BF231A641322C1311A",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Economy\\CityShopAccount.cs"
+                    },
+                    {
+                        "sha256":  "B5CCDA2B4AFD0DBF55F5FF08B266BA69B9A135B2D2438096776052689760F012",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Growth\\CityBuildingGrowth.cs"
+                    },
+                    {
+                        "sha256":  "2C91C0FF73532B6CC28EB7E7383827BE7B3A13D9A173F0283393C8A5F4B9AFA1",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Growth\\CityCoreGrowth.cs"
+                    },
+                    {
+                        "sha256":  "DEA1F2D4D98A53638B0D7D11F571EBB31BDDECE429703D69B8C5DAAAE34B74B7",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Growth\\CityDevelopment.cs"
+                    },
+                    {
+                        "sha256":  "4D4701C63BE9AE72CA05DF4FF6D1C35F9C27ABE423F8BA30F0AF6316D749C5D2",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Industry\\CityCoreIndustrySession.cs"
+                    },
+                    {
+                        "sha256":  "C620513DB7DA693B3E685794C2CB61F4F6E7044B2B7BD1C35CB648050D9358A1",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Industry\\CityFreightCandidates.cs"
+                    },
+                    {
+                        "sha256":  "0BDB74DDF63F7ED8F74C55BC7C0747E1340B560AE6FEC2DD55BAD8A79D4D61F6",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Industry\\CityIndustry.cs"
+                    },
+                    {
+                        "sha256":  "D5AF55728DD9C83F3EC7C7692EA5FAAFF69E68DF201040D8D7CF1D14F9AC9AB2",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Industry\\CityLogisticsSystem.cs"
+                    },
+                    {
+                        "sha256":  "8B44AAC9B02E63F601A9D8C3254DA38B1E243AA47E2FD7C8BE86B2BB6793DD4A",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Industry\\CityProductionSystem.cs"
+                    },
+                    {
+                        "sha256":  "009A2B0E28848902BCFAA5CE1D4339F37B700FFA03459F8088FCFCB593D628F0",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Residents\\CityCorePopulation.cs"
+                    },
+                    {
+                        "sha256":  "374DE292476E82AE6674B7081C506A5314D2DE14F29EF4D5FDF3770DB6561CB9",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Residents\\CityCoreResidents.cs"
+                    },
+                    {
+                        "sha256":  "73E09491FFF95D35E48D5B915F7528AAC068AA2754EB0F6D7860E3C9119EC776",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Residents\\CityEducation.cs"
+                    },
+                    {
+                        "sha256":  "636365A3F1D2C6525877B9CBE09CC899EB343BFF6DBF186521DCB84D12403929",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Residents\\CityHealth.cs"
+                    },
+                    {
+                        "sha256":  "8D8C353E5EAD32F8CD819AE0BA77B648374A939A996A9F49DB2B30AFB4F09F4A",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Residents\\CityHouseholds.cs"
+                    },
+                    {
+                        "sha256":  "1685C3937AA92D0F745B9A3E235B8C31082B1EEE5EC73C0FA72B462AFDEBBEBA",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Residents\\CityJobs.cs"
+                    },
+                    {
+                        "sha256":  "05AFC9948783ECA22314155F9F882FBE4779A78797FE11ACFA564233A6F9D860",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Residents\\CityResidentAging.cs"
+                    },
+                    {
+                        "sha256":  "8A104C8982BCBD8CD0175C6DBD97392E60770FA08BDA76D0273579B842E9A045",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Residents\\CityResidents.cs"
+                    },
+                    {
+                        "sha256":  "8A42354BD8AC84CBD019D78E2DB7FB33EE5C978FE7D9A9E13E51D701D3D08914",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Services\\CityCoreUtilities.cs"
+                    },
+                    {
+                        "sha256":  "CC009CCBF5AE179F2298942B5A1A02C487472D2B376350FD199BC42F638F0E51",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Services\\CityCoreWaste.cs"
+                    },
+                    {
+                        "sha256":  "5F9DF8DEBABB67E7EEC14D48A8ADD85443B4AFAF9DE74ED790095B947E300894",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Services\\CityDeathcare.cs"
+                    },
+                    {
+                        "sha256":  "06F73466F52D05502132E389EF431FE34D431090B3C31563B12DB74493E13C1F",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Services\\CityFire.cs"
+                    },
+                    {
+                        "sha256":  "1328001F639F7F0E7DB6C75BEC0A1BB519DE123BC37DDA1055A8AA4C4287D9BE",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Services\\CityHealthcare.cs"
+                    },
+                    {
+                        "sha256":  "FB425C3599F4CCA24EB5C3030862D9ECA97FA64CCEFE54977DE7F9B2EA88280F",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Services\\CityPolice.cs"
+                    },
+                    {
+                        "sha256":  "D9285B91F8DAD398EF617063E472D72D97BE58875440529402199EBE4C4ED59A",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Simulation\\Services\\CityWaste.cs"
+                    },
+                    {
+                        "sha256":  "083ADB78B3E42FE973D23ACD763A9F56F219F771D286C9A31A6597E7950DDBA2",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Traffic\\CityCargoKind.cs"
+                    },
+                    {
+                        "sha256":  "059F0F5551052EF44E033DB91EF82B3615B831F1E63289F2CB043CE7091E7345",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Traffic\\CityHighwayTraffic.cs"
+                    },
+                    {
+                        "sha256":  "664B23E3DAE26C6A4D0961F467348A5911B66A94459914BF8B6A596F43CB9164",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Traffic\\CityJunctions.cs"
+                    },
+                    {
+                        "sha256":  "1E5EF61F13B19EACB82AD467EECE93E5E8FACAD581B930F059FC92BBFE90C71E",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Traffic\\CityLanes.cs"
+                    },
+                    {
+                        "sha256":  "18DB03B406CC319C9C51A4E7743BB21DBFFF5F565F7CA04D8B9AE2E120A31A8F",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Traffic\\CityRoadCoreBusiness.cs"
+                    },
+                    {
+                        "sha256":  "2C8F6CA92A052DD1ECEB886B2D0FD24456B7D680F55EA9FD4EDB89172A480264",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Traffic\\CityRoadCoreDispatchRoutes.cs"
+                    },
+                    {
+                        "sha256":  "BBD19D57004FCBCF23B5FB7E53112ADD089CFBC51910A78FBDE582B108B66E23",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Traffic\\CityRoadCoreLaneChanges.cs"
+                    },
+                    {
+                        "sha256":  "224F50AED6F99E05781399F866944FC6B3B7048047761E351976C3F2208FB9AD",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Traffic\\CityRoadCoreLaneOccupant.cs"
+                    },
+                    {
+                        "sha256":  "5FA61B615481907486E8AFCB91671E902CF4CF201388A3ACF67F256FF3DB38B4",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Traffic\\CityRoadCoreLostOccupancy.cs"
+                    },
+                    {
+                        "sha256":  "0AABCD5109E156D3C24A82077E9A5F6D3F9668A8E3B803DCDF617D2245E20B0F",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Traffic\\CityRoadCoreReservations.cs"
+                    },
+                    {
+                        "sha256":  "7D4924FEA441AC0424F7A5B7F51DE686FE4C896180FEE1BABDD9550125D6F2D8",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Traffic\\CityRoadCoreWorld.cs"
+                    },
+                    {
+                        "sha256":  "211D12CA194D34041BF6F4AB55E8A50AAB9C568C1E0F1CD09CA01FBA1182AA5B",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Traffic\\CityTraffic.cs"
+                    },
+                    {
+                        "sha256":  "4957309AC611786ADF99743FB168433E41519B93A201817E9510249C8611996A",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Traffic\\CityTrafficControls.cs"
+                    },
+                    {
+                        "sha256":  "97BD0C4ED685BBF9F2AB6B2C23BAF25E3D5D5169C1A1A46152DE9C5021528516",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Traffic\\CityTrafficIndex.cs"
+                    },
+                    {
+                        "sha256":  "D6BE73F2AEB2886ABE317D4C4F1940BA43C6CFD835A251BAEE314F5C6D2B54C9",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Traffic\\CityTransportBoundary.cs"
+                    },
+                    {
+                        "sha256":  "600077CA1F0C53D39566E1149FC549436B2814F1C9F3A0B5E136B7215B9246D2",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Traffic\\CityTripTask.cs"
+                    },
+                    {
+                        "sha256":  "425ABDA141FF82CCE1A1A270C8FAF3C6169046B1E789C62393AC4FEF76C94D39",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Traffic\\CityVehicleGeometry.cs"
+                    },
+                    {
+                        "sha256":  "61F68226C10260D622C4B2B058216BA426EDCBA45F4B90C8A9EEE6E373237261",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Traffic\\CityVehiclePosition.cs"
+                    },
+                    {
+                        "sha256":  "D6005DD183065EB77F0DA3E9579266A82FB313F6200C1A02FADCD571495D4C21",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Traffic\\Trips\\CityResidentTransport.cs"
+                    },
+                    {
+                        "sha256":  "EBCC4FD8EA540436F0B2DFB7DBC7BFEDA7981F952293F4F694E5EED47F394AA7",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Traffic\\Trips\\CityShopping.cs"
+                    },
+                    {
+                        "sha256":  "4848190AE9CFD43D5B60EF42F5F6AF6AFED08DAEB67624F1C67C4CC91AE7D067",
+                        "path":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\RoadCoreUnity\\Assets\\Scripts\\Runtime\\Traffic\\Trips\\CityWasteTransport.cs"
+                    }
+                ],
+    "commit":  "547bb6a4f93cf5aa0e9fcfe936cfcd595d1a8875"
+}

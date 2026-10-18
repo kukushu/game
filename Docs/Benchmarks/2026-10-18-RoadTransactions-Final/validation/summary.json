@@ -1,0 +1,11 @@
+{
+  "core_checks": 150936,
+  "integrated_checks": 23461,
+  "job_zero_allocation_checks": 10000,
+  "publisher_tests": 18,
+  "publisher_passed": 17,
+  "publisher_skipped": 1,
+  "utility_snapshots": 51,
+  "utility_building_supply_checks": 398106,
+  "note": "Core/city counts observed in successful tool console; generated model CSV and pinned check executables retained. Separate frozen oracle, replay, native functional and architecture results shared verbatim. No all-busy-operations-success claim."
+}

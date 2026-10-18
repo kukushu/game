@@ -1,0 +1,32 @@
+{
+    "dirty":  [
+                  " M Assets/Scripts/Runtime/Infrastructure/Roads/CityRoadCoreNetwork.cs",
+                  " M Assets/Scripts/Runtime/Infrastructure/Roads/CityRoadCoreSpatial.cs",
+                  " M Tools/BuildZoningEditProbe.ps1",
+                  " M Tools/Diagnostics/CityZoningEditReplay.cs",
+                  " M Tools/Diagnostics/PrepareConstructionProbe.py",
+                  " M Tools/Diagnostics/RoadCoreChecks.cs",
+                  " M Tools/RunZoningEditProbe.ps1",
+                  " M Tools/VerifyZoningEditReplay.ps1",
+                  " M \"\\346\\237\\245\\347\\234\\213\\344\\270\\200\\344\\270\\207\\344\\272\\272\\345\\237\\216\\345\\270\\202.cmd\"",
+                  " M \"\\346\\237\\245\\347\\234\\213\\344\\270\\211\\344\\270\\207\\344\\272\\272\\345\\237\\216\\345\\270\\202.cmd\"",
+                  " M \"\\346\\237\\245\\347\\234\\213\\344\\270\\211\\345\\215\\203\\344\\272\\272\\345\\237\\216\\345\\270\\202.cmd\"",
+                  "?? Tools/Diagnostics/SummarizeConstruction20261018.py"
+              ],
+    "finished_at_utc":  "2026-10-18T05:55:51.1280859Z",
+    "exitCode":  0,
+    "peakWorkingSetBytes":  1562345472,
+    "raw":  false,
+    "started_at_utc":  "2026-10-18T05:55:25.3143271Z",
+    "rawOperation":  "add",
+    "input_sha256":  "3F49BD1A02879BB686C24D5517902CC581C657220CE2B955107D89B6FA870B4E",
+    "stopped":  null,
+    "player":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\ConstructionCopies-20261018\\SpatialReuse\\HarborCity.exe",
+    "fine":  false,
+    "commit":  "645639574b9992eb60e385969c974aa8de8ad8e5",
+    "running":  true,
+    "input":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\CityScenarios\\regenerated30000-20261017\\city.hcity",
+    "os":  "Microsoft Windows NT 10.0.26200.0",
+    "cpu":  "Intel(R) Core(TM) i5-14600KF",
+    "assembly_sha256":  "29CE0C0E369BCBD3A6F0A88D913AE65B52F5A6BEB5B105AB481DB2EB44542659"
+}

@@ -1,0 +1,340 @@
+using System;
+using System.Collections.Generic;
+using System.Collections;
+using System.Linq;
+using System.Reflection;
+using System.Diagnostics;
+using System.Globalization;
+using System.IO;
+using HarborCity.RoadCore;
+
+public static class RoadCoreChecks
+{
+    static int checks;
+    static void Check(bool condition,string message){checks++;if(!condition)throw new Exception(message);}
+    static void Reject(Action action,string message){bool rejected=false;try{action();}catch(ArgumentException){rejected=true;}Check(rejected,message);}
+    public static World Fixture(int count,bool congested)
+    {
+        return HarborCity.CityRoadCoreFixtures.Create(count,congested);
+    }
+    static string IndexSignature(World world)
+    {
+        const BindingFlags flags=BindingFlags.Instance|BindingFlags.NonPublic;
+        var buckets=(Dictionary<long,List<LaneOccupant>>)typeof(World).GetField("occupancy",flags).GetValue(world);
+        var rows=new List<string>{"active:"+world.ActiveCount};
+        foreach(var pair in buckets.OrderBy(p=>p.Key))if(pair.Value.Count>0)
+            rows.Add("lane:"+pair.Key+":"+string.Join(";",pair.Value.Select(v=>v.vehicle.id+":"+BitConverter.DoubleToInt64Bits(v.distance)+":"+v.shadow)));
+        var reservations=typeof(World).GetField("reservations",flags).GetValue(world);
+        var claims=(IDictionary)typeof(JunctionReservations).GetField("claims",flags).GetValue(reservations);var normalized=new List<string>();
+        foreach(DictionaryEntry entry in claims)foreach(var value in (IEnumerable)entry.Value)
+            normalized.Add(entry.Key+":"+value.GetType().GetField("owner").GetValue(value)+":"+value.GetType().GetField("movement").GetValue(value));
+        normalized.Sort(StringComparer.Ordinal);rows.AddRange(normalized);return string.Join("|",rows);
+    }
+    static void CheckCleanIndex(World world)
+    {
+        const BindingFlags flags=BindingFlags.Instance|BindingFlags.NonPublic;
+        if((bool)typeof(World).GetField("indexDirty",flags).GetValue(world))return;
+        var data=world.Snapshot();var time=(SimulationClock)typeof(World).GetField("timeline",flags).GetValue(world);
+        var reference=new World(data,data.externalBusiness?time.Copy():null);
+        Check(IndexSignature(world)==IndexSignature(reference),"Clean occupancy/claims differ from a fresh reconstruction");
+    }
+    static void IndexReuseTests()
+    {
+        var world=new World();int a=world.AddJunction(new Point(-60,0,0)),b=world.AddJunction(new Point()),c=world.AddJunction(new Point(60,0,0));
+        world.AddRoad(a,b,new[]{world.JunctionPosition(a),world.JunctionPosition(b)},lanes:2);world.AddRoad(b,c,new[]{world.JunctionPosition(b),world.JunctionPosition(c)},lanes:2);
+        int source=world.AddDepot(a,1000),target=world.AddDepot(c,0);
+        for(int step=0;step<300;step++)
+        {
+            if(step%5==0){world.Dispatch(source,target);CheckCleanIndex(world);}
+            if(step%11==0&&world.Vehicles.Count>0){var v=world.Vehicles[0];world.TryChangeLane(v.id,world.Network.Get(v.Current).LaneIndex==0?1:0);CheckCleanIndex(world);}
+            world.Step();if(step%25==0){world.FreightSourceBlocked(source);CheckCleanIndex(world);}
+        }
+        world.AssertSafety();Check(world.Delivered>0,"Cache fixture never completed real transport");
+        var clock=new SimulationClock();var external=new World(new WorldData{externalBusiness=true},clock,new[]{1,2});
+        a=external.AddJunction(new Point());b=external.AddJunction(new Point(60,0,0));int road=external.AddRoad(a,b,new[]{external.JunctionPosition(a),external.JunctionPosition(b)});
+        external.RegisterAccess(1,Network.LaneId(road,false),20);external.RegisterAccess(2,Network.LaneId(road,false),40);
+        var admission=external.PrepareTransport(1,2,0,0,TransportPurpose.Service,0);Check(admission!=null,"Endpoint invalidation fixture not admitted");var vehicle=external.CommitAdmission(admission);CheckCleanIndex(external);
+        external.SetEndpointAvailable(2,false);clock.Request(.05);external.MoveStep(clock.Context);clock.Commit(true);
+        Check(vehicle.status==VehicleStatus.Stranded&&vehicle.distance==20&&external.ActiveCount==0,"Unavailable endpoint reused stale occupancy or moved actor");
+    }
+    static void ServiceTests()
+    {
+        var clock=new SimulationClock();var w=new World(new WorldData{externalBusiness=true},clock,new[]{1,2});
+        int a=w.AddJunction(new Point(0,0,0)),b=w.AddJunction(new Point(60,0,0)),c=w.AddJunction(new Point(60,0,40)),d=w.AddJunction(new Point(0,0,40));
+        int road=w.AddRoad(a,b,new[]{w.JunctionPosition(a),w.JunctionPosition(b)},lanes:2);w.AddRoad(b,c,new[]{w.JunctionPosition(b),w.JunctionPosition(c)},lanes:2);int target=w.AddRoad(c,d,new[]{w.JunctionPosition(c),w.JunctionPosition(d)},lanes:2);w.AddRoad(d,a,new[]{w.JunctionPosition(d),w.JunctionPosition(a)},lanes:2);
+        w.RegisterAccess(1,Network.LaneId(road,false),30);w.RegisterAccess(2,Network.LaneId(target,false),30);
+        Reject(()=>w.PrepareTransport(1,2,1,0,TransportPurpose.Service,0),"Service spawned loaded without domain pickup");Reject(()=>w.PrepareTransport(1,2,0,0,TransportPurpose.Service,10),"Service impersonated citizen");
+        var admission=w.PrepareTransport(1,2,0,0,TransportPurpose.Service,0);Check(admission!=null,"Service routing missing");var v=w.CommitAdmission(admission);Check(w.TryChangeLane(v.id,1),"Service actor could not use existing safe lane change");
+        for(int i=0;i<2000&&w.Arrivals.Count==0;i++){clock.Request(.05);w.MoveStep(clock.Context);clock.Commit(true);}
+        Check(w.Arrivals.Count==1,"Service did not physically reach pickup");var arrival=w.Arrivals[0];Point before=w.Position(v);var physical=v.Position;int oldTask=v.Task.id,id=v.id;
+        var history=new RoadEditHistory(w);history.Execute(()=>w.RemoveRoad(road));byte[] waiting=SaveCodec.Write(w);
+        Check(w.PrepareServiceReturn(arrival,1,3)==null&&Convert.ToBase64String(waiting)==Convert.ToBase64String(SaveCodec.Write(w))&&v.Task.Cargo==0&&Point.Distance(before,w.Position(v))<1e-8,"Unreachable return loaded/lost waste or moved service car");Check(history.Undo(),"Pickup return road restore failed");
+        byte[] unchanged=SaveCodec.Write(w);var continuation=w.PrepareServiceReturn(arrival,1,3);Check(continuation!=null&&Convert.ToBase64String(unchanged)==Convert.ToBase64String(SaveCodec.Write(w)),"Return preparation mutated facts");
+        // A newer movement boundary invalidates a prepared admission even at rest.
+        clock.Request(.05);w.MoveStep(clock.Context);clock.Commit(true);byte[] afterStep=SaveCodec.Write(w);bool stale=false;try{w.CommitContinuation(continuation);}catch(InvalidOperationException){stale=true;}Check(stale&&Convert.ToBase64String(afterStep)==Convert.ToBase64String(SaveCodec.Write(w)),"Stale continuation partially committed");
+        var next=w.PrepareServiceReturn(w.Arrivals[0],1,3);w.CommitContinuation(next);w.RetireCompleted();w.Validate();w.AssertSafety();
+        Check(v.id==id&&ReferenceEquals(physical,v.Position)&&Point.Distance(before,w.Position(v))<1e-9&&v.Task.id!=oldTask&&v.Task.Shipment.kind==HarborCity.CargoKind.Waste&&v.Task.Cargo==3&&w.FindTask(oldTask)==null&&w.FindTaskVehicle(v.Task.id)==v&&w.ActiveCount==1,"Pickup changed physical actor or left duplicate task authority");
+        stale=false;try{w.CheckArrival(arrival);}catch(InvalidOperationException){stale=true;}Check(stale,"Old pickup arrival could be applied twice");
+        var cloneClock=clock.Copy();var clone=SaveCodec.Read(SaveCodec.Write(w),cloneClock,new[]{1,2});
+        for(int i=0;i<2000&&w.ActiveCount>0;i++)
+        {
+            clock.Request(.05);cloneClock.Request(.05);w.MoveStep(clock.Context);clone.MoveStep(cloneClock.Context);clock.Commit(true);cloneClock.Commit(true);
+            foreach(var x in w.Arrivals)w.AcknowledgeArrival(x.id);foreach(var x in clone.Arrivals)clone.AcknowledgeArrival(x.id);w.RetireCompleted();clone.RetireCompleted();w.AssertSafety();clone.AssertSafety();Check(Convert.ToBase64String(SaveCodec.Write(w))==Convert.ToBase64String(SaveCodec.Write(clone)),"Service return save diverged");
+        }
+        Check(w.ActiveCount==0&&w.Delivered==3&&w.Tasks.Count==0,"Service return did not retire exactly once");
+    }
+    static void GeometryReuse()
+    {
+        var w=new World();int center=w.AddJunction(new Point(0,0,0));
+        for(int i=0;i<5;i++){double angle=i*2*Math.PI/5;var p=new Point(40*Math.Cos(angle),i*.3,40*Math.Sin(angle));int j=w.AddJunction(p);w.AddRoad(j,center,new[]{p,Point.Lerp(p,new Point(),.6),new Point()},lanes:2);}
+        Network prior=w.Network;
+        Func<Network,string> signature=n=>string.Join("|",n.Drivables.OrderBy(d=>d.Id).Select(d=>d.Id+":"+d.StartDistance.ToString("R",CultureInfo.InvariantCulture)+":"+d.EndDistance.ToString("R",CultureInfo.InvariantCulture)+":"+string.Join(";",Enumerable.Range(0,d.Geometry.Count).Select(i=>BitConverter.DoubleToInt64Bits(d.Geometry[i].x)+","+BitConverter.DoubleToInt64Bits(d.Geometry[i].y)+","+BitConverter.DoubleToInt64Bits(d.Geometry[i].z)))));
+        for(int variant=0;variant<16;variant++)
+        {
+            var data=w.Snapshot().network;var r=data.roads[0];
+            if(variant%4==0)r.lanes=1+variant/4;
+            if(variant%4==1)r.direction=(RoadDirection)((variant/4)%3);
+            if(variant%4==2){var a=r.points[0];var b=r.points[r.points.Length-1];r.points=new[]{a,Point.Lerp(a,b,.5),b};r.points[1]=new Point(r.points[1].x+variant*.13,variant*.1,r.points[1].z);r.speed+=variant;}
+            if(variant%4==3){r.startTangent=new Point(1,0,.17*variant);r.endTangent=new Point(.2,0,1);r.rightVectors=Enumerable.Repeat(new Point(.4,0,.3),r.points.Length).ToArray();}
+            if(variant==14){int j=data.nextJunction++;var p=new Point(38,0,-5);data.junctions.Add(new Junction{id=j,position=p});data.roads.Add(new PhysicalRoad{id=data.nextRoad++,from=r.to,to=j,points=new[]{new Point(),p},direction=RoadDirection.Both,speed=7,lanes=1});}
+            if(variant==15)data.roads.RemoveAt(0);
+            var random=new Random(7391+variant);var queries=new List<Point>();for(int i=0;i<1000;i++)queries.Add(new Point(random.NextDouble()*100-50,random.NextDouble()*8-2,random.NextDouble()*100-50));
+            queries.Add(new Point(0,0,0));queries.Add(new Point(8,0,8));queries.Add(new Point(-8,0,-8));
+            Func<Network,Point,double,bool,string> project=(n,p,radius,connections)=>{var hits=new List<SpatialHit>();n.Project(p,radius,connections,hits);return string.Join("|",hits.Select(hit=>hit.drivable+":"+BitConverter.DoubleToInt64Bits(hit.distance)+":"+BitConverter.DoubleToInt64Bits(hit.separation)+":"+BitConverter.DoubleToInt64Bits(hit.point.x)+":"+BitConverter.DoubleToInt64Bits(hit.point.y)+":"+BitConverter.DoubleToInt64Bits(hit.point.z)));};
+            string priorProjection=project(prior,new Point(),64,true);
+            string before=signature(prior);var warm=new Network(data,prior);var cold=new Network(data);
+            Check(before==signature(prior),"Candidate changed prior geometry/ports");
+            Check(warm.RoadCount==cold.RoadCount&&warm.JunctionCount==cold.JunctionCount,"Network cache changed topology");
+            var expected=cold.Drivables.OrderBy(d=>d.Id).ToArray();var actual=warm.Drivables.OrderBy(d=>d.Id).ToArray();Check(expected.Length==actual.Length,"Cached drivable count");
+            for(int i=0;i<actual.Length;i++)
+            {
+                var a=actual[i];var b=expected[i];Check(!prior.Contains(a.Id)||!ReferenceEquals(a,prior.Get(a.Id)),"Mutable drivable shared between Networks");
+                Check(a.Id==b.Id&&a.From==b.From&&a.To==b.To&&a.RoadId==b.RoadId&&a.JunctionId==b.JunctionId&&a.Reverse==b.Reverse&&a.Speed==b.Speed&&a.StartDistance==b.StartDistance&&a.EndDistance==b.EndDistance&&a.ProtectedClearance==b.ProtectedClearance&&a.ParallelLaneCount==b.ParallelLaneCount&&a.Geometry.Count==b.Geometry.Count,"Cached drivable metadata");
+                for(int j=0;j<a.Geometry.Count;j++)Check(Geometry.Same(a.Geometry[j],b.Geometry[j])&&BitConverter.DoubleToInt64Bits(a.Geometry.At(j))==BitConverter.DoubleToInt64Bits(b.Geometry.At(j)),"Cached geometry/cumulative differs from cold algorithm");
+                Check(warm.IsConflictJunction(a.From)==cold.IsConflictJunction(b.From)&&warm.IsConflictJunction(a.To)==cold.IsConflictJunction(b.To),"Cached conflict junction");
+            }
+            foreach(var a in actual.Where(d=>d.IsConnection))foreach(var b in actual.Where(d=>d.IsConnection&&d.JunctionId==a.JunctionId))Check(warm.MovementsConflict(a.Id,b.Id)==cold.MovementsConflict(a.Id,b.Id),"Cached exact movement conflict");
+            for(int q=0;q<queries.Count;q++){double radius=q%3==0?0:q%3==1?8:64;bool connections=q%2==0;Check(project(warm,queries[q],radius,connections)==project(cold,queries[q],radius,connections),"Copy-on-write spatial query changed hit/nearest span/distance/order");}
+            Check(priorProjection==project(prior,new Point(),64,true),"Candidate mutated a prior spatial bucket");
+            prior=warm;
+        }
+        var unchanged=new Network(w.Snapshot().network,w.Network);Check(unchanged.Drivables.All(d=>ReferenceEquals(d.Geometry,w.Network.Get(d.Id).Geometry)),"Unchanged immutable geometry was not reused");
+        var invalid=w.Snapshot().network;invalid.roads[0].points[0]=new Point(double.NaN,0,0);Reject(()=>new Network(invalid,w.Network),"Geometry reuse accepted nonfinite input");
+    }
+    static void Tests()
+    {
+        GeometryReuse();
+        IndexReuseTests();
+        ServiceTests();
+        PositionTests();
+        PortTests();
+        var w=new World();int a=w.AddJunction(new Point(0,0,0)),b=w.AddJunction(new Point(30,3,0)),c=w.AddJunction(new Point(50,3,20));
+        w.AddRoad(a,b,new[]{w.JunctionPosition(a),new Point(15,1.5,3),w.JunctionPosition(b)},false);w.AddRoad(b,c,new[]{w.JunctionPosition(b),w.JunctionPosition(c)},true);
+        Check(w.Network.JunctionCount==3&&w.Network.RoadCount==2,"Samples became topology nodes");Check(w.Network.Route(c,a)==null,"One-way reversal allowed");Check(w.Network.Route(a,c).Count==3,"Route expanded geometry");
+        int d1=w.AddDepot(a,10),d2=w.AddDepot(c,0);var v=w.Dispatch(d1,d2);Check(v!=null&&w.GetDepot(d1).stock==9,"Dispatch stock");Check(w.Dispatch(d1,d2)==null,"Overlapping spawn");w.Advance(.31);Check(Math.Abs(w.Clock-.3)<1e-9,"Dropped/extra steps");
+        Check(((ICollection<Vehicle>)w.Vehicles).IsReadOnly&&((ICollection<Depot>)w.Depots).IsReadOnly&&((ICollection<long>)v.Route).IsReadOnly,"Read-only interface leaked mutable authority");
+        var fault=Fixture(2,false);var faultVehicles=new List<Vehicle>(fault.Vehicles);faultVehicles[1].Plan.segments=new List<long>{faultVehicles[1].Plan.segments[0],faultVehicles[1].Plan.segments[0]};string unchanged=Convert.ToBase64String(SaveCodec.Write(fault));bool failed=false;try{fault.RemoveRoad(1);}catch(ArgumentException){failed=true;}Check(failed&&unchanged==Convert.ToBase64String(SaveCodec.Write(fault)),"Removal partially modified first task before later validation failed");
+        Point before=w.Position(v);int j=w.SplitRoad(1,1);Check(Point.Distance(before,w.Position(v))<1e-8,"Split position jumped");Check(v.Plan.segments.Count==5,"Split route missing link");Check(w.Network.JunctionCount==4,"Split junction missing");
+        var clone=SaveCodec.Read(SaveCodec.Write(w));
+        for(int i=0;i<180;i++){w.Step();clone.Step();w.AssertSafety();Check(Convert.ToBase64String(SaveCodec.Write(w))==Convert.ToBase64String(SaveCodec.Write(clone)),"Loaded continuation differs");}
+        Check(w.Delivered==1&&v.Task.Cargo==0&&w.GetDepot(d2).stock==1,"Cargo delivery");Check(w.GetDepot(d1).cash==100005&&w.GetDepot(d2).cash==99995,"Cash conservation");for(int i=0;i<50;i++)w.Step();Check(w.Delivered==1,"Double settlement");
+        var reverse=w.Dispatch(d2,d1);Check(reverse==null,"Destination one-way should be unreachable");
+        var uninterrupted=new World();int x=uninterrupted.AddJunction(new Point(0,0,0)),y=uninterrupted.AddJunction(new Point(40,0,0));uninterrupted.AddRoad(x,y,new[]{uninterrupted.JunctionPosition(x),new Point(20,0,0),uninterrupted.JunctionPosition(y)});int da=uninterrupted.AddDepot(x),db=uninterrupted.AddDepot(y);var back=uninterrupted.Dispatch(db,da);uninterrupted.Advance(.5);before=uninterrupted.Position(back);uninterrupted.SplitRoad(1,1);Check(Point.Distance(before,uninterrupted.Position(back))<1e-8,"Reverse split jumped");uninterrupted.RemoveRoad(1);Check(back.status==VehicleStatus.Stranded&&back.Task.Cargo==1&&Point.Distance(before,uninterrupted.Position(back))<1e-8,"Demolition lost cargo/position");var restored=SaveCodec.Read(SaveCodec.Write(uninterrupted));Check(restored.ActiveCount==0,"Stranded save resumed blindly");
+        Reject(()=>new World(new WorldData{coreFormat=34}),"Old save accepted");var invalid=w.Snapshot();invalid.network.nextRoad=1;Reject(()=>new World(invalid),"Allocator reuse accepted");
+        // Ownership: loading must not retain writable aliases to caller DTOs.
+        var isolatedState=w.Snapshot();var isolated=new World(isolatedState);isolatedState.network.roads.Clear();Check(isolated.Network.RoadCount==3,"External DTO changed live road facts");
+        bool oldRejected=false;try{SaveCodec.Read(System.Text.Encoding.UTF8.GetBytes("{\"format\":34}"));}catch(InvalidDataException){oldRejected=true;}Check(oldRejected,"Old JSON accepted by codec");
+        byte[] corrupted=SaveCodec.Write(w);corrupted[50]^=1;bool corruptRejected=false;try{SaveCodec.Read(corrupted);}catch(InvalidDataException){corruptRejected=true;}Check(corruptRejected,"Corrupted state accepted");
+        var grid=new World();var nodes=new int[4,4];for(int row=0;row<4;row++)for(int col=0;col<4;col++)nodes[row,col]=grid.AddJunction(new Point(col*20,row*.5,row*20));
+        for(int row=0;row<4;row++)for(int col=0;col<4;col++)foreach(var direction in new[]{new[]{1,0},new[]{0,1}}){int gridX=col+direction[0],gridY=row+direction[1];if(gridX<4&&gridY<4){int source=nodes[row,col],goal=nodes[gridY,gridX];grid.AddRoad(source,goal,new[]{grid.JunctionPosition(source),grid.JunctionPosition(goal)});}}
+        for(int row=0;row<4;row++)for(int col=0;col<4;col++)for(int r=0;r<4;r++)for(int gridCol=0;gridCol<4;gridCol++){var route=grid.Network.Route(nodes[row,col],nodes[r,gridCol]);Check(route!=null,"Heap lost reachable direction");if(route.Count>0)grid.Network.ValidateRoute(route);}
+        var dense=new World();int denseA=dense.AddJunction(new Point(0,0,0)),denseB=dense.AddJunction(new Point(100,0,0));var samples=new Point[1001];for(int i=0;i<samples.Length;i++)samples[i]=new Point(i*.1,0,0);dense.AddRoad(denseA,denseB,samples);Check(dense.Network.Route(denseA,denseB).Count==1&&dense.Network.JunctionCount==2,"Sampling density expanded topology/route");
+        // Split after halfway, both directions, on curved/elevated geometry, and on a connection.
+        foreach(bool backwards in new[]{false,true})foreach(double delay in new[]{.5,1.9,2.8})
+        {
+            var edit=new World();int e1=edit.AddJunction(new Point(0,0,0)),e2=edit.AddJunction(new Point(30,1,0)),e3=edit.AddJunction(new Point(40,1,10));edit.AddRoad(e1,e2,new[]{edit.JunctionPosition(e1),new Point(15,.5,2),edit.JunctionPosition(e2)});edit.AddRoad(e2,e3,new[]{edit.JunctionPosition(e2),edit.JunctionPosition(e3)});int first=edit.AddDepot(e1),last=edit.AddDepot(e3);var truck=edit.Dispatch(backwards?last:first,backwards?first:last);edit.Advance(delay);Point pose=edit.Position(truck);double length=edit.Network.Get(Network.LaneId(1,backwards)).Geometry.Length;edit.SplitRoad(1,1);Check(Point.Distance(pose,edit.Position(truck))<1e-7,"Edit changed curved/connection position");double combined=edit.Network.Get(Network.LaneId(1,backwards)).Geometry.Length+edit.Network.Get(Network.LaneId(3,backwards)).Geometry.Length;Check(Math.Abs(length-combined)<1e-8,"Split lane changed metric");var continued=SaveCodec.Read(SaveCodec.Write(edit));for(int i=0;i<100;i++){edit.Step();continued.Step();edit.AssertSafety();}Check(Convert.ToBase64String(SaveCodec.Write(edit))==Convert.ToBase64String(SaveCodec.Write(continued)),"Edited saved state diverged");Check(edit.Delivered==1,"Edit stalled delivery");
+        }
+        foreach(int roadId in new[]{1,2}){var removal=new World();int p=removal.AddJunction(new Point(0,0,0)),q=removal.AddJunction(new Point(30,0,0));removal.AddRoad(p,q,new[]{removal.JunctionPosition(p),removal.JunctionPosition(q)});int pa=removal.AddDepot(p),qa=removal.AddDepot(q);var actor=removal.Dispatch(pa,qa);removal.Advance(.5);if(roadId==1){Point pose=removal.Position(actor);removal.RemoveRoad(1);Check(Point.Distance(pose,removal.Position(actor))<1e-8&&actor.Task.Cargo==1,"Current road removal lost actor");}}
+        // Sparse IDs and packed positive/reverse/link keys retain full equality with mixed hashing.
+        foreach(int id in new[]{1,2,65535,25000000}){long forward=Network.LaneId(id,false),backward=Network.LaneId(id,true);Check(forward!=backward,"Direction identity collapsed");Check(Network.ConnectionId(forward,backward)!=Network.ConnectionId(backward,forward),"Connection direction collapsed");}
+        Check(Network.LaneId(1,false,1)!=Network.LaneId(1,false,0),"Future lane identity collapsed");Reject(()=>Network.LaneId(Network.MaximumRoadId+1,false),"Out-of-range identity allowed");
+        var past=new World();int pastA=past.AddJunction(new Point(0,0,0)),pastB=past.AddJunction(new Point(30,0,0)),pastC=past.AddJunction(new Point(60,0,0));past.AddRoad(pastA,pastB,new[]{past.JunctionPosition(pastA),past.JunctionPosition(pastB)},true);past.AddRoad(pastB,pastC,new[]{past.JunctionPosition(pastB),past.JunctionPosition(pastC)},true);var passed=past.Dispatch(past.AddDepot(pastA),past.AddDepot(pastC,0));past.Advance(2.7);Point passedPosition=past.Position(passed);past.RemoveRoad(1);Check(passed.status==VehicleStatus.Active&&Point.Distance(passedPosition,past.Position(passed))<1e-8,"Removing traversed road changed current task");var loadedPast=SaveCodec.Read(SaveCodec.Write(past));loadedPast.Advance(4);Check(loadedPast.Delivered==1,"Traversed road removal broke saved delivery");
+        var construction=new World();int left=construction.AddJunction(new Point(0,0,0)),right=construction.AddJunction(new Point(30,0,0));construction.AddRoad(left,right,new[]{construction.JunctionPosition(left),new Point(15,0,0),construction.JunctionPosition(right)});int leftDepot=construction.AddDepot(left),rightDepot=construction.AddDepot(right);var constructionState=construction.Snapshot();constructionState.nextVehicle=3;constructionState.nextTask=3;constructionState.vehicles.Add(new Vehicle{id=1,Task=new TripTask{id=1,origin=leftDepot,destination=rightDepot,Shipment=new Shipment{remaining=1,unitPrice=5}},Plan=new RoutePlan{segments=new List<long>{Network.LaneId(1,false)}},Position=new VehiclePosition(Network.LaneId(1,false),14)});constructionState.tasks.Add(constructionState.vehicles[constructionState.vehicles.Count-1].Task);constructionState.vehicles.Add(new Vehicle{id=2,Task=new TripTask{id=2,origin=rightDepot,destination=leftDepot,Shipment=new Shipment{remaining=1,unitPrice=5}},Plan=new RoutePlan{segments=new List<long>{Network.LaneId(1,true)}},Position=new VehiclePosition(Network.LaneId(1,true),14)});constructionState.tasks.Add(constructionState.vehicles[constructionState.vehicles.Count-1].Task);construction=new World(constructionState);int splitNode=construction.SplitRoad(1,1);Check(!construction.Network.IsConflictJunction(splitNode),"Pure split introduced junction conflict");int north=construction.AddJunction(new Point(15,0,20));string beforeJunction=Convert.ToBase64String(SaveCodec.Write(construction));Reject(()=>construction.AddRoad(splitNode,north,new[]{construction.JunctionPosition(splitNode),construction.JunctionPosition(north)}),"Construction on occupied trimmed junction should wait");Check(beforeJunction==Convert.ToBase64String(SaveCodec.Write(construction)),"Rejected junction changed physical/task facts");construction.Advance(.4);construction.AddRoad(splitNode,north,new[]{construction.JunctionPosition(splitNode),construction.JunctionPosition(north)});construction.AssertSafety();Check(construction.ActiveCount==2,"Nonconflicting opposite paths could not survive construction");
+        foreach(bool reversed in new[]{false,true})foreach(double targetDistance in new[]{35.0,70.0})
+        {
+            var accessWorld=new World();int begin=accessWorld.AddJunction(new Point(0,0,0)),finish=accessWorld.AddJunction(new Point(100,0,0));int road=accessWorld.AddRoad(begin,finish,new[]{accessWorld.JunctionPosition(begin),new Point(50,0,0),accessWorld.JunctionPosition(finish)});int sender=accessWorld.AddDepot(begin,100),receiver=accessWorld.AddDepot(finish,0);long lane=Network.LaneId(road,reversed);accessWorld.RegisterAccess(sender,lane,20);accessWorld.RegisterAccess(receiver,lane,targetDistance);
+            int originalNodes=accessWorld.Network.JunctionCount;for(int door=100;door<1100;door++)accessWorld.RegisterAccess(door,lane,25);Check(accessWorld.Network.JunctionCount==originalNodes,"Building doors created routing nodes");
+            var truck=accessWorld.Dispatch(sender,receiver);Check(truck!=null&&truck.Route.Count==1&&truck.distance==20&&truck.Plan.EndDistance==targetDistance,"Middle-road route/start/end wrong");Point startPose=accessWorld.Position(truck);Check(accessWorld.Dispatch(sender,receiver)==null,"Occupied middle-road insertion allowed");accessWorld.Advance(.1);Check(accessWorld.Dispatch(sender,receiver)==null,"Near front-car insertion allowed");Point currentPose=accessWorld.Position(truck),targetPose=accessWorld.Network.Get(lane).Geometry.Sample(targetDistance);accessWorld.SplitRoad(road,1);Check(Point.Distance(currentPose,accessWorld.Position(truck))<1e-8,"Access split moved truck");var access=accessWorld.GetAccess(receiver);Check(Point.Distance(targetPose,accessWorld.Network.Get(access.lane).Geometry.Sample(access.distance))<1e-8,"Access split moved target");var restore=SaveCodec.Read(SaveCodec.Write(accessWorld));for(int i=0;i<130;i++){accessWorld.Step();restore.Step();accessWorld.AssertSafety();}Check(accessWorld.Delivered==1&&Convert.ToBase64String(SaveCodec.Write(accessWorld))==Convert.ToBase64String(SaveCodec.Write(restore)),"Middle-road split/save/delivery failed");
+            var invalidAccess=accessWorld.GetAccess(sender);int removedRoad=accessWorld.Network.Get(invalidAccess.lane).RoadId;accessWorld.RemoveRoad(removedRoad);Check(!accessWorld.GetAccess(sender).valid&&accessWorld.GetAccess(sender).lane==0,"Removed access left dangling lane");Check(accessWorld.Dispatch(sender,receiver)==null,"Invalid access dispatched");SaveCodec.Read(SaveCodec.Write(accessWorld)).Validate();
+        }
+        var permissions=new World();int permA=permissions.AddJunction(new Point(0,0,0)),permB=permissions.AddJunction(new Point(30,0,0));permissions.AddRoad(permA,permB,new[]{permissions.JunctionPosition(permA),permissions.JunctionPosition(permB)});int permFrom=permissions.AddDepot(permA),permTo=permissions.AddDepot(permB,0);permissions.RegisterAccess(permFrom,Network.LaneId(1,false),5,AccessUse.Resident);permissions.RegisterAccess(permTo,Network.LaneId(1,false),20);Check(permissions.Dispatch(permFrom,permTo)==null,"Freight ignored access permission");
+        var rear=new World();int rearA=rear.AddJunction(new Point(0,0,0)),rearB=rear.AddJunction(new Point(100,0,0));rear.AddRoad(rearA,rearB,new[]{rear.JunctionPosition(rearA),rear.JunctionPosition(rearB)});int rearSource=rear.AddDepot(rearA),rearGoal=rear.AddDepot(rearB,0),mergeSource=rear.AddDepot(rearA);rear.RegisterAccess(rearSource,Network.LaneId(1,false),20);rear.RegisterAccess(rearGoal,Network.LaneId(1,false),80);rear.RegisterAccess(mergeSource,Network.LaneId(1,false),21);rear.Dispatch(rearSource,rearGoal);Check(rear.Dispatch(mergeSource,rearGoal)==null,"Middle insertion ignored rear vehicle");
+        var loop=new World();int loopA=loop.AddJunction(new Point(0,0,0)),loopB=loop.AddJunction(new Point(100,0,0)),loopC=loop.AddJunction(new Point(50,0,50));loop.AddRoad(loopA,loopB,new[]{loop.JunctionPosition(loopA),loop.JunctionPosition(loopB)},true);loop.AddRoad(loopB,loopC,new[]{loop.JunctionPosition(loopB),loop.JunctionPosition(loopC)},true);loop.AddRoad(loopC,loopA,new[]{loop.JunctionPosition(loopC),loop.JunctionPosition(loopA)},true);int loopSource=loop.AddDepot(loopA),loopGoal=loop.AddDepot(loopB,0);loop.RegisterAccess(loopSource,Network.LaneId(1,false),60);loop.RegisterAccess(loopGoal,Network.LaneId(1,false),20);var around=loop.Dispatch(loopSource,loopGoal);Check(around!=null&&around.Route.Count==7,"Upstream target drove backwards / could not traverse loop");for(int i=0;i<500;i++){loop.Step();loop.AssertSafety();}Check(loop.Delivered==1,"Partial-lane loop failed actual delivery");
+        EditTests();MultiLaneTests();ConflictTests();LaneChangeTests();TurnoverTest();BlueprintTests();SpatialAndRecoveryTests();UpgradeTests();UndoTests();
+        foreach(bool congested in new[]{false,true}){var fleet=Fixture(1000,congested);for(int i=0;i<300;i++){fleet.Step();fleet.AssertSafety();}Check(fleet.ActiveCount==1000,"Benchmark lost active vehicles");}
+        // Competing approaches: whole-junction mutex must prevent simultaneous connection occupancy.
+        var crossing=new World();int center=crossing.AddJunction(new Point(0,0,0)),west=crossing.AddJunction(new Point(-30,0,0)),south=crossing.AddJunction(new Point(0,0,-30)),east=crossing.AddJunction(new Point(30,0,0));
+        crossing.AddRoad(west,center,new[]{crossing.JunctionPosition(west),crossing.JunctionPosition(center)},true);crossing.AddRoad(south,center,new[]{crossing.JunctionPosition(south),crossing.JunctionPosition(center)},true);crossing.AddRoad(center,east,new[]{crossing.JunctionPosition(center),crossing.JunctionPosition(east)},true);int westD=crossing.AddDepot(west),southD=crossing.AddDepot(south),eastD=crossing.AddDepot(east,0);crossing.Dispatch(westD,eastD);crossing.Dispatch(southD,eastD);for(int i=0;i<200;i++){crossing.Step();crossing.AssertSafety();}Check(crossing.Delivered==2,"Intersection deadlock");
+        Console.WriteLine("PASS "+checks+" core checks; direction, topology, safety, split/reverse/removal, freight/cash, binary continuation. Lane change verified; pedestrian/full city not yet connected.");
+    }
+    static void PositionTests()
+    {
+        var world=new World();int a=world.AddJunction(new Point()),b=world.AddJunction(new Point(50,0,0));int road=world.AddRoad(a,b,new[]{world.JunctionPosition(a),new Point(25,0,0),world.JunctionPosition(b)});int source=world.AddDepot(a),target=world.AddDepot(b,0);var v=world.Dispatch(source,target);world.Advance(.5);long anchor=v.Current;double station=v.distance;Point pose=world.Position(v);var task=v.Task;
+        long[] saved=v.Plan.segments.ToArray();v.Plan.segments[0]=Network.LaneId(road,true);
+        Check(v.Current==anchor&&v.distance==station&&Point.Distance(pose,world.Position(v))<1e-9,"Navigation edit changed physical position");Reject(world.Validate,"Mismatched navigation/physical position accepted");v.Plan.segments=new List<long>(saved);
+        var malformed=world.Snapshot();malformed.vehicles[0].Position=new VehiclePosition(Network.LaneId(road,true),station);Reject(()=>new World(malformed),"Loaded position/navigation mismatch accepted");
+        world.RemoveRoad(road);Check(v.Position.IsFrozen&&v.Current==anchor&&v.distance==station&&Point.Distance(pose,v.Position.FrozenPoint)<1e-9&&ReferenceEquals(task,v.Task),"Road removal lost frozen physical anchor or task");var restored=SaveCodec.Read(SaveCodec.Write(world));var copy=restored.FindVehicle(v.id);Check(copy.Position.IsFrozen&&Point.Distance(pose,restored.Position(copy))<1e-9&&copy.Task.Cargo==1,"Frozen save lost physical position or shipment");
+        int repaired=world.AddRoad(a,b,new[]{world.JunctionPosition(a),new Point(25,0,0),world.JunctionPosition(b)});world.RegisterAccess(target,Network.LaneId(repaired,false),50);Check(world.TryResumeStranded(v.id)&&!v.Position.IsFrozen&&ReferenceEquals(task,v.Task)&&Point.Distance(pose,world.Position(v))<1e-7,"Recovery teleported / replaced task / retained frozen state");
+        world.Advance(5);world.Validate();Check(world.Delivered==1&&world.GetDepot(target).stock==1,"Position recovery failed real freight settlement");
+    }
+    static void PortTests()
+    {
+        var w=new World();int centre=w.AddJunction(new Point());var ends=new[]{new Point(-40,0,0),new Point(40,0,0),new Point(0,0,-40),new Point(0,0,40)};
+        foreach(var p in ends){int end=w.AddJunction(p);w.AddRoad(end,centre,new[]{p,new Point()},lanes:2);}
+        int connections=0;
+        foreach(var d in w.Network.Drivables)
+        {
+            var rendered=new Geometry(d.Geometry.Slice(d.StartDistance,d.EndDistance));Check(Math.Abs(rendered.Length-d.TravelLength)<1e-8,"Mesh range length disagrees with travel span");
+            if(d is Lane lane){Check(lane.Exit.JunctionId==centre&&lane.StartDistance==lane.Entry.Station&&lane.EndDistance==lane.Exit.Station||lane.Entry.JunctionId==centre&&lane.StartDistance==lane.Entry.Station&&lane.EndDistance==lane.Exit.Station,"Lane port ownership/range wrong");continue;}
+            var c=(LaneConnection)d;connections++;Check(c.Incoming.To==c.Outgoing.From&&c.Entry.LaneId==c.Incoming.Id&&c.Exit.LaneId==c.Outgoing.Id,"Typed connection has wrong topology");Check(Point.Distance(c.Geometry.Sample(0),c.Entry.Position)<1e-9&&Point.Distance(c.Geometry.Sample(c.Geometry.Length),c.Exit.Position)<1e-9,"Connection does not meet actual lane ports");
+            var first=c.Geometry.DirectionAt(0);var last=c.Geometry.DirectionAt(c.Geometry.Length);Check(first.x*c.Entry.Direction.x+first.y*c.Entry.Direction.y+first.z*c.Entry.Direction.z>.98&&last.x*c.Exit.Direction.x+last.y*c.Exit.Direction.y+last.z*c.Exit.Direction.z>.98,"Connection tangent folds at port");
+            var hits=new List<SpatialHit>();w.Network.Project(c.Geometry.Sample(c.Geometry.Length*.5),1e-6,true,hits);Check(hits.Exists(h=>h.drivable==c.Id),"Shared connection geometry absent from spatial index");
+        }
+        Check(connections==48,"Four-way two-lane connection graph wrong");
+        var inLane=(Lane)w.Network.Get(Network.LaneId(1,false));var access=new RoadAccess{lane=inLane.Id,distance=inLane.EndDistance+.5};Check(!w.Network.CanReach(access,new RoadAccess{lane=Network.LaneId(2,true),distance=10}),"Access inside junction bypassed port bound");
+        var saved=SaveCodec.Read(SaveCodec.Write(w));foreach(var d in w.Network.Drivables){var same=saved.Network.Get(d.Id);Check(d.StartDistance==same.StartDistance&&d.EndDistance==same.EndDistance&&d.Geometry.Length==same.Geometry.Length,"Port geometry differs after save");}
+        var loop=new NetworkData{nextJunction=5,nextRoad=5};foreach(var p in new[]{new Point(),new Point(30,0,0),new Point(30,0,30),new Point(0,0,30)})loop.junctions.Add(new Junction{id=loop.junctions.Count+1,position=p});for(int i=0;i<4;i++)loop.roads.Add(new PhysicalRoad{id=i+1,from=i+1,to=(i+1)%4+1,direction=RoadDirection.Forward,points=new[]{loop.junctions[i].position,loop.junctions[(i+1)%4].position}});var n=new Network(loop);long id=Network.LaneId(1,false);Check(n.HasLaneCycle(id)&&n.CanReach(new RoadAccess{lane=id,distance=20},new RoadAccess{lane=id,distance=10}),"Trimmed ports broke upstream cycle reachability");
+    }
+    static void UndoTests()
+    {
+        foreach(bool reverse in new[]{false,true})
+        {
+            var world=new World();int a=world.AddJunction(new Point()),b=world.AddJunction(new Point(80,2,0));world.AddRoad(a,b,new[]{world.JunctionPosition(a),new Point(40,1,5),world.JunctionPosition(b)});int left=world.AddDepot(a),right=world.AddDepot(b);var car=world.Dispatch(reverse?right:left,reverse?left:right);world.Advance(.5);var history=new RoadEditHistory(world);history.Execute(()=>world.SplitRoadAt(1,23.75));world.Advance(.25);Point before=world.Position(car);double clock=world.Clock;int stock=world.GetDepot(reverse?right:left).stock;int next=world.Snapshot().network.nextRoad;
+            Check(history.Undo()&&world.Network.RoadCount==1&&Point.Distance(before,world.Position(car))<1e-7&&world.Clock==clock&&world.GetDepot(reverse?right:left).stock==stock,"Undo split rewound time/stock or moved existing actor");Check(world.Snapshot().network.nextRoad>=next,"Undo reused road identity allocator");var restored=SaveCodec.Read(SaveCodec.Write(world));world.Advance(10);restored.Advance(10);Check(world.Delivered==1&&Convert.ToBase64String(SaveCodec.Write(world))==Convert.ToBase64String(SaveCodec.Write(restored)),"Undo split/save failed continuation");
+        }
+        var fresh=new World();int p=fresh.AddJunction(new Point()),q=fresh.AddJunction(new Point(30,0,0));int source=fresh.AddDepot(p),goal=fresh.AddDepot(q,0);var edits=new RoadEditHistory(fresh);edits.Execute(()=>fresh.AddRoad(p,q,new[]{fresh.JunctionPosition(p),fresh.JunctionPosition(q)}));var carrying=fresh.Dispatch(source,goal);fresh.Advance(.2);Point pose=fresh.Position(carrying);double time=fresh.Clock;Check(edits.Undo()&&carrying.status==VehicleStatus.Stranded&&carrying.Task.Cargo==1&&fresh.Clock==time&&fresh.GetDepot(source).stock==99&&Point.Distance(pose,fresh.Position(carrying))<1e-7,"Undo construction discarded current task or rewound business");
+        var settled=new World();p=settled.AddJunction(new Point());q=settled.AddJunction(new Point(12,0,0));source=settled.AddDepot(p);goal=settled.AddDepot(q,0);edits=new RoadEditHistory(settled);edits.Execute(()=>settled.AddRoad(p,q,new[]{settled.JunctionPosition(p),settled.JunctionPosition(q)}));settled.Dispatch(source,goal);settled.Advance(2);time=settled.Clock;Check(edits.Undo()&&settled.Delivered==1&&settled.GetDepot(goal).stock==1&&settled.GetDepot(source).cash==100005&&settled.Clock==time,"Undo road reverted completed settlement");
+    }
+    static void UpgradeTests()
+    {
+        var world=new World();int a=world.AddJunction(new Point()),b=world.AddJunction(new Point(60,2,0));world.AddRoad(a,b,new[]{world.JunctionPosition(a),new Point(30,1,4),world.JunctionPosition(b)});int source=world.AddDepot(a),goal=world.AddDepot(b,0);world.RegisterAccess(source,Network.LaneId(1,false),5);world.RegisterAccess(goal,Network.LaneId(1,false),50);var truck=world.Dispatch(source,goal);world.Advance(.5);Point pose=world.Position(truck);var upgrade=world.PlanUpgradeRoad(1,2,18,RoadDirection.Both);Check(upgrade.TryCommit()&&Point.Distance(pose,world.Position(truck))<1e-8&&world.Network.Get(Network.LaneId(1,false,1)).Speed==18,"Upgrade moved actor / did not create real faster lane");var loaded=SaveCodec.Read(SaveCodec.Write(world));for(int i=0;i<90;i++){world.Step();loaded.Step();world.AssertSafety();}Check(world.Delivered==1&&Convert.ToBase64String(SaveCodec.Write(world))==Convert.ToBase64String(SaveCodec.Write(loaded)),"Upgraded/save freight failed");
+        var empty=new World();a=empty.AddJunction(new Point());b=empty.AddJunction(new Point(30,0,0));empty.AddRoad(a,b,new[]{empty.JunctionPosition(a),empty.JunctionPosition(b)},true,lanes:2);int left=empty.AddDepot(a),right=empty.AddDepot(b,0);empty.RegisterAccess(left,Network.LaneId(1,false,1),5);empty.RegisterAccess(right,Network.LaneId(1,false,1),25);Check(empty.PlanUpgradeRoad(1,1,12,RoadDirection.Backward).TryCommit()&&empty.Network.RoadCount==1&&empty.Network.Route(a,b)==null&&empty.Network.Route(b,a)!=null,"Reverse changed physical identity / ignored direction");Check(empty.GetAccess(left).lane==Network.LaneId(1,true)&&Math.Abs(empty.GetAccess(left).distance-25)<1e-9,"Reverse/narrowing did not preserve access center station");var stored=SaveCodec.Read(SaveCodec.Write(empty));Check(stored.Network.Route(b,a)!=null,"Backward direction was not saved");
+        var occupied=new World();a=occupied.AddJunction(new Point());b=occupied.AddJunction(new Point(60,0,0));occupied.AddRoad(a,b,new[]{occupied.JunctionPosition(a),occupied.JunctionPosition(b)},true,lanes:2);left=occupied.AddDepot(a);right=occupied.AddDepot(b,0);occupied.RegisterAccess(left,Network.LaneId(1,false,1),5);occupied.RegisterAccess(right,Network.LaneId(1,false,1),50);occupied.Dispatch(left,right);string before=Convert.ToBase64String(SaveCodec.Write(occupied));bool rejected=false;try{occupied.PlanUpgradeRoad(1,1,12,RoadDirection.Forward);}catch(InvalidOperationException){rejected=true;}Check(rejected&&before==Convert.ToBase64String(SaveCodec.Write(occupied)),"Occupied removed lane was relocated / upgrade partially applied");
+        var future=new World();a=future.AddJunction(new Point(-30,0,0));b=future.AddJunction(new Point());int c=future.AddJunction(new Point(30,0,0)),d=future.AddJunction(new Point(15,0,30));future.AddRoad(a,b,new[]{future.JunctionPosition(a),future.JunctionPosition(b)},true);future.AddRoad(b,c,new[]{future.JunctionPosition(b),future.JunctionPosition(c)},true,lanes:2);future.AddRoad(b,d,new[]{future.JunctionPosition(b),future.JunctionPosition(d)},true);future.AddRoad(d,c,new[]{future.JunctionPosition(d),future.JunctionPosition(c)},true);left=future.AddDepot(a);right=future.AddDepot(c,0);future.RegisterAccess(left,Network.LaneId(1,false),0);future.RegisterAccess(right,Network.LaneId(2,false,1),25);var routed=future.Dispatch(left,right);future.Advance(.5);pose=future.Position(routed);Check(future.PlanUpgradeRoad(2,1,12,RoadDirection.Backward).TryCommit()&&Point.Distance(pose,future.Position(routed))<1e-8&&routed.status==VehicleStatus.Active&&routed.Route[routed.Route.Count-1]==Network.LaneId(2,true),"Future direction change did not reroute safely through actual loop");future.Advance(20);future.AssertSafety();Check(future.Delivered==1&&future.GetDepot(left).stock==99,"Replanned upgrade rebilled/stalled freight");
+    }
+    static void SpatialAndRecoveryTests()
+    {
+        var world=new World();int a=world.AddJunction(new Point(-20,0,-16)),b=world.AddJunction(new Point(20,2,24));world.AddRoad(a,b,new[]{world.JunctionPosition(a),new Point(-2,1,7),world.JunctionPosition(b)},lanes:2);int highA=world.AddJunction(new Point(-20,6,-16)),highB=world.AddJunction(new Point(20,6,24));world.AddRoad(highA,highB,new[]{world.JunctionPosition(highA),world.JunctionPosition(highB)});var hits=new List<SpatialHit>();var random=new Random(37);
+        foreach(bool connections in new[]{false,true})for(int trial=0;trial<300;trial++)
+        {
+            var p=new Point(random.NextDouble()*50-25,random.NextDouble()*5-1,random.NextDouble()*50-20);world.Network.Project(p,4,connections,hits);var expected=new Dictionary<long,double>();
+            foreach(var road in world.Network.Drivables)
+            {
+                if(!connections&&road.IsConnection)continue;double best=double.PositiveInfinity;for(int i=1;i<road.Geometry.Count;i++){Point x=road.Geometry[i-1],y=road.Geometry[i];double dx=y.x-x.x,dy=y.y-x.y,dz=y.z-x.z,den=dx*dx+dy*dy+dz*dz,t=den<1e-18?0:Math.Max(0,Math.Min(1,((p.x-x.x)*dx+(p.y-x.y)*dy+(p.z-x.z)*dz)/den));best=Math.Min(best,Point.Distance(p,Point.Lerp(x,y,t)));}if(best<=4)expected.Add(road.Id,best);
+            }
+            Check(expected.Count==hits.Count,"Spatial index missed/duplicated local candidate");foreach(var hit in hits)Check(expected.ContainsKey(hit.drivable)&&Math.Abs(expected[hit.drivable]-hit.separation)<1e-8,"Spatial projection disagreed with geometry oracle");
+        }
+        var repaired=new World();a=repaired.AddJunction(new Point());b=repaired.AddJunction(new Point(30,0,0));repaired.AddRoad(a,b,new[]{repaired.JunctionPosition(a),repaired.JunctionPosition(b)});int source=repaired.AddDepot(a),goal=repaired.AddDepot(b,0);var stranded=repaired.Dispatch(source,goal);repaired.Advance(.5);Point pose=repaired.Position(stranded);repaired.RemoveRoad(1);int replacement=repaired.AddRoad(a,b,new[]{repaired.JunctionPosition(a),repaired.JunctionPosition(b)});Check(Point.Distance(pose,repaired.Position(stranded))<1e-9&&stranded.status==VehicleStatus.Stranded,"Reconstruction moved/lost interrupted actor");var follower=repaired.Dispatch(source,goal);repaired.Advance(2);Check(repaired.Position(follower).x<=pose.x-World.MinimumSpacing+1e-8,"New route drove through interrupted actor with missing road ID");var loaded=SaveCodec.Read(SaveCodec.Write(repaired));loaded.AssertSafety();int stock=repaired.GetDepot(source).stock;Check(repaired.TryResumeStranded(stranded.id)&&Point.Distance(pose,repaired.Position(stranded))<1e-7&&repaired.GetDepot(source).stock==stock&&stranded.Current==Network.LaneId(replacement,false),"Recovery recharged/moved/replaced actor");Check(loaded.TryResumeStranded(stranded.id),"Loaded interruption could not resume");repaired.Advance(3);loaded.Advance(3);Check(repaired.Delivered==2&&repaired.GetDepot(goal).stock==2&&Convert.ToBase64String(SaveCodec.Write(repaired))==Convert.ToBase64String(SaveCodec.Write(loaded)),"Recovery did not deliver/save exactly once");
+    }
+    static void BlueprintTests()
+    {
+        var world=new World();int a=world.AddJunction(new Point()),b=world.AddJunction(new Point(30,0,0)),c=world.AddJunction(new Point(60,0,0));world.AddRoad(a,b,new[]{world.JunctionPosition(a),world.JunctionPosition(b)},true);world.AddRoad(b,c,new[]{world.JunctionPosition(b),world.JunctionPosition(c)},true);int source=world.AddDepot(a),goal=world.AddDepot(c,0);var first=world.Dispatch(source,goal);long prepared=world.RoutePreparations;
+        for(int i=0;i<100;i++)Check(world.Dispatch(source,goal)==null,"Blocked source unexpectedly admitted");Check(world.RoutePreparations==prepared&&world.CachedRoutes==1,"Repeated blocked departures replanned");world.Advance(.3);var second=world.Dispatch(source,goal);Check(second!=null&&!ReferenceEquals(first.Plan.segments,second.Plan.segments)&&world.RoutePreparations==prepared,"Actors shared mutable cached route / reran planning");long lane=first.Plan.segments[0];first.Plan.segments[0]=first.Plan.segments[first.Plan.segments.Count-1];Check(second.Plan.segments[0]==lane,"Actor route mutation changed another/cached plan");first.Plan.segments[0]=lane;
+        world.RemoveRoad(2);Check(world.CachedRoutes==0&&world.Dispatch(source,goal)==null,"Removed road remained in blueprint");prepared=world.RoutePreparations;Check(world.Dispatch(source,goal)==null&&world.RoutePreparations==prepared,"Unreachable route failure was repeatedly planned");int added=world.AddRoad(b,c,new[]{world.JunctionPosition(b),world.JunctionPosition(c)},true);world.RegisterAccess(source,Network.LaneId(1,false),10);world.RegisterAccess(goal,Network.LaneId(added,false),20);var newTask=world.Dispatch(source,goal);Check(newTask!=null&&newTask.Route[newTask.Route.Count-1]==Network.LaneId(added,false),"Construction/access invalidation did not rebuild route");world.Validate();
+    }
+    static void TurnoverTest()
+    {
+        var world=new World();var sources=new List<int>();var goals=new List<int>();
+        for(int road=0;road<4;road++){int a=world.AddJunction(new Point(0,0,road*8)),b=world.AddJunction(new Point(12,0,road*8));world.AddRoad(a,b,new[]{world.JunctionPosition(a),world.JunctionPosition(b)},true);sources.Add(world.AddDepot(a,100000));goals.Add(world.AddDepot(b,0));}
+        for(int step=0;step<30000;step++){for(int i=0;i<4;i++)world.Dispatch(sources[i],goals[i],price:1);world.Step();if(step%100==0){world.AssertSafety();Check(world.Vehicles.Count<=40,"Retired tasks accumulated in hot collection");}}
+        int inTransit=0,remaining=0,received=0;foreach(var v in world.Vehicles)inTransit+=v.Task.Cargo;for(int i=0;i<4;i++){remaining+=world.GetDepot(sources[i]).stock;received+=world.GetDepot(goals[i]).stock;Check(world.GetDepot(sources[i]).cash+world.GetDepot(goals[i]).cash==200000,"Turnover money conservation failed");}
+        Check(world.Delivered>30000&&400000==remaining+received+inTransit&&world.Delivered==received,"Long turnover cargo/history failed");Check(world.Snapshot().nextVehicle>30000&&SaveCodec.Write(world).Length<15000,"Lifetime task IDs grew live saved state");var restored=SaveCodec.Read(SaveCodec.Write(world));for(int step=0;step<100;step++){world.Step();restored.Step();}Check(Convert.ToBase64String(SaveCodec.Write(world))==Convert.ToBase64String(SaveCodec.Write(restored)),"Long-turnover continuation failed");
+    }
+    static void LaneChangeTests()
+    {
+        var world=new World();int a=world.AddJunction(new Point()),b=world.AddJunction(new Point(80,2,0)),c=world.AddJunction(new Point(130,2,0)),side=world.AddJunction(new Point(80,2,30));world.AddRoad(a,b,new[]{world.JunctionPosition(a),new Point(40,1,4),world.JunctionPosition(b)},lanes:2);world.AddRoad(b,c,new[]{world.JunctionPosition(b),world.JunctionPosition(c)},lanes:2);world.AddRoad(b,side,new[]{world.JunctionPosition(b),world.JunctionPosition(side)});int source=world.AddDepot(a),goal=world.AddDepot(c,0);world.RegisterAccess(source,Network.LaneId(1,false),18);world.RegisterAccess(goal,Network.LaneId(2,false),35);var vehicle=world.Dispatch(source,goal);Point original=world.Position(vehicle);
+        long target=Network.LaneId(1,false,1);double projected=world.Network.Get(vehicle.Current).Geometry.MapDistance(world.Network.Get(target).Geometry,vehicle.distance);
+        foreach(double neighbor in new[]{projected-1,projected+1}){var state=world.Snapshot();state.nextVehicle=3;state.nextTask=3;state.vehicles.Add(new Vehicle{id=2,Task=new TripTask{id=2,origin=source,destination=goal,Shipment=new Shipment{remaining=1,unitPrice=5}},Plan=new RoutePlan{segments=new List<long>{target,Network.ConnectionId(target,Network.LaneId(2,false)),Network.LaneId(2,false)},EndDistance=35},Position=new VehiclePosition(target,neighbor)});state.tasks.Add(state.vehicles[state.vehicles.Count-1].Task);var crowded=new World(state);Check(!crowded.TryChangeLane(vehicle.id,1),"Lane change ignored target front/rear occupancy");}
+        Check(world.TryChangeLane(vehicle.id,1)&&vehicle.changeTarget==target&&Point.Distance(original,world.Position(vehicle))<1e-9,"Lane change onset teleported");Check(!world.TryChangeLane(vehicle.id,0),"Second change overwrote active maneuver");
+        int merge=world.AddDepot(a);world.RegisterAccess(merge,target,projected);Check(world.Dispatch(merge,goal)==null,"Shadow occupancy did not block spawn");world.Advance(.25);Check(vehicle.changeElapsed>.2&&vehicle.changeElapsed<.3,"Maneuver did not advance fixed phase");Point before=world.Position(vehicle);world.SplitRoadAt(1,12.375);Check(Point.Distance(before,world.Position(vehicle))<1e-7,"Construction during lane change moved actor");var restored=SaveCodec.Read(SaveCodec.Write(world));
+        for(int step=0;step<240;step++){world.Step();restored.Step();world.AssertSafety();Check(Convert.ToBase64String(SaveCodec.Write(world))==Convert.ToBase64String(SaveCodec.Write(restored)),"Lane change/save continued differently");}
+        Check(world.Delivered==1&&vehicle.changeTarget==0&&world.ActiveCount==0,"Changing vehicle failed arrival/retirement");
+    }
+    static void ConflictTests()
+    {
+        var world=new World();int center=world.AddJunction(new Point()),west=world.AddJunction(new Point(-30,0,0)),east=world.AddJunction(new Point(30,0,0)),south=world.AddJunction(new Point(0,0,-30)),north=world.AddJunction(new Point(0,0,30));
+        int w=world.AddRoad(west,center,new[]{world.JunctionPosition(west),world.JunctionPosition(center)},lanes:2),e=world.AddRoad(center,east,new[]{world.JunctionPosition(center),world.JunctionPosition(east)},lanes:2),s=world.AddRoad(south,center,new[]{world.JunctionPosition(south),world.JunctionPosition(center)},lanes:2),n=world.AddRoad(center,north,new[]{world.JunctionPosition(center),world.JunctionPosition(north)},lanes:2);
+        long ew=Network.ConnectionId(Network.LaneId(w,false),Network.LaneId(e,false)),we=Network.ConnectionId(Network.LaneId(e,true),Network.LaneId(w,true)),sn=Network.ConnectionId(Network.LaneId(s,false),Network.LaneId(n,false));
+        Check(!world.Network.MovementsConflict(ew,we),"Opposite parallel paths unnecessarily conflict");Check(world.Network.MovementsConflict(ew,sn)&&world.Network.MovementsConflict(sn,ew),"Crossing conflict missing/asymmetric");
+        long outerEw=Network.ConnectionId(Network.LaneId(w,false,1),Network.LaneId(e,false,1)),outerSn=Network.ConnectionId(Network.LaneId(s,false,1),Network.LaneId(n,false,1));Check(world.Network.MovementsConflict(outerEw,outerSn),"Protected approach conflict omitted for wide roads");
+        long merge=Network.ConnectionId(Network.LaneId(s,false),Network.LaneId(e,false));Check(world.Network.MovementsConflict(ew,merge),"Shared exit not conflicting");
+        var reservations=new JunctionReservations(world.Network);reservations.Reserve(center,ew,1);Check(reservations.CanReserve(center,we,2)&&!reservations.CanReserve(center,sn,2)&&!reservations.CanReserve(center,merge,2),"Movement reservations did not use local graph");
+        int westD=world.AddDepot(west),eastD=world.AddDepot(east),northD=world.AddDepot(north,0),southD=world.AddDepot(south);world.Dispatch(westD,eastD);world.Dispatch(eastD,westD);world.Dispatch(southD,northD);var saved=SaveCodec.Read(SaveCodec.Write(world));
+        for(int i=0;i<180;i++){world.Step();saved.Step();world.AssertSafety();var vehicles=new List<Vehicle>(world.Vehicles);for(int a=0;a<vehicles.Count;a++)for(int b=a+1;b<vehicles.Count;b++)if(vehicles[a].status==VehicleStatus.Active&&vehicles[b].status==VehicleStatus.Active)Check(Point.Distance(world.Position(vehicles[a]),world.Position(vehicles[b]))>=.9-1e-8,"Intersection vehicles physically overlapped");}
+        Check(world.Delivered==3&&Convert.ToBase64String(SaveCodec.Write(world))==Convert.ToBase64String(SaveCodec.Write(saved)),"Local arbitration delivery/save failed");
+        var invalid=world.Snapshot();invalid.nextVehicle=3;invalid.nextTask=3;invalid.vehicles.Add(new Vehicle{id=1,cursor=1,Task=new TripTask{id=1,origin=westD,destination=eastD,Shipment=new Shipment{remaining=1,unitPrice=5}},Plan=new RoutePlan{segments=new List<long>{Network.LaneId(w,false),ew,Network.LaneId(e,false)}},Position=new VehiclePosition(ew,0)});invalid.tasks.Add(invalid.vehicles[invalid.vehicles.Count-1].Task);invalid.vehicles.Add(new Vehicle{id=2,cursor=1,Task=new TripTask{id=2,origin=southD,destination=northD,Shipment=new Shipment{remaining=1,unitPrice=5}},Plan=new RoutePlan{segments=new List<long>{Network.LaneId(s,false),sn,Network.LaneId(n,false)}},Position=new VehiclePosition(sn,0)});invalid.tasks.Add(invalid.vehicles[invalid.vehicles.Count-1].Task);bool rejected=false;try{new World(invalid);}catch(InvalidOperationException){rejected=true;}Check(rejected,"Conflicting loaded occupancy was accepted");
+    }
+    static void MultiLaneTests()
+    {
+        var world=new World();int a=world.AddJunction(new Point(0,0,0)),b=world.AddJunction(new Point(80,2,0));world.AddRoad(a,b,new[]{world.JunctionPosition(a),new Point(40,1,5),world.JunctionPosition(b)},lanes:3);
+        var poses=new Dictionary<int,Point>();var targets=new Dictionary<int,Point>();
+        foreach(bool reverse in new[]{false,true})for(int index=0;index<3;index++)
+        {
+            long lane=Network.LaneId(1,reverse,index);Check(world.Network.Get(lane).LaneIndex==index,"Lane index wrong");int source=world.AddDepot(a),goal=world.AddDepot(b,0);world.RegisterAccess(source,lane,3);world.RegisterAccess(goal,lane,70);var truck=world.Dispatch(source,goal);Check(truck!=null,"Parallel lane insertion blocked unrelated lane");targets.Add(goal,world.Network.Get(lane).Geometry.Sample(70));
+        }
+        world.Advance(.5);foreach(var vehicle in world.Vehicles)poses.Add(vehicle.id,world.Position(vehicle));world.SplitRoadAt(1,21.125);
+        foreach(var vehicle in world.Vehicles){Check(Point.Distance(poses[vehicle.id],world.Position(vehicle))<1e-7,"Multilane split moved actor");var access=world.GetAccess(vehicle.Task.destination);Check(Point.Distance(targets[vehicle.Task.destination],world.Network.Get(access.lane).Geometry.Sample(access.distance))<1e-7,"Multilane split moved goal");Check(world.Network.Get(vehicle.Current).LaneIndex==world.Network.Get(vehicle.Route[vehicle.Route.Count-1]).LaneIndex,"Pure cut changed lane index");}
+        var restored=SaveCodec.Read(SaveCodec.Write(world));for(int step=0;step<180;step++){world.Step();restored.Step();world.AssertSafety();}Check(world.Delivered==6&&Convert.ToBase64String(SaveCodec.Write(world))==Convert.ToBase64String(SaveCodec.Write(restored)),"Multilane delivery/save continuation failed");
+        var oneWay=new World();a=oneWay.AddJunction(new Point());b=oneWay.AddJunction(new Point(30,0,0));oneWay.AddRoad(a,b,new[]{oneWay.JunctionPosition(a),oneWay.JunctionPosition(b)},true,lanes:2);Check(!oneWay.Network.Contains(Network.LaneId(1,true,1))&&oneWay.Network.Route(b,a)==null,"Multilane one-way became reversible");Reject(()=>oneWay.AddRoad(a,b,new[]{oneWay.JunctionPosition(a),oneWay.JunctionPosition(b)},lanes:0),"Zero-lane road accepted");
+    }
+    static void EditTests()
+    {
+        var preview=new World();string original=Convert.ToBase64String(SaveCodec.Write(preview));var plan=preview.PlanConnectedRoad(new[]{new Point(0,0,0),new Point(20,0,0)});
+        Check(original==Convert.ToBase64String(SaveCodec.Write(preview))&&plan.Preview.RoadCount==1,"Preview changed live facts");preview.Step();string stepped=Convert.ToBase64String(SaveCodec.Write(preview));Check(!plan.TryCommit()&&stepped==Convert.ToBase64String(SaveCodec.Write(preview)),"Stale plan mutated world");
+        plan=preview.PlanConnectedRoad(new[]{new Point(0,0,0),new Point(20,0,0)});Check(plan.TryCommit()&&!plan.TryCommit(),"Commit was not single-use");
+        foreach(bool backwards in new[]{false,true})foreach(double cut in new[]{6.75,19.25})
+        {
+            var world=new World();int a=world.AddJunction(new Point(0,0,0)),b=world.AddJunction(new Point(30,2,0));world.AddRoad(a,b,new[]{world.JunctionPosition(a),new Point(15,1,5),world.JunctionPosition(b)});
+            int source=world.AddDepot(a),goal=world.AddDepot(b,0);long lane=Network.LaneId(1,backwards);world.RegisterAccess(source,lane,3);world.RegisterAccess(goal,lane,28);var truck=world.Dispatch(source,goal);world.Advance(.7);Point pose=world.Position(truck),door=world.Network.Get(lane).Geometry.Sample(28);double length=world.Network.Get(lane).Geometry.Length;world.SplitRoadAt(1,cut);
+            Check(Point.Distance(pose,world.Position(truck))<1e-7,"Arbitrary curved cut moved vehicle");var access=world.GetAccess(goal);Check(Point.Distance(door,world.Network.Get(access.lane).Geometry.Sample(access.distance))<1e-7,"Arbitrary cut moved access");Check(Math.Abs(length-world.Network.Get(Network.LaneId(1,backwards)).Geometry.Length-world.Network.Get(Network.LaneId(2,backwards)).Geometry.Length)<1e-7,"Inserted sample changed lane metric");
+            var saved=SaveCodec.Read(SaveCodec.Write(world));for(int i=0;i<90;i++){world.Step();saved.Step();world.AssertSafety();}Check(world.Delivered==1&&Convert.ToBase64String(SaveCodec.Write(world))==Convert.ToBase64String(SaveCodec.Write(saved)),"Arbitrary cut save continuation failed");
+        }
+        foreach(double height in new[]{0.0,6.0})
+        {
+            var world=new World();world.PlanConnectedRoad(new[]{new Point(-20,0,0),new Point(20,0,0)}).TryCommit();var before=Convert.ToBase64String(SaveCodec.Write(world));var crossing=world.PlanConnectedRoad(new[]{new Point(0,height,-20),new Point(0,height,0),new Point(0,height,20)});
+            Check(before==Convert.ToBase64String(SaveCodec.Write(world)),"Crossing preparation leaked edits");Check(crossing.TryCommit(),"Crossing commit failed");
+            if(height==0){Check(world.Network.RoadCount==4&&world.Network.JunctionCount==5,"Internal stroke sample did not create intersection");Check(world.Network.Route(1,4)!=null,"Intersection disconnected route");}
+            else {Check(world.Network.RoadCount==2&&world.Network.JunctionCount==4,"Grade separation became intersection");Check(world.Network.Route(1,4)==null,"Grade separation became reachable");}
+            SaveCodec.Read(SaveCodec.Write(world)).Validate();
+        }
+        var attachment=new World();attachment.PlanConnectedRoad(new[]{new Point(0,0,0),new Point(15,0,5),new Point(30,0,0)}).TryCommit();attachment.PlanConnectedRoad(new[]{new Point(7.5,0,2.5),new Point(7.5,0,20)},snap:.1).TryCommit();Check(attachment.Network.RoadCount==3&&attachment.Network.JunctionCount==4,"Midcurve attachment not split");
+        original=Convert.ToBase64String(SaveCodec.Write(attachment));bool overlap=false;try{attachment.PlanConnectedRoad(new[]{new Point(0,0,0),new Point(7.5,0,2.5)},snap:.1);}catch(InvalidOperationException){overlap=true;}Check(overlap&&original==Convert.ToBase64String(SaveCodec.Write(attachment)),"Overlapping stroke partially committed");
+        var multiple=new World();int west=multiple.AddJunction(new Point(-20,0,0)),east=multiple.AddJunction(new Point(20,0,0)),south=multiple.AddJunction(new Point(0,0,-20)),north=multiple.AddJunction(new Point(0,0,20));multiple.AddRoad(west,east,new[]{multiple.JunctionPosition(west),multiple.JunctionPosition(east)});multiple.AddRoad(south,north,new[]{multiple.JunctionPosition(south),multiple.JunctionPosition(north)});
+        original=Convert.ToBase64String(SaveCodec.Write(multiple));var joining=multiple.PlanConnectedRoad(new[]{new Point(-15,0,-15),new Point(0,0,0),new Point(15,0,15)},snap:.1);Check(original==Convert.ToBase64String(SaveCodec.Write(multiple))&&joining.TryCommit(),"Multiple-road junction preparation mutated city");Check(multiple.Network.JunctionCount==7&&multiple.Network.RoadCount==6&&multiple.Network.Route(west,north)!=null,"Existing crossing roads did not share one junction");SaveCodec.Read(SaveCodec.Write(multiple)).Validate();
+        var unsafeWorld=new World();west=unsafeWorld.AddJunction(new Point(-20,0,0));east=unsafeWorld.AddJunction(new Point(20,0,0));south=unsafeWorld.AddJunction(new Point(0,0,-20));north=unsafeWorld.AddJunction(new Point(0,0,20));unsafeWorld.AddRoad(west,east,new[]{unsafeWorld.JunctionPosition(west),unsafeWorld.JunctionPosition(east)});unsafeWorld.AddRoad(south,north,new[]{unsafeWorld.JunctionPosition(south),unsafeWorld.JunctionPosition(north)});int wa=unsafeWorld.AddDepot(west),ea=unsafeWorld.AddDepot(east),sa=unsafeWorld.AddDepot(south),na=unsafeWorld.AddDepot(north);var injected=unsafeWorld.Snapshot();injected.nextVehicle=3;injected.nextTask=3;injected.vehicles.Add(new Vehicle{id=1,Task=new TripTask{id=1,origin=wa,destination=ea,Shipment=new Shipment{remaining=1,unitPrice=5}},Plan=new RoutePlan{segments=new List<long>{Network.LaneId(1,false)}},Position=new VehiclePosition(Network.LaneId(1,false),19)});injected.tasks.Add(injected.vehicles[injected.vehicles.Count-1].Task);injected.vehicles.Add(new Vehicle{id=2,Task=new TripTask{id=2,origin=sa,destination=na,Shipment=new Shipment{remaining=1,unitPrice=5}},Plan=new RoutePlan{segments=new List<long>{Network.LaneId(2,false)}},Position=new VehiclePosition(Network.LaneId(2,false),19)});injected.tasks.Add(injected.vehicles[injected.vehicles.Count-1].Task);unsafeWorld=new World(injected);original=Convert.ToBase64String(SaveCodec.Write(unsafeWorld));bool rejected=false;try{unsafeWorld.PlanConnectedRoad(new[]{new Point(-15,0,-15),new Point(15,0,15)},snap:.1);}catch(InvalidOperationException){rejected=true;}Check(rejected&&original==Convert.ToBase64String(SaveCodec.Write(unsafeWorld)),"Conflicting multiple-road join partially committed");
+    }
+    static void Benchmark(string path)
+    {
+        var result=new List<string>{"scenario,active,steps,mean_ms,p95_ms,p99_ms,allocated_bytes_per_step,simulated_seconds,wall_seconds"};
+        foreach(int count in new[]{1000,3000,10000})foreach(bool congested in new[]{false,true})
+        {
+            var w=Fixture(count,congested);for(int i=0;i<50;i++)w.Step();w.AssertSafety();var times=new double[300];var sw=new Stopwatch();long gc=GC.GetAllocatedBytesForCurrentThread();var total=Stopwatch.StartNew();
+            for(int i=0;i<times.Length;i++){sw.Restart();w.Step();sw.Stop();times[i]=sw.Elapsed.TotalMilliseconds;if(w.ActiveCount!=count)throw new Exception("Fixture ceased to have requested active population");}
+            total.Stop();gc=GC.GetAllocatedBytesForCurrentThread()-gc;w.AssertSafety();double mean=0;foreach(double t in times)mean+=t;Array.Sort(times);
+            string row=string.Join(",",congested?"queued-three-approach-merge":"spaced-twenty-corridors",count,300,(mean/300).ToString("F5",CultureInfo.InvariantCulture),times[284].ToString("F5",CultureInfo.InvariantCulture),times[296].ToString("F5",CultureInfo.InvariantCulture),(gc/300.0).ToString("F1",CultureInfo.InvariantCulture),15,total.Elapsed.TotalSeconds.ToString("F5",CultureInfo.InvariantCulture));result.Add(row);Console.WriteLine(row);
+        }
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path)));File.WriteAllLines(path,result);
+        var edits=new List<string>{"active,operation,rounds,mean_ms,p95_ms,p99_ms,allocated_bytes_per_commit"};
+        foreach(int count in new[]{1000,3000})
+        {
+            byte[] seed=SaveCodec.Write(Fixture(count,false));var times=new double[12];long allocated=0;
+            for(int round=0;round<times.Length;round++)
+            {
+                var world=SaveCodec.Read(seed);long before=GC.GetAllocatedBytesForCurrentThread();var timer=Stopwatch.StartNew();world.SplitRoad(1,1);timer.Stop();allocated+=GC.GetAllocatedBytesForCurrentThread()-before;times[round]=timer.Elapsed.TotalMilliseconds;world.AssertSafety();Check(world.ActiveCount==count,"Edit lost active vehicle");
+            }
+            double sum=0;foreach(double time in times)sum+=time;Array.Sort(times);edits.Add(string.Join(",",count,"split-shared-road-and-migrate",times.Length,(sum/times.Length).ToString("F5",CultureInfo.InvariantCulture),times[11].ToString("F5",CultureInfo.InvariantCulture),times[11].ToString("F5",CultureInfo.InvariantCulture),allocated/times.Length));
+        }
+        File.WriteAllLines(Path.ChangeExtension(path,"edits.csv"),edits);
+    }
+    public static void Main(string[] args){Tests();if(args.Length>0)Benchmark(args[0]);}
+}

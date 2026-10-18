@@ -1,0 +1,6 @@
+operation,cells,geometry_roads,resolved_roads,full_rebuild,renderers,rebuilt_chunks
+add,158210,2,5,False,256,2
+connect_split,158214,6,7,False,256,1
+widen,158214,0,0,False,256,0
+delete,158214,0,0,False,256,0
+continuous,158306,2,5,False,256,1

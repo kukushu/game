@@ -1,0 +1,11 @@
+{
+  "versions": {
+    "547bb6a": "547bb6a4f93cf5aa0e9fcfe936cfcd595d1a8875",
+    "b05782e": "b05782ea13b69066a027e61880dc4e4334ab2ce5",
+    "6456395": "645639574b9992eb60e385969c974aa8de8ad8e5",
+    "0f13682": "0f13682e81c181c7c7f11bb13e3d87af655cf031",
+    "3f29f7a": "3f29f7aa0158a9a4d63ce8da0bb73ce4f0205f51",
+    "451ec46": "451ec46a82c22f4eef9977cd25cb80c651b6e7da"
+  },
+  "note": "Captures may precede their commit: actual build HEAD/dirty, compiled instrumented file hashes and assembly SHA are retained. Final runtime C# matched 451ec46; normal release was rebuilt at that pinned version. Historical stage scopes and timing configurations differ; use designated unprofiled pairs for player comparisons."
+}

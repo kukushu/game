@@ -1,0 +1,1448 @@
+{
+  "paused_native": {
+    "baseline-complete": "6835ebb82fb64eb77b033d3fa824301839cf05df4c4f070624980111a827ef72",
+    "owned-stages": "6835ebb82fb64eb77b033d3fa824301839cf05df4c4f070624980111a827ef72",
+    "geometry-stages": "6835ebb82fb64eb77b033d3fa824301839cf05df4c4f070624980111a827ef72",
+    "spatial-stages": "6835ebb82fb64eb77b033d3fa824301839cf05df4c4f070624980111a827ef72",
+    "draft-stages": "6835ebb82fb64eb77b033d3fa824301839cf05df4c4f070624980111a827ef72"
+  },
+  "deterministic_replay": {
+    "replay-before": [
+      {
+        "stage": "initial",
+        "state_sha256": "3f49bd1a02879bb686c24d5517902cc581c657220ce2b955107d89b6fa870b4e",
+        "cells": "158070",
+        "roads": "841",
+        "active": "5230"
+      },
+      {
+        "stage": "setup_a",
+        "state_sha256": "f28808992e2446517d05c92c5066572bd73526aaf1fe89aeec1fa89b0343eabc",
+        "cells": "158118",
+        "roads": "842",
+        "active": "5230"
+      },
+      {
+        "stage": "setup_b",
+        "state_sha256": "cc61995bf36e5cc00ea2ffccb0920374b1276f0ba2c7e47bf266608c06ed6f5e",
+        "cells": "158164",
+        "roads": "843",
+        "active": "5230"
+      },
+      {
+        "stage": "add",
+        "state_sha256": "08c56d617b4cbcfe53365fefd3cddc82ddad195d34569100e0750bce8e409ef3",
+        "cells": "158210",
+        "roads": "844",
+        "active": "5230"
+      },
+      {
+        "stage": "connect_split",
+        "state_sha256": "971902266e3deec8c9b6abe5bc28b2919b3f97e26387a3e2540707eb88f7ee42",
+        "cells": "158214",
+        "roads": "847",
+        "active": "5230"
+      },
+      {
+        "stage": "widen",
+        "state_sha256": "971902266e3deec8c9b6abe5bc28b2919b3f97e26387a3e2540707eb88f7ee42",
+        "cells": "158214",
+        "roads": "847",
+        "active": "5230"
+      },
+      {
+        "stage": "delete",
+        "state_sha256": "971902266e3deec8c9b6abe5bc28b2919b3f97e26387a3e2540707eb88f7ee42",
+        "cells": "158214",
+        "roads": "847",
+        "active": "5230"
+      },
+      {
+        "stage": "continuous_a",
+        "state_sha256": "f2d603cf22e6a39232b46f6c42e7b300fcd491012cbd6bf9c1b4e8c20e24b3c7",
+        "cells": "158260",
+        "roads": "848",
+        "active": "5230"
+      },
+      {
+        "stage": "continuous_b",
+        "state_sha256": "6835ebb82fb64eb77b033d3fa824301839cf05df4c4f070624980111a827ef72",
+        "cells": "158306",
+        "roads": "849",
+        "active": "5230"
+      },
+      {
+        "stage": "after160",
+        "state_sha256": "f38bff907663d1f67381c996412a80bba25bad43c36326bdb7e9539d3bc2a5f2",
+        "cells": "158306",
+        "roads": "849",
+        "active": "4660"
+      },
+      {
+        "stage": "after240_restore",
+        "state_sha256": "1c1139ab85b3aa75bfac3f12c4e4b1325dc63b2e6b10b60734717780d5fb7285",
+        "cells": "158306",
+        "roads": "849",
+        "active": "4433"
+      }
+    ],
+    "replay-after": [
+      {
+        "stage": "initial",
+        "state_sha256": "3f49bd1a02879bb686c24d5517902cc581c657220ce2b955107d89b6fa870b4e",
+        "cells": "158070",
+        "roads": "841",
+        "active": "5230"
+      },
+      {
+        "stage": "setup_a",
+        "state_sha256": "f28808992e2446517d05c92c5066572bd73526aaf1fe89aeec1fa89b0343eabc",
+        "cells": "158118",
+        "roads": "842",
+        "active": "5230"
+      },
+      {
+        "stage": "setup_b",
+        "state_sha256": "cc61995bf36e5cc00ea2ffccb0920374b1276f0ba2c7e47bf266608c06ed6f5e",
+        "cells": "158164",
+        "roads": "843",
+        "active": "5230"
+      },
+      {
+        "stage": "add",
+        "state_sha256": "08c56d617b4cbcfe53365fefd3cddc82ddad195d34569100e0750bce8e409ef3",
+        "cells": "158210",
+        "roads": "844",
+        "active": "5230"
+      },
+      {
+        "stage": "connect_split",
+        "state_sha256": "971902266e3deec8c9b6abe5bc28b2919b3f97e26387a3e2540707eb88f7ee42",
+        "cells": "158214",
+        "roads": "847",
+        "active": "5230"
+      },
+      {
+        "stage": "widen",
+        "state_sha256": "971902266e3deec8c9b6abe5bc28b2919b3f97e26387a3e2540707eb88f7ee42",
+        "cells": "158214",
+        "roads": "847",
+        "active": "5230"
+      },
+      {
+        "stage": "delete",
+        "state_sha256": "971902266e3deec8c9b6abe5bc28b2919b3f97e26387a3e2540707eb88f7ee42",
+        "cells": "158214",
+        "roads": "847",
+        "active": "5230"
+      },
+      {
+        "stage": "continuous_a",
+        "state_sha256": "f2d603cf22e6a39232b46f6c42e7b300fcd491012cbd6bf9c1b4e8c20e24b3c7",
+        "cells": "158260",
+        "roads": "848",
+        "active": "5230"
+      },
+      {
+        "stage": "continuous_b",
+        "state_sha256": "6835ebb82fb64eb77b033d3fa824301839cf05df4c4f070624980111a827ef72",
+        "cells": "158306",
+        "roads": "849",
+        "active": "5230"
+      },
+      {
+        "stage": "after160",
+        "state_sha256": "f38bff907663d1f67381c996412a80bba25bad43c36326bdb7e9539d3bc2a5f2",
+        "cells": "158306",
+        "roads": "849",
+        "active": "4660"
+      },
+      {
+        "stage": "after240_restore",
+        "state_sha256": "1c1139ab85b3aa75bfac3f12c4e4b1325dc63b2e6b10b60734717780d5fb7285",
+        "cells": "158306",
+        "roads": "849",
+        "active": "4433"
+      }
+    ],
+    "replay-geometry": [
+      {
+        "stage": "initial",
+        "state_sha256": "3f49bd1a02879bb686c24d5517902cc581c657220ce2b955107d89b6fa870b4e",
+        "cells": "158070",
+        "roads": "841",
+        "active": "5230"
+      },
+      {
+        "stage": "setup_a",
+        "state_sha256": "f28808992e2446517d05c92c5066572bd73526aaf1fe89aeec1fa89b0343eabc",
+        "cells": "158118",
+        "roads": "842",
+        "active": "5230"
+      },
+      {
+        "stage": "setup_b",
+        "state_sha256": "cc61995bf36e5cc00ea2ffccb0920374b1276f0ba2c7e47bf266608c06ed6f5e",
+        "cells": "158164",
+        "roads": "843",
+        "active": "5230"
+      },
+      {
+        "stage": "add",
+        "state_sha256": "08c56d617b4cbcfe53365fefd3cddc82ddad195d34569100e0750bce8e409ef3",
+        "cells": "158210",
+        "roads": "844",
+        "active": "5230"
+      },
+      {
+        "stage": "connect_split",
+        "state_sha256": "971902266e3deec8c9b6abe5bc28b2919b3f97e26387a3e2540707eb88f7ee42",
+        "cells": "158214",
+        "roads": "847",
+        "active": "5230"
+      },
+      {
+        "stage": "widen",
+        "state_sha256": "971902266e3deec8c9b6abe5bc28b2919b3f97e26387a3e2540707eb88f7ee42",
+        "cells": "158214",
+        "roads": "847",
+        "active": "5230"
+      },
+      {
+        "stage": "delete",
+        "state_sha256": "971902266e3deec8c9b6abe5bc28b2919b3f97e26387a3e2540707eb88f7ee42",
+        "cells": "158214",
+        "roads": "847",
+        "active": "5230"
+      },
+      {
+        "stage": "continuous_a",
+        "state_sha256": "f2d603cf22e6a39232b46f6c42e7b300fcd491012cbd6bf9c1b4e8c20e24b3c7",
+        "cells": "158260",
+        "roads": "848",
+        "active": "5230"
+      },
+      {
+        "stage": "continuous_b",
+        "state_sha256": "6835ebb82fb64eb77b033d3fa824301839cf05df4c4f070624980111a827ef72",
+        "cells": "158306",
+        "roads": "849",
+        "active": "5230"
+      },
+      {
+        "stage": "after160",
+        "state_sha256": "f38bff907663d1f67381c996412a80bba25bad43c36326bdb7e9539d3bc2a5f2",
+        "cells": "158306",
+        "roads": "849",
+        "active": "4660"
+      },
+      {
+        "stage": "after240_restore",
+        "state_sha256": "1c1139ab85b3aa75bfac3f12c4e4b1325dc63b2e6b10b60734717780d5fb7285",
+        "cells": "158306",
+        "roads": "849",
+        "active": "4433"
+      }
+    ],
+    "replay-spatial": [
+      {
+        "stage": "initial",
+        "state_sha256": "3f49bd1a02879bb686c24d5517902cc581c657220ce2b955107d89b6fa870b4e",
+        "cells": "158070",
+        "roads": "841",
+        "active": "5230"
+      },
+      {
+        "stage": "setup_a",
+        "state_sha256": "f28808992e2446517d05c92c5066572bd73526aaf1fe89aeec1fa89b0343eabc",
+        "cells": "158118",
+        "roads": "842",
+        "active": "5230"
+      },
+      {
+        "stage": "setup_b",
+        "state_sha256": "cc61995bf36e5cc00ea2ffccb0920374b1276f0ba2c7e47bf266608c06ed6f5e",
+        "cells": "158164",
+        "roads": "843",
+        "active": "5230"
+      },
+      {
+        "stage": "add",
+        "state_sha256": "08c56d617b4cbcfe53365fefd3cddc82ddad195d34569100e0750bce8e409ef3",
+        "cells": "158210",
+        "roads": "844",
+        "active": "5230"
+      },
+      {
+        "stage": "connect_split",
+        "state_sha256": "971902266e3deec8c9b6abe5bc28b2919b3f97e26387a3e2540707eb88f7ee42",
+        "cells": "158214",
+        "roads": "847",
+        "active": "5230"
+      },
+      {
+        "stage": "widen",
+        "state_sha256": "971902266e3deec8c9b6abe5bc28b2919b3f97e26387a3e2540707eb88f7ee42",
+        "cells": "158214",
+        "roads": "847",
+        "active": "5230"
+      },
+      {
+        "stage": "delete",
+        "state_sha256": "971902266e3deec8c9b6abe5bc28b2919b3f97e26387a3e2540707eb88f7ee42",
+        "cells": "158214",
+        "roads": "847",
+        "active": "5230"
+      },
+      {
+        "stage": "continuous_a",
+        "state_sha256": "f2d603cf22e6a39232b46f6c42e7b300fcd491012cbd6bf9c1b4e8c20e24b3c7",
+        "cells": "158260",
+        "roads": "848",
+        "active": "5230"
+      },
+      {
+        "stage": "continuous_b",
+        "state_sha256": "6835ebb82fb64eb77b033d3fa824301839cf05df4c4f070624980111a827ef72",
+        "cells": "158306",
+        "roads": "849",
+        "active": "5230"
+      },
+      {
+        "stage": "after160",
+        "state_sha256": "f38bff907663d1f67381c996412a80bba25bad43c36326bdb7e9539d3bc2a5f2",
+        "cells": "158306",
+        "roads": "849",
+        "active": "4660"
+      },
+      {
+        "stage": "after240_restore",
+        "state_sha256": "1c1139ab85b3aa75bfac3f12c4e4b1325dc63b2e6b10b60734717780d5fb7285",
+        "cells": "158306",
+        "roads": "849",
+        "active": "4433"
+      }
+    ]
+  },
+  "expanded": {
+    "expanded-old": {
+      "states": [
+        {
+          "stage": "initial",
+          "state_sha256": "3f49bd1a02879bb686c24d5517902cc581c657220ce2b955107d89b6fa870b4e",
+          "cells": "158070",
+          "roads": "841",
+          "active": "5230"
+        },
+        {
+          "stage": "setup_a",
+          "state_sha256": "f28808992e2446517d05c92c5066572bd73526aaf1fe89aeec1fa89b0343eabc",
+          "cells": "158118",
+          "roads": "842",
+          "active": "5230"
+        },
+        {
+          "stage": "setup_b",
+          "state_sha256": "cc61995bf36e5cc00ea2ffccb0920374b1276f0ba2c7e47bf266608c06ed6f5e",
+          "cells": "158164",
+          "roads": "843",
+          "active": "5230"
+        },
+        {
+          "stage": "add",
+          "state_sha256": "08c56d617b4cbcfe53365fefd3cddc82ddad195d34569100e0750bce8e409ef3",
+          "cells": "158210",
+          "roads": "844",
+          "active": "5230"
+        },
+        {
+          "stage": "connect_split",
+          "state_sha256": "971902266e3deec8c9b6abe5bc28b2919b3f97e26387a3e2540707eb88f7ee42",
+          "cells": "158214",
+          "roads": "847",
+          "active": "5230"
+        },
+        {
+          "stage": "widen",
+          "state_sha256": "971902266e3deec8c9b6abe5bc28b2919b3f97e26387a3e2540707eb88f7ee42",
+          "cells": "158214",
+          "roads": "847",
+          "active": "5230"
+        },
+        {
+          "stage": "delete",
+          "state_sha256": "971902266e3deec8c9b6abe5bc28b2919b3f97e26387a3e2540707eb88f7ee42",
+          "cells": "158214",
+          "roads": "847",
+          "active": "5230"
+        },
+        {
+          "stage": "continuous_a",
+          "state_sha256": "f2d603cf22e6a39232b46f6c42e7b300fcd491012cbd6bf9c1b4e8c20e24b3c7",
+          "cells": "158260",
+          "roads": "848",
+          "active": "5230"
+        },
+        {
+          "stage": "continuous_b",
+          "state_sha256": "6835ebb82fb64eb77b033d3fa824301839cf05df4c4f070624980111a827ef72",
+          "cells": "158306",
+          "roads": "849",
+          "active": "5230"
+        },
+        {
+          "stage": "margin_reverse",
+          "state_sha256": "6835ebb82fb64eb77b033d3fa824301839cf05df4c4f070624980111a827ef72",
+          "cells": "158306",
+          "roads": "849",
+          "active": "5230"
+        },
+        {
+          "stage": "occupied_widen",
+          "state_sha256": "6835ebb82fb64eb77b033d3fa824301839cf05df4c4f070624980111a827ef72",
+          "cells": "158306",
+          "roads": "849",
+          "active": "5230"
+        },
+        {
+          "stage": "occupied_reverse",
+          "state_sha256": "6835ebb82fb64eb77b033d3fa824301839cf05df4c4f070624980111a827ef72",
+          "cells": "158306",
+          "roads": "849",
+          "active": "5230"
+        },
+        {
+          "stage": "occupied_cross",
+          "state_sha256": "6835ebb82fb64eb77b033d3fa824301839cf05df4c4f070624980111a827ef72",
+          "cells": "158306",
+          "roads": "849",
+          "active": "5230"
+        },
+        {
+          "stage": "occupied_delete",
+          "state_sha256": "6835ebb82fb64eb77b033d3fa824301839cf05df4c4f070624980111a827ef72",
+          "cells": "158306",
+          "roads": "849",
+          "active": "5230"
+        },
+        {
+          "stage": "invalid_zero_stroke",
+          "state_sha256": "25deadfb4525b3b5ed37bb2baa0d27eaee477eca4b12eb3e82aebb06b6b91235",
+          "cells": "158306",
+          "roads": "849",
+          "active": "5230"
+        },
+        {
+          "stage": "payment_once",
+          "state_sha256": "34929de6e39fe142006c911b4b6752a24d1425a5c29d5cbada5f6353d78a40cf",
+          "cells": "158352",
+          "roads": "850",
+          "active": "5230"
+        },
+        {
+          "stage": "stale_commit",
+          "state_sha256": "34929de6e39fe142006c911b4b6752a24d1425a5c29d5cbada5f6353d78a40cf",
+          "cells": "158352",
+          "roads": "850",
+          "active": "5230"
+        },
+        {
+          "stage": "double_commit",
+          "state_sha256": "34929de6e39fe142006c911b4b6752a24d1425a5c29d5cbada5f6353d78a40cf",
+          "cells": "158352",
+          "roads": "850",
+          "active": "5230"
+        },
+        {
+          "stage": "after160",
+          "state_sha256": "ead1b8817be1d6ccb4b7fa4b063b7277c71c09627234c72f38f7eab6361c3421",
+          "cells": "158352",
+          "roads": "850",
+          "active": "4660"
+        },
+        {
+          "stage": "after240_restore",
+          "state_sha256": "ae82bd4f3e14e5e2b3ee229d8ea14dfae4d35055380b8fa9a865c2c3e9f4fe65",
+          "cells": "158352",
+          "roads": "850",
+          "active": "4433"
+        }
+      ],
+      "outcomes": [
+        {
+          "operation": "margin_reverse",
+          "status": "rejected",
+          "reason": "\u65bd\u5de5\u8282\u70b9\u5b89\u5168\u533a\u5185\u6709\u51b2\u7a81\u8f66\u8f86\uff0c\u8bf7\u7b49\u5f85\u5b83\u4eec\u9a76\u79bb\u540e\u91cd\u8bd5\uff1b\u9053\u8def\u548c\u4efb\u52a1\u672a\u4fee\u6539\u3002"
+        },
+        {
+          "operation": "occupied_widen",
+          "status": "rejected",
+          "reason": "road.widen_obstructed"
+        },
+        {
+          "operation": "occupied_reverse",
+          "status": "rejected",
+          "reason": "\u5f85\u64a4\u65b9\u5411/\u8f66\u9053\u4ecd\u6709\u8f66\u8f86\uff0c\u7b49\u5f85\u9a76\u79bb\u540e\u518d\u5347\u7ea7\uff1b\u57ce\u5e02\u672a\u4fee\u6539\u3002"
+        },
+        {
+          "operation": "occupied_cross",
+          "status": "rejected",
+          "reason": "Invalid lane access"
+        },
+        {
+          "operation": "occupied_delete",
+          "status": "rejected",
+          "reason": "\u65bd\u5de5\u8282\u70b9\u5b89\u5168\u533a\u5185\u6709\u51b2\u7a81\u8f66\u8f86\uff0c\u8bf7\u7b49\u5f85\u5b83\u4eec\u9a76\u79bb\u540e\u91cd\u8bd5\uff1b\u9053\u8def\u548c\u4efb\u52a1\u672a\u4fee\u6539\u3002"
+        },
+        {
+          "operation": "invalid_zero_stroke",
+          "status": "accepted",
+          "reason": "none"
+        },
+        {
+          "operation": "stale_commit",
+          "status": "rejected",
+          "reason": "\u9053\u8def\u65b9\u6848\u5df2\u8fc7\u671f\uff0c\u8bf7\u91cd\u65b0\u7ed8\u5236"
+        },
+        {
+          "operation": "double_commit",
+          "status": "rejected",
+          "reason": "\u9053\u8def\u65b9\u6848\u5df2\u8fc7\u671f\uff0c\u8bf7\u91cd\u65b0\u7ed8\u5236"
+        }
+      ]
+    },
+    "expanded-utility": {
+      "states": [
+        {
+          "stage": "initial",
+          "state_sha256": "3f49bd1a02879bb686c24d5517902cc581c657220ce2b955107d89b6fa870b4e",
+          "cells": "158070",
+          "roads": "841",
+          "active": "5230"
+        },
+        {
+          "stage": "setup_a",
+          "state_sha256": "f28808992e2446517d05c92c5066572bd73526aaf1fe89aeec1fa89b0343eabc",
+          "cells": "158118",
+          "roads": "842",
+          "active": "5230"
+        },
+        {
+          "stage": "setup_b",
+          "state_sha256": "cc61995bf36e5cc00ea2ffccb0920374b1276f0ba2c7e47bf266608c06ed6f5e",
+          "cells": "158164",
+          "roads": "843",
+          "active": "5230"
+        },
+        {
+          "stage": "add",
+          "state_sha256": "08c56d617b4cbcfe53365fefd3cddc82ddad195d34569100e0750bce8e409ef3",
+          "cells": "158210",
+          "roads": "844",
+          "active": "5230"
+        },
+        {
+          "stage": "connect_split",
+          "state_sha256": "971902266e3deec8c9b6abe5bc28b2919b3f97e26387a3e2540707eb88f7ee42",
+          "cells": "158214",
+          "roads": "847",
+          "active": "5230"
+        },
+        {
+          "stage": "widen",
+          "state_sha256": "971902266e3deec8c9b6abe5bc28b2919b3f97e26387a3e2540707eb88f7ee42",
+          "cells": "158214",
+          "roads": "847",
+          "active": "5230"
+        },
+        {
+          "stage": "delete",
+          "state_sha256": "971902266e3deec8c9b6abe5bc28b2919b3f97e26387a3e2540707eb88f7ee42",
+          "cells": "158214",
+          "roads": "847",
+          "active": "5230"
+        },
+        {
+          "stage": "continuous_a",
+          "state_sha256": "f2d603cf22e6a39232b46f6c42e7b300fcd491012cbd6bf9c1b4e8c20e24b3c7",
+          "cells": "158260",
+          "roads": "848",
+          "active": "5230"
+        },
+        {
+          "stage": "continuous_b",
+          "state_sha256": "6835ebb82fb64eb77b033d3fa824301839cf05df4c4f070624980111a827ef72",
+          "cells": "158306",
+          "roads": "849",
+          "active": "5230"
+        },
+        {
+          "stage": "margin_reverse",
+          "state_sha256": "6835ebb82fb64eb77b033d3fa824301839cf05df4c4f070624980111a827ef72",
+          "cells": "158306",
+          "roads": "849",
+          "active": "5230"
+        },
+        {
+          "stage": "occupied_widen",
+          "state_sha256": "6835ebb82fb64eb77b033d3fa824301839cf05df4c4f070624980111a827ef72",
+          "cells": "158306",
+          "roads": "849",
+          "active": "5230"
+        },
+        {
+          "stage": "occupied_reverse",
+          "state_sha256": "6835ebb82fb64eb77b033d3fa824301839cf05df4c4f070624980111a827ef72",
+          "cells": "158306",
+          "roads": "849",
+          "active": "5230"
+        },
+        {
+          "stage": "occupied_cross",
+          "state_sha256": "6835ebb82fb64eb77b033d3fa824301839cf05df4c4f070624980111a827ef72",
+          "cells": "158306",
+          "roads": "849",
+          "active": "5230"
+        },
+        {
+          "stage": "occupied_delete",
+          "state_sha256": "6835ebb82fb64eb77b033d3fa824301839cf05df4c4f070624980111a827ef72",
+          "cells": "158306",
+          "roads": "849",
+          "active": "5230"
+        },
+        {
+          "stage": "invalid_zero_stroke",
+          "state_sha256": "25deadfb4525b3b5ed37bb2baa0d27eaee477eca4b12eb3e82aebb06b6b91235",
+          "cells": "158306",
+          "roads": "849",
+          "active": "5230"
+        },
+        {
+          "stage": "payment_once",
+          "state_sha256": "34929de6e39fe142006c911b4b6752a24d1425a5c29d5cbada5f6353d78a40cf",
+          "cells": "158352",
+          "roads": "850",
+          "active": "5230"
+        },
+        {
+          "stage": "stale_commit",
+          "state_sha256": "34929de6e39fe142006c911b4b6752a24d1425a5c29d5cbada5f6353d78a40cf",
+          "cells": "158352",
+          "roads": "850",
+          "active": "5230"
+        },
+        {
+          "stage": "double_commit",
+          "state_sha256": "34929de6e39fe142006c911b4b6752a24d1425a5c29d5cbada5f6353d78a40cf",
+          "cells": "158352",
+          "roads": "850",
+          "active": "5230"
+        },
+        {
+          "stage": "after160",
+          "state_sha256": "ead1b8817be1d6ccb4b7fa4b063b7277c71c09627234c72f38f7eab6361c3421",
+          "cells": "158352",
+          "roads": "850",
+          "active": "4660"
+        },
+        {
+          "stage": "after240_restore",
+          "state_sha256": "ae82bd4f3e14e5e2b3ee229d8ea14dfae4d35055380b8fa9a865c2c3e9f4fe65",
+          "cells": "158352",
+          "roads": "850",
+          "active": "4433"
+        }
+      ],
+      "outcomes": [
+        {
+          "operation": "margin_reverse",
+          "status": "rejected",
+          "reason": "\u65bd\u5de5\u8282\u70b9\u5b89\u5168\u533a\u5185\u6709\u51b2\u7a81\u8f66\u8f86\uff0c\u8bf7\u7b49\u5f85\u5b83\u4eec\u9a76\u79bb\u540e\u91cd\u8bd5\uff1b\u9053\u8def\u548c\u4efb\u52a1\u672a\u4fee\u6539\u3002"
+        },
+        {
+          "operation": "occupied_widen",
+          "status": "rejected",
+          "reason": "road.widen_obstructed"
+        },
+        {
+          "operation": "occupied_reverse",
+          "status": "rejected",
+          "reason": "\u5f85\u64a4\u65b9\u5411/\u8f66\u9053\u4ecd\u6709\u8f66\u8f86\uff0c\u7b49\u5f85\u9a76\u79bb\u540e\u518d\u5347\u7ea7\uff1b\u57ce\u5e02\u672a\u4fee\u6539\u3002"
+        },
+        {
+          "operation": "occupied_cross",
+          "status": "rejected",
+          "reason": "Invalid lane access"
+        },
+        {
+          "operation": "occupied_delete",
+          "status": "rejected",
+          "reason": "\u65bd\u5de5\u8282\u70b9\u5b89\u5168\u533a\u5185\u6709\u51b2\u7a81\u8f66\u8f86\uff0c\u8bf7\u7b49\u5f85\u5b83\u4eec\u9a76\u79bb\u540e\u91cd\u8bd5\uff1b\u9053\u8def\u548c\u4efb\u52a1\u672a\u4fee\u6539\u3002"
+        },
+        {
+          "operation": "invalid_zero_stroke",
+          "status": "accepted",
+          "reason": "none"
+        },
+        {
+          "operation": "stale_commit",
+          "status": "rejected",
+          "reason": "\u9053\u8def\u65b9\u6848\u5df2\u8fc7\u671f\uff0c\u8bf7\u91cd\u65b0\u7ed8\u5236"
+        },
+        {
+          "operation": "double_commit",
+          "status": "rejected",
+          "reason": "\u9053\u8def\u65b9\u6848\u5df2\u8fc7\u671f\uff0c\u8bf7\u91cd\u65b0\u7ed8\u5236"
+        }
+      ]
+    },
+    "expanded-draft": {
+      "states": [
+        {
+          "stage": "initial",
+          "state_sha256": "3f49bd1a02879bb686c24d5517902cc581c657220ce2b955107d89b6fa870b4e",
+          "cells": "158070",
+          "roads": "841",
+          "active": "5230"
+        },
+        {
+          "stage": "setup_a",
+          "state_sha256": "f28808992e2446517d05c92c5066572bd73526aaf1fe89aeec1fa89b0343eabc",
+          "cells": "158118",
+          "roads": "842",
+          "active": "5230"
+        },
+        {
+          "stage": "setup_b",
+          "state_sha256": "cc61995bf36e5cc00ea2ffccb0920374b1276f0ba2c7e47bf266608c06ed6f5e",
+          "cells": "158164",
+          "roads": "843",
+          "active": "5230"
+        },
+        {
+          "stage": "add",
+          "state_sha256": "08c56d617b4cbcfe53365fefd3cddc82ddad195d34569100e0750bce8e409ef3",
+          "cells": "158210",
+          "roads": "844",
+          "active": "5230"
+        },
+        {
+          "stage": "connect_split",
+          "state_sha256": "971902266e3deec8c9b6abe5bc28b2919b3f97e26387a3e2540707eb88f7ee42",
+          "cells": "158214",
+          "roads": "847",
+          "active": "5230"
+        },
+        {
+          "stage": "widen",
+          "state_sha256": "971902266e3deec8c9b6abe5bc28b2919b3f97e26387a3e2540707eb88f7ee42",
+          "cells": "158214",
+          "roads": "847",
+          "active": "5230"
+        },
+        {
+          "stage": "delete",
+          "state_sha256": "971902266e3deec8c9b6abe5bc28b2919b3f97e26387a3e2540707eb88f7ee42",
+          "cells": "158214",
+          "roads": "847",
+          "active": "5230"
+        },
+        {
+          "stage": "continuous_a",
+          "state_sha256": "f2d603cf22e6a39232b46f6c42e7b300fcd491012cbd6bf9c1b4e8c20e24b3c7",
+          "cells": "158260",
+          "roads": "848",
+          "active": "5230"
+        },
+        {
+          "stage": "continuous_b",
+          "state_sha256": "6835ebb82fb64eb77b033d3fa824301839cf05df4c4f070624980111a827ef72",
+          "cells": "158306",
+          "roads": "849",
+          "active": "5230"
+        },
+        {
+          "stage": "margin_reverse",
+          "state_sha256": "6835ebb82fb64eb77b033d3fa824301839cf05df4c4f070624980111a827ef72",
+          "cells": "158306",
+          "roads": "849",
+          "active": "5230"
+        },
+        {
+          "stage": "occupied_widen",
+          "state_sha256": "6835ebb82fb64eb77b033d3fa824301839cf05df4c4f070624980111a827ef72",
+          "cells": "158306",
+          "roads": "849",
+          "active": "5230"
+        },
+        {
+          "stage": "occupied_reverse",
+          "state_sha256": "6835ebb82fb64eb77b033d3fa824301839cf05df4c4f070624980111a827ef72",
+          "cells": "158306",
+          "roads": "849",
+          "active": "5230"
+        },
+        {
+          "stage": "occupied_cross",
+          "state_sha256": "6835ebb82fb64eb77b033d3fa824301839cf05df4c4f070624980111a827ef72",
+          "cells": "158306",
+          "roads": "849",
+          "active": "5230"
+        },
+        {
+          "stage": "occupied_delete",
+          "state_sha256": "6835ebb82fb64eb77b033d3fa824301839cf05df4c4f070624980111a827ef72",
+          "cells": "158306",
+          "roads": "849",
+          "active": "5230"
+        },
+        {
+          "stage": "invalid_zero_stroke",
+          "state_sha256": "25deadfb4525b3b5ed37bb2baa0d27eaee477eca4b12eb3e82aebb06b6b91235",
+          "cells": "158306",
+          "roads": "849",
+          "active": "5230"
+        },
+        {
+          "stage": "payment_once",
+          "state_sha256": "34929de6e39fe142006c911b4b6752a24d1425a5c29d5cbada5f6353d78a40cf",
+          "cells": "158352",
+          "roads": "850",
+          "active": "5230"
+        },
+        {
+          "stage": "stale_commit",
+          "state_sha256": "34929de6e39fe142006c911b4b6752a24d1425a5c29d5cbada5f6353d78a40cf",
+          "cells": "158352",
+          "roads": "850",
+          "active": "5230"
+        },
+        {
+          "stage": "double_commit",
+          "state_sha256": "34929de6e39fe142006c911b4b6752a24d1425a5c29d5cbada5f6353d78a40cf",
+          "cells": "158352",
+          "roads": "850",
+          "active": "5230"
+        },
+        {
+          "stage": "after160",
+          "state_sha256": "ead1b8817be1d6ccb4b7fa4b063b7277c71c09627234c72f38f7eab6361c3421",
+          "cells": "158352",
+          "roads": "850",
+          "active": "4660"
+        },
+        {
+          "stage": "after240_restore",
+          "state_sha256": "ae82bd4f3e14e5e2b3ee229d8ea14dfae4d35055380b8fa9a865c2c3e9f4fe65",
+          "cells": "158352",
+          "roads": "850",
+          "active": "4433"
+        }
+      ],
+      "outcomes": [
+        {
+          "operation": "margin_reverse",
+          "status": "rejected",
+          "reason": "\u65bd\u5de5\u8282\u70b9\u5b89\u5168\u533a\u5185\u6709\u51b2\u7a81\u8f66\u8f86\uff0c\u8bf7\u7b49\u5f85\u5b83\u4eec\u9a76\u79bb\u540e\u91cd\u8bd5\uff1b\u9053\u8def\u548c\u4efb\u52a1\u672a\u4fee\u6539\u3002"
+        },
+        {
+          "operation": "occupied_widen",
+          "status": "rejected",
+          "reason": "road.widen_obstructed"
+        },
+        {
+          "operation": "occupied_reverse",
+          "status": "rejected",
+          "reason": "\u5f85\u64a4\u65b9\u5411/\u8f66\u9053\u4ecd\u6709\u8f66\u8f86\uff0c\u7b49\u5f85\u9a76\u79bb\u540e\u518d\u5347\u7ea7\uff1b\u57ce\u5e02\u672a\u4fee\u6539\u3002"
+        },
+        {
+          "operation": "occupied_cross",
+          "status": "rejected",
+          "reason": "Invalid lane access"
+        },
+        {
+          "operation": "occupied_delete",
+          "status": "rejected",
+          "reason": "\u65bd\u5de5\u8282\u70b9\u5b89\u5168\u533a\u5185\u6709\u51b2\u7a81\u8f66\u8f86\uff0c\u8bf7\u7b49\u5f85\u5b83\u4eec\u9a76\u79bb\u540e\u91cd\u8bd5\uff1b\u9053\u8def\u548c\u4efb\u52a1\u672a\u4fee\u6539\u3002"
+        },
+        {
+          "operation": "invalid_zero_stroke",
+          "status": "accepted",
+          "reason": "none"
+        },
+        {
+          "operation": "stale_commit",
+          "status": "rejected",
+          "reason": "\u9053\u8def\u65b9\u6848\u5df2\u8fc7\u671f\uff0c\u8bf7\u91cd\u65b0\u7ed8\u5236"
+        },
+        {
+          "operation": "double_commit",
+          "status": "rejected",
+          "reason": "\u9053\u8def\u65b9\u6848\u5df2\u8fc7\u671f\uff0c\u8bf7\u91cd\u65b0\u7ed8\u5236"
+        }
+      ]
+    },
+    "expanded-release": {
+      "states": [
+        {
+          "stage": "initial",
+          "state_sha256": "3f49bd1a02879bb686c24d5517902cc581c657220ce2b955107d89b6fa870b4e",
+          "cells": "158070",
+          "roads": "841",
+          "active": "5230"
+        },
+        {
+          "stage": "setup_a",
+          "state_sha256": "f28808992e2446517d05c92c5066572bd73526aaf1fe89aeec1fa89b0343eabc",
+          "cells": "158118",
+          "roads": "842",
+          "active": "5230"
+        },
+        {
+          "stage": "setup_b",
+          "state_sha256": "cc61995bf36e5cc00ea2ffccb0920374b1276f0ba2c7e47bf266608c06ed6f5e",
+          "cells": "158164",
+          "roads": "843",
+          "active": "5230"
+        },
+        {
+          "stage": "add",
+          "state_sha256": "08c56d617b4cbcfe53365fefd3cddc82ddad195d34569100e0750bce8e409ef3",
+          "cells": "158210",
+          "roads": "844",
+          "active": "5230"
+        },
+        {
+          "stage": "connect_split",
+          "state_sha256": "971902266e3deec8c9b6abe5bc28b2919b3f97e26387a3e2540707eb88f7ee42",
+          "cells": "158214",
+          "roads": "847",
+          "active": "5230"
+        },
+        {
+          "stage": "widen",
+          "state_sha256": "971902266e3deec8c9b6abe5bc28b2919b3f97e26387a3e2540707eb88f7ee42",
+          "cells": "158214",
+          "roads": "847",
+          "active": "5230"
+        },
+        {
+          "stage": "delete",
+          "state_sha256": "971902266e3deec8c9b6abe5bc28b2919b3f97e26387a3e2540707eb88f7ee42",
+          "cells": "158214",
+          "roads": "847",
+          "active": "5230"
+        },
+        {
+          "stage": "continuous_a",
+          "state_sha256": "f2d603cf22e6a39232b46f6c42e7b300fcd491012cbd6bf9c1b4e8c20e24b3c7",
+          "cells": "158260",
+          "roads": "848",
+          "active": "5230"
+        },
+        {
+          "stage": "continuous_b",
+          "state_sha256": "6835ebb82fb64eb77b033d3fa824301839cf05df4c4f070624980111a827ef72",
+          "cells": "158306",
+          "roads": "849",
+          "active": "5230"
+        },
+        {
+          "stage": "margin_reverse",
+          "state_sha256": "6835ebb82fb64eb77b033d3fa824301839cf05df4c4f070624980111a827ef72",
+          "cells": "158306",
+          "roads": "849",
+          "active": "5230"
+        },
+        {
+          "stage": "occupied_widen",
+          "state_sha256": "6835ebb82fb64eb77b033d3fa824301839cf05df4c4f070624980111a827ef72",
+          "cells": "158306",
+          "roads": "849",
+          "active": "5230"
+        },
+        {
+          "stage": "occupied_reverse",
+          "state_sha256": "6835ebb82fb64eb77b033d3fa824301839cf05df4c4f070624980111a827ef72",
+          "cells": "158306",
+          "roads": "849",
+          "active": "5230"
+        },
+        {
+          "stage": "occupied_cross",
+          "state_sha256": "6835ebb82fb64eb77b033d3fa824301839cf05df4c4f070624980111a827ef72",
+          "cells": "158306",
+          "roads": "849",
+          "active": "5230"
+        },
+        {
+          "stage": "occupied_delete",
+          "state_sha256": "6835ebb82fb64eb77b033d3fa824301839cf05df4c4f070624980111a827ef72",
+          "cells": "158306",
+          "roads": "849",
+          "active": "5230"
+        },
+        {
+          "stage": "invalid_zero_stroke",
+          "state_sha256": "25deadfb4525b3b5ed37bb2baa0d27eaee477eca4b12eb3e82aebb06b6b91235",
+          "cells": "158306",
+          "roads": "849",
+          "active": "5230"
+        },
+        {
+          "stage": "payment_once",
+          "state_sha256": "34929de6e39fe142006c911b4b6752a24d1425a5c29d5cbada5f6353d78a40cf",
+          "cells": "158352",
+          "roads": "850",
+          "active": "5230"
+        },
+        {
+          "stage": "stale_commit",
+          "state_sha256": "34929de6e39fe142006c911b4b6752a24d1425a5c29d5cbada5f6353d78a40cf",
+          "cells": "158352",
+          "roads": "850",
+          "active": "5230"
+        },
+        {
+          "stage": "double_commit",
+          "state_sha256": "34929de6e39fe142006c911b4b6752a24d1425a5c29d5cbada5f6353d78a40cf",
+          "cells": "158352",
+          "roads": "850",
+          "active": "5230"
+        },
+        {
+          "stage": "after160",
+          "state_sha256": "ead1b8817be1d6ccb4b7fa4b063b7277c71c09627234c72f38f7eab6361c3421",
+          "cells": "158352",
+          "roads": "850",
+          "active": "4660"
+        },
+        {
+          "stage": "after240_restore",
+          "state_sha256": "ae82bd4f3e14e5e2b3ee229d8ea14dfae4d35055380b8fa9a865c2c3e9f4fe65",
+          "cells": "158352",
+          "roads": "850",
+          "active": "4433"
+        }
+      ],
+      "outcomes": [
+        {
+          "operation": "margin_reverse",
+          "status": "rejected",
+          "reason": "\u65bd\u5de5\u8282\u70b9\u5b89\u5168\u533a\u5185\u6709\u51b2\u7a81\u8f66\u8f86\uff0c\u8bf7\u7b49\u5f85\u5b83\u4eec\u9a76\u79bb\u540e\u91cd\u8bd5\uff1b\u9053\u8def\u548c\u4efb\u52a1\u672a\u4fee\u6539\u3002"
+        },
+        {
+          "operation": "occupied_widen",
+          "status": "rejected",
+          "reason": "road.widen_obstructed"
+        },
+        {
+          "operation": "occupied_reverse",
+          "status": "rejected",
+          "reason": "\u5f85\u64a4\u65b9\u5411/\u8f66\u9053\u4ecd\u6709\u8f66\u8f86\uff0c\u7b49\u5f85\u9a76\u79bb\u540e\u518d\u5347\u7ea7\uff1b\u57ce\u5e02\u672a\u4fee\u6539\u3002"
+        },
+        {
+          "operation": "occupied_cross",
+          "status": "rejected",
+          "reason": "Invalid lane access"
+        },
+        {
+          "operation": "occupied_delete",
+          "status": "rejected",
+          "reason": "\u65bd\u5de5\u8282\u70b9\u5b89\u5168\u533a\u5185\u6709\u51b2\u7a81\u8f66\u8f86\uff0c\u8bf7\u7b49\u5f85\u5b83\u4eec\u9a76\u79bb\u540e\u91cd\u8bd5\uff1b\u9053\u8def\u548c\u4efb\u52a1\u672a\u4fee\u6539\u3002"
+        },
+        {
+          "operation": "invalid_zero_stroke",
+          "status": "accepted",
+          "reason": "none"
+        },
+        {
+          "operation": "stale_commit",
+          "status": "rejected",
+          "reason": "\u9053\u8def\u65b9\u6848\u5df2\u8fc7\u671f\uff0c\u8bf7\u91cd\u65b0\u7ed8\u5236"
+        },
+        {
+          "operation": "double_commit",
+          "status": "rejected",
+          "reason": "\u9053\u8def\u65b9\u6848\u5df2\u8fc7\u671f\uff0c\u8bf7\u91cd\u65b0\u7ed8\u5236"
+        }
+      ]
+    }
+  },
+  "scale_replays": {
+    "scale-replay-old": {
+      "states": [
+        {
+          "stage": "initial",
+          "state_sha256": "357448e241bb58632872169271f6b41d48c495711d51abb45df223605e02e1ce",
+          "cells": "263970",
+          "roads": "1405",
+          "active": "13171"
+        },
+        {
+          "stage": "setup_a",
+          "state_sha256": "4f7b4c2cf42b28dd0a8dac93f0f983c7b79164ee942a761357dfe45cad463f88",
+          "cells": "264018",
+          "roads": "1406",
+          "active": "13171"
+        },
+        {
+          "stage": "setup_b",
+          "state_sha256": "59f3a3fc0bf1c3025f95f2b842fd0e389f3d4d0ebc1cab7754dfd302609f4a6c",
+          "cells": "264064",
+          "roads": "1407",
+          "active": "13171"
+        },
+        {
+          "stage": "add",
+          "state_sha256": "cac2aff313c37e57400aa955d3ed4cc2b2387067eda6ddccd1ec5ac3a7d39b34",
+          "cells": "264110",
+          "roads": "1408",
+          "active": "13171"
+        },
+        {
+          "stage": "connect_split",
+          "state_sha256": "4cd5af24c2838aaa12c7a0abba2e772f5e9c74241f4c566872c9c40c1983b9cc",
+          "cells": "264114",
+          "roads": "1411",
+          "active": "13171"
+        },
+        {
+          "stage": "widen",
+          "state_sha256": "4cd5af24c2838aaa12c7a0abba2e772f5e9c74241f4c566872c9c40c1983b9cc",
+          "cells": "264114",
+          "roads": "1411",
+          "active": "13171"
+        },
+        {
+          "stage": "delete",
+          "state_sha256": "4cd5af24c2838aaa12c7a0abba2e772f5e9c74241f4c566872c9c40c1983b9cc",
+          "cells": "264114",
+          "roads": "1411",
+          "active": "13171"
+        },
+        {
+          "stage": "continuous_a",
+          "state_sha256": "e4bb169463c6275555ed492eea7f80a8491cf67339f2c53313d2de36dc0aa352",
+          "cells": "264160",
+          "roads": "1412",
+          "active": "13171"
+        },
+        {
+          "stage": "continuous_b",
+          "state_sha256": "8097e36a119dad2d0156963aedee9f8f3c21b05de4a6636c5b9c6b39a62b47cd",
+          "cells": "264206",
+          "roads": "1413",
+          "active": "13171"
+        },
+        {
+          "stage": "margin_reverse",
+          "state_sha256": "8097e36a119dad2d0156963aedee9f8f3c21b05de4a6636c5b9c6b39a62b47cd",
+          "cells": "264206",
+          "roads": "1413",
+          "active": "13171"
+        },
+        {
+          "stage": "occupied_widen",
+          "state_sha256": "8097e36a119dad2d0156963aedee9f8f3c21b05de4a6636c5b9c6b39a62b47cd",
+          "cells": "264206",
+          "roads": "1413",
+          "active": "13171"
+        },
+        {
+          "stage": "occupied_reverse",
+          "state_sha256": "8097e36a119dad2d0156963aedee9f8f3c21b05de4a6636c5b9c6b39a62b47cd",
+          "cells": "264206",
+          "roads": "1413",
+          "active": "13171"
+        },
+        {
+          "stage": "occupied_cross",
+          "state_sha256": "8097e36a119dad2d0156963aedee9f8f3c21b05de4a6636c5b9c6b39a62b47cd",
+          "cells": "264206",
+          "roads": "1413",
+          "active": "13171"
+        },
+        {
+          "stage": "occupied_delete",
+          "state_sha256": "8097e36a119dad2d0156963aedee9f8f3c21b05de4a6636c5b9c6b39a62b47cd",
+          "cells": "264206",
+          "roads": "1413",
+          "active": "13171"
+        },
+        {
+          "stage": "invalid_zero_stroke",
+          "state_sha256": "8b89518ea4724190610bf61e90006a299405a7d1ed2c8e794fa267c3243c3386",
+          "cells": "264206",
+          "roads": "1413",
+          "active": "13171"
+        },
+        {
+          "stage": "payment_once",
+          "state_sha256": "a39f6c1f699182c4e800d8c7c01ce71a9cd2407ca00ae926ecd7079a762971b9",
+          "cells": "264252",
+          "roads": "1414",
+          "active": "13171"
+        },
+        {
+          "stage": "stale_commit",
+          "state_sha256": "a39f6c1f699182c4e800d8c7c01ce71a9cd2407ca00ae926ecd7079a762971b9",
+          "cells": "264252",
+          "roads": "1414",
+          "active": "13171"
+        },
+        {
+          "stage": "double_commit",
+          "state_sha256": "a39f6c1f699182c4e800d8c7c01ce71a9cd2407ca00ae926ecd7079a762971b9",
+          "cells": "264252",
+          "roads": "1414",
+          "active": "13171"
+        },
+        {
+          "stage": "after160",
+          "state_sha256": "9f1e17f1dcbad4ee34a4b189926e208b1de196f0966f8c3db5bc25c5ab1dd688",
+          "cells": "264252",
+          "roads": "1414",
+          "active": "12030"
+        },
+        {
+          "stage": "after240_restore",
+          "state_sha256": "e118e94b4e29416c043e0fac940e676a4c2ec5e6d27c0cb7aeea718abe1fecb0",
+          "cells": "264252",
+          "roads": "1414",
+          "active": "11611"
+        }
+      ],
+      "outcomes": [
+        {
+          "operation": "margin_reverse",
+          "status": "rejected",
+          "reason": "\u65bd\u5de5\u8282\u70b9\u5b89\u5168\u533a\u5185\u6709\u51b2\u7a81\u8f66\u8f86\uff0c\u8bf7\u7b49\u5f85\u5b83\u4eec\u9a76\u79bb\u540e\u91cd\u8bd5\uff1b\u9053\u8def\u548c\u4efb\u52a1\u672a\u4fee\u6539\u3002"
+        },
+        {
+          "operation": "occupied_widen",
+          "status": "rejected",
+          "reason": "road.widen_obstructed"
+        },
+        {
+          "operation": "occupied_reverse",
+          "status": "rejected",
+          "reason": "\u5f85\u64a4\u65b9\u5411/\u8f66\u9053\u4ecd\u6709\u8f66\u8f86\uff0c\u7b49\u5f85\u9a76\u79bb\u540e\u518d\u5347\u7ea7\uff1b\u57ce\u5e02\u672a\u4fee\u6539\u3002"
+        },
+        {
+          "operation": "occupied_cross",
+          "status": "rejected",
+          "reason": "Invalid lane access"
+        },
+        {
+          "operation": "occupied_delete",
+          "status": "rejected",
+          "reason": "\u65bd\u5de5\u8282\u70b9\u5b89\u5168\u533a\u5185\u6709\u51b2\u7a81\u8f66\u8f86\uff0c\u8bf7\u7b49\u5f85\u5b83\u4eec\u9a76\u79bb\u540e\u91cd\u8bd5\uff1b\u9053\u8def\u548c\u4efb\u52a1\u672a\u4fee\u6539\u3002"
+        },
+        {
+          "operation": "invalid_zero_stroke",
+          "status": "accepted",
+          "reason": "none"
+        },
+        {
+          "operation": "stale_commit",
+          "status": "rejected",
+          "reason": "\u9053\u8def\u65b9\u6848\u5df2\u8fc7\u671f\uff0c\u8bf7\u91cd\u65b0\u7ed8\u5236"
+        },
+        {
+          "operation": "double_commit",
+          "status": "rejected",
+          "reason": "\u9053\u8def\u65b9\u6848\u5df2\u8fc7\u671f\uff0c\u8bf7\u91cd\u65b0\u7ed8\u5236"
+        }
+      ]
+    },
+    "scale-replay-new": {
+      "states": [
+        {
+          "stage": "initial",
+          "state_sha256": "357448e241bb58632872169271f6b41d48c495711d51abb45df223605e02e1ce",
+          "cells": "263970",
+          "roads": "1405",
+          "active": "13171"
+        },
+        {
+          "stage": "setup_a",
+          "state_sha256": "4f7b4c2cf42b28dd0a8dac93f0f983c7b79164ee942a761357dfe45cad463f88",
+          "cells": "264018",
+          "roads": "1406",
+          "active": "13171"
+        },
+        {
+          "stage": "setup_b",
+          "state_sha256": "59f3a3fc0bf1c3025f95f2b842fd0e389f3d4d0ebc1cab7754dfd302609f4a6c",
+          "cells": "264064",
+          "roads": "1407",
+          "active": "13171"
+        },
+        {
+          "stage": "add",
+          "state_sha256": "cac2aff313c37e57400aa955d3ed4cc2b2387067eda6ddccd1ec5ac3a7d39b34",
+          "cells": "264110",
+          "roads": "1408",
+          "active": "13171"
+        },
+        {
+          "stage": "connect_split",
+          "state_sha256": "4cd5af24c2838aaa12c7a0abba2e772f5e9c74241f4c566872c9c40c1983b9cc",
+          "cells": "264114",
+          "roads": "1411",
+          "active": "13171"
+        },
+        {
+          "stage": "widen",
+          "state_sha256": "4cd5af24c2838aaa12c7a0abba2e772f5e9c74241f4c566872c9c40c1983b9cc",
+          "cells": "264114",
+          "roads": "1411",
+          "active": "13171"
+        },
+        {
+          "stage": "delete",
+          "state_sha256": "4cd5af24c2838aaa12c7a0abba2e772f5e9c74241f4c566872c9c40c1983b9cc",
+          "cells": "264114",
+          "roads": "1411",
+          "active": "13171"
+        },
+        {
+          "stage": "continuous_a",
+          "state_sha256": "e4bb169463c6275555ed492eea7f80a8491cf67339f2c53313d2de36dc0aa352",
+          "cells": "264160",
+          "roads": "1412",
+          "active": "13171"
+        },
+        {
+          "stage": "continuous_b",
+          "state_sha256": "8097e36a119dad2d0156963aedee9f8f3c21b05de4a6636c5b9c6b39a62b47cd",
+          "cells": "264206",
+          "roads": "1413",
+          "active": "13171"
+        },
+        {
+          "stage": "margin_reverse",
+          "state_sha256": "8097e36a119dad2d0156963aedee9f8f3c21b05de4a6636c5b9c6b39a62b47cd",
+          "cells": "264206",
+          "roads": "1413",
+          "active": "13171"
+        },
+        {
+          "stage": "occupied_widen",
+          "state_sha256": "8097e36a119dad2d0156963aedee9f8f3c21b05de4a6636c5b9c6b39a62b47cd",
+          "cells": "264206",
+          "roads": "1413",
+          "active": "13171"
+        },
+        {
+          "stage": "occupied_reverse",
+          "state_sha256": "8097e36a119dad2d0156963aedee9f8f3c21b05de4a6636c5b9c6b39a62b47cd",
+          "cells": "264206",
+          "roads": "1413",
+          "active": "13171"
+        },
+        {
+          "stage": "occupied_cross",
+          "state_sha256": "8097e36a119dad2d0156963aedee9f8f3c21b05de4a6636c5b9c6b39a62b47cd",
+          "cells": "264206",
+          "roads": "1413",
+          "active": "13171"
+        },
+        {
+          "stage": "occupied_delete",
+          "state_sha256": "8097e36a119dad2d0156963aedee9f8f3c21b05de4a6636c5b9c6b39a62b47cd",
+          "cells": "264206",
+          "roads": "1413",
+          "active": "13171"
+        },
+        {
+          "stage": "invalid_zero_stroke",
+          "state_sha256": "8b89518ea4724190610bf61e90006a299405a7d1ed2c8e794fa267c3243c3386",
+          "cells": "264206",
+          "roads": "1413",
+          "active": "13171"
+        },
+        {
+          "stage": "payment_once",
+          "state_sha256": "a39f6c1f699182c4e800d8c7c01ce71a9cd2407ca00ae926ecd7079a762971b9",
+          "cells": "264252",
+          "roads": "1414",
+          "active": "13171"
+        },
+        {
+          "stage": "stale_commit",
+          "state_sha256": "a39f6c1f699182c4e800d8c7c01ce71a9cd2407ca00ae926ecd7079a762971b9",
+          "cells": "264252",
+          "roads": "1414",
+          "active": "13171"
+        },
+        {
+          "stage": "double_commit",
+          "state_sha256": "a39f6c1f699182c4e800d8c7c01ce71a9cd2407ca00ae926ecd7079a762971b9",
+          "cells": "264252",
+          "roads": "1414",
+          "active": "13171"
+        },
+        {
+          "stage": "after160",
+          "state_sha256": "9f1e17f1dcbad4ee34a4b189926e208b1de196f0966f8c3db5bc25c5ab1dd688",
+          "cells": "264252",
+          "roads": "1414",
+          "active": "12030"
+        },
+        {
+          "stage": "after240_restore",
+          "state_sha256": "e118e94b4e29416c043e0fac940e676a4c2ec5e6d27c0cb7aeea718abe1fecb0",
+          "cells": "264252",
+          "roads": "1414",
+          "active": "11611"
+        }
+      ],
+      "outcomes": [
+        {
+          "operation": "margin_reverse",
+          "status": "rejected",
+          "reason": "\u65bd\u5de5\u8282\u70b9\u5b89\u5168\u533a\u5185\u6709\u51b2\u7a81\u8f66\u8f86\uff0c\u8bf7\u7b49\u5f85\u5b83\u4eec\u9a76\u79bb\u540e\u91cd\u8bd5\uff1b\u9053\u8def\u548c\u4efb\u52a1\u672a\u4fee\u6539\u3002"
+        },
+        {
+          "operation": "occupied_widen",
+          "status": "rejected",
+          "reason": "road.widen_obstructed"
+        },
+        {
+          "operation": "occupied_reverse",
+          "status": "rejected",
+          "reason": "\u5f85\u64a4\u65b9\u5411/\u8f66\u9053\u4ecd\u6709\u8f66\u8f86\uff0c\u7b49\u5f85\u9a76\u79bb\u540e\u518d\u5347\u7ea7\uff1b\u57ce\u5e02\u672a\u4fee\u6539\u3002"
+        },
+        {
+          "operation": "occupied_cross",
+          "status": "rejected",
+          "reason": "Invalid lane access"
+        },
+        {
+          "operation": "occupied_delete",
+          "status": "rejected",
+          "reason": "\u65bd\u5de5\u8282\u70b9\u5b89\u5168\u533a\u5185\u6709\u51b2\u7a81\u8f66\u8f86\uff0c\u8bf7\u7b49\u5f85\u5b83\u4eec\u9a76\u79bb\u540e\u91cd\u8bd5\uff1b\u9053\u8def\u548c\u4efb\u52a1\u672a\u4fee\u6539\u3002"
+        },
+        {
+          "operation": "invalid_zero_stroke",
+          "status": "accepted",
+          "reason": "none"
+        },
+        {
+          "operation": "stale_commit",
+          "status": "rejected",
+          "reason": "\u9053\u8def\u65b9\u6848\u5df2\u8fc7\u671f\uff0c\u8bf7\u91cd\u65b0\u7ed8\u5236"
+        },
+        {
+          "operation": "double_commit",
+          "status": "rejected",
+          "reason": "\u9053\u8def\u65b9\u6848\u5df2\u8fc7\u671f\uff0c\u8bf7\u91cd\u65b0\u7ed8\u5236"
+        }
+      ]
+    }
+  },
+  "note": "Realtime running captures occur at different wall-clock ticks and are not full-save equivalence pairs. Assertions/save IO excluded from running construction frames; click-to-input unknown=-1."
+}

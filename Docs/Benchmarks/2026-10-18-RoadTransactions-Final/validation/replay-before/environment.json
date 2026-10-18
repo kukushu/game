@@ -1,0 +1,12 @@
+{
+    "frozenReference":  "",
+    "runtime":  "DotNet64",
+    "peakWorkingSetBytes":  1308987392,
+    "started_at_utc":  "2026-10-18T05:34:31.4047580Z",
+    "stopped":  null,
+    "commit":  "547bb6a4f93cf5aa0e9fcfe936cfcd595d1a8875",
+    "exitCode":  0,
+    "finished_at_utc":  "2026-10-18T05:34:45.6306349Z",
+    "input_sha256":  "3F49BD1A02879BB686C24D5517902CC581C657220CE2B955107D89B6FA870B4E",
+    "note":  "Same runtime model/state replay, not native frame timing"
+}

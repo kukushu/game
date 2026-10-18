@@ -1,0 +1,8 @@
+{
+    "commit":  "0f13682e81c181c7c7f11bb13e3d87af655cf031",
+    "exitCode":  -532462766,
+    "input_sha256":  "3F49BD1A02879BB686C24D5517902CC581C657220CE2B955107D89B6FA870B4E",
+    "oracle":  "Frozen original RecalculateUtilities from 0f13682; diagnostics only",
+    "runtime":  "DotNet64",
+    "stopped":  null
+}

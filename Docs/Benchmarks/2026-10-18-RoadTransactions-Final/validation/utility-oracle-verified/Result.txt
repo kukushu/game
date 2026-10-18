@@ -1,0 +1,1 @@
+PASS 51 frozen utility rebuild snapshots / 398106 exact building supplies, all pipe component states and totals; dynamic loads/budget/provider access retained; geometry invalidation, save and 80-step cold continuation.

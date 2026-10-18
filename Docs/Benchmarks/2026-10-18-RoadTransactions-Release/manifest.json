@@ -1,0 +1,2576 @@
+{
+  "schema_version": 1,
+  "id": "2026-10-18-RoadTransactions-Release",
+  "packaged_at_utc": "2026-10-18T10:24:49.272317+00:00",
+  "measurement": {
+    "title": "Final road transaction release: unused-node cache regression fix, normal product and supplemental 30000/50000 gameplay windows",
+    "kind": "attribution",
+    "source_commit": "7a06a4667e7f5043b2edc4397bf4b10973c7b803",
+    "captured_at_utc": "2026-10-18T10:19:53.8895136Z",
+    "unity_version": "6000.6.3f1",
+    "runtime": "Native Unity Development Mono unprofiled normal host; .NET10 x64 frozen regression and whole-state replay",
+    "cpu": "Intel(R) Core(TM) i5-14600KF",
+    "os": "Microsoft Windows NT 10.0.26200.0",
+    "scenario": "Same existing 30000/5230-car and 50005/13171-car diagnostic inputs as main immutable package. No regenerated city.",
+    "method": "See Report.txt and metadata/release-notes.json. Supplemental one unprofiled warmed run per scale, exact same driver. Reproduced old unused-node lookup exception, compare corrected output to frozen cold algorithm with complete save checks. Normal delivered Player separately rebuilt without temporary probes; native functional and whole-state replay recorded.",
+    "commands": [
+      [
+        "powershell",
+        "-File",
+        "Tools/RunZoningEditProbe.ps1",
+        "-Running"
+      ],
+      [
+        "powershell",
+        "-File",
+        "Tools/VerifyUtilityLayout.ps1",
+        "-OrphanOnly"
+      ],
+      [
+        "powershell",
+        "-File",
+        "Tools/VerifyZoningEditReplay.ps1",
+        "-Expanded"
+      ]
+    ],
+    "unknown_reasons": {},
+    "limitations": [
+      "Main before/after samples and raw GC are in 2026-10-18-RoadTransactions-Final; this is a supplemental final release run, not a new statistical paired study.",
+      "No physical mouse latency, universal frame bound, FPS or 3x simulation claim. Initialization and warmup remain separate.",
+      "Busy-input edits rejected by old rules are not successful-operation samples. Global actor checks and commute invalidation still remain.",
+      "Legacy profile counters passed as zero are not measured zero; see declared units and main raw GC."
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "native/release-normal/scopes.csv",
+      "role": "samples",
+      "digest_mode": "utf8-lf",
+      "bytes": 9924,
+      "sha256": "e08076b31651a4aa9e35bbe0ca1c29cbafd6ca8a617c0fb63c6cf7d2ddb65087",
+      "format": "csv",
+      "rows": 278,
+      "columns": {
+        "operation": {
+          "type": "text",
+          "unit": "label"
+        },
+        "name": {
+          "type": "text",
+          "unit": "label"
+        },
+        "ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "allocated_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        }
+      }
+    },
+    {
+      "path": "native/release-normal/frames.csv",
+      "role": "samples",
+      "digest_mode": "utf8-lf",
+      "bytes": 28989,
+      "sha256": "b5989ffcf77f7d8fcdcd7c63eaa16920a0d1aa9e4a173048e803daac0b0934e5",
+      "format": "csv",
+      "rows": 554,
+      "columns": {
+        "frame": {
+          "type": "number",
+          "unit": "count"
+        },
+        "operation": {
+          "type": "text",
+          "unit": "label"
+        },
+        "frame_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "tick": {
+          "type": "number",
+          "unit": "count"
+        },
+        "active": {
+          "type": "number",
+          "unit": "count"
+        },
+        "advance_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "structure_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "vehicles_ms": {
+          "type": "number",
+          "unit": "ms"
+        }
+      }
+    },
+    {
+      "path": "native/release-normal/profile.csv",
+      "role": "samples",
+      "digest_mode": "utf8-lf",
+      "bytes": 9750,
+      "sha256": "0589089f4b0763f3fb08630e36f994af5f854ccd439211bac50b6a07969792e8",
+      "format": "csv",
+      "rows": 5,
+      "columns": {
+        "operation": {
+          "type": "text",
+          "unit": "label"
+        },
+        "tick": {
+          "type": "number",
+          "unit": "count"
+        },
+        "active": {
+          "type": "number",
+          "unit": "count"
+        },
+        "route_preparations": {
+          "type": "number",
+          "unit": "legacy_placeholder_not_measured"
+        },
+        "gc0": {
+          "type": "number",
+          "unit": "legacy_placeholder_not_measured"
+        },
+        "gc1": {
+          "type": "number",
+          "unit": "legacy_placeholder_not_measured"
+        },
+        "gc2": {
+          "type": "number",
+          "unit": "legacy_placeholder_not_measured"
+        },
+        "unreachable": {
+          "type": "number",
+          "unit": "count"
+        },
+        "source_blocked": {
+          "type": "number",
+          "unit": "count"
+        },
+        "cache_flushes": {
+          "type": "number",
+          "unit": "count"
+        },
+        "cache_hits": {
+          "type": "number",
+          "unit": "count"
+        },
+        "cache_evictions": {
+          "type": "number",
+          "unit": "count"
+        },
+        "commute_estimate_hits": {
+          "type": "number",
+          "unit": "count"
+        },
+        "commute_estimate_misses": {
+          "type": "number",
+          "unit": "count"
+        },
+        "allocation_counter_supported": {
+          "type": "number",
+          "unit": "count"
+        },
+        "zoning_candidate_pairs": {
+          "type": "number",
+          "unit": "count"
+        },
+        "zoning_exact_overlaps": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Step_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Step_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Step_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Step_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Step_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Residents_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Residents_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Residents_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Residents_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Residents_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Job_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Job_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Job_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Job_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Job_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Production_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Production_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Production_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Production_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Production_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Logistics_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Logistics_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Logistics_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Logistics_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Logistics_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Dispatch_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Dispatch_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Dispatch_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Dispatch_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Dispatch_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "RouteLookup_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "RouteLookup_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "RouteLookup_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "RouteLookup_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "RouteLookup_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "RouteSearch_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "RouteSearch_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "RouteSearch_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "RouteSearch_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "RouteSearch_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Admission_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Admission_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Admission_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Admission_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Admission_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Occupancy_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Occupancy_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Occupancy_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Occupancy_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Occupancy_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Movement_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Movement_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Movement_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Movement_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Movement_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Settlement_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Settlement_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Settlement_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Settlement_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Settlement_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Growth_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Growth_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Growth_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Growth_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Growth_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Utilities_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Utilities_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Utilities_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Utilities_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Utilities_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Population_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Population_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Population_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Population_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Population_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Consumption_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Consumption_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Consumption_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Consumption_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Consumption_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Trade_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Trade_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Trade_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Trade_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Trade_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Payroll_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Payroll_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Payroll_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Payroll_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Payroll_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningRebuild_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningRebuild_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningRebuild_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ZoningRebuild_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningRebuild_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "GrowthSearch_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "GrowthSearch_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "GrowthSearch_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "GrowthSearch_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "GrowthSearch_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Placement_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Placement_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Placement_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Placement_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Placement_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Finance_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Finance_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Finance_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Finance_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Finance_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "FinanceAccrual_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "FinanceAccrual_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "FinanceAccrual_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "FinanceAccrual_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "FinanceAccrual_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Waste_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Waste_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Waste_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Waste_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Waste_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningGeometry_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningGeometry_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningGeometry_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ZoningGeometry_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningGeometry_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningLandUse_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningLandUse_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningLandUse_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ZoningLandUse_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningLandUse_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningOccupancy_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningOccupancy_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningOccupancy_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ZoningOccupancy_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningOccupancy_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "UtilityRebuild_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "UtilityRebuild_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "UtilityRebuild_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "UtilityRebuild_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "UtilityRebuild_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "UtilityPowerCoverage_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "UtilityPowerCoverage_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "UtilityPowerCoverage_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "UtilityPowerCoverage_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "UtilityPowerCoverage_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "UtilityWaterCoverage_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "UtilityWaterCoverage_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "UtilityWaterCoverage_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "UtilityWaterCoverage_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "UtilityWaterCoverage_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "CommuteEstimate_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "CommuteEstimate_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "CommuteEstimate_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "CommuteEstimate_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "CommuteEstimate_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "CostSearch_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "CostSearch_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "CostSearch_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "CostSearch_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "CostSearch_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "PlacementTerrain_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "PlacementTerrain_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "PlacementTerrain_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "PlacementTerrain_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "PlacementTerrain_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "PlacementBuildings_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "PlacementBuildings_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "PlacementBuildings_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "PlacementBuildings_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "PlacementBuildings_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ClearanceQuery_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ClearanceQuery_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ClearanceQuery_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ClearanceQuery_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ClearanceQuery_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ClearanceOverlap_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ClearanceOverlap_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ClearanceOverlap_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ClearanceOverlap_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ClearanceOverlap_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningCellKey_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningCellKey_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningCellKey_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ZoningCellKey_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningCellKey_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "CommuteLookup_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "CommuteLookup_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "CommuteLookup_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "CommuteLookup_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "CommuteLookup_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "OccupancyClear_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "OccupancyClear_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "OccupancyClear_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "OccupancyClear_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "OccupancyClear_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "OccupancyActors_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "OccupancyActors_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "OccupancyActors_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "OccupancyActors_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "OccupancyActors_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "OccupancySort_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "OccupancySort_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "OccupancySort_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "OccupancySort_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "OccupancySort_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        }
+      }
+    },
+    {
+      "path": "native/release-normal/counts.csv",
+      "role": "samples",
+      "digest_mode": "utf8-lf",
+      "bytes": 241,
+      "sha256": "9b2e3b35f839118f36faecd1a05e227f4ab754a6b9ce9c8ad350cafbd155c197",
+      "format": "csv",
+      "rows": 5,
+      "columns": {
+        "operation": {
+          "type": "text",
+          "unit": "label"
+        },
+        "cells": {
+          "type": "number",
+          "unit": "count"
+        },
+        "geometry_roads": {
+          "type": "number",
+          "unit": "count"
+        },
+        "resolved_roads": {
+          "type": "number",
+          "unit": "count"
+        },
+        "full_rebuild": {
+          "type": "text",
+          "unit": "label"
+        },
+        "renderers": {
+          "type": "number",
+          "unit": "count"
+        },
+        "rebuilt_chunks": {
+          "type": "number",
+          "unit": "count"
+        }
+      }
+    },
+    {
+      "path": "native/release-normal/operations.csv",
+      "role": "samples",
+      "digest_mode": "utf8-lf",
+      "bytes": 336,
+      "sha256": "8aefab00f963f681fca73ddff6c9ce0366b1915ef40d7b76dd2b53515d265f3a",
+      "format": "csv",
+      "rows": 5,
+      "columns": {
+        "operation": {
+          "type": "text",
+          "unit": "label"
+        },
+        "status": {
+          "type": "text",
+          "unit": "label"
+        },
+        "reason": {
+          "type": "text",
+          "unit": "label"
+        }
+      }
+    },
+    {
+      "path": "native/release-normal/environment.json",
+      "role": "environment",
+      "digest_mode": "utf8-lf",
+      "bytes": 1800,
+      "sha256": "15c1d7b10a86319cc6ff27b3298bfcf17d62045884520cf8c1a734314519198d",
+      "format": "json"
+    },
+    {
+      "path": "native/release-normal/Result.txt",
+      "role": "validation",
+      "digest_mode": "utf8-lf",
+      "bytes": 205,
+      "sha256": "4c39f2f0ffb171fc828af71668799506ad2f83441a00107743c209c8727da6e7",
+      "format": "text"
+    },
+    {
+      "path": "native/release-normal/final.png",
+      "role": "image",
+      "digest_mode": "binary",
+      "bytes": 17062,
+      "sha256": "3a57f9d3166eec88ea9bea7463866f86074089c593043b8325ec6134b467daa5",
+      "format": "binary"
+    },
+    {
+      "path": "native/release-normal/player.log",
+      "role": "validation",
+      "digest_mode": "utf8-lf",
+      "bytes": 12647,
+      "sha256": "903e2464661a30908524c53aee61112caa84c7c2a594f34829e07ea034c4d912",
+      "format": "text"
+    },
+    {
+      "path": "native/release-scale/scopes.csv",
+      "role": "samples",
+      "digest_mode": "utf8-lf",
+      "bytes": 10438,
+      "sha256": "ab8a8a13be85bcc4c4346ed9749bd66197d02cbaf215d1b836c522ff6827340c",
+      "format": "csv",
+      "rows": 291,
+      "columns": {
+        "operation": {
+          "type": "text",
+          "unit": "label"
+        },
+        "name": {
+          "type": "text",
+          "unit": "label"
+        },
+        "ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "allocated_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        }
+      }
+    },
+    {
+      "path": "native/release-scale/frames.csv",
+      "role": "samples",
+      "digest_mode": "utf8-lf",
+      "bytes": 21023,
+      "sha256": "8a47740445b2cfbaad40e2ab210acd605f52323b9b7135ec0e66acd24a1aa1f0",
+      "format": "csv",
+      "rows": 394,
+      "columns": {
+        "frame": {
+          "type": "number",
+          "unit": "count"
+        },
+        "operation": {
+          "type": "text",
+          "unit": "label"
+        },
+        "frame_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "tick": {
+          "type": "number",
+          "unit": "count"
+        },
+        "active": {
+          "type": "number",
+          "unit": "count"
+        },
+        "advance_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "structure_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "vehicles_ms": {
+          "type": "number",
+          "unit": "ms"
+        }
+      }
+    },
+    {
+      "path": "native/release-scale/profile.csv",
+      "role": "samples",
+      "digest_mode": "utf8-lf",
+      "bytes": 9758,
+      "sha256": "d5b39a846089e6167d0fbfc08e4fa75fb99d03fab93ed2b0aab4fad1aa5382a2",
+      "format": "csv",
+      "rows": 5,
+      "columns": {
+        "operation": {
+          "type": "text",
+          "unit": "label"
+        },
+        "tick": {
+          "type": "number",
+          "unit": "count"
+        },
+        "active": {
+          "type": "number",
+          "unit": "count"
+        },
+        "route_preparations": {
+          "type": "number",
+          "unit": "legacy_placeholder_not_measured"
+        },
+        "gc0": {
+          "type": "number",
+          "unit": "legacy_placeholder_not_measured"
+        },
+        "gc1": {
+          "type": "number",
+          "unit": "legacy_placeholder_not_measured"
+        },
+        "gc2": {
+          "type": "number",
+          "unit": "legacy_placeholder_not_measured"
+        },
+        "unreachable": {
+          "type": "number",
+          "unit": "count"
+        },
+        "source_blocked": {
+          "type": "number",
+          "unit": "count"
+        },
+        "cache_flushes": {
+          "type": "number",
+          "unit": "count"
+        },
+        "cache_hits": {
+          "type": "number",
+          "unit": "count"
+        },
+        "cache_evictions": {
+          "type": "number",
+          "unit": "count"
+        },
+        "commute_estimate_hits": {
+          "type": "number",
+          "unit": "count"
+        },
+        "commute_estimate_misses": {
+          "type": "number",
+          "unit": "count"
+        },
+        "allocation_counter_supported": {
+          "type": "number",
+          "unit": "count"
+        },
+        "zoning_candidate_pairs": {
+          "type": "number",
+          "unit": "count"
+        },
+        "zoning_exact_overlaps": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Step_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Step_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Step_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Step_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Step_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Residents_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Residents_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Residents_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Residents_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Residents_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Job_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Job_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Job_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Job_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Job_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Production_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Production_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Production_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Production_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Production_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Logistics_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Logistics_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Logistics_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Logistics_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Logistics_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Dispatch_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Dispatch_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Dispatch_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Dispatch_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Dispatch_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "RouteLookup_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "RouteLookup_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "RouteLookup_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "RouteLookup_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "RouteLookup_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "RouteSearch_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "RouteSearch_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "RouteSearch_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "RouteSearch_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "RouteSearch_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Admission_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Admission_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Admission_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Admission_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Admission_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Occupancy_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Occupancy_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Occupancy_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Occupancy_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Occupancy_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Movement_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Movement_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Movement_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Movement_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Movement_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Settlement_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Settlement_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Settlement_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Settlement_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Settlement_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Growth_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Growth_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Growth_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Growth_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Growth_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Utilities_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Utilities_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Utilities_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Utilities_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Utilities_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Population_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Population_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Population_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Population_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Population_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Consumption_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Consumption_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Consumption_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Consumption_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Consumption_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Trade_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Trade_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Trade_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Trade_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Trade_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Payroll_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Payroll_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Payroll_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Payroll_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Payroll_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningRebuild_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningRebuild_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningRebuild_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ZoningRebuild_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningRebuild_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "GrowthSearch_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "GrowthSearch_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "GrowthSearch_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "GrowthSearch_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "GrowthSearch_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Placement_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Placement_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Placement_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Placement_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Placement_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Finance_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Finance_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Finance_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Finance_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Finance_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "FinanceAccrual_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "FinanceAccrual_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "FinanceAccrual_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "FinanceAccrual_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "FinanceAccrual_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Waste_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Waste_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "Waste_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "Waste_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "Waste_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningGeometry_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningGeometry_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningGeometry_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ZoningGeometry_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningGeometry_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningLandUse_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningLandUse_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningLandUse_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ZoningLandUse_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningLandUse_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningOccupancy_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningOccupancy_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningOccupancy_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ZoningOccupancy_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningOccupancy_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "UtilityRebuild_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "UtilityRebuild_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "UtilityRebuild_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "UtilityRebuild_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "UtilityRebuild_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "UtilityPowerCoverage_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "UtilityPowerCoverage_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "UtilityPowerCoverage_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "UtilityPowerCoverage_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "UtilityPowerCoverage_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "UtilityWaterCoverage_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "UtilityWaterCoverage_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "UtilityWaterCoverage_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "UtilityWaterCoverage_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "UtilityWaterCoverage_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "CommuteEstimate_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "CommuteEstimate_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "CommuteEstimate_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "CommuteEstimate_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "CommuteEstimate_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "CostSearch_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "CostSearch_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "CostSearch_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "CostSearch_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "CostSearch_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "PlacementTerrain_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "PlacementTerrain_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "PlacementTerrain_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "PlacementTerrain_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "PlacementTerrain_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "PlacementBuildings_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "PlacementBuildings_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "PlacementBuildings_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "PlacementBuildings_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "PlacementBuildings_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ClearanceQuery_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ClearanceQuery_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ClearanceQuery_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ClearanceQuery_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ClearanceQuery_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ClearanceOverlap_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ClearanceOverlap_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ClearanceOverlap_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ClearanceOverlap_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ClearanceOverlap_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningCellKey_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningCellKey_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "ZoningCellKey_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "ZoningCellKey_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "ZoningCellKey_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "CommuteLookup_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "CommuteLookup_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "CommuteLookup_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "CommuteLookup_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "CommuteLookup_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "OccupancyClear_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "OccupancyClear_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "OccupancyClear_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "OccupancyClear_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "OccupancyClear_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "OccupancyActors_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "OccupancyActors_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "OccupancyActors_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "OccupancyActors_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "OccupancyActors_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "OccupancySort_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "OccupancySort_self_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "OccupancySort_calls": {
+          "type": "number",
+          "unit": "count"
+        },
+        "OccupancySort_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        },
+        "OccupancySort_self_bytes": {
+          "type": "number",
+          "unit": "bytes"
+        }
+      }
+    },
+    {
+      "path": "native/release-scale/counts.csv",
+      "role": "samples",
+      "digest_mode": "utf8-lf",
+      "bytes": 241,
+      "sha256": "c158b5f249dc63deeaaf689bc35b8fe43ef237e8c3ab2d36bb275d9e17947acf",
+      "format": "csv",
+      "rows": 5,
+      "columns": {
+        "operation": {
+          "type": "text",
+          "unit": "label"
+        },
+        "cells": {
+          "type": "number",
+          "unit": "count"
+        },
+        "geometry_roads": {
+          "type": "number",
+          "unit": "count"
+        },
+        "resolved_roads": {
+          "type": "number",
+          "unit": "count"
+        },
+        "full_rebuild": {
+          "type": "text",
+          "unit": "label"
+        },
+        "renderers": {
+          "type": "number",
+          "unit": "count"
+        },
+        "rebuilt_chunks": {
+          "type": "number",
+          "unit": "count"
+        }
+      }
+    },
+    {
+      "path": "native/release-scale/operations.csv",
+      "role": "samples",
+      "digest_mode": "utf8-lf",
+      "bytes": 336,
+      "sha256": "8aefab00f963f681fca73ddff6c9ce0366b1915ef40d7b76dd2b53515d265f3a",
+      "format": "csv",
+      "rows": 5,
+      "columns": {
+        "operation": {
+          "type": "text",
+          "unit": "label"
+        },
+        "status": {
+          "type": "text",
+          "unit": "label"
+        },
+        "reason": {
+          "type": "text",
+          "unit": "label"
+        }
+      }
+    },
+    {
+      "path": "native/release-scale/environment.json",
+      "role": "environment",
+      "digest_mode": "utf8-lf",
+      "bytes": 1800,
+      "sha256": "2381ad387d4f4baf3f80eea2177402dc06981a31a91dfd3bda30dbf3da7036f3",
+      "format": "json"
+    },
+    {
+      "path": "native/release-scale/Result.txt",
+      "role": "validation",
+      "digest_mode": "utf8-lf",
+      "bytes": 205,
+      "sha256": "4c39f2f0ffb171fc828af71668799506ad2f83441a00107743c209c8727da6e7",
+      "format": "text"
+    },
+    {
+      "path": "native/release-scale/final.png",
+      "role": "image",
+      "digest_mode": "binary",
+      "bytes": 17062,
+      "sha256": "3a57f9d3166eec88ea9bea7463866f86074089c593043b8325ec6134b467daa5",
+      "format": "binary"
+    },
+    {
+      "path": "native/release-scale/player.log",
+      "role": "validation",
+      "digest_mode": "utf8-lf",
+      "bytes": 12655,
+      "sha256": "2a3e5095aa3d767aebc992b7887ee981c2437e9a9330344f30b7930f5cfa7e05",
+      "format": "text"
+    },
+    {
+      "path": "metadata/ReleaseProbe-7a06a46-build-sources.json",
+      "role": "environment",
+      "digest_mode": "utf8-lf",
+      "bytes": 56305,
+      "sha256": "6ca7d31d2ff8e996d6b2f990f293c71cbf98fea8ce9f9b9fcefe4e26b24be50b",
+      "format": "json"
+    },
+    {
+      "path": "metadata/Product-7a06a46-build-sources.json",
+      "role": "environment",
+      "digest_mode": "utf8-lf",
+      "bytes": 31361,
+      "sha256": "4ce5350b44c7f0c6d343146be522a32446ce280d0868eeae950ed83a6d14a41c",
+      "format": "json"
+    },
+    {
+      "path": "validation/utility-orphan/snapshots.csv",
+      "role": "samples",
+      "digest_mode": "utf8-lf",
+      "bytes": 238,
+      "sha256": "8d65d545c801a3f971b57a366d1ed6eaadd15539f251d1313e2a7249b1671291",
+      "format": "csv",
+      "rows": 2,
+      "columns": {
+        "scenario": {
+          "type": "text",
+          "unit": "label"
+        },
+        "buildings": {
+          "type": "number",
+          "unit": "count"
+        },
+        "supply_sha256": {
+          "type": "text",
+          "unit": "label"
+        },
+        "layout_reused": {
+          "type": "text",
+          "unit": "label"
+        }
+      }
+    },
+    {
+      "path": "validation/utility-orphan/Result.txt",
+      "role": "validation",
+      "digest_mode": "utf8-lf",
+      "bytes": 116,
+      "sha256": "fb48f3e76945e4af609507490ef8fac138c4a299521b0a816006cbeb6dbddc19",
+      "format": "text"
+    },
+    {
+      "path": "validation/utility-orphan/environment.json",
+      "role": "environment",
+      "digest_mode": "utf8-lf",
+      "bytes": 307,
+      "sha256": "88483307aa7993adacab54d393bfb65b7e41fe860c203d3b5c300817b1399a18",
+      "format": "json"
+    },
+    {
+      "path": "validation/utility-orphan/build-sources.json",
+      "role": "environment",
+      "digest_mode": "utf8-lf",
+      "bytes": 34247,
+      "sha256": "9f1c72f7c2b5270d29a4d4e118b705c9eb97aeea9d3b07abecd63788793a89d8",
+      "format": "json"
+    },
+    {
+      "path": "validation/utility-orphan/stdout.log",
+      "role": "validation",
+      "digest_mode": "utf8-lf",
+      "bytes": 55,
+      "sha256": "7b876e37b6882ad4a6f08c563ea4145aae9d04624bf945810b9d9b1cf8148bd9",
+      "format": "text"
+    },
+    {
+      "path": "validation/utility-orphan/stderr.log",
+      "role": "validation",
+      "digest_mode": "utf8-lf",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "format": "text"
+    },
+    {
+      "path": "validation/utility-orphan-before/build-sources.json",
+      "role": "environment",
+      "digest_mode": "utf8-lf",
+      "bytes": 26089,
+      "sha256": "a574f52d6b076630f2c690673c4c3c5aa0f400f06720cbf3f773532b3a607518",
+      "format": "json"
+    },
+    {
+      "path": "validation/utility-orphan-before/stdout.log",
+      "role": "validation",
+      "digest_mode": "utf8-lf",
+      "bytes": 25,
+      "sha256": "b30e0c82caa774c7c9e2ac3e0e32defab4bc89ba41ef42237f6c1d72af7c7224",
+      "format": "text"
+    },
+    {
+      "path": "validation/utility-orphan-before/stderr.log",
+      "role": "validation",
+      "digest_mode": "utf8-lf",
+      "bytes": 1068,
+      "sha256": "6cd3f25997fcbc78be867471c63fac2f20bfad964dee3715cd1479d6bf167124",
+      "format": "text"
+    },
+    {
+      "path": "validation/expanded-release/replay.csv",
+      "role": "samples",
+      "digest_mode": "utf8-lf",
+      "bytes": 1903,
+      "sha256": "67a77cd03bda43f0f07748454d167c8d6e4854af0553da9b0f3018add4740c42",
+      "format": "csv",
+      "rows": 20,
+      "columns": {
+        "stage": {
+          "type": "text",
+          "unit": "label"
+        },
+        "state_sha256": {
+          "type": "text",
+          "unit": "label"
+        },
+        "cells": {
+          "type": "number",
+          "unit": "count"
+        },
+        "roads": {
+          "type": "number",
+          "unit": "count"
+        },
+        "active": {
+          "type": "number",
+          "unit": "count"
+        }
+      }
+    },
+    {
+      "path": "validation/expanded-release/expanded-operations.csv",
+      "role": "samples",
+      "digest_mode": "utf8-lf",
+      "bytes": 648,
+      "sha256": "b8ecbb2f8079738a3bf1fac3a4079b2288b318e163946a6bc7a1aaac02628383",
+      "format": "csv",
+      "rows": 8,
+      "columns": {
+        "operation": {
+          "type": "text",
+          "unit": "label"
+        },
+        "status": {
+          "type": "text",
+          "unit": "label"
+        },
+        "reason": {
+          "type": "text",
+          "unit": "label"
+        }
+      }
+    },
+    {
+      "path": "validation/expanded-release/Result.txt",
+      "role": "validation",
+      "digest_mode": "utf8-lf",
+      "bytes": 208,
+      "sha256": "cfa92a40eab263dade8a8afe383ac69f8fc1b917639500c4f0198bc4401c040a",
+      "format": "text"
+    },
+    {
+      "path": "validation/expanded-release/environment.json",
+      "role": "environment",
+      "digest_mode": "utf8-lf",
+      "bytes": 522,
+      "sha256": "9ffff62a7c171cdd7ba8e1c715ec66a18e5e33e8fdc3c01c4e6b82f804a999d5",
+      "format": "json"
+    },
+    {
+      "path": "validation/expanded-release/build-sources.json",
+      "role": "environment",
+      "digest_mode": "utf8-lf",
+      "bytes": 34231,
+      "sha256": "b2021db1a7fb8cd73e17eb6131a76641411088c31cc915a250e6002d5dbf5a2a",
+      "format": "json"
+    },
+    {
+      "path": "validation/expanded-release/stdout.log",
+      "role": "validation",
+      "digest_mode": "utf8-lf",
+      "bytes": 245,
+      "sha256": "d6ae53c5e0ef6a510eccdf4a72ee09fc0591c788646510881cda4b4250d531be",
+      "format": "text"
+    },
+    {
+      "path": "validation/expanded-release/stderr.log",
+      "role": "validation",
+      "digest_mode": "utf8-lf",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "format": "text"
+    },
+    {
+      "path": "validation/native-release/TradeResult.txt",
+      "role": "validation",
+      "digest_mode": "utf8-lf",
+      "bytes": 1457,
+      "sha256": "8b4d6f8b5ff605735712f89b3625d2c4d836e99e01fc0939948efff56f9a0b74",
+      "format": "text"
+    },
+    {
+      "path": "validation/native-release/environment.json",
+      "role": "environment",
+      "digest_mode": "utf8-lf",
+      "bytes": 201,
+      "sha256": "c93c41e34642624c92d02a21fad651fc92fee13ca468d7f51c837c1873a9097b",
+      "format": "json"
+    },
+    {
+      "path": "validation/native-release/player.log",
+      "role": "validation",
+      "digest_mode": "utf8-lf",
+      "bytes": 3032,
+      "sha256": "b15d88426c135861018b5c09ab30ad17c3ede8155994aede7b46b5d854ccaae8",
+      "format": "text"
+    },
+    {
+      "path": "all-measurements.csv",
+      "role": "summary",
+      "digest_mode": "utf8-lf",
+      "bytes": 13918,
+      "sha256": "5673cad68af32c4aadb7ae98f27192e0ab2cf54e02d37a0181741b47f3d8b43c",
+      "format": "csv",
+      "rows": 140,
+      "columns": {
+        "run": {
+          "type": "text",
+          "unit": "label"
+        },
+        "mode": {
+          "type": "text",
+          "unit": "label"
+        },
+        "operation": {
+          "type": "text",
+          "unit": "label"
+        },
+        "status": {
+          "type": "text",
+          "unit": "label"
+        },
+        "fine": {
+          "type": "number",
+          "unit": "count"
+        },
+        "raw": {
+          "type": "number",
+          "unit": "count"
+        },
+        "transaction_peak_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "transaction_sum_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "player_frame_peak_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "normal_frame_peak_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "click_to_input_ms": {
+          "type": "number",
+          "unit": "ms"
+        },
+        "tick_min": {
+          "type": "number",
+          "unit": "count"
+        },
+        "tick_max": {
+          "type": "number",
+          "unit": "count"
+        },
+        "active_min": {
+          "type": "number",
+          "unit": "count"
+        }
+      }
+    },
+    {
+      "path": "validation/all-state-check.json",
+      "role": "validation",
+      "digest_mode": "utf8-lf",
+      "bytes": 48901,
+      "sha256": "a0aa344a8cc2b676f212ac8369cf14388c0b7998fcc898e466db355b120aef71",
+      "format": "json"
+    },
+    {
+      "path": "Report.txt",
+      "role": "analysis",
+      "digest_mode": "utf8-lf",
+      "bytes": 15430,
+      "sha256": "ddcfed7d2b79754dd546c9e4ce6b27e70c2a67ac7c100e50c507dfc085f21575",
+      "format": "text"
+    },
+    {
+      "path": "validation/architecture.json",
+      "role": "validation",
+      "digest_mode": "utf8-lf",
+      "bytes": 288,
+      "sha256": "d08c9688f9e1492af94470304487b40995e8db5fd128336c71e4a5583998eebd",
+      "format": "json"
+    },
+    {
+      "path": "method/CityUtilityLayoutChecks.cs",
+      "role": "source",
+      "digest_mode": "utf8-lf",
+      "bytes": 8003,
+      "sha256": "1f548f818f944010dbc2b6ff8a10ba074e5ebd87a76b832c0cea43d87adc8173",
+      "format": "text"
+    },
+    {
+      "path": "method/SummarizeConstruction20261018.py",
+      "role": "source",
+      "digest_mode": "utf8-lf",
+      "bytes": 5812,
+      "sha256": "b46306d6ed1dea2852a3bc473983908a361dbb1325e5591b7574f317b66875c7",
+      "format": "text"
+    },
+    {
+      "path": "method/VerifyUtilityLayout.ps1",
+      "role": "source",
+      "digest_mode": "utf8-lf",
+      "bytes": 2120,
+      "sha256": "db2748723eb3d59a4d9005c77ed764968c47de3b4697a11ea182afa2bbb891e1",
+      "format": "text"
+    },
+    {
+      "path": "method/CityUtilityLayout.cs",
+      "role": "source",
+      "digest_mode": "utf8-lf",
+      "bytes": 5973,
+      "sha256": "48dfdd48c645fc9ad1879679507ef4caae4235ab1b7874f2b4a7df72f23adeec",
+      "format": "text"
+    },
+    {
+      "path": "metadata/release-notes.json",
+      "role": "environment",
+      "digest_mode": "utf8-lf",
+      "bytes": 796,
+      "sha256": "1d6078d8e6b83fc397d0d40b5c0c0c6f48bdd5b38ea1e99fa0f82a33a371c6cc",
+      "format": "json"
+    }
+  ],
+  "local_assets": [
+    {
+      "path": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\ConstructionCopies-20261018\\release-normal\\final.hcity",
+      "kind": "input_save",
+      "note": "Output checkpoint, not the common input. Realtime running variants finish at different ticks; deterministic replay is the whole-state oracle.",
+      "present_at_inventory": true,
+      "inventoried_at_utc": "2026-10-18T10:24:49.272378+00:00",
+      "bytes": 36998605,
+      "sha256": "e54d02df1344bb426b465264f3060fd878ad7f5af4bebd262612b0513e43539e"
+    },
+    {
+      "path": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\ConstructionCopies-20261018\\release-scale\\final.hcity",
+      "kind": "input_save",
+      "note": "Output checkpoint, not the common input. Realtime running variants finish at different ticks; deterministic replay is the whole-state oracle.",
+      "present_at_inventory": true,
+      "inventoried_at_utc": "2026-10-18T10:24:49.298913+00:00",
+      "bytes": 63174437,
+      "sha256": "fb76dd340b235f39fee9bd31da0e4cd4bb84d9f5d9bcbc16a2102466689d2feb"
+    },
+    {
+      "path": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\ConstructionCopies-20261018\\ReleaseProbe-7a06a46\\HarborCity_Data\\Managed\\Assembly-CSharp.dll",
+      "kind": "binary",
+      "present_at_inventory": true,
+      "inventoried_at_utc": "2026-10-18T10:24:49.343594+00:00",
+      "bytes": 1050112,
+      "sha256": "c414ca5a02f35087f68b81600bcf874a4a8f3a1f81503384b4c361d21b7a201e"
+    },
+    {
+      "path": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\ConstructionCopies-20261018\\Product-7a06a46\\HarborCity_Data\\Managed\\Assembly-CSharp.dll",
+      "kind": "binary",
+      "present_at_inventory": true,
+      "inventoried_at_utc": "2026-10-18T10:24:49.345015+00:00",
+      "bytes": 1032192,
+      "sha256": "7f1c1cd70dc9c92c0a404e0d9e0aefa4910e853f9404a96dd82b96be8ecade57"
+    },
+    {
+      "path": "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\ConstructionCopies-20261018\\expanded-release\\final.hcity",
+      "kind": "input_save",
+      "present_at_inventory": true,
+      "inventoried_at_utc": "2026-10-18T10:24:49.346166+00:00",
+      "bytes": 36979328,
+      "sha256": "ae82bd4f3e14e5e2b3ee229d8ea14dfae4d35055380b8fa9a865c2c3e9f4fe65"
+    }
+  ],
+  "local_inventory": {
+    "scope": "Final release probe and normal versioned assembly, final capture checkpoints and expanded deterministic output.",
+    "limitations": "Main package inventories common saves and all original raw/captured binaries. No raw/exe/hcity is uploaded; version directories must be retained."
+  }
+}

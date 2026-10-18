@@ -1,0 +1,30 @@
+{
+    "dirty":  [
+                  " M Assets/Scripts/Runtime/Traffic/CityRoadCoreWorld.cs",
+                  " M Docs/Architecture/ConstructionTransactions20261018.txt",
+                  " M Docs/Architecture/HarborCityArchitecture.html",
+                  " M Docs/Architecture/SourceEvidence.md",
+                  " M Tools/BuildArchitectureDocs.py",
+                  " M Tools/Diagnostics/PrepareConstructionProbe.py",
+                  " M Tools/Diagnostics/SummarizeConstruction20261018.py",
+                  " M \"\\346\\237\\245\\347\\234\\213\\344\\270\\200\\344\\270\\207\\344\\272\\272\\345\\237\\216\\345\\270\\202.cmd\"",
+                  " M \"\\346\\237\\245\\347\\234\\213\\344\\270\\211\\344\\270\\207\\344\\272\\272\\345\\237\\216\\345\\270\\202.cmd\"",
+                  " M \"\\346\\237\\245\\347\\234\\213\\344\\270\\211\\345\\215\\203\\344\\272\\272\\345\\237\\216\\345\\270\\202.cmd\""
+              ],
+    "finished_at_utc":  "2026-10-18T09:55:43.9106543Z",
+    "exitCode":  0,
+    "peakWorkingSetBytes":  2233614336,
+    "raw":  false,
+    "started_at_utc":  "2026-10-18T09:55:08.4542362Z",
+    "rawOperation":  "add",
+    "input_sha256":  "357448E241BB58632872169271F6B41D48C495711D51ABB45DF223605E02E1CE",
+    "stopped":  null,
+    "player":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\ConstructionCopies-20261018\\DraftInPlace\\HarborCity.exe",
+    "fine":  false,
+    "commit":  "3f29f7aa0158a9a4d63ce8da0bb73ce4f0205f51",
+    "running":  true,
+    "input":  "C:\\Users\\16934\\Documents\\unity_game\\test\\Temp\\ZoningOptimization-20261018\\scale50000\\final.hcity",
+    "os":  "Microsoft Windows NT 10.0.26200.0",
+    "cpu":  "Intel(R) Core(TM) i5-14600KF",
+    "assembly_sha256":  "E8D3E00DB3A4B88B98A2D42099182678156C3AF5C0C3513B2C3AEA3A52DC8010"
+}

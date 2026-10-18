@@ -1,0 +1,6 @@
+Unhandled exception. System.InvalidOperationException: Dangling personal job
+   at HarborCity.CityEntities.Validate() in C:\Users\16934\Documents\unity_game\test\Assets\Scripts\Runtime\Simulation\Core\CityEntities.cs:line 95
+   at HarborCity.CityCoreIndustrySession.Validate() in C:\Users\16934\Documents\unity_game\test\Assets\Scripts\Runtime\Simulation\Industry\CityCoreIndustrySession.cs:line 104
+   at HarborCity.CityCoreSave.Write(CityCoreIndustrySession session) in C:\Users\16934\Documents\unity_game\test\Assets\Scripts\Runtime\Simulation\Core\CityCoreSave.cs:line 44
+   at CityUtilityLayoutChecks.Compare(CityCoreIndustrySession s, String name, Nullable`1 reuse) in C:\Users\16934\Documents\unity_game\test\Tools\Diagnostics\CityUtilityLayoutChecks.cs:line 19
+   at CityUtilityLayoutChecks.Main(String[] args) in C:\Users\16934\Documents\unity_game\test\Tools\Diagnostics\CityUtilityLayoutChecks.cs:line 36

@@ -1,0 +1,16 @@
+{
+  "excluded_native": [
+    "running-a1: concurrent Unity build; exploratory only, never selected as a paired acceptance sample"
+  ],
+  "utility": [
+    "utility-oracle: invalid-access fixture retained nonzero lane; original validator rejected; fixture corrected, exact assertions unchanged",
+    "utility-oracle-v2: exhaustive facility sweep manually stopped at confirmed owned PID; bounded representatives selected without reducing per-snapshot all-building assertions",
+    "utility-oracle-v3: stopped before further cases to use public resident/job lifecycle operations and preserve whole-save invariants",
+    "utility-oracle-final/diff: cold restore lacked terrain callback. Complete JSON diff showed only development.nextGrowth 246/240, nextEmployment 246/240 and society.lastSettledDay 3/2; transport JSON identical. Restoring identical Flat sampler made strict 80-step whole-save comparison pass."
+  ],
+  "limitations": [
+    "profile.csv gc0/gc1/gc2 and route_preparations are legacy passed-zero placeholders, not measured zero; column units mark them accordingly. Native allocation scopes report -1 when unsupported; raw hierarchy is the allocation evidence.",
+    "Actual player pointer latency is unmeasured (-1). Scripted domain commands use real Player and normal Update, not a physical mouse.",
+    "Busy native widen/delete and deterministic busy reverse/cross often reject under unchanged old rules. Successful native growth-city edits are a separate functional validation, not busy-input performance cases."
+  ]
+}

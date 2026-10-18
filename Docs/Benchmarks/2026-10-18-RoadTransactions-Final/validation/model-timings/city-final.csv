@@ -1,0 +1,2 @@
+active_min,active_max,roads,junctions,workers,steps,mean_ms,p95_ms,p99_ms,allocated_per_step,simulation_seconds,wall_seconds
+2,4,2,3,4,300,0.004305,0.005400,0.008100,365,15,0.001325

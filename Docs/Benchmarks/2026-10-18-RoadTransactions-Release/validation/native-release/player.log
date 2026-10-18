@@ -1,0 +1,46 @@
+Mono path[0] = 'C:/Users/16934/Documents/unity_game/test/Temp/ConstructionCopies-20261018/Product-7a06a46/HarborCity_Data/Managed'
+Mono config path = 'C:/Users/16934/Documents/unity_game/test/Temp/ConstructionCopies-20261018/Product-7a06a46/MonoBleedingEdge/etc'
+CodeReloadManager initialized
+Found 3 interfaces on host : 0) 192.168.2.1 1) 192.168.241.1 2) 192.168.1.214
+Player connection [15496]  Target information:
+
+Player connection [15496]  * "[IP] 192.168.2.1 [Port] 55000 [Flags] 2 [Guid] 820954673 [EditorId] 402795530 [Version] 1048832 [Id] WindowsPlayer(2,lb) [Debug] 0 [PackageName] WindowsPlayer [ProjectName] test" 
+
+Player connection [15496]  * "[IP] 192.168.241.1 [Port] 55000 [Flags] 2 [Guid] 820954673 [EditorId] 402795530 [Version] 1048832 [Id] WindowsPlayer(2,lb) [Debug] 0 [PackageName] WindowsPlayer [ProjectName] test" 
+
+Player connection [15496]  * "[IP] 192.168.1.214 [Port] 55000 [Flags] 2 [Guid] 820954673 [EditorId] 402795530 [Version] 1048832 [Id] WindowsPlayer(2,lb) [Debug] 0 [PackageName] WindowsPlayer [ProjectName] test" 
+
+Player connection [15496] Started UDP target info broadcast (1) on [225.0.0.222:54997].
+
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+Initialize engine version: 6000.6.3f1 (45d8eee7de74)
+[EntityIdStore] init: VM path (explicit commit), pageSize=4096, blockCount=1048576, entitiesPerBlock=256, slots reserved=4294967296 bytes
+[Subsystems] Discovering subsystems at path C:/Users/16934/Documents/unity_game/test/Temp/ConstructionCopies-20261018/Product-7a06a46/HarborCity_Data/UnitySubsystems
+GfxDevice: creating device client; kGfxThreadingModeNonThreaded
+Direct3D:
+    Version:  Direct3D 11.0 [level 11.1]
+    Renderer: NVIDIA GeForce RTX 3090 (ID=0x2204)
+    Vendor:   NVIDIA
+    VRAM:     24322 MB
+    Driver:   32.0.16.1088
+Begin MonoManager ReloadAssembly
+- Finished resetting the current domain, in  0.007 seconds
+[Physics::Module] Selected backend (deferred post-plugins).
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+UnloadTime: 0.603800 ms
+Failed to capture screen shot.
+Failed to capture screen shot.
+Failed to capture screen shot.
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input Polling Thread exited.
+Input System module state changed to: Shutdown.
+CodeReloadManager destroyed
+PlayerConnection::Cleanup##utp:{"type":"MemoryLeaks","version":2,"phase":"Immediate","time":1792319016757,"processId":42584,"allocatedMemory":34796,"memoryLabels":[{"Default":4728},{"NewDelete":104},{"Manager":18804},{"VertexData":192},{"GfxDevice":216},{"Audio":544},{"Serialization":616},{"String":616},{"PoolAlloc":768},{"ScriptManager":5696},{"CodeReload":440},{"CloudService":144},{"VR":1928},{"Video":144},{"Subsystems":96},{"CoreBusinessMetrics":128}]}

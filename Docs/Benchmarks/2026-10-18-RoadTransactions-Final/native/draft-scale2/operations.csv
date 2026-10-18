@@ -1,0 +1,6 @@
+operation,status,reason
+add,accepted,none
+connect_split,accepted,none
+widen,rejected,"施工节点安全区内有冲突车辆，请等待它们驶离后重试；道路和任务未修改。"
+delete,rejected,"施工节点安全区内有冲突车辆，请等待它们驶离后重试；道路和任务未修改。"
+continuous,accepted,none

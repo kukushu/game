@@ -1,0 +1,7 @@
+Unhandled exception. System.NullReferenceException: Object reference not set to an instance of an object.
+   at HarborCity.CityModel.UtilityLayoutKey()+MoveNext() in C:\Users\16934\Documents\unity_game\test\Temp\ConstructionCopies-20261018\utility-orphan-before\OldLayoutWithOracle.cs:line 25
+   at System.Linq.Enumerable.<ToArray>g__EnumerableToArray|324_0[TSource](IEnumerable`1 source)
+   at HarborCity.CityModel.SupplyLayout() in C:\Users\16934\Documents\unity_game\test\Temp\ConstructionCopies-20261018\utility-orphan-before\OldLayoutWithOracle.cs:line 89
+   at HarborCity.CityModel.RecalculateUtilities() in C:\Users\16934\Documents\unity_game\test\Assets\Scripts\Runtime\Infrastructure\Utilities\CityUtilities.cs:line 99
+   at CityUtilityLayoutChecks.Compare(CityCoreIndustrySession s, String name, Nullable`1 reuse) in C:\Users\16934\Documents\unity_game\test\Tools\Diagnostics\CityUtilityLayoutChecks.cs:line 18
+   at CityUtilityLayoutChecks.Main(String[] args) in C:\Users\16934\Documents\unity_game\test\Tools\Diagnostics\CityUtilityLayoutChecks.cs:line 27

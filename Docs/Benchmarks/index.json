@@ -371,6 +371,24 @@
       "local_assets": 16
     },
     {
+      "id": "2026-10-18-RoadTransactions-Final",
+      "manifest": "2026-10-18-RoadTransactions-Final/manifest.json",
+      "title": "Gameplay road transactions: private candidate reuse, immutable geometry, spatial buckets and utility layout; warmed native 30000/50000 pairs",
+      "kind": "attribution",
+      "source_commit": "451ec46a82c22f4eef9977cd25cb80c651b6e7da",
+      "artifacts": 400,
+      "local_assets": 62
+    },
+    {
+      "id": "2026-10-18-RoadTransactions-Release",
+      "manifest": "2026-10-18-RoadTransactions-Release/manifest.json",
+      "title": "Final road transaction release: unused-node cache regression fix, normal product and supplemental 30000/50000 gameplay windows",
+      "kind": "attribution",
+      "source_commit": "7a06a4667e7f5043b2edc4397bf4b10973c7b803",
+      "artifacts": 48,
+      "local_assets": 5
+    },
+    {
       "id": "2026-10-18-ZoningIncremental-Final",
       "manifest": "2026-10-18-ZoningIncremental-Final/manifest.json",
       "title": "Road edit zoning candidates and 64-unit view chunks: frozen equivalence and 30000/50000 native pairs",

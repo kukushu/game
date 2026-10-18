@@ -1,0 +1,1 @@
+PASS multi-edit real transactions, failed edits unchanged, original car XYZ, 240 normal fixed steps and 80-step warm/cold in-flight continuation. Compare replay.csv between frozen/current same-runtime hosts.

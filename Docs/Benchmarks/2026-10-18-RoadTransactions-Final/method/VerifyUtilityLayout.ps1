@@ -1,0 +1,10 @@
+param([Parameter(Mandatory)][string]$Results,[string]$Save='Temp/CityScenarios/regenerated30000-20261017/city.hcity')
+$ErrorActionPreference='Stop';. (Join-Path $PSScriptRoot 'ProjectLayout.ps1');$root=Split-Path $PSScriptRoot -Parent
+if(Test-Path -LiteralPath $Results){throw 'Fresh utility results required'};New-Item -ItemType Directory -Path $Results|Out-Null;$output=(Resolve-Path -LiteralPath $Results).Path
+$combined=Join-Path $output 'CityUtilityLayout.with-oracle.cs';[IO.File]::WriteAllText($combined,([IO.File]::ReadAllText((Join-Path $root 'Assets/Scripts/Runtime/Infrastructure/Utilities/CityUtilityLayout.cs'))+[Environment]::NewLine+[IO.File]::ReadAllText((Join-Path $PSScriptRoot 'Diagnostics/FrozenUtilityRebuild20261018.cs'))))
+$binary=Build-CityDotNetHost $root $output (Join-Path $PSScriptRoot 'Diagnostics/CityUtilityLayoutChecks.cs') -SourceOverrides @{'CityUtilityLayout.cs'=$combined}
+$inputSave=(Resolve-Path -LiteralPath $Save).Path
+$run=Start-Process (Get-Command dotnet).Source -ArgumentList ('"'+$binary+'"'),('"'+$inputSave+'"'),('"'+$output+'"') -WindowStyle Hidden -RedirectStandardOutput (Join-Path $output 'stdout.log') -RedirectStandardError (Join-Path $output 'stderr.log') -PassThru;$handle=$run.Handle;$watch=[Diagnostics.Stopwatch]::StartNew();$reason=$null
+while(-not $run.WaitForExit(1000)){$run.Refresh();if($run.HasExited){break};if($watch.Elapsed.TotalSeconds -gt 240){$reason='timeout'}elseif($run.WorkingSet64 -gt 8GB){$reason='memory'};if($reason){$run.Kill();$run.WaitForExit();break}}
+$run.WaitForExit();@{input_sha256=(Get-FileHash $inputSave).Hash;commit=(git rev-parse HEAD);exitCode=$run.ExitCode;stopped=$reason;runtime='DotNet64';oracle='Frozen original RecalculateUtilities from 0f13682; diagnostics only'}|ConvertTo-Json|Set-Content (Join-Path $output 'environment.json')
+if($reason -or $run.ExitCode -ne 0){Get-Content (Join-Path $output 'stderr.log') -Tail 8;throw 'Utility oracle failed; evidence retained'};Get-Content (Join-Path $output 'Result.txt')
