@@ -17,7 +17,7 @@ namespace HarborCity.RoadCore
             int start=Attach(draft,points[0],snap),end=Attach(draft,points[points.Length-1],snap);
             points[0]=draft.JunctionPosition(start);points[points.Length-1]=draft.JunctionPosition(end);var geometry=new Geometry(points);
             var cuts=new List<Cut>{new Cut{distance=0,point=points[0],junction=start},new Cut{distance=geometry.Length,point=points[points.Length-1],junction=end}};
-            foreach(var road in draft.Snapshot().network.roads)for(int segment=0;segment<points.Length-1;segment++)for(int span=0;span<road.points.Length-1;span++)
+            foreach(var road in draft.SnapshotRoadGeometry().roads)for(int segment=0;segment<points.Length-1;segment++)for(int span=0;span<road.points.Length-1;span++)
             {
                 Point a=points[segment],b=points[segment+1],c=road.points[span],d=road.points[span+1];double rx=b.x-a.x,rz=b.z-a.z,sx=d.x-c.x,sz=d.z-c.z,den=Cross(rx,rz,sx,sz);
                 if(Math.Abs(den)<1e-10)
@@ -50,7 +50,7 @@ namespace HarborCity.RoadCore
         {
             int junction=draft.SnapJunction(point,radius);if(junction!=0){JoinCoincidentRoads(draft,junction);return junction;}
             int bestRoad=0;double best=radius,along=0;Point position=point;
-            foreach(var road in draft.Snapshot().network.roads)
+            foreach(var road in draft.SnapshotRoadGeometry().roads)
             {
                 var geometry=new Geometry(road.points);
                 for(int i=1;i<geometry.Count;i++)
@@ -66,7 +66,7 @@ namespace HarborCity.RoadCore
         static void JoinCoincidentRoads(World draft,int junction)
         {
             Point anchor=draft.JunctionPosition(junction);
-            foreach(var road in draft.Snapshot().network.roads)
+            foreach(var road in draft.SnapshotRoadGeometry().roads)
             {
                 if(road.from==junction||road.to==junction)continue;var geometry=new Geometry(road.points);
                 for(int i=1;i<geometry.Count;i++)

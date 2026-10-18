@@ -109,14 +109,18 @@ namespace HarborCity.RoadCore
 #endif
         public World():this(new WorldData()){}
 
-        public World(WorldData state,SimulationClock clock=null,IEnumerable<int> endpoints=null)
+        public World(WorldData state,SimulationClock clock=null,IEnumerable<int> endpoints=null):this(state,clock,endpoints,false,null){}
+        // Only private transaction copies may transfer ownership and reuse their
+        // already built immutable geometry. Public restore still makes a deep copy.
+        // Validation and occupancy checks are identical on both paths.
+        World(WorldData state,SimulationClock clock,IEnumerable<int> endpoints,bool owned,Network prepared)
         {
             if(state==null||state.coreFormat!=15||state.externalBusiness!=(clock!=null))throw new ArgumentException("Unsupported road-core save or missing business owner. Legacy city saves are not supported.");
             if(state.externalBusiness&&(state.standaloneClock.tick!=0||state.standaloneClock.pendingSeconds!=0))throw new ArgumentException("City transport cannot own a second clock");
             data=state; // Take ownership of a private copy, never the caller's mutable save DTO.
-            timeline=clock??new SimulationClock(state.standaloneClock);data=Snapshot();if(endpoints!=null)data.availableEndpoints=new List<int>(endpoints);arrivalsView=arrivals.AsReadOnly();foreach(int endpoint in data.availableEndpoints)if(endpoint<=0||!availableEndpoints.Add(endpoint))throw new ArgumentException("Duplicate/invalid endpoint");vehicleView=data.vehicles.AsReadOnly();taskView=data.tasks.AsReadOnly();foreach(var t in data.tasks)tasksById.Add(t.id,t);depotView=data.depots.AsReadOnly();foreach(var depot in data.depots)depotsById.Add(depot.id,depot);
+            timeline=clock??new SimulationClock(state.standaloneClock);data=owned?state:Snapshot();if(endpoints!=null)data.availableEndpoints=new List<int>(endpoints);arrivalsView=arrivals.AsReadOnly();foreach(int endpoint in data.availableEndpoints)if(endpoint<=0||!availableEndpoints.Add(endpoint))throw new ArgumentException("Duplicate/invalid endpoint");vehicleView=data.vehicles.AsReadOnly();taskView=data.tasks.AsReadOnly();foreach(var t in data.tasks)tasksById.Add(t.id,t);depotView=data.depots.AsReadOnly();foreach(var depot in data.depots)depotsById.Add(depot.id,depot);
             if(data.externalBusiness&&data.depots.Count!=0)throw new ArgumentException("External city cannot contain duplicate fixture inventories");foreach(var access in data.accesses)accesses.Add(access.endpoint,access);
-            foreach(var vehicle in data.vehicles){vehiclesById.Add(vehicle.id,vehicle);vehiclesByTask.Add(vehicle.Task.id,vehicle);}business=data.externalBusiness?null:new DepotBusiness(depotsById);Network=new Network(data.network);Validate();AssertSafety();
+            foreach(var vehicle in data.vehicles){vehiclesById.Add(vehicle.id,vehicle);vehiclesByTask.Add(vehicle.Task.id,vehicle);}business=data.externalBusiness?null:new DepotBusiness(depotsById);Network=prepared??new Network(data.network);Validate();AssertSafety();
         }
         // Only serializers may receive this copy; callers cannot mutate the live facts.
         public WorldData Snapshot()
@@ -129,6 +133,9 @@ namespace HarborCity.RoadCore
             return copy;
         }
         NetworkData CopyNetwork()=>CloneNetwork(data.network);
+        // Geometry planning must not copy tasks, vehicles or their routes. Keep
+        // iteration detached: attaching a point may split roads in the draft.
+        internal NetworkData SnapshotRoadGeometry()=>CopyNetwork();
         static NetworkData CloneNetwork(NetworkData source)
         {
             var n=new NetworkData{nextJunction=source.nextJunction,nextRoad=source.nextRoad};
@@ -200,10 +207,12 @@ namespace HarborCity.RoadCore
             }
             return new RoadEditPlan(this,n,candidate,remaps,interrupted,proposed);
         }
-        internal World EditDraft()=>new World(Snapshot(),data.externalBusiness?timeline.Copy():null);
+        internal World EditDraft()=>new World(Snapshot(),data.externalBusiness?timeline.Copy():null,null,true,Network);
         internal RoadEditPlan PlanFromDraft(World draft)
         {
-            var candidate=draft.Snapshot();var mapped=new Dictionary<int,Vehicle>();foreach(var v in candidate.vehicles)mapped.Add(v.id,v);
+            // The synchronous private draft escapes only through this plan. Its
+            // private candidate data/routes can transfer without another deep copy.
+            var candidate=draft.data;var mapped=draft.vehiclesById;
             var remaps=new List<Remap>();var interrupted=new List<KeyValuePair<Vehicle,Point>>();
             foreach(var v in data.vehicles)
             {
@@ -223,7 +232,7 @@ namespace HarborCity.RoadCore
             foreach(var item in plan.interruptions){var vehicle=stagedVehicles[item.Key.id];vehicle.Freeze(item.Value);}
             // Cold transaction validation proves references, endpoint bounds and occupancy
             // together before the first live write. No business callback mutates inventory.
-            new World(staged,data.externalBusiness?timeline.Copy():null);
+            new World(staged,data.externalBusiness?timeline.Copy():null,null,true,plan.network);
             // Every fallible geometry/migration/reservation check precedes these writes.
             foreach(var remap in plan.remaps){long target=RemappedChangeTarget(remap.vehicle,plan.network,remap.route[remap.cursor]);remap.vehicle.Plan.segments=remap.route;remap.vehicle.CommitPosition(remap.route[remap.cursor],remap.distance,remap.cursor);remap.vehicle.changeTarget=target;if(remap.vehicle.status!=VehicleStatus.Stranded)remap.vehicle.Plan.EndDistance=remap.arrival;}
             foreach(var item in plan.interruptions){item.Key.Freeze(item.Value);}

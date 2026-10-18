@@ -1,0 +1,19 @@
+HarborCity 玩家施工事务优化，2026-10-18
+
+范围：加载完成后正常玩家修路。初始化/首次城市生成不优化。
+基线源码 547bb6a4f93cf5aa0e9fcfe936cfcd595d1a8875。
+完整普通基线Player保留 Temp/ConstructionCopies-20261018/ProductBaseline-547bb6a。
+
+第一步：删除内部重复复制与重复派生网络构造，不删除安全校验。
+原Connect依次创建World草稿，Attach两端、新节点、切割、各段AddRoad均走事务，PlanFromDraft再快照。各TryCommit还Snapshot→new World→再次Snapshot/Network重建→Validate/AssertSafety。仅查询道路的Attach/交点遍历也深复制全部任务和车辆。
+三万人新增短路，原生Profiler细分baseline-complete：14 Snapshot/8 Network.Rebuild/5 World.Create/4 TryCommit。事务690.99ms，Network累计356.66ms，Snapshot140.50ms（其中任务车辆122.79ms），建筑施工预检120.66ms，完整World.Validate29.65ms、预约4.47ms。父子包含，禁止把这些时间相加；原生Profiler本身有显著开销。
+
+所有权：公开World(WorldData)仍深复制不可信可变DTO并重建Network。新增私有构造路径只接收本类刚Snapshot的私有DTO及已成功构建的Network；草稿首次复制与staged复制仍存在，各车辆Plan/Position/Task与活城独立。DTO在校验期间不暴露；验证路径仍执行同一Validate/AssertSafety，Network中的几何不可变，按需索引/冲突缓存为非权威派生数据。公开调用者不能选择owned路径。PlanFromDraft同步转移私有草稿数据/路线，草稿不再被使用；最终活城仍由原TryCommit统一写入。SnapshotRoadGeometry保持独立道路列表，因为JoinCoincidentRoads可能边遍历边拆分。
+所有原预约冲突、路线、位置、端点、任务、占用断言保留；所有可能失败检查先于真实车辆、道路和资金提交。
+
+初次诊断结果owned-stages：Snapshot5次，Network.Rebuild3次，World.Validate5次；Profiler事务325.30ms。冻结旧新原生全保存SHA均6835ebb82fb64eb77b033d3fa824301839cf05df4c4f070624980111a827ef72。
+无Profiler正常运行（8秒预热+60正常帧，再执行脚本领域命令）：running-a2新增事务461.67ms/最长帧469.09ms，running-b1事务246.58ms/最长帧277.09ms；连接拆分536.23→318.41ms最长帧。初始化和预热分别排除。running-a1同时在编译，仅探索记录，不用于性能验收。运行样本在不同实时tick，不能拿最终状态SHA互比；确定性对照另用同一.NET x64完整240步回放。
+3310核心、23461综合城、10000索引零分配通过。replay-before/replay-after所有阶段完整保存一致；原有车辆XYZ不变，失败施工保存不变，160正常步+80冷恢复继续相同。
+
+限制：目前仍有三次候选Network全量构造、五次私有World快照、完整车辆和全城建筑检查；这些是下一层实测热点。繁忙城拓宽/删除原安全规则拒绝，需明确区分拒绝成本，不能称成功操作。隐藏原生Player没有物理鼠标验收；不能把函数时间称点击到输入恢复的实测延迟。
+工具复用BuildZoningEditProbe/RunZoningEditProbe/ExportCityWindowProfile，额外PrepareConstructionProbe仅改Temp副本。所有昂贵存档断言在独立验证阶段，不计入施工帧。正式原始CSV、源码和配置通过既有PerformanceData流程发布。
