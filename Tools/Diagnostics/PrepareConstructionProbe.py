@@ -35,6 +35,8 @@ scopes('Infrastructure/Roads/CityRoadCoreConstruction.cs', [
 ])
 network_source = (root / 'Infrastructure/Roads/CityRoadCoreNetwork.cs').read_text(encoding='utf-8-sig')
 scopes('Infrastructure/Roads/CityRoadCoreNetwork.cs', [('void Rebuild(Network prior)' if 'void Rebuild(Network prior)' in network_source else 'void Rebuild()', 'Network.Rebuild')])
+spatial_source = (root / 'Infrastructure/Roads/CityRoadCoreSpatial.cs').read_text(encoding='utf-8-sig')
+scopes('Infrastructure/Roads/CityRoadCoreSpatial.cs', [('public RoadSpatialIndex(Network network,RoadSpatialIndex prior=null)' if 'RoadSpatialIndex prior=null' in spatial_source else 'public RoadSpatialIndex(Network network)', 'Network.SpatialBuild')])
 scopes('Simulation/Core/CityCoreConstruction.cs', [
     ('public int CheckRoadPlacement(RoadEditPlan plan)', 'Construction.Placement'),
     ('public bool Commit(RoadEditPlan plan,out int paid)', 'Construction.Commit'),

@@ -114,6 +114,7 @@ namespace HarborCity.RoadCore
         public Geometry Centreline(int road)=>centrelines[road];
         ConnectionConflicts connectionConflicts;
         RoadSpatialIndex spatialIndex;
+        RoadSpatialIndex spatialPrior;
         LaneReachability reachability;
         public bool HasLaneCycle(long lane)
         {if(!Contains(lane)||Get(lane).IsConnection)return false;if(reachability==null)reachability=new LaneReachability(this);return reachability.HasCycle(lane);}
@@ -137,13 +138,13 @@ namespace HarborCity.RoadCore
         public Network(NetworkData data):this(data,null){}
         // Prior contributes immutable Geometry only. Mutable lanes/ports, indexes,
         // reachability, scratch and reservation caches belong to this candidate.
-        internal Network(NetworkData data,Network prior){this.data=data??throw new ArgumentNullException(nameof(data));Rebuild(prior);}
+        internal Network(NetworkData data,Network prior){this.data=data??throw new ArgumentNullException(nameof(data));Rebuild(prior);spatialPrior=prior?.spatialIndex??prior?.spatialPrior;}
         public Drivable Get(long id){Drivable d;if(!drivables.TryGetValue(id,out d))throw new InvalidOperationException("Missing drivable "+id);return d;}
         public bool Contains(long id)=>drivables.ContainsKey(id);
         public bool IsConflictJunction(int id)=>conflictJunctions.Contains(id);
         public bool MovementsConflict(long a,long b)=>connectionConflicts.Contains(a,b);
         public void Project(Point point,double radius,bool includeConnections,List<SpatialHit> output)
-        {if(spatialIndex==null)spatialIndex=new RoadSpatialIndex(this);spatialIndex.Project(point,radius,includeConnections,output);}
+        {if(spatialIndex==null){var index=new RoadSpatialIndex(this,spatialPrior);spatialIndex=index;spatialPrior=null;}spatialIndex.Project(point,radius,includeConnections,output);}
         public int LaneCount(int road)=>laneCounts[road];
         public double Clearance(Drivable lane)
         =>lane.ProtectedClearance;

@@ -96,6 +96,12 @@ public static class RoadCoreChecks
             if(variant%4==1)r.direction=(RoadDirection)((variant/4)%3);
             if(variant%4==2){var a=r.points[0];var b=r.points[r.points.Length-1];r.points=new[]{a,Point.Lerp(a,b,.5),b};r.points[1]=new Point(r.points[1].x+variant*.13,variant*.1,r.points[1].z);r.speed+=variant;}
             if(variant%4==3){r.startTangent=new Point(1,0,.17*variant);r.endTangent=new Point(.2,0,1);r.rightVectors=Enumerable.Repeat(new Point(.4,0,.3),r.points.Length).ToArray();}
+            if(variant==14){int j=data.nextJunction++;var p=new Point(38,0,-5);data.junctions.Add(new Junction{id=j,position=p});data.roads.Add(new PhysicalRoad{id=data.nextRoad++,from=r.to,to=j,points=new[]{new Point(),p},direction=RoadDirection.Both,speed=7,lanes=1});}
+            if(variant==15)data.roads.RemoveAt(0);
+            var random=new Random(7391+variant);var queries=new List<Point>();for(int i=0;i<1000;i++)queries.Add(new Point(random.NextDouble()*100-50,random.NextDouble()*8-2,random.NextDouble()*100-50));
+            queries.Add(new Point(0,0,0));queries.Add(new Point(8,0,8));queries.Add(new Point(-8,0,-8));
+            Func<Network,Point,double,bool,string> project=(n,p,radius,connections)=>{var hits=new List<SpatialHit>();n.Project(p,radius,connections,hits);return string.Join("|",hits.Select(hit=>hit.drivable+":"+BitConverter.DoubleToInt64Bits(hit.distance)+":"+BitConverter.DoubleToInt64Bits(hit.separation)+":"+BitConverter.DoubleToInt64Bits(hit.point.x)+":"+BitConverter.DoubleToInt64Bits(hit.point.y)+":"+BitConverter.DoubleToInt64Bits(hit.point.z)));};
+            string priorProjection=project(prior,new Point(),64,true);
             string before=signature(prior);var warm=new Network(data,prior);var cold=new Network(data);
             Check(before==signature(prior),"Candidate changed prior geometry/ports");
             Check(warm.RoadCount==cold.RoadCount&&warm.JunctionCount==cold.JunctionCount,"Network cache changed topology");
@@ -108,6 +114,8 @@ public static class RoadCoreChecks
                 Check(warm.IsConflictJunction(a.From)==cold.IsConflictJunction(b.From)&&warm.IsConflictJunction(a.To)==cold.IsConflictJunction(b.To),"Cached conflict junction");
             }
             foreach(var a in actual.Where(d=>d.IsConnection))foreach(var b in actual.Where(d=>d.IsConnection&&d.JunctionId==a.JunctionId))Check(warm.MovementsConflict(a.Id,b.Id)==cold.MovementsConflict(a.Id,b.Id),"Cached exact movement conflict");
+            for(int q=0;q<queries.Count;q++){double radius=q%3==0?0:q%3==1?8:64;bool connections=q%2==0;Check(project(warm,queries[q],radius,connections)==project(cold,queries[q],radius,connections),"Copy-on-write spatial query changed hit/nearest span/distance/order");}
+            Check(priorProjection==project(prior,new Point(),64,true),"Candidate mutated a prior spatial bucket");
             prior=warm;
         }
         var unchanged=new Network(w.Snapshot().network,w.Network);Check(unchanged.Drivables.All(d=>ReferenceEquals(d.Geometry,w.Network.Get(d.Id).Geometry)),"Unchanged immutable geometry was not reused");
