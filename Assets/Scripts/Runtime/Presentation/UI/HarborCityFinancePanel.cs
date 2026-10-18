@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using UnityEngine;
 namespace HarborCity
 {
@@ -17,7 +17,7 @@ namespace HarborCity
         void Contents(int window)
         {
             if(GUILayout.Button(text.Get("ui.finance.close"))){IsOpen=false;return;}
-            GUILayout.Label(text.Get("ui.finance.summary",finance.Money,finance.LastTax,finance.LastMaintenance,finance.LastLoanPayment,finance.Debt));
+            GUILayout.Label(text.Get("ui.finance.summary",finance.UnlimitedFunds?"∞":finance.Money.ToString(),finance.LastTax,finance.LastMaintenance,finance.LastLoanPayment,finance.Debt));
             GUILayout.Label(text.Get("ui.finance.upkeep_rate",finance.MaintenanceRate,finance.MaintenanceAccrued.ToString("F1")));
             GUILayout.Label(text.Get("ui.finance.assessment_note",finance.UncollectedAssessment));
             scroll=GUILayout.BeginScrollView(scroll);

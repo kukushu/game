@@ -35,6 +35,6 @@ namespace HarborCity
             if(kind==UtilityKind.Electricity)city.utilities.electricity=candidate;else city.utilities.water=candidate;Finance.SpendApproved(paid);Refresh();return paid;
         }
         public bool Remove(UtilityKind kind,int edge)
-        {entities.StructuralBoundary();if(city.money<40)return false;Finance.CheckSpend(40);if(!city.UtilityNetwork(kind).Remove(edge))return false;Finance.SpendApproved(40);Refresh();return true;}
+        {entities.StructuralBoundary();if(!Finance.UnlimitedFunds&&city.money<40)return false;Finance.CheckSpend(40);if(!city.UtilityNetwork(kind).Remove(edge))return false;Finance.SpendApproved(40);Refresh();return true;}
     }
 }

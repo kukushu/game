@@ -13,7 +13,7 @@ public static class CityCoreIndustryChecks
         RoadEditingTests();
         ObservationTests();
         WasteTests();
-        FiscalTests();
+        FiscalTests();UnlimitedFundsTests();
         ZoningCacheTests();
         ReachabilityTests();
         FreightCandidateTests();
@@ -148,6 +148,21 @@ public static class CityCoreIndustryChecks
         var invalidTax=CityCoreSave.Read(CityCoreSave.Write(s));var altered=invalidTax.Entities.Factories.First().factory;altered.taxCosts+=.5;altered.cash-=.5;bool rejectedTax=false;try{invalidTax.Validate();}catch(InvalidOperationException){rejectedTax=true;}Check(rejectedTax,"Fractional corrupted tax counter accepted despite balanced company cash");
         var emptyCity=new CityModel{money=0};emptyCity.development.enabled=true;var empty=new CityCoreIndustrySession(emptyCity,calendarOffset:0);empty.Simulation.Growth.Zoning.SetSurface((x,z)=>2);var plan=empty.Transport.PlanConnectedRoad(new[]{new Point(-20,2,0),new Point(20,2,0)});before=CityCoreSave.Write(empty);refused=false;try{empty.Construction.Commit(plan,out _);}catch(CityRuleException){refused=true;}Check(refused&&before.SequenceEqual(CityCoreSave.Write(empty)),"Underfunded construction left money/road ledger partial");
         empty.Simulation.Finance.Borrow(0);before=CityCoreSave.Write(empty);refused=false;try{empty.Simulation.Finance.Repay(empty.City.loans.contracts[0].id);}catch(CityRuleException){refused=true;}Check(refused&&before.SequenceEqual(CityCoreSave.Write(empty)),"Underfunded early payoff changed loan");empty.Simulation.Finance.GrantDevelopmentFunds(1000);empty.Simulation.Finance.Repay(empty.City.loans.contracts[0].id);empty.Validate();Check(empty.City.money==0&&empty.Simulation.Finance.Debt==0,"Early payoff/development grant cash lost");
+    }
+    static void UnlimitedFundsTests()
+    {
+        var s=CityCoreIndustrySession.CreateEmpty();var f=s.Simulation.Finance;f.CheckSpend(f.Money);f.SpendApproved(f.Money);
+        Check(f.Money==0&&!f.UnlimitedFunds,"Model unexpectedly starts with unlimited funds");f.UnlimitedFunds=true;
+        var before=CityCoreSave.Write(s);var plan=s.Transport.PlanConnectedRoad(new[]{new Point(-20,2,0),new Point(20,2,0)});
+        int quote=s.Construction.CheckRoadPlacement(plan);Check(quote>0&&before.SequenceEqual(CityCoreSave.Write(s)),"Unlimited placement preflight changed cash/grants");
+        long works=f.PublicWorks,grants=f.Snapshot().developmentGrants;
+        Check(s.Construction.Commit(plan,out int paid)&&paid==quote&&f.Money==0&&f.PublicWorks==works+paid&&f.Snapshot().developmentGrants==grants+paid,"Unlimited successful construction ledger mismatch");
+        s.Validate();var clone=CityCoreSave.Read(CityCoreSave.Write(s));Check(!clone.Simulation.Finance.UnlimitedFunds&&CityCoreSave.Write(s).SequenceEqual(CityCoreSave.Write(clone)),"Temporary mode persisted or ledger cannot restore");
+        var stale=s.Transport.PlanConnectedRoad(new[]{new Point(-20,2,20),new Point(20,2,20)});s.Advance(.05);before=CityCoreSave.Write(s);
+        Check(!s.Construction.Commit(stale,out _)&&before.SequenceEqual(CityCoreSave.Write(s)),"Failed unlimited transaction granted cash or charged works");
+        f.UnlimitedFunds=false;bool rejected=false;try{f.CheckSpend(1);}catch(CityRuleException){rejected=true;}Check(rejected,"Finite funds did not resume");f.UnlimitedFunds=true;
+        for(int i=0;i<2500;i++)s.Advance(.05);s.Validate();Check(f.Money==0&&f.LastMaintenance>0&&f.MaintenancePaid>0,"Unlimited daily upkeep reduced treasury or skipped costs");
+        f.Borrow(0);int money=f.Money;f.Repay(s.City.loans.contracts[0].id);s.Validate();Check(f.Money==money&&f.Debt==0,"Unlimited loan repayment changed treasury or left debt");
     }
     static void ZoningCacheTests()
     {

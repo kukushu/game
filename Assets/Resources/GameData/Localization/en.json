@@ -680,6 +680,10 @@
     {
       "key": "ui.zone.cancelled",
       "text": "Rectangle cancelled; zoning was not changed."
+    },
+    {
+      "key": "ui.finance.unlimited",
+      "text": "Unlimited funds (temporary test; uncheck for normal budget)"
     }
   ]
 }

@@ -19,6 +19,9 @@ namespace HarborCity
         readonly TreasuryData state;readonly Dictionary<int,int> workers=new Dictionary<int,int>();readonly List<Charge> charges=new List<Charge>();
         struct Charge {public Household family;public CityBuilding business;public int paid;}
         public int Money=>city.money;public int LastTax=>state.lastTax;public int LastMaintenance=>state.lastMaintenance;public int LastLoanPayment=>state.lastLoanPayment;
+        // Temporary host setting, never a second balance or part of saved simulation rules.
+        // Approved public spending is matched by an explicit grant in the existing ledger.
+        public bool UnlimitedFunds {get;set;}
         public double MaintenanceAccrued=>state.maintenanceAccrued;
         public int MaintenanceRate=>CurrentMaintenanceRate();
         public long PublicWorks=>state.publicWorks;public long TaxesCollected=>state.taxCollected;public long MaintenancePaid=>state.maintenancePaid;public long UncollectedAssessment=>state.uncollectedAssessment;
@@ -31,8 +34,8 @@ namespace HarborCity
         internal CityCoreFinance(CityModel city,CityEntities entities,World world,FinanceRules rules,TreasuryData saved)
         {this.city=city;this.entities=entities;this.world=world;this.rules=rules;state=saved??new TreasuryData{openingMoney=city.money,lastSettledDay=city.day};state=Snapshot();city.income=state.lastTax;city.upkeep=state.lastMaintenance;}
         public TreasuryData Snapshot()=>new TreasuryData{maintenanceAccrued=state.maintenanceAccrued,openingMoney=state.openingMoney,lastSettledDay=state.lastSettledDay,lastTax=state.lastTax,lastMaintenance=state.lastMaintenance,lastLoanPayment=state.lastLoanPayment,publicWorks=state.publicWorks,taxCollected=state.taxCollected,maintenancePaid=state.maintenancePaid,loanIssued=state.loanIssued,loanRepaid=state.loanRepaid,developmentGrants=state.developmentGrants,uncollectedAssessment=state.uncollectedAssessment};
-        internal void CheckSpend(int amount){entities.StructuralBoundary();if(amount<0||city.money<amount)throw new CityRuleException("finance.insufficient_funds");if(state.publicWorks>long.MaxValue-amount)throw new InvalidOperationException("Public works ledger overflow");}
-        internal void SpendApproved(int amount){city.money-=amount;state.publicWorks+=amount;}
+        internal void CheckSpend(int amount){entities.StructuralBoundary();if(amount<0||!UnlimitedFunds&&city.money<amount)throw new CityRuleException("finance.insufficient_funds");if(state.publicWorks>long.MaxValue-amount||UnlimitedFunds&&state.developmentGrants>long.MaxValue-amount)throw new InvalidOperationException("Public works ledger overflow");}
+        internal void SpendApproved(int amount){if(UnlimitedFunds)state.developmentGrants+=amount;else city.money-=amount;state.publicWorks+=amount;}
         public void GrantDevelopmentFunds(int amount=100000){entities.StructuralBoundary();if(amount<1||(long)city.money+amount>int.MaxValue||state.developmentGrants>long.MaxValue-amount)throw new CityRuleException("finance.balance_limit");city.money+=amount;state.developmentGrants+=amount;city.Trace("finance.grant","finance.event.grant",new CityLogDetail{amount=amount});}
         public void SetTax(LandUse use,int percent)
         {
@@ -49,7 +52,7 @@ namespace HarborCity
         }
         public void Repay(int id)
         {
-            entities.StructuralBoundary();CityLoan target=null;foreach(var l in city.loans.contracts)if(l.id==id){target=l;break;}if(target==null||Remaining(target)<=0)throw new CityRuleException("finance.invalid_loan");int amount=Remaining(target);if(city.money<amount)throw new CityRuleException("finance.insufficient_funds");city.money-=amount;target.paid+=amount;state.loanRepaid+=amount;city.Trace("finance.repay","finance.event.repay",new CityLogDetail{origin=id,amount=amount});
+            entities.StructuralBoundary();CityLoan target=null;foreach(var l in city.loans.contracts)if(l.id==id){target=l;break;}if(target==null||Remaining(target)<=0)throw new CityRuleException("finance.invalid_loan");int amount=Remaining(target);if(!UnlimitedFunds&&city.money<amount)throw new CityRuleException("finance.insufficient_funds");if(UnlimitedFunds){if(state.developmentGrants>long.MaxValue-amount)throw new InvalidOperationException("Grant ledger overflow");state.developmentGrants+=amount;}else city.money-=amount;target.paid+=amount;state.loanRepaid+=amount;city.Trace("finance.repay","finance.event.repay",new CityLogDetail{origin=id,amount=amount});
         }
         static int Scheduled(CityLoan loan,int day)=>(int)((long)loan.total*Math.Min(loan.days,Math.Max(0,day-loan.takenDay))/loan.days);
         public int QuoteMaintenance()
@@ -79,12 +82,13 @@ namespace HarborCity
             long assessed=0,collected=0;foreach(var family in city.society.families)if(family.resident){int people=0;foreach(var p in family.people)if(!p.dead)people++;long due=(long)people*rules.ResidentialBase*city.development.residentialTax/100;int paid=(int)Math.Min(due,family.savings);assessed+=due;collected+=paid;charges.Add(new Charge{family=family,paid=paid});}
             foreach(var b in entities.Buildings)if(b is IndustrialBuilding||b is CommercialBuilding){workers.TryGetValue(b.id,out int n);long due=(long)n*(b is IndustrialBuilding?rules.IndustrialBase:rules.CommercialBase)*(b is IndustrialBuilding?city.development.industrialTax:city.development.commercialTax)/100;double cash=b is IndustrialBuilding f?f.factory.cash:((CommercialBuilding)b).Account.Cash;int paid=(int)Math.Min(due,Math.Min(int.MaxValue,Math.Floor(cash)));assessed+=due;collected+=paid;charges.Add(new Charge{business=b,paid=paid});}
             if(double.IsNaN(state.maintenanceAccrued)||double.IsInfinity(state.maintenanceAccrued)||state.maintenanceAccrued<0||state.maintenanceAccrued>int.MaxValue)throw new InvalidOperationException("Invalid accrued maintenance");int maintenance=(int)Math.Floor(state.maintenanceAccrued+1e-8);long loanPayment=0;foreach(var loan in city.loans.contracts)loanPayment+=Math.Max(0,Scheduled(loan,city.day)-loan.paid);
-            long closing=(long)city.money+collected-maintenance-loanPayment;if(closing<int.MinValue||closing>int.MaxValue||collected>int.MaxValue||loanPayment>int.MaxValue)throw new InvalidOperationException("Fiscal settlement exceeds supported balance range");
-            checked{_ = state.taxCollected+collected;_ = state.maintenancePaid+maintenance;_ = state.loanRepaid+loanPayment;_ = state.uncollectedAssessment+assessed-collected;}
+            long grant=UnlimitedFunds?(long)maintenance+loanPayment:0;
+            long closing=(long)city.money+collected-maintenance-loanPayment+grant;if(closing<int.MinValue||closing>int.MaxValue||collected>int.MaxValue||loanPayment>int.MaxValue)throw new InvalidOperationException("Fiscal settlement exceeds supported balance range");
+            checked{_ = state.taxCollected+collected;_ = state.maintenancePaid+maintenance;_ = state.loanRepaid+loanPayment;_ = state.uncollectedAssessment+assessed-collected;_ = state.developmentGrants+grant;}
             foreach(var charge in charges)if(charge.family!=null&&charge.family.taxPaid>long.MaxValue-charge.paid)throw new InvalidOperationException("Taxpayer ledger overflow");
             foreach(var charge in charges){if(charge.family!=null){charge.family.savings-=charge.paid;charge.family.taxPaid+=charge.paid;}else if(charge.business is IndustrialBuilding f){f.factory.cash-=charge.paid;f.factory.taxCosts+=charge.paid;}else{var a=((CommercialBuilding)charge.business).Account;a.Cash-=charge.paid;a.TaxCosts+=charge.paid;}}
             foreach(var loan in city.loans.contracts)loan.paid+=Math.Max(0,Scheduled(loan,city.day)-loan.paid);
-            city.money=(int)closing;state.maintenanceAccrued=Math.Max(0,state.maintenanceAccrued-maintenance);state.taxCollected+=collected;state.maintenancePaid+=maintenance;state.loanRepaid+=loanPayment;state.uncollectedAssessment+=assessed-collected;state.lastTax=(int)collected;state.lastMaintenance=maintenance;state.lastLoanPayment=(int)loanPayment;state.lastSettledDay=city.day;city.loans.lastSettledDay=city.day;city.income=state.lastTax;city.upkeep=maintenance;if(city.logSink!=null||city.analysis!=null)city.Trace("finance.day","finance.event.day",Snapshot());
+            city.money=(int)closing;state.developmentGrants+=grant;state.maintenanceAccrued=Math.Max(0,state.maintenanceAccrued-maintenance);state.taxCollected+=collected;state.maintenancePaid+=maintenance;state.loanRepaid+=loanPayment;state.uncollectedAssessment+=assessed-collected;state.lastTax=(int)collected;state.lastMaintenance=maintenance;state.lastLoanPayment=(int)loanPayment;state.lastSettledDay=city.day;city.loans.lastSettledDay=city.day;city.income=state.lastTax;city.upkeep=maintenance;if(city.logSink!=null||city.analysis!=null)city.Trace("finance.day","finance.event.day",Snapshot());
         }
         static long WholeTax(double amount)
         {if(double.IsNaN(amount)||double.IsInfinity(amount)||amount<0||amount!=Math.Truncate(amount))throw new InvalidOperationException("Tax counters must be nonnegative whole currency");return checked((long)amount);}

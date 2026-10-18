@@ -680,6 +680,10 @@
     {
       "key": "ui.zone.cancelled",
       "text": "本次框选已取消，没有修改分区。"
+    },
+    {
+      "key": "ui.finance.unlimited",
+      "text": "无限资金（临时测试；取消勾选恢复有限资金）"
     }
   ]
 }
