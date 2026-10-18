@@ -98,6 +98,10 @@ namespace HarborCity.RoadCore
         }
         bool indexDirty=true;
         readonly bool constructionDraft;
+        int routingGeneration;
+        // Derived cache invalidation only. NetworkGeneration and saved observed
+        // commute revisions retain their original meaning on EVERY road edit.
+        internal int RoutingGeneration=>routingGeneration;
         readonly Dictionary<long,double> entries=new Dictionary<long,double>(CityRoadKeyComparer.Instance);
         readonly List<Intent> intents=new List<Intent>();
         struct Intent { public Vehicle vehicle;public long drivable;public int cursor;public double distance,limit; }
@@ -121,6 +125,7 @@ namespace HarborCity.RoadCore
             constructionDraft=draft;
             data=state; // Take ownership of a private copy, never the caller's mutable save DTO.
             timeline=clock??new SimulationClock(state.standaloneClock);data=owned?state:Snapshot();if(endpoints!=null)data.availableEndpoints=new List<int>(endpoints);arrivalsView=arrivals.AsReadOnly();foreach(int endpoint in data.availableEndpoints)if(endpoint<=0||!availableEndpoints.Add(endpoint))throw new ArgumentException("Duplicate/invalid endpoint");vehicleView=data.vehicles.AsReadOnly();taskView=data.tasks.AsReadOnly();foreach(var t in data.tasks)tasksById.Add(t.id,t);depotView=data.depots.AsReadOnly();foreach(var depot in data.depots)depotsById.Add(depot.id,depot);
+            routingGeneration=data.networkRevision;
             if(data.externalBusiness&&data.depots.Count!=0)throw new ArgumentException("External city cannot contain duplicate fixture inventories");foreach(var access in data.accesses)accesses.Add(access.endpoint,access);
             foreach(var vehicle in data.vehicles){vehiclesById.Add(vehicle.id,vehicle);vehiclesByTask.Add(vehicle.Task.id,vehicle);}business=data.externalBusiness?null:new DepotBusiness(depotsById);Network=prepared??new Network(data.network);Validate();AssertSafety();
         }
@@ -282,7 +287,7 @@ namespace HarborCity.RoadCore
                 // Task/endpoint/depot identities never change during road planning;
                 // their dictionaries were built and validated at draft creation.
                 ApplyRoadFacts(plan);dispatchRoutes.Reset(Network);lostOccupancy.Reset(Network);occupancy.Clear();
-                Validate();AssertSafety();data.networkRevision++;EditEpoch++;return true;
+                Validate();AssertSafety();data.networkRevision++;routingGeneration=data.networkRevision;EditEpoch++;return true;
             }
             var staged=Snapshot();staged.network=plan.data;if(plan.accesses!=null)staged.accesses=plan.accesses;
             var stagedVehicles=new Dictionary<int,Vehicle>();foreach(var vehicle in staged.vehicles)stagedVehicles.Add(vehicle.id,vehicle);
@@ -293,7 +298,9 @@ namespace HarborCity.RoadCore
             new World(staged,data.externalBusiness?timeline.Copy():null,null,true,plan.network);
             // Every fallible geometry/migration/reservation check precedes these writes.
             ApplyRoadFacts(plan);
-            data.networkRevision++;EditEpoch++;dispatchRoutes.Reset(Network);lostOccupancy.Reset(Network);occupancy.Clear();Reindex();return true;
+            data.networkRevision++;if(plan.independentRoad==0)routingGeneration=data.networkRevision;EditEpoch++;
+            if(plan.independentRoad==0)dispatchRoutes.Reset(Network);else dispatchRoutes.RetainIndependentAddition(plan.source,Network);
+            lostOccupancy.Reset(Network);occupancy.Clear();Reindex();return true;
         }
         void ApplyRoadFacts(RoadEditPlan plan)
         {

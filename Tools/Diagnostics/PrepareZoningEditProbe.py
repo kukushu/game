@@ -77,7 +77,7 @@ probe=r'''
             ZoningEditProbeScope.Write(output);recorder.Write(output);File.WriteAllLines(Path.Combine(output,"profile.csv"),profiles);File.WriteAllLines(Path.Combine(output,"operations.csv"),statuses);File.WriteAllLines(Path.Combine(output,"counts.csv"),counts);
             session.Validate();var bytes=CityCoreSave.Write(session);File.WriteAllBytes(Path.Combine(output,"final.hcity"),bytes);
             var restored=CityCoreSave.Read(bytes);restored.Validate();if(!bytes.SequenceEqual(CityCoreSave.Write(restored)))throw new Exception("Zoning edit restore changed facts");
-            yield return new WaitForEndOfFrame();var screenshot=new Texture2D(Screen.width,Screen.height,TextureFormat.RGB24,false);screenshot.ReadPixels(new Rect(0,0,Screen.width,Screen.height),0,0);screenshot.Apply();File.WriteAllBytes(Path.Combine(output,"final.png"),screenshot.EncodeToPNG());Destroy(screenshot);
+            yield return new WaitForEndOfFrame();string screenshotPath=Path.Combine(output,"final.png");ScreenCapture.CaptureScreenshot(screenshotPath);for(int i=0;i<30&&!File.Exists(screenshotPath);i++)yield return null;if(!File.Exists(screenshotPath))throw new Exception("Final screenshot was not written");
             File.WriteAllText(Path.Combine(output,"Result.txt"),"PASS construction suite and full save roundtrip; operations.csv distinguishes accepted commands and unchanged failures. Scripted domain commands in native Unity, no physical mouse acceptance or FPS claim.\n");Application.Quit(0);
         }
 '''

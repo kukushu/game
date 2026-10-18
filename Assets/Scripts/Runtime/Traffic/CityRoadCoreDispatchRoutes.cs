@@ -62,6 +62,11 @@ namespace HarborCity.RoadCore
             CityCoreProfile.ObserveQuery(CityCoreProfile.QueryKind.Reset,CityCoreProfile.QueryResult.Miss,0,0,0);
 #endif
             this.network=network;freight.Clear();passengers.Clear();newest=oldest=null;}
+        // World has proved that all old routing surfaces/ports are unchanged and
+        // the added component is disconnected, with no access edits. Old OD costs,
+        // unreachable results and immutable blueprints therefore remain exact.
+        internal void RetainIndependentAddition(Network before,Network after)
+        {if(ReferenceEquals(network,before))network=after;else Reset(after);}
         public double GetTravelSeconds(Network current,int origin,int destination,RoadAccess source,RoadAccess target)
         {
 #if CITY_CORE_ATTRIBUTION

@@ -31,7 +31,9 @@ namespace HarborCity
 #endif
             if(!transport.HasResidentAccess(home,work))return double.PositiveInfinity;
             bool found=estimates.TryGetValue(citizen,out var value);
-            if(found&&value.home==home&&value.work==work&&value.network==transport.NetworkGeneration&&value.access==transport.AccessRevision)
+            // Only this derived static quote uses the routing dependency. Saved
+            // observed commute revisions below still use NetworkGeneration.
+            if(found&&value.home==home&&value.work==work&&value.network==transport.RoutingGeneration&&value.access==transport.AccessRevision)
             {
 #if CITY_CORE_ATTRIBUTION
                 if(CityCoreProfile.Enabled)CityCoreProfile.CommuteEstimateHits++;
@@ -42,11 +44,11 @@ namespace HarborCity
 #if CITY_CORE_ATTRIBUTION
             using var estimateObservation=CityCoreProfile.Measure(CityCoreProfile.Part.CommuteEstimate);
             if(CityCoreProfile.Enabled)CityCoreProfile.CommuteEstimateMisses++;
-            var reason=!found?CityCoreProfile.QueryResult.Absent:value.home!=home||value.work!=work?CityCoreProfile.QueryResult.EndpointsChanged:value.network!=transport.NetworkGeneration?CityCoreProfile.QueryResult.NetworkChanged:CityCoreProfile.QueryResult.AccessChanged;
+            var reason=!found?CityCoreProfile.QueryResult.Absent:value.home!=home||value.work!=work?CityCoreProfile.QueryResult.EndpointsChanged:value.network!=transport.RoutingGeneration?CityCoreProfile.QueryResult.NetworkChanged:CityCoreProfile.QueryResult.AccessChanged;
             CityCoreProfile.ObserveQuery(CityCoreProfile.QueryKind.CommuteEstimate,reason,citizen,home,work);
 #endif
             double seconds=transport.EstimateResidentSeconds(home,work);
-            estimates[citizen]=new CommuteEstimate{home=home,work=work,network=transport.NetworkGeneration,access=transport.AccessRevision,seconds=seconds};return seconds;
+            estimates[citizen]=new CommuteEstimate{home=home,work=work,network=transport.RoutingGeneration,access=transport.AccessRevision,seconds=seconds};return seconds;
         }
         internal Func<int,int,int,bool,Vehicle> RequestCommute;
         public bool Enabled {get;}

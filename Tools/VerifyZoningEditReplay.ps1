@@ -7,7 +7,7 @@ if($FrozenReference){
     $overrides=@{'CityCoreZoning.cs'=$oldPath;'CityCoreZoningGeometry.cs'=$emptyPath}
 }
 if($CoreReference){
-    foreach($relative in @('Traffic/CityRoadCoreWorld.cs','Infrastructure/Roads/CityRoadCoreConstruction.cs','Infrastructure/Roads/CityRoadCoreNetwork.cs','Infrastructure/Roads/CityLaneConnection.cs','Infrastructure/Roads/CityRoadCoreSpatial.cs','Infrastructure/Utilities/CityUtilities.cs')){
+    foreach($relative in @('Traffic/CityRoadCoreWorld.cs','Infrastructure/Roads/CityRoadCoreConstruction.cs','Infrastructure/Roads/CityRoadCoreNetwork.cs','Infrastructure/Roads/CityLaneConnection.cs','Infrastructure/Roads/CityRoadCoreSpatial.cs','Infrastructure/Utilities/CityUtilities.cs','Simulation/Residents/CityCoreResidents.cs','Traffic/CityRoadCoreDispatchRoutes.cs','Infrastructure/Roads/CityRoadCoreEdit.cs','Simulation/Core/CityCoreConstruction.cs','Infrastructure/Utilities/CityUtilityLayout.cs')){
         $old=& git show ($CoreReference+':Assets/Scripts/Runtime/'+$relative);if($LASTEXITCODE -ne 0){throw 'Frozen transaction source missing'}
         $name=Split-Path $relative -Leaf;$oldPath=Join-Path $output ('frozen-'+$name);[IO.File]::WriteAllLines($oldPath,$old);$overrides[$name]=$oldPath
     }

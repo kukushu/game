@@ -69,11 +69,30 @@ static class CityRoadIndependentChecks
         var staleWorld=CityRoadCoreFixtures.Create(20,false);var stale=staleWorld.PlanConnectedRoad(Stroke());staleWorld.Advance(.05);var unchanged=Save(staleWorld);
         Check(!stale.TryCommit()&&unchanged.SequenceEqual(Save(staleWorld)),"Simulation did not invalidate plan");Record("stale","rejected",staleWorld);
         UtilityLayoutCases();
+        CachedRoutingCase();
         File.WriteAllLines(Path.Combine(output,"independent.csv"),rows);
         File.WriteAllText(Path.Combine(output,"Result.txt"),"PASS "+checks+" isolated-add checks, actor/route identity, frozen actors, old-path fallbacks, failed/stale atomicity and cold continuation. Compare complete state CSV with frozen build; synthetic model checks, not Player performance.\n");
         Console.WriteLine(File.ReadAllText(Path.Combine(output,"Result.txt")));
     }
     static object Layout(CityCoreIndustrySession s)=>typeof(CityModel).GetField("utilityLayout",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(s.City);
+    static void CachedRoutingCase()
+    {
+        var w=new World();int a=w.AddJunction(new Point()),b=w.AddJunction(new Point(30,0,0)),c=w.AddJunction(new Point(60,0,0));
+        w.AddRoad(a,b,new[]{w.JunctionPosition(a),w.JunctionPosition(b)});w.AddRoad(b,c,new[]{w.JunctionPosition(b),w.JunctionPosition(c)});
+        int origin=w.AddDepot(a),goal=w.AddDepot(c,0);w.RegisterAccess(origin,Network.LaneId(1,false),5);w.RegisterAccess(goal,Network.LaneId(2,false),25);
+        double cost=w.EstimateResidentSeconds(origin,goal);var first=w.Dispatch(origin,goal);Check(first!=null,"Cached fixture departure failed");w.Advance(.3);
+        long prepared=w.RoutePreparations;int cached=w.CachedRoutes;
+        Check(w.PlanConnectedRoad(Stroke()).TryCommit(),"Cached fixture isolated road stale");
+        if(!baseline)Check(w.CachedRoutes==cached&&cached>0,"Disconnected component invalidated old OD entries");
+        Check(w.EstimateResidentSeconds(origin,goal)==cost,"Retained static route cost changed");
+        var next=w.Dispatch(origin,goal);Check(next!=null&&!ReferenceEquals(first.Plan.segments,next.Plan.segments),"Cached route was shared with a mutable actor");
+        if(!baseline)Check(w.RoutePreparations==prepared,"Unrelated blueprint recomputed");Record("retained_od","accepted",w);
+        // RebindAccesses repairs invalid doors only; a new, legal registration
+        // exercises access-version invalidation without mutating a valid door.
+        int closer=w.AddDepot(a);w.RegisterAccess(closer,Network.LaneId(1,false),10);
+        Check(w.CachedRoutes==0,"Access change retained invalid OD entries");
+        Check(w.EstimateResidentSeconds(closer,goal)<cost,"Access invalidation returned old route cost");Record("access_invalidates_od","accepted",w);
+    }
     static void UtilityLayoutCases()
     {
         foreach(string mode in new[]{"isolated","manual_cross","dto_change","no_cache","budget"})

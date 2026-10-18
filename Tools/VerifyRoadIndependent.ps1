@@ -9,7 +9,7 @@ foreach($mode in @('baseline','current')){
     $directory=Join-Path $output $mode;New-Item -ItemType Directory -Path $directory | Out-Null
     $overrides=@{}
     if($mode -eq 'baseline'){
-        foreach($relative in @('Traffic/CityRoadCoreWorld.cs','Infrastructure/Roads/CityRoadCoreConstruction.cs')){
+        foreach($relative in @('Traffic/CityRoadCoreWorld.cs','Infrastructure/Roads/CityRoadCoreConstruction.cs','Simulation/Residents/CityCoreResidents.cs','Traffic/CityRoadCoreDispatchRoutes.cs','Infrastructure/Roads/CityRoadCoreEdit.cs','Simulation/Core/CityCoreConstruction.cs','Infrastructure/Utilities/CityUtilityLayout.cs')){
             $source=& git show ($Reference+':Assets/Scripts/Runtime/'+$relative)
             if($LASTEXITCODE -ne 0){throw 'Frozen source missing'}
             $name=Split-Path $relative -Leaf;$path=Join-Path $directory ('frozen-'+$name)

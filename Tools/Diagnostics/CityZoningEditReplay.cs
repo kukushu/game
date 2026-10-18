@@ -14,7 +14,12 @@ static class CityZoningEditReplay
         Action<string> record=stage=>{int cells=s.Simulation.Growth.Zoning.Cells().Count;rows.Add(stage+","+Hash(CityCoreSave.Write(s))+","+cells+","+s.Transport.Network.RoadCount+","+s.Transport.ActiveCount);supplies.Add(stage+","+SupplyHash(s));File.WriteAllLines(Path.Combine(output,"replay.csv"),rows);File.WriteAllLines(Path.Combine(output,"supplies.csv"),supplies);Console.WriteLine(stage);};record("initial");
         Action<double,double,double,double> add=(x,z,X,Z)=>{var points=new Point[9];for(int i=0;i<9;i++)points[i]=Point.Lerp(new Point(x,2,z),new Point(X,2,Z),i/8.0);var plan=s.Transport.PlanConnectedRoad(points,false,snap:4,lanes:1);s.Construction.CheckRoadPlacement(plan);if(!s.Construction.Commit(plan,out _))throw new Exception("Stale replay plan");};
         var positions=s.Transport.Vehicles.ToDictionary(v=>v.id,v=>s.Transport.Position(v));
-        add(-h+5,-h+8,-h+17,-h+8);record("setup_a");add(-h+5,-h+32,-h+17,-h+32);record("setup_b");add(-h+5,-h+56,-h+17,-h+56);int ordinary=s.Transport.Network.RoadIds.Max();record("add");add(-h+11,-h+8,-h+11,-h+32);record("connect_split");
+        add(-h+5,-h+8,-h+17,-h+8);record("setup_a");
+        foreach(var pair in positions){var p=s.Transport.Position(s.Transport.FindVehicle(pair.Key));if(p.x!=pair.Value.x||p.y!=pair.Value.y||p.z!=pair.Value.z)throw new Exception("First isolated edit moved an existing vehicle");}
+        // Check the first edit before advancing, then take fresh positions for
+        // the remaining edits: legitimate fixed-step movement must not be masked.
+        if(args.Contains("warmup160")){for(int i=0;i<5;i++)s.Advance(.05);record("isolated_after5");positions=s.Transport.Vehicles.ToDictionary(v=>v.id,v=>s.Transport.Position(v));}
+        add(-h+5,-h+32,-h+17,-h+32);record("setup_b");add(-h+5,-h+56,-h+17,-h+56);int ordinary=s.Transport.Network.RoadIds.Max();record("add");add(-h+11,-h+8,-h+11,-h+32);record("connect_split");
         foreach(string operation in new[]{"widen","delete"})
         {
             var before=CityCoreSave.Write(s);try{if(operation=="widen")s.Construction.UpgradeRoad(ordinary,2,RoadDirection.Both);else s.Construction.RemoveRoad(ordinary);}
