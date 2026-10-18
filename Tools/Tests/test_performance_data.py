@@ -201,6 +201,22 @@ class EvidenceTests(unittest.TestCase):
         self.assertNotIn('unrelated.txt', run('show', '--pretty=format:', '--name-only', 'HEAD'))
         self.assertTrue(pd.links(self.root, [self.data['id']], 'HEAD')[0].startswith('https://github.com/example/evidence/blob/'))
 
+    def test_original_log_whitespace_preserved_without_disabling_code_checks(self):
+        captured = self.root / 'captured.log'
+        captured.write_bytes(b'original trailing space \r\n\r\n')
+        self.data['files'].append(dict(source=str(captured), path='data/player.log', role='environment'))
+        run = self.init_git()
+        run('config', 'core.whitespace', 'blank-at-eol')
+        attributes = Path(__file__).parents[2] / '.gitattributes'
+        (self.root / '.gitattributes').write_bytes(attributes.read_bytes())
+        run('add', '.gitattributes'); run('commit', '-m', 'scope data whitespace policy')
+        pd.publish(self.root, [self.data['id']], 'preserve original capture whitespace')
+        self.assertEqual(b'original trailing space \n\n', pd.canonical(self.folder / 'data/player.log', 'utf8-lf'))
+        (self.root / 'unrelated.txt').write_text('bad code whitespace \n')
+        run('add', 'unrelated.txt')
+        with self.assertRaisesRegex(pd.Invalid, 'trailing whitespace'):
+            run('diff', '--cached', '--check')
+
     def test_publish_refuses_unrelated_staging_and_primary(self):
         run = self.init_git()
         (self.root / 'unrelated.txt').write_text('staged edit')

@@ -65,7 +65,7 @@ def write_json(path, data):
 
 def git(root, *args):
     result = subprocess.run(['git', '-C', str(root), *args], capture_output=True, text=True, encoding='utf-8')
-    require(result.returncode == 0, f'git {args[0]} failed: {result.stderr.strip()}')
+    require(result.returncode == 0, f'git {args[0]} failed: {result.stderr.strip() or result.stdout.strip()}')
     return result.stdout.strip()
 
 

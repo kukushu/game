@@ -1,0 +1,3 @@
+# Captured evidence preserves original log/source whitespace. Checksums and
+# typed-data validation govern these snapshots; normal code keeps Git checks.
+Docs/Benchmarks/** -whitespace
