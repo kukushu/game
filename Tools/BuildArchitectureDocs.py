@@ -7,10 +7,11 @@ import subprocess, json, html, re, csv
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'Docs/Architecture'
-COMMIT = '3a3ca6e'
+COMMIT = '7a06a46'
 BASELINE = '110c4eaa24fa69d55b08a5db2a6d19ec6da5dd7f'
 R = 'Assets/Scripts/Runtime/'
 files = {
+ 'utilitylayout':R+'Infrastructure/Utilities/CityUtilityLayout.cs',
  'zonegeometry':R+'Infrastructure/Zoning/CityCoreZoningGeometry.cs',
  'roadviews':R+'Presentation/World/HarborCityRoadViews.cs',
  'vehicleviews':R+'Presentation/World/HarborCityVehicleViews.cs',
@@ -233,7 +234,7 @@ flows={
  ('HarborCityGame.AdvanceSociety','legacy','旧完整入口，当前默认Launch已禁用。'),('CityTraffic.Advance .05','legacy','clock先加，移动先执行，短边路线。'),('移动：释放路口/快照/Move','legacy','既有跟车索引/哈希收益保留为历史证据。'),('市政服务每步更新','legacy','医疗/学校/消防/警务/焚烧及分析。'),('AdvanceResidents / 行业 / 生长','residents','原行为包含通勤/实际劳动，日内时间累计。'),('日界City.Tick / BaselineTick','development','发展模式税收维护/迁入岗位/服务；否则租金家庭Review。'),('每.6秒Schedule货运','legacy','不要把顺序画成服务→移动，源码是移动优先。')]),
 }
 flowdata={}
-flow_refs={'host':('host','void Update()'),'session':('session','void BeforeStep()'),'bindings':('bindings','public void RefreshIfChanged()'),'people':('people','public void AdvanceRequests()'),'industry':('industry','public void AdvanceIndustry'),'world':('world','public void Step()'),'changes':('changes','public static int Choose'),'edit':('edit','public bool TryCommit()'),'factory':('industry','public void ProcessFactoryWork'),'vehicle':('world','public sealed class Vehicle'),'connection':('network','long id=ConnectionId'),'construction':('construction','public static RoadEditPlan Connect'),'business':('session','public bool Deliver'),'save':('save','public static byte[] Write'),'network':('network','void Rebuild()'),'legacy':('legacy','void Simulate()'),'development':('development','void BaselineTick()'),'residents':('residents','public sealed class CityResident')}
+flow_refs={'host':('host','void Update()'),'session':('session','void BeforeStep()'),'bindings':('bindings','public void RefreshIfChanged()'),'people':('people','public void AdvanceRequests()'),'industry':('industry','public void AdvanceIndustry'),'world':('world','public void Step()'),'changes':('changes','public static int Choose'),'edit':('edit','public bool TryCommit()'),'factory':('industry','public void ProcessFactoryWork'),'vehicle':('world','public sealed class Vehicle'),'connection':('network','long id=ConnectionId'),'construction':('construction','public static RoadEditPlan Connect'),'business':('session','public bool Deliver'),'save':('save','public static byte[] Write'),'network':('network','void Rebuild(Network prior)'),'legacy':('legacy','void Simulate()'),'development':('development','void BaselineTick()'),'residents':('residents','public sealed class CityResident')}
 flow_refs['city']=('city','public void Tick()')
 flow_refs.update({'session':('simulation','void Step(TimeContext time)'),'business':('session','internal bool Deliver'),'production':('production','internal void Step'),'logistics':('logistics','internal void Step'),'world':('world','internal void MoveStep')})
 flows['current']=('R1当前默认入口 · 已实现','CitySimulation唯一tick/欠步量；正常交通不再推进城市时间或回调城市业务。',[
@@ -649,6 +650,23 @@ for c in cards:
     if c['id']=='zoningviews':c.update(fields='64单位块/用途→只读Plot值快照 + 独占Mesh/GameObject',derived='原三万人90733个显示格全部保留；按原顺序分组，逐值比较全部浮点位；只为变化块运行原AppendPlot。',life='全部变化块成功生成后替换；失败保留旧显示；更换高度采样器或InvalidateSurface全量显示重建。',risk='分组和快照比较仍O(显示格)，不宣称所有显示工作O(局部)；原位地形编辑需显式InvalidateSurface。',decision='835组几何/生命周期、275206冻结三角形及三万人最终画面0像素差；分区计算+显示22–26ms；不等于全施工16ms或3×达标。')
 flowdata['current']['note']+=' 道路编辑后，CityCoreZoning比较旧新Drivable和候选依赖；按原优先级传播接受格变化，地形/道路规则原样。显示比较64单位块的实际Plot值，只重建变化块；缓存不是分区用途或建筑事实。'
 evidence.extend([dict(title='实际：变动通行几何保守影响范围',source=ref('zonegeometry','void TouchDrivable')),dict(title='实际：不截断的后续优先级依赖传播',source=ref('zonegeometry','void Propagate')),dict(title='实际：块值比较与失败原子替换',source=ref('zoningviews','static bool Same'))])
+for c in cards:
+    if c['id']=='world':
+        c['owner']='Session.Transport唯一拥有活事实；公开World构造深复制；内部事务仅接管刚创建的私有副本。'
+        c['derived']+=' 私有候选复用已成功构建的Network，保留完整Validate/AssertSafety/预约与迁移检查；不再次深复制同一私有DTO。'
+        c['derived']+=' 私有施工草稿每步就地应用并完整Validate/AssertSafety，错误丢弃草稿；真实城市仍独立staged验证后提交。'
+        c['risk']='普通短路仍有2次Snapshot及全车辆/任务/路线安全校验；施工后通勤缓存失效也会产生长帧，不能称O(局部)。'
+    if c['id']=='network':
+        c['derived']+=' 新候选只共享逐位相同的不可变Geometry；Drivable/端口/占用与冲突缓存独立。空间索引按几何引用和精确裁剪失效，未变段与桶只读共享，变化桶写时复制。'
+        c['life']+=' 构造期间读取prior几何；空间查询暂存一个可用旧索引，构造完成释放，不持有Network版本链。'
+flowdata['current']['note']+=' 施工候选复用私有副本与已验证几何，所有原安全校验仍执行；SnapshotRoadGeometry不复制车辆任务。空间索引只重新创建变化线段/桶，仍有全局轻量扫描。'
+evidence.extend([dict(title='实际：内部候选所有权与完整校验',source=ref('world','World(WorldData state,SimulationClock clock,IEnumerable<int> endpoints,bool owned,Network prepared')),dict(title='实际：路网只读Geometry共享',source=ref('network','internal Network(NetworkData data,Network prior)')),dict(title='实际：空间桶写时复制',source=ref('spatial','public RoadSpatialIndex(Network network,RoadSpatialIndex prior=null)'))])
+card('utilitylayout','CityModel.UtilityLayout','Utilities / 静态覆盖缓存','derived','utilitylayout','sealed class UtilityLayout','不可变几何输入值快照 / 电力组 / 水管覆盖组','SupplyLayout · UtilityLayoutKey','CityModel私有且不入存档；无第二套供应事实。','建筑、管线、人口、岗位、设施访问与预算仍是唯一真实输入。','逐位有序内容比较，未变化只复用原覆盖分组。','每次原RecalculateUtilities仍完整重算实时负荷、容量、限供和设施道路可达性。','几何/管线对象或内容/建筑顺序变化全量构建；读档冷建；原位DTO改变也捕获。','沿用原覆盖、BFS和分配次序；单线程。','仍全城比较轻量输入并动态分配；不是所有水电工作O(局部)。','51快照398106栋供应冻结对照及完整恢复通过；只消除道路变化触发的重复静态覆盖。')
+graphs['classes']['nodes'].append(node('utilitylayout','CityModel.UtilityLayout','非序列化静态覆盖 / 动态分配原样','derived'))
+graphs['classes']['edges'].extend([edge('coreutilities','utilitylayout','复用几何分组'),edge('utilitylayout','city','只读建筑与管线输入','dash')])
+graphs['ownership']['nodes'].append(node('utilitylayout','静态水电覆盖分组','CityModel私有；不是供给事实','derived'))
+graphs['ownership']['edges'].extend([edge('city','utilitylayout','独占可丢弃缓存'),edge('utilityfacts','utilitylayout','内容签名失效','dash')])
+evidence.append(dict(title='实际：水电静态覆盖与动态供应分离',source=ref('utilitylayout','UtilityLayout SupplyLayout()')))
 payload=dict(commit=COMMIT,baseline=BASELINE,cards=cards,graphs=graphs,flows=flowdata,readings=readingdata,perf=perf,evidence=evidence)
 
 page=r'''<!doctype html>
@@ -849,6 +867,9 @@ if road_report.exists():
 zoning_report=ROOT/'Docs/Architecture/ZoningIncremental20261018.txt'
 if zoning_report.exists():
     page=page.replace('<section id="review">','<section id="review"><details open><summary>2026-10-18 当前施工分区：真实局部计算与空间块显示更新</summary><pre>'+html.escape(zoning_report.read_text(encoding='utf-8'))+'</pre></details>')
+transaction_report=ROOT/'Docs/Architecture/ConstructionTransactions20261018.txt'
+if transaction_report.exists():
+    page=page.replace('<section id="review">','<section id="review"><details open><summary>2026-10-18 玩家施工：完整事务、真实长帧与水电静态覆盖复用</summary><pre>'+html.escape(transaction_report.read_text(encoding='utf-8'))+'</pre></details>')
 (OUT/'HarborCityArchitecture.html').write_text(page,encoding='utf-8')
 (OUT/'SourceEvidence.md').write_text('# 固定源码定位证据\n\n审查commit：`'+COMMIT+'`。以下行号由固定源码生成，而非当前工作树。\n\n'+ '\n'.join('## '+e['title']+'\n\n['+e['source']['file']+':'+str(e['source']['line'])+']('+e['source']['url']+')\n\n方法/语句：`'+e['source']['token']+'`\n' for e in evidence),encoding='utf-8')
 print(f'Created {OUT / "HarborCityArchitecture.html"}; {len(cards)} class cards, {len(graphs)} graphs, {len(flowdata)} flows; pinned {COMMIT}')

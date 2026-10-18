@@ -78,11 +78,16 @@ for run in ('replay-before','replay-after','replay-geometry','replay-spatial'):
         replays[run] = read(path)
 assert all(rows == next(iter(replays.values())) for rows in replays.values()), 'Deterministic full replay differs'
 expanded = {}
-for run in ('expanded-old','expanded-utility','expanded-draft'):
+for run in ('expanded-old','expanded-utility','expanded-draft','expanded-release'):
     if (base / run / 'Result.txt').exists():
         expanded[run] = dict(states=read(base/run/'replay.csv'), outcomes=read(base/run/'expanded-operations.csv'))
 assert all(rows == next(iter(expanded.values())) for rows in expanded.values()), 'Expanded frozen/current whole-state or outcome differs'
+scale_replays = {}
+for run in ('scale-replay-old','scale-replay-new'):
+    if (base / run / 'Result.txt').exists():
+        scale_replays[run] = dict(states=read(base/run/'replay.csv'), outcomes=read(base/run/'expanded-operations.csv'))
+assert all(rows == next(iter(scale_replays.values())) for rows in scale_replays.values()), '50000 frozen/current whole-state or outcome differs'
 (base / 'state-check.json').write_text(json.dumps(dict(paused_native=pairs, deterministic_replay=replays,
-    expanded=expanded,
+    expanded=expanded, scale_replays=scale_replays,
     note='Realtime running captures occur at different wall-clock ticks and are not full-save equivalence pairs. Assertions/save IO excluded from running construction frames; click-to-input unknown=-1.'), indent=2), encoding='utf-8')
 print(f'Summarized {len(measurements)} operations; exact paired state checks passed')
