@@ -254,7 +254,7 @@ namespace HarborCity.RoadCore
                 if(!candidate.Contains(old.Id))return false;var next=candidate.Get(old.Id);
                 if(!ReferenceEquals(old.Geometry,next.Geometry)||old.StartDistance!=next.StartDistance||old.EndDistance!=next.EndDistance||old.ProtectedClearance!=next.ProtectedClearance||old.ParallelLaneCount!=next.ParallelLaneCount||old.Speed!=next.Speed||old.From!=next.From||old.To!=next.To||old.JunctionId!=next.JunctionId||Network.IsConflictJunction(old.From)!=candidate.IsConflictJunction(old.From)||Network.IsConflictJunction(old.To)!=candidate.IsConflictJunction(old.To))return false;
             }
-            plan=new RoadEditPlan(this,n,candidate);return true;
+            plan=new RoadEditPlan(this,n,candidate,independentRoad:road);return true;
         }
         internal RoadEditPlan PlanFromDraft(World draft)
         {

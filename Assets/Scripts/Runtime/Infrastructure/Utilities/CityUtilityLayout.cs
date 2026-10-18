@@ -16,6 +16,36 @@ namespace HarborCity
             internal readonly Dictionary<int,List<int>> pipeGroups=new Dictionary<int,List<int>>();
         }
         [NonSerialized] UtilityLayout utilityLayout;
+        // The layout owns only static building/component membership. An isolated
+        // road with no possible building coverage or manual-conduit contact adds
+        // an unused component; existing group IDs/order and membership are exact.
+        // Refresh STILL recalculates all current loads, budgets and capacities.
+        internal bool RetainIndependentRoadSupplyLayout(HarborCity.RoadCore.Network before,HarborCity.RoadCore.Network after,int road)
+        {
+            var layout=utilityLayout;
+            if(!utilities.roadConduits||layout==null||!ReferenceEquals(layout.roads,before)||!ReferenceEquals(layout.power,utilities.electricity)||!ReferenceEquals(layout.water,utilities.water))return false;
+            var line=after.Centreline(road);double minX=double.PositiveInfinity,minZ=minX,maxX=double.NegativeInfinity,maxZ=maxX;
+            for(int i=0;i<line.Count;i++)
+            {
+                var p=line[i];if(Math.Abs(p.x)>1000000||Math.Abs(p.z)>1000000)return false; // bound float projection roundoff below conservative 1m guard
+                minX=Math.Min(minX,p.x);maxX=Math.Max(maxX,p.x);minZ=Math.Min(minZ,p.z);maxZ=Math.Max(maxZ,p.z);
+            }
+            foreach(var b in buildings)
+            {
+                double reach=Math.Max(ElectricityReach,PipeReach)+Math.Max(b.width,b.depth)/2+1;
+                if(b.x+reach>=minX&&b.x-reach<=maxX&&b.z+reach>=minZ&&b.z-reach<=maxZ)return false;
+            }
+            foreach(var net in new[]{utilities.electricity,utilities.water})foreach(var edge in net.edges)
+            {
+                var a=net.Node(edge.a);var b=net.Node(edge.b);if(a==null||b==null)return false;
+                // Covers crossing, touching, collinear and grade-separated manual
+                // pipes: the original utility projection connects in XZ, not Y.
+                if(Math.Max(a.x,b.x)+1>=minX&&Math.Min(a.x,b.x)-1<=maxX&&Math.Max(a.z,b.z)+1>=minZ&&Math.Min(a.z,b.z)-1<=maxZ)return false;
+            }
+            // SupplyLayout subsequently checks the complete original content key.
+            // DTO edits, changed footprints/manual data or flags still rebuild.
+            layout.roads=after;return true;
+        }
         IEnumerable<long> UtilityLayoutKey()
         {
             yield return utilities.roadConduits?1:0;

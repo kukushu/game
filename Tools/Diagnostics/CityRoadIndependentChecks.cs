@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Reflection;
 using HarborCity;
 using HarborCity.RoadCore;
 
@@ -15,6 +16,9 @@ static class CityRoadIndependentChecks
     static byte[] Save(World w)=>SaveCodec.Write(w);
     static void Record(string name,string outcome,World w)
     {using(var h=SHA256.Create())rows.Add(name+","+outcome+","+BitConverter.ToString(h.ComputeHash(Save(w))).Replace("-","").ToLowerInvariant());}
+    static void RecordCity(string name,CityCoreIndustrySession s)
+    {using(var h=SHA256.Create()){rows.Add(name+",accepted,"+BitConverter.ToString(h.ComputeHash(CityCoreSave.Write(s))).Replace("-","").ToLowerInvariant());rows.Add(name+"_supply,derived,"+BitConverter.ToString(h.ComputeHash(System.Text.Encoding.UTF8.GetBytes(SupplyFacts(s)))).Replace("-","").ToLowerInvariant());}}
+    static string SupplyFacts(CityCoreIndustrySession s)=>s.City.power+"/"+s.City.water+"/"+s.City.demand+"/"+s.City.WaterDemand+"/"+s.City.SewageCapacity+";"+string.Join(";",s.Entities.Buildings.Select(b=>{var u=s.City.Supply(b.id);return b.id+":"+u.electricity+":"+u.water+":"+u.sewage+":"+string.Join(",",u.pipes.Select(p=>p.id+"/"+p.load+"/"+p.fresh+"/"+p.drain+"/"+string.Join("-",p.inactiveDrains)));}));
     static Point[] Stroke(double z= -100)
     {var points=new Point[9];for(int i=0;i<9;i++)points[i]=Point.Lerp(new Point(-100,0,z),new Point(-80,0,z),i/8.0);return points;}
     static void Main(string[] args)
@@ -64,8 +68,32 @@ static class CityRoadIndependentChecks
         }
         var staleWorld=CityRoadCoreFixtures.Create(20,false);var stale=staleWorld.PlanConnectedRoad(Stroke());staleWorld.Advance(.05);var unchanged=Save(staleWorld);
         Check(!stale.TryCommit()&&unchanged.SequenceEqual(Save(staleWorld)),"Simulation did not invalidate plan");Record("stale","rejected",staleWorld);
+        UtilityLayoutCases();
         File.WriteAllLines(Path.Combine(output,"independent.csv"),rows);
         File.WriteAllText(Path.Combine(output,"Result.txt"),"PASS "+checks+" isolated-add checks, actor/route identity, frozen actors, old-path fallbacks, failed/stale atomicity and cold continuation. Compare complete state CSV with frozen build; synthetic model checks, not Player performance.\n");
         Console.WriteLine(File.ReadAllText(Path.Combine(output,"Result.txt")));
+    }
+    static object Layout(CityCoreIndustrySession s)=>typeof(CityModel).GetField("utilityLayout",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(s.City);
+    static void UtilityLayoutCases()
+    {
+        foreach(string mode in new[]{"isolated","manual_cross","dto_change","no_cache","budget"})
+        {
+            var s=CityGrowingGridFixture.Create();s.City.utilities.roadConduits=true;s.Simulation.Finance.UnlimitedFunds=true;s.Simulation.Utilities.Refresh();
+            if(mode=="manual_cross")s.Simulation.Utilities.Build(UtilityKind.Water,new Point(112,2,90),new Point(112,2,110));
+            object layout=Layout(s);if(mode=="no_cache")typeof(CityModel).GetField("utilityLayout",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(s.City,null);
+            if(mode=="dto_change")s.City.utilities.electricity.nodes[0].x+=.25f; // original signature must still invalidate unversioned DTO changes
+            Action<double> add=z=>{var plan=s.Transport.PlanConnectedRoad(new[]{new Point(100,2,z),new Point(124,2,z)},snap:1);s.Construction.CheckRoadPlacement(plan);Check(s.Construction.Commit(plan,out _),"Utility fixture stale");};
+            add(100);
+            if(!baseline)
+            {
+                if(mode=="isolated"||mode=="budget")Check(ReferenceEquals(layout,Layout(s)),"Proved unused component rebuilt static layout");
+                else Check(!ReferenceEquals(layout,Layout(s)),"Potential utility dependency reused stale layout: "+mode);
+            }
+            if(mode=="budget"){s.Simulation.Utilities.SetBudget(CityServiceKind.Electricity,150);Check(s.City.power==240,"Static layout reuse cached actual facility capacity");}
+            s.Validate();RecordCity("utility_"+mode,s);
+            add(124);for(int i=0;i<80;i++)s.Advance(.05);RecordCity("utility_"+mode+"_continuous80",s);
+            var bytes=CityCoreSave.Write(s);var restored=CityCoreSave.Read(bytes);restored.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);
+            for(int i=0;i<80;i++){s.Advance(.05);restored.Advance(.05);}Check(CityCoreSave.Write(s).SequenceEqual(CityCoreSave.Write(restored))&&SupplyFacts(s)==SupplyFacts(restored),"Retained supply layout changed warm/cold simulation");RecordCity("utility_"+mode+"_restore160",s);
+        }
     }
 }

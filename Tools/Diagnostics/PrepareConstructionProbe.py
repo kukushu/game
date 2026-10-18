@@ -46,6 +46,10 @@ scopes('Simulation/Core/CityCoreConstruction.cs', [
     ('public int CheckRoadPlacement(RoadEditPlan plan)', 'Construction.Placement'),
     ('public bool Commit(RoadEditPlan plan,out int paid)', 'Construction.Commit'),
 ])
+scopes('Simulation/Services/CityCoreUtilities.cs', [('public void Refresh()', 'Utilities.Refresh')])
+scopes('Infrastructure/Utilities/CityUtilityLayout.cs', [('UtilityLayout SupplyLayout()', 'Utilities.Layout')])
+scopes('Infrastructure/Utilities/CityRoadUtilityConduits.cs', [('internal CityRoadUtilityConduits(Network roads,CityUtilityNetwork manual)', 'Utilities.RoadProjection')])
+scopes('Infrastructure/Utilities/CityUtilities.cs', [('public void RecalculateUtilities()', 'Utilities.Recalculate')])
 
 path = root / 'Traffic/CityRoadCoreWorld.cs'
 source = path.read_text(encoding='utf-8')
