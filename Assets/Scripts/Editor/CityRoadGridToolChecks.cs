@@ -38,7 +38,21 @@ namespace HarborCity
             tool.GetType().GetMethod("Cancel").Invoke(tool,null);
             send(new Point(96,2,96),false,true);
             if(!built.SequenceEqual(CityCoreSave.Write(session))||lines.Any(l=>l.enabled))throw new Exception("Cancel built roads");
+            // A pointer slightly off the shared corner snaps to the real junction.
+            send(new Point(32.4,2,-31.7),true,false);send(new Point(96.5,2,32.5),false,true);
+            if(session.Transport.Network.RoadCount!=22||session.Transport.Network.JunctionCount!=15||!message.Contains("2×2"))throw new Exception("Shared-border drag failed: "+message);
+            var extended=CityCoreSave.Write(session);
+            send(new Point(32.4,2,-31.7),true,false);send(new Point(96.5,2,32.5),false,true);
+            string feedback=(string)tool.GetType().GetField("feedback",flags).GetValue(tool);
+            if(!extended.SequenceEqual(CityCoreSave.Write(session))||!feedback.Contains("无需重复"))throw new Exception("Repeat drag not reported without charge");
+            send(new Point(-30.5,2,-20),true,false);send(new Point(33.5,2,44),false,true);
+            feedback=(string)tool.GetType().GetField("feedback",flags).GetValue(tool);
+            if(!extended.SequenceEqual(CityCoreSave.Write(session))||!feedback.Contains("重叠"))throw new Exception("Near-parallel drag did not visibly reject: "+feedback);
+            send(new Point(-100,2,-100),true,false);send(new Point(-99,2,-99),false,true);
+            feedback=(string)tool.GetType().GetField("feedback",flags).GetValue(tool);
+            if(!extended.SequenceEqual(CityCoreSave.Write(session))||!feedback.Contains("至少"))throw new Exception("Small drag missing visible reason");
             Debug.Log("PASS Unity grid drag handler, six pooled preview lines, preview read-only, 2x2 connected road mesh creation, one payment, release cleanup and cancellation. Programmatic handler test; physical mouse not tested.");
+            Debug.Log("PASS snapped shared-border extension, no repeat payment, parallel-overlap rejection and persistent visible failure reasons.");
         }
         static void Capture(HarborCityRoadCoreGame game,string name)
         {

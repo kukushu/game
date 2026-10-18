@@ -632,6 +632,18 @@
     {
       "key": "ui.grid.outside",
       "text": "Start dragging inside the buildable map."
+    },
+    {
+      "key": "ui.grid.already_built",
+      "text": "These roads already exist. Nothing was built or charged."
+    },
+    {
+      "key": "ui.grid.too_close",
+      "text": "Road surfaces would overlap nearby parallel streets. Start at an existing junction or move the grid farther away. Nothing was built or charged."
+    },
+    {
+      "key": "ui.grid.cancelled_ui",
+      "text": "Released over a menu: construction cancelled, no charge. Release over the map to build."
     }
   ]
 }

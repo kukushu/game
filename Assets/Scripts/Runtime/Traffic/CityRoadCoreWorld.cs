@@ -180,7 +180,7 @@ namespace HarborCity.RoadCore
         public RoadEditPlan PlanRoad(int from,int to,Point[] points,bool oneWay=false,double speed=12,int lanes=1)
         {var n=CopyNetwork();int id=n.nextRoad++;n.roads.Add(new PhysicalRoad{id=id,from=from,to=to,points=(Point[])points.Clone(),direction=oneWay?RoadDirection.Forward:RoadDirection.Both,lanes=lanes,speed=speed});var network=new Network(n,Network);ValidateEditReservations(network,null);return new RoadEditPlan(this,n,network);}
         public RoadEditPlan PlanConnectedRoad(Point[] center,bool oneWay=false,double speed=12,double snap=3,int lanes=1)=>RoadConstruction.Connect(this,center,oneWay,speed,snap,lanes);
-        public RoadEditPlan PlanConnectedRoads(Point[][] strokes,bool oneWay=false,double speed=12,double snap=3,int lanes=1)=>RoadConstruction.ConnectMany(this,strokes,oneWay,speed,snap,lanes);
+        public RoadEditPlan PlanConnectedRoads(Point[][] strokes,bool oneWay=false,double speed=12,double snap=3,int lanes=1,bool reuseExisting=false)=>RoadConstruction.ConnectMany(this,strokes,oneWay,speed,snap,lanes,reuseExisting);
         public RoadEditPlan PlanUpgradeRoad(int id,int lanes,double speed,RoadDirection direction)
         {
             var n=CopyNetwork();var road=n.roads.Find(r=>r.id==id);if(road==null)throw new ArgumentException("Missing road");road.lanes=lanes;road.speed=speed;road.direction=direction;var candidate=new Network(n,Network);

@@ -632,6 +632,18 @@
     {
       "key": "ui.build.preview_unchecked",
       "text": "道路示意 {0} 米；点击后完整校验并建设（黄色不代表已获准建设）。"
+    },
+    {
+      "key": "ui.grid.already_built",
+      "text": "这个范围的道路已经建好，无需重复建设；没有扣款。"
+    },
+    {
+      "key": "ui.grid.too_close",
+      "text": "路面与已有平行道路过近，会重叠。请从已有路口开始拖建，或把整片路网移远一点；本次没有施工或扣款。"
+    },
+    {
+      "key": "ui.grid.cancelled_ui",
+      "text": "在菜单上松开已取消本次施工，没有扣款。请在地图上松开鼠标。"
     }
   ]
 }

@@ -3,6 +3,12 @@ using System.Collections.Generic;
 
 namespace HarborCity.RoadCore
 {
+    public enum RoadGridIssue { AlreadyBuilt,TooClose }
+    public sealed class RoadGridException:InvalidOperationException
+    {
+        public readonly RoadGridIssue Issue;
+        public RoadGridException(RoadGridIssue issue):base(issue.ToString()){Issue=issue;}
+    }
     // Geometry/attachment planning is a cold path operating on a disposable road draft.
     // No stock settlement, simulation advance or live actor mutation occurs here.
     internal static class RoadConstruction
@@ -11,12 +17,61 @@ namespace HarborCity.RoadCore
         static double Cross(double ax,double az,double bx,double bz)=>ax*bz-az*bx;
         public static RoadEditPlan Connect(World owner,Point[] center,bool oneWay,double speed,double snap,int lanes)
             =>ConnectMany(owner,new[]{center},oneWay,speed,snap,lanes);
-        public static RoadEditPlan ConnectMany(World owner,Point[][] strokes,bool oneWay,double speed,double snap,int lanes)
+        public static RoadEditPlan ConnectMany(World owner,Point[][] strokes,bool oneWay,double speed,double snap,int lanes,bool reuseExisting=false)
         {
             if(strokes==null||strokes.Length==0||strokes.Length>18)throw new ArgumentException("A road batch needs 1 to 18 strokes");
             var draft=owner.EditDraft();
-            foreach(var stroke in strokes)Append(draft,stroke,oneWay,speed,snap,lanes);
+            bool added=false;
+            foreach(var stroke in strokes)
+            {
+                if(!reuseExisting){Append(draft,stroke,oneWay,speed,snap,lanes);added=true;continue;}
+                foreach(var missing in MissingGridPieces(draft,stroke))
+                {CheckGridSeparation(draft,missing,lanes);Append(draft,missing,oneWay,speed,snap,lanes);added=true;}
+            }
+            if(!added)throw new RoadGridException(RoadGridIssue.AlreadyBuilt);
             return owner.PlanFromDraft(draft);
+        }
+        struct Covered {public double from,to;}
+        // Exact existing centreline coverage is reused, never upgraded or charged again.
+        // This policy is grid-only; ordinary single-road overlap rules are unchanged.
+        static List<Point[]> MissingGridPieces(World draft,Point[] stroke)
+        {
+            var geometry=new Geometry(stroke);var covered=new List<Covered>();
+            foreach(int id in draft.Network.RoadIds)
+            {
+                var road=draft.Network.Centreline(id);
+                for(int i=1;i<geometry.Count;i++)for(int j=1;j<road.Count;j++)
+                {
+                    var a=geometry[i-1];var b=geometry[i];var c=road[j-1];var d=road[j];
+                    double x=b.x-a.x,y=b.y-a.y,z=b.z-a.z,len=Point.Distance(a,b);if(len<1e-9)continue;
+                    double t=((c.x-a.x)*x+(c.y-a.y)*y+(c.z-a.z)*z)/(len*len),u=((d.x-a.x)*x+(d.y-a.y)*y+(d.z-a.z)*z)/(len*len);
+                    if(Point.Distance(c,Point.Lerp(a,b,t))>1e-6||Point.Distance(d,Point.Lerp(a,b,u))>1e-6)continue;
+                    double lo=Math.Max(0,Math.Min(t,u)),hi=Math.Min(1,Math.Max(t,u));
+                    if(hi>lo)covered.Add(new Covered{from=geometry.At(i-1)+lo*len,to=geometry.At(i-1)+hi*len});
+                }
+            }
+            covered.Sort((a,b)=>a.from.CompareTo(b.from));var result=new List<Point[]>();double cursor=0;
+            foreach(var span in covered){if(span.from>cursor+1e-6)result.Add(geometry.Slice(cursor,span.from));cursor=Math.Max(cursor,span.to);}
+            if(cursor<geometry.Length-1e-6)result.Add(geometry.Slice(cursor,geometry.Length));return result;
+        }
+        static void CheckGridSeparation(World draft,Point[] stroke,int lanes)
+        {
+            // Lane offsets are .55 + laneIndex*1.1, each rendered/physical lane is 1m wide.
+            // Reject parallel overlapping ribbons, while retaining real crossing intersections.
+            foreach(int id in draft.Network.RoadIds)
+            {
+                var road=draft.Network.Centreline(id);double clearance=(lanes+draft.Network.Settings(id).lanes-1)*1.1+1;
+                for(int i=1;i<stroke.Length;i++)for(int j=1;j<road.Count;j++)
+                {
+                    var a=stroke[i-1];var b=stroke[i];var c=road[j-1];var d=road[j];
+                    double x=b.x-a.x,z=b.z-a.z,rx=d.x-c.x,rz=d.z-c.z,len=Math.Sqrt(x*x+z*z),rlen=Math.Sqrt(rx*rx+rz*rz);
+                    if(len<1e-9||rlen<1e-9||Math.Abs(Cross(x,z,rx,rz))>1e-5*len*rlen)continue;
+                    double t=((c.x-a.x)*x+(c.z-a.z)*z)/(len*len),u=((d.x-a.x)*x+(d.z-a.z)*z)/(len*len);
+                    double lo=Math.Max(0,Math.Min(t,u)),hi=Math.Min(1,Math.Max(t,u));if((hi-lo)*len<=1e-6)continue;
+                    double mid=(lo+hi)/2;var p=Point.Lerp(a,b,mid);double v=((p.x-c.x)*rx+(p.z-c.z)*rz)/(rlen*rlen);var q=Point.Lerp(c,d,Math.Max(0,Math.Min(1,v)));
+                    if(Math.Abs(p.y-q.y)<.25&&Math.Abs(Cross(c.x-a.x,c.z-a.z,x,z))/len<clearance-1e-6)throw new RoadGridException(RoadGridIssue.TooClose);
+                }
+            }
         }
         static void Append(World draft,Point[] center,bool oneWay,double speed,double snap,int lanes)
         {
