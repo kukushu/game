@@ -211,6 +211,51 @@ namespace HarborCity.RoadCore
             return new RoadEditPlan(this,n,candidate,remaps,interrupted,proposed);
         }
         internal World EditDraft()=>new World(Snapshot(),data.externalBusiness?timeline.Copy():null,null,true,Network,true);
+        // An isolated addition changes no old lane, endpoint, route or reservation
+        // geometry. Construct the final network once, rather than committing two
+        // temporary junctions and a road inside a full actor-bearing draft.
+        // This does NOT bypass TryCommit's full staged World validation/safety.
+        internal bool TryPlanIndependentRoad(Point[] center,bool oneWay,double speed,double snap,int lanes,out RoadEditPlan plan)
+        {
+            plan=null;
+            if(constructionDraft||center==null||center.Length<2||snap<0||double.IsNaN(snap)||double.IsInfinity(snap))return false;
+            double minX=double.PositiveInfinity,minZ=minX,maxX=double.NegativeInfinity,maxZ=maxX;
+            foreach(var p in center)
+            {
+                if(double.IsNaN(p.x)||double.IsNaN(p.y)||double.IsNaN(p.z)||double.IsInfinity(p.x)||double.IsInfinity(p.y)||double.IsInfinity(p.z))return false;
+                minX=Math.Min(minX,p.x);minZ=Math.Min(minZ,p.z);maxX=Math.Max(maxX,p.x);maxZ=Math.Max(maxZ,p.z);
+            }
+            var geometry=new Geometry(center);
+            if(geometry.Length<.1||Point.Distance(center[0],center[center.Length-1])<=snap+1e-6)return false;
+            // Append removes samples within .01 of a cut; accept only strokes it
+            // would retain exactly, including its segment intersection tolerances.
+            for(int i=1;i<center.Length;i++)if(geometry.At(i)-geometry.At(i-1)<.1)return false;
+            for(int i=1;i<center.Length-1;i++)if(geometry.At(i)<=.01||geometry.At(i)>=geometry.Length-.01)return false;
+            double padding=snap+1+geometry.Length*1e-6;
+            minX-=padding;minZ-=padding;maxX+=padding;maxZ+=padding;
+            foreach(var j in data.network.junctions)if(j.position.x>=minX&&j.position.x<=maxX&&j.position.z>=minZ&&j.position.z<=maxZ)return false;
+            // Conservative XZ bounds deliberately also reject grade-separated
+            // crossings. No new spatial framework or uncertain nearest-hit rule.
+            foreach(int id in Network.RoadIds)
+            {
+                var old=Network.Centreline(id);double x0=double.PositiveInfinity,z0=x0,x1=double.NegativeInfinity,z1=x1;
+                for(int i=0;i<old.Count;i++){var p=old[i];x0=Math.Min(x0,p.x);z0=Math.Min(z0,p.z);x1=Math.Max(x1,p.x);z1=Math.Max(z1,p.z);}
+                double epsilon=old.Length*1e-6;
+                if(x1+epsilon>=minX&&x0-epsilon<=maxX&&z1+epsilon>=minZ&&z0-epsilon<=maxZ)return false;
+            }
+            var n=CopyNetwork();int from=n.nextJunction++,to=n.nextJunction++,road=n.nextRoad++;
+            n.junctions.Add(new Junction{id=from,position=center[0]});n.junctions.Add(new Junction{id=to,position=center[center.Length-1]});
+            n.roads.Add(new PhysicalRoad{id=road,from=from,to=to,points=(Point[])center.Clone(),direction=oneWay?RoadDirection.Forward:RoadDirection.Both,lanes=lanes,speed=speed});
+            var candidate=new Network(n,Network);
+            // Check the unchanged-surface premise against the actual built network,
+            // not merely a distance assumption. Any uncertainty uses the cold path.
+            foreach(var old in Network.Drivables)
+            {
+                if(!candidate.Contains(old.Id))return false;var next=candidate.Get(old.Id);
+                if(!ReferenceEquals(old.Geometry,next.Geometry)||old.StartDistance!=next.StartDistance||old.EndDistance!=next.EndDistance||old.ProtectedClearance!=next.ProtectedClearance||old.ParallelLaneCount!=next.ParallelLaneCount||old.Speed!=next.Speed||old.From!=next.From||old.To!=next.To||old.JunctionId!=next.JunctionId||Network.IsConflictJunction(old.From)!=candidate.IsConflictJunction(old.From)||Network.IsConflictJunction(old.To)!=candidate.IsConflictJunction(old.To))return false;
+            }
+            plan=new RoadEditPlan(this,n,candidate);return true;
+        }
         internal RoadEditPlan PlanFromDraft(World draft)
         {
             // The synchronous private draft escapes only through this plan. Its

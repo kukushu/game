@@ -20,6 +20,9 @@ namespace HarborCity.RoadCore
         public static RoadEditPlan ConnectMany(World owner,Point[][] strokes,bool oneWay,double speed,double snap,int lanes,bool reuseExisting=false)
         {
             if(strokes==null||strokes.Length==0||strokes.Length>18)throw new ArgumentException("A road batch needs 1 to 18 strokes");
+            // Experimental, deliberately narrow: no existing endpoint/road can be
+            // attached, cut or joined. Grid batches retain the original draft path.
+            if(!reuseExisting&&strokes.Length==1&&owner.TryPlanIndependentRoad(strokes[0],oneWay,speed,snap,lanes,out var independent))return independent;
             var draft=owner.EditDraft();
             bool added=false;
             foreach(var stroke in strokes)

@@ -29,8 +29,12 @@ scopes('Traffic/CityRoadCoreWorld.cs', [
     ('public void AssertSafety()', 'World.AssertSafety'),
     ('void Reindex()', 'World.Reindex'),
 ])
+construction_source = (root / 'Infrastructure/Roads/CityRoadCoreConstruction.cs').read_text(encoding='utf-8-sig')
+connect_signature = ('public static RoadEditPlan ConnectMany(World owner,Point[][] strokes,bool oneWay,double speed,double snap,int lanes,bool reuseExisting=false)'
+    if 'public static RoadEditPlan ConnectMany(' in construction_source else
+    'public static RoadEditPlan Connect(World owner,Point[] center,bool oneWay,double speed,double snap,int lanes)')
 scopes('Infrastructure/Roads/CityRoadCoreConstruction.cs', [
-    ('public static RoadEditPlan Connect(World owner,Point[] center,bool oneWay,double speed,double snap,int lanes)', 'Road.Connect'),
+    (connect_signature, 'Road.Connect'),
     ('static int Attach(World draft,Point point,double radius)', 'Road.Attach'),
     ('static void JoinCoincidentRoads(World draft,int junction)', 'Road.JoinCoincident'),
 ])
