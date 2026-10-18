@@ -6,7 +6,7 @@ namespace HarborCity
 {
     // Land designations remain CityZoningState. These road-aligned plots are
     // derived planning data, never a replacement building/entity database.
-    public sealed class CityCoreZoning
+    public sealed partial class CityCoreZoning
     {
         readonly CityModel city;readonly CityEntities entities;readonly World world;
         readonly List<ZoneCell> cells=new List<ZoneCell>();readonly Dictionary<string,ZoneCell> byKey=new Dictionary<string,ZoneCell>();
@@ -14,6 +14,7 @@ namespace HarborCity
         readonly IReadOnlyList<ZoneCell> view;int roads=-1,buildings=-1,zones=-1,projects=-1;
         Func<float,float,float> height;float geometryExtent;
         readonly List<CityBuilding> projectPoses=new List<CityBuilding>();
+        OccupancyIndex occupancyIndex;
         sealed class Stamp {internal ZoneDesignation fact;internal CityBuilding pose;}
         readonly struct PlotClaim
         {
@@ -65,8 +66,8 @@ namespace HarborCity
         {
             if(!Ready)return view;
             bool geometry=roads!=world.NetworkGeneration||geometryExtent!=city.map.buildHalfSize;
-            bool land=geometry||zones!=city.zoning.revision;
-            bool occupancy=geometry||buildings!=entities.BuildingRevision||projects!=city.development.revision;
+            bool land=zones!=city.zoning.revision;
+            bool occupancy=buildings!=entities.BuildingRevision||projects!=city.development.revision;
             if(!geometry&&!land&&!occupancy)return view;
 #if CITY_CORE_ATTRIBUTION
             using var zoningObservation=CityCoreProfile.Measure(CityCoreProfile.Part.ZoningRebuild);
@@ -78,79 +79,48 @@ namespace HarborCity
 #if CITY_CORE_ATTRIBUTION
                 using var part=CityCoreProfile.Measure(CityCoreProfile.Part.ZoningGeometry);
 #endif
-                RebuildGeometry();
+                try{RebuildGeometry();}catch{roads=-1;throw;} // Retry any interrupted derived update from a cold cache.
             }
-            if(land)
+            if(land||geometry)
             {
 #if CITY_CORE_ATTRIBUTION
                 using var part=CityCoreProfile.Measure(CityCoreProfile.Part.ZoningLandUse);
 #endif
-                RefreshLandUse();
+                RefreshLandUse(land||LastGeometryFull?cells:refreshedCells,land||LastGeometryFull);
             }
-            if(occupancy)
+            if(occupancy||geometry)
             {
 #if CITY_CORE_ATTRIBUTION
                 using var part=CityCoreProfile.Measure(CityCoreProfile.Part.ZoningOccupancy);
 #endif
-                RefreshOccupancy();
+                RefreshOccupancy(occupancy||LastGeometryFull?cells:refreshedCells,occupancy||LastGeometryFull);
             }
             roads=world.NetworkGeneration;geometryExtent=city.map.buildHalfSize;
             buildings=entities.BuildingRevision;zones=city.zoning.revision;projects=city.development.revision;
             return view;
         }
-        void RebuildGeometry()
+        void RefreshLandUse(IEnumerable<ZoneCell> targets,bool rebuildStamps)
         {
-            cells.Clear();byKey.Clear();var claimed=new Dictionary<(int,int),List<PlotClaim>>();float size=CityZoningState.CellSize;
-            foreach(int id in world.Network.RoadIds.OrderBy(id=>id))
-            {
-                var settings=world.Network.Settings(id);var g=world.Network.Centreline(id);bool reverse=settings.direction==RoadDirection.Backward;var lane=world.Network.Get(Network.LaneId(id,reverse));
-                double lo=reverse?lane.Geometry.MapReverseDistance(g,lane.EndDistance):lane.Geometry.MapDistance(g,lane.StartDistance),hi=reverse?lane.Geometry.MapReverseDistance(g,lane.StartDistance):lane.Geometry.MapDistance(g,lane.EndDistance);
-                float width=settings.lanes*2.2f;int columns=(int)Math.Floor((hi-lo-width)/size);
-                for(int column=0;column<columns;column++)
-                {
-                    double station=lo+width/2+(column+.5)*size;var centre=g.Sample(station);var tangent=g.DirectionAt(station);double horizontal=Math.Sqrt(tangent.x*tangent.x+tangent.z*tangent.z);if(horizontal<1e-6||Math.Abs(centre.y-height((float)centre.x,(float)centre.z))>.75)continue;float dx=(float)(tangent.x/horizontal),dz=(float)(tangent.z/horizontal);
-                    for(int side=-1;side<=1;side+=2)for(int row=0;row<CityZoningState.Depth;row++)
-                    {
-                        float offset=side*(width/2+CityModel.BuildingSetback+(row+.5f)*size),yaw=(-(float)(Math.Atan2(dz,dx)*180/Math.PI)+(side<0?180:0)+360)%360;
-                        var pose=new ResidentialBuilding{x=(float)centre.x-dz*offset,z=(float)centre.z+dx*offset,yaw=yaw,width=size-.04f,depth=size-.04f};
-                        if(!CanPlace(pose,false))continue;int bx=(int)Math.Floor(pose.x/size),bz=(int)Math.Floor(pose.z/size);bool overlaps=false;var claim=new PlotClaim(pose);
-                        for(int x=bx-2;x<=bx+2&&!overlaps;x++)for(int z=bz-2;z<=bz+2&&!overlaps;z++)if(claimed.TryGetValue((x,z),out var nearby))foreach(var other in nearby)
-                        {
-#if CITY_CORE_ATTRIBUTION
-                            CityCoreProfile.ZoningCandidatePairs++;
-#endif
-                            if(!claim.CouldOverlap(other))continue;
-#if CITY_CORE_ATTRIBUTION
-                            CityCoreProfile.ZoningExactOverlaps++;
-#endif
-                            if(pose.Overlaps(other.pose)){overlaps=true;break;}
-                        }
-                        if(overlaps)continue;var cell=new ZoneCell{key=ZoneCell.Key(pose),block="core:"+id,column=column,row=row,side=side,pose=pose,available=true};if(byKey.ContainsKey(cell.key))continue;
-                        cells.Add(cell);byKey.Add(cell.key,cell);if(!claimed.TryGetValue((bx,bz),out var bucket))claimed.Add((bx,bz),bucket=new List<PlotClaim>());bucket.Add(claim);
-                    }
-                }
-            }
-        }
-        void RefreshLandUse()
-        {
-            float size=CityZoningState.CellSize;stamps.Clear();
+            float size=CityZoningState.CellSize;
+            if(rebuildStamps){stamps.Clear();
             foreach(var fact in city.zoning.designations)
             {
                 var values=fact.key.Split(':');var pose=new ResidentialBuilding{x=float.Parse(values[0],System.Globalization.CultureInfo.InvariantCulture),z=float.Parse(values[1],System.Globalization.CultureInfo.InvariantCulture),yaw=float.Parse(values[2],System.Globalization.CultureInfo.InvariantCulture),width=size,depth=size};var key=((int)Math.Floor(pose.x/size),(int)Math.Floor(pose.z/size));if(!stamps.TryGetValue(key,out var bucket))stamps.Add(key,bucket=new List<Stamp>());bucket.Add(new Stamp{fact=fact,pose=pose});
             }
-            foreach(var cell in cells)
+            }
+            foreach(var cell in targets)
             {
                 var pose=cell.pose;int bx=(int)Math.Floor(pose.x/size),bz=(int)Math.Floor(pose.z/size),newest=-1;cell.use=LandUse.Empty;
                 for(int x=bx-1;x<=bx+1;x++)for(int z=bz-1;z<=bz+1;z++)if(stamps.TryGetValue((x,z),out var land))foreach(var stamp in land)if(stamp.fact.id>newest&&stamp.pose.Contains(pose.x,pose.z)){newest=stamp.fact.id;cell.use=stamp.fact.use;}
             }
         }
-        void RefreshOccupancy()
+        void RefreshOccupancy(IEnumerable<ZoneCell> targets,bool rebuildIndex)
         {
-            projectPoses.Clear();foreach(var project in city.development.projects)projectPoses.Add(project.building.ToBuilding());
-            var index=new OccupancyIndex();foreach(var building in entities.Buildings)index.Add(building,building.id);foreach(var pose in projectPoses)index.Add(pose,-1);
-            foreach(var cell in cells)
+            if(rebuildIndex||occupancyIndex==null){projectPoses.Clear();foreach(var project in city.development.projects)projectPoses.Add(project.building.ToBuilding());
+            occupancyIndex=new OccupancyIndex();foreach(var building in entities.Buildings)occupancyIndex.Add(building,building.id);foreach(var pose in projectPoses)occupancyIndex.Add(pose,-1);}
+            foreach(var cell in targets)
             {
-                cell.available=!index.Find(cell.pose,out int owner);cell.occupiedBuilding=owner;
+                cell.available=!occupancyIndex.Find(cell.pose,out int owner);cell.occupiedBuilding=owner;
             }
         }
         public int Paint(IEnumerable<ZoneCell> selection,LandUse use)
