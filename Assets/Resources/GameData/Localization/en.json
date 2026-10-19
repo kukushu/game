@@ -915,11 +915,11 @@
     },
     {
       "key": "ui.template.ready",
-      "text": "Northwest services are ready: connect your road. Use the utilities panel to locate them."
+      "text": "Services line the western edge. Connect to the central road outlet. Locate them in the utilities panel."
     },
     {
       "key": "ui.template.focus",
-      "text": "Locate northwest infrastructure"
+      "text": "Locate western service strip"
     },
     {
       "key": "ui.hud.welcome",
