@@ -25,11 +25,14 @@ static class CitySimulationBudgetChecks
         var clone=CityCoreSave.Read(CityCoreSave.Write(edit));edit.Advance(0);clone.Advance(0);edit.Validate();clone.Validate();Check(Same(edit,clone),"Edited in-flight debt recovery diverged");
         // 20x at 60 FPS requires more than the previous four-step allowance.
         // Unlimited wall budget isolates scheduling capacity from machine speed.
-        var fast=CityCoreIndustrySession.Create();var direct=CityCoreSave.Read(CityCoreSave.Write(fast));
-        int advanced=0;for(int frame=0;frame<60;frame++){advanced+=fast.Simulation.Advance(20.0/60,32,double.PositiveInfinity);direct.Advance(20.0/60);}
-        Check(advanced==400,"20x scheduling cannot deliver 400 fixed steps per real second");
-        Check(fast.Simulation.PendingSeconds<1e-9&&Same(fast,direct),"20x grouping changed complete city state or retained work");
+        foreach(int rate in new[]{20,50})
+        {
+            var fast=CityCoreIndustrySession.Create();var direct=CityCoreSave.Read(CityCoreSave.Write(fast));
+            int advanced=0;for(int frame=0;frame<60;frame++){advanced+=fast.Simulation.Advance(rate/60.0,32,double.PositiveInfinity);direct.Advance(rate/60.0);}
+            Check(advanced==rate*20,rate+"x scheduling cannot deliver all fixed steps per real second");
+            Check(fast.Simulation.PendingSeconds<1e-9&&Same(fast,direct),rate+"x grouping changed complete city state or retained work");
+        }
         var yielding=CityCoreIndustrySession.Create();Check(yielding.Simulation.Advance(20.0/60,32,double.Epsilon)==1&&yielding.Simulation.PendingSeconds>.28,"Higher step limit bypassed wall budget or lost work");
-        Console.WriteLine("PASS "+checks+" budget checks: exact whole-city state, saved debt, finite batches, wall-time yield, invalid command atomicity, in-flight edit/recovery, 20x capacity; no dropped fixed steps");
+        Console.WriteLine("PASS "+checks+" budget checks: exact whole-city state, saved debt, finite batches, wall-time yield, invalid command atomicity, in-flight edit/recovery, 20x/50x capacity; no dropped fixed steps");
     }
 }

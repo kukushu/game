@@ -66,7 +66,7 @@ namespace HarborCity
             GUILayout.Label(localization.Get("ui.hud.population",(session?.Entities.Members.Count??0),world.ActiveCount),heading);
             GUILayout.Label(localization.Get("ui.hud.balance_time",(session==null?"—":session.Simulation.Finance.UnlimitedFunds?"∞":session.Simulation.Finance.Money.ToString()),world.Clock.ToString("F1")),hudText);
             GUILayout.BeginHorizontal();
-            foreach(float rate in new[]{0f,1f,3f,20f})
+            foreach(float rate in new[]{0f,1f,3f,20f,50f})
             {
                 var tint=GUI.backgroundColor;if(speed==rate)GUI.backgroundColor=new Color(.3f,.8f,1);
                 if(GUILayout.Button(rate==0?localization.Get("ui.hud.pause"):rate+"×",GUILayout.Height(26)))ScenarioRate(rate);GUI.backgroundColor=tint;
