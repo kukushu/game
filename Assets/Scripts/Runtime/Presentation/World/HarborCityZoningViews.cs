@@ -10,6 +10,8 @@ namespace HarborCity
     // in world coordinates. No building/road/land-use facts are written here.
     public sealed class HarborCityZoningViews:IDisposable
     {
+        // One display palette for zoning overlays and task-coloured vehicles.
+        public static Color Colour(LandUse use)=>use==LandUse.Residential?new Color(.25f,.8f,.4f):use==LandUse.Commercial?new Color(.25f,.65f,1):use==LandUse.Industrial?new Color(1,.7f,.2f):new Color(.35f,.5f,.4f);
         const double ChunkSize=64;
         static readonly ProfilerMarker buildSample=new ProfilerMarker("City.Views.Zoning.Build");
         readonly struct Plot:IEquatable<Plot>

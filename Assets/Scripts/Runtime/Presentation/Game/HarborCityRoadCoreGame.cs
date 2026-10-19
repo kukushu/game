@@ -266,7 +266,7 @@ namespace HarborCity
         void RenderZones()
         {
             if(session==null||!session.Simulation.Growth.Zoning.Ready){zoningViews?.Dispose();return;}
-            if(zoneMaterials==null){zoneMaterials=new Material[4];var colours=new[]{new Color(.35f,.5f,.4f),new Color(.25f,.8f,.4f),new Color(.25f,.65f,1),new Color(1,.7f,.2f)};for(int i=0;i<4;i++)zoneMaterials[i]=new Material(roadMaterial){color=colours[i]};}
+            if(zoneMaterials==null){zoneMaterials=new Material[4];var uses=new[]{LandUse.Empty,LandUse.Residential,LandUse.Commercial,LandUse.Industrial};for(int i=0;i<4;i++)zoneMaterials[i]=new Material(roadMaterial){color=HarborCityZoningViews.Colour(uses[i])};}
             if(zoningViews==null)zoningViews=new HarborCityZoningViews(zoneMaterials);zoningViews.Sync(session.Simulation.Growth.Zoning.Cells(),landscape==null?null:landscape.Height);
         }
         void RenderUtilities()
