@@ -10,7 +10,7 @@ namespace HarborCity
         ToolPage toolPage;
         GUIStyle hudText,heading,wrapped;
         Rect ToolbarBounds=>new Rect(Math.Max(8,(Screen.width-600)/2),Screen.height-52,Math.Min(600,Screen.width-16),44);
-        Rect StatusBounds=>new Rect(Math.Max(8,Screen.width-348),8,Math.Min(340,Screen.width-16),132);
+        Rect StatusBounds=>new Rect(Math.Max(8,Screen.width-348),8,Math.Min(340,Screen.width-16),180);
         Rect NoticeBounds=>new Rect(ToolbarBounds.x,ToolbarBounds.y-54,ToolbarBounds.width,48);
         Rect ToolPanelBounds=>toolPage==ToolPage.None?new Rect():new Rect(ToolbarBounds.x,NoticeBounds.y-Math.Min(300,Math.Max(100,Screen.height-254))-8,Math.Min(420,Screen.width-16),Math.Min(300,Math.Max(100,Screen.height-254)));
         bool BlocksHudInput(Vector2 point)
@@ -73,6 +73,11 @@ namespace HarborCity
             }
             GUILayout.EndHorizontal();
             GUILayout.Label(localization.Get("ui.hud.rate",speed,double.IsNaN(actualRate)?"…":actualRate.ToString("F1")),wrapped);
+            if(session!=null)
+            {
+                GUILayout.Label(localization.Get("ui.hud.power_supply",session.City.demand,session.City.PowerSupplied),hudText);
+                GUILayout.Label(localization.Get("ui.hud.water_supply",session.City.WaterDemand,session.City.WaterSupplied),hudText);
+            }
             GUILayout.EndArea();
         }
         void DrawToolPage()

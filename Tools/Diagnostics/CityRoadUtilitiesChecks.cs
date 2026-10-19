@@ -7,6 +7,15 @@ using HarborCity.RoadCore;
 static class CityRoadUtilitiesChecks
 {
     static int count;static void Check(bool value,string why){count++;if(!value)throw new Exception(why);}
+    static void CheckSupplyTotals(CityModel city)
+    {
+        Func<CityBuilding,int> load=building=>building.Use==LandUse.Residential?
+            Math.Max(1,city.society.families.Where(h=>h.resident&&h.home==building.id).Sum(h=>city.LivingMembers(h))):
+            building.Use==LandUse.Commercial||building.Use==LandUse.Industrial?Math.Max(1,city.EmployedAt(building.id)*2):building.Use==LandUse.Power?0:2;
+        Check(city.PowerSupplied==city.buildings.Where(b=>city.Supply(b.id).electricity).Sum(load),"Displayed delivered power differs from actual served building loads");
+        Check(city.WaterSupplied==city.buildings.Where(b=>CityZoningState.ZoneUse(b.Use)&&city.Supply(b.id).water).Sum(load),"Displayed delivered water differs from unique served building loads");
+        Check(city.PowerSupplied<=city.demand&&city.WaterSupplied<=city.WaterDemand,"Delivered totals exceed actual demand");
+    }
     static int Groups(CityRoadUtilityConduits graph)=>graph.network.edges.Select(e=>graph.components[e.a]).Distinct().Count();
     static string Supplies(CityCoreIndustrySession s)=>string.Join(";",s.Entities.Buildings.Select(b=>b.id+":"+s.City.Supply(b.id).electricity+":"+s.City.Supply(b.id).water+":"+s.City.Supply(b.id).sewage+":"+string.Join(",",s.City.Supply(b.id).pipes.Select(p=>p.id+"/"+p.fresh+"/"+p.drain+"/"+p.load))));
     static void Main(string[] args)
@@ -25,17 +34,21 @@ static class CityRoadUtilitiesChecks
 
         var s=CityGrowingGridFixture.Create();s.City.utilities.electricity=new CityUtilityNetwork();s.City.utilities.water=new CityUtilityNetwork();s.City.utilities.roadConduits=true;s.Simulation.Utilities.Refresh();
         Check(s.City.buildings.All(building=>s.City.Supply(building.id).Complete),"Roadside power/water/sewage facilities did not automatically connect");
+        CheckSupplyTotals(s.City);
         Check(s.City.utilities.electricity.edges.Count==0&&s.City.utilities.water.edges.Count==0,"Automatic roads wrote duplicate manual networks");
-        s.Simulation.Utilities.SetBudget(CityServiceKind.Water,50);Check(s.City.water==80&&s.City.SewageCapacity==80,"Road utilities bypassed service capacity/budget");s.Simulation.Utilities.SetBudget(CityServiceKind.Water,100);
+        s.Simulation.Utilities.SetBudget(CityServiceKind.Water,50);Check(s.City.water==80&&s.City.SewageCapacity==80,"Road utilities bypassed service capacity/budget");CheckSupplyTotals(s.City);s.Simulation.Utilities.SetBudget(CityServiceKind.Water,100);
         var bytes=CityCoreSave.Write(s);Check(BitConverter.ToInt32(bytes,4)==17,"New saved rule requires explicit city format 17");var restored=CityCoreSave.Read(bytes);restored.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);
         Check(restored.City.utilities.roadConduits&&Supplies(s)==Supplies(restored)&&bytes.SequenceEqual(CityCoreSave.Write(restored)),"Road conduit rule or supply topology lost on cold restore");
+        CheckSupplyTotals(restored.City);
         var repaired=CityCoreSave.Read(bytes);repaired.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);
         var roads=s.Transport.Network.RoadIds.Select(id=>new {settings=s.Transport.Network.Settings(id),points=s.Transport.Network.Centreline(id).Slice(0,s.Transport.Network.Centreline(id).Length)}).ToArray();
         foreach(var road in roads)repaired.Construction.RemoveRoad(road.settings.id);
         Check(repaired.Transport.Network.RoadCount==0&&repaired.City.power==0&&repaired.City.water==0&&repaired.City.SewageCapacity==0,"Demolishing roads did not immediately disconnect real supplies");
+        CheckSupplyTotals(repaired.City);Check(repaired.City.PowerSupplied==0&&repaired.City.WaterSupplied==0,"Disconnected utilities retained stale delivered totals");
         foreach(var road in roads){var rebuild=repaired.Transport.PlanConnectedRoad(road.points,lanes:road.settings.lanes);Check(repaired.Construction.Commit(rebuild,out _),"Road repair failed");}
         repaired.Advance(.05);repaired.Validate();Check(repaired.City.power==160&&repaired.City.water==160&&repaired.City.SewageCapacity==160,"Rebound building accesses did not restore road utilities");
         for(int i=0;i<2500;i++){s.Advance(.05);restored.Advance(.05);}s.Validate();restored.Validate();
+        CheckSupplyTotals(s.City);CheckSupplyTotals(restored.City);
         Check(s.Entities.Members.Count>0&&s.City.buildings.Any(building=>building.Use==LandUse.Residential),"Road-only serviced city failed to grow real residents: buildings="+s.City.buildings.Count+" projects="+s.City.development.projects.Count+" population="+s.Entities.Members.Count+" supplies="+Supplies(s));
         Check(CityCoreSave.Write(s).SequenceEqual(CityCoreSave.Write(restored))&&Supplies(s)==Supplies(restored),"Road utility complete simulation/save continuation differs");
         int power=s.City.buildings.Single(building=>building.Use==LandUse.Power).id,water=s.City.buildings.Single(building=>building.Use==LandUse.Water).id,sewage=s.City.buildings.Single(building=>building.Use==LandUse.Sewage).id;

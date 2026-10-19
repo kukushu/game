@@ -68,6 +68,7 @@ public static class UtilitySupplyChecks
         int off=c.buildings.Count(b=>!c.Supply(b.id).electricity);
         Check(off>0 && off<c.buildings.Count/2,"Small deficit sheds a subset rather than the whole network");
         Check(c.buildings.Where(b=>c.Supply(b.id).electricity).Sum(b=>Load(c,b))<=c.power,"Allocated real electric loads never exceed capacity");
+        Check(c.PowerSupplied==c.buildings.Where(b=>c.Supply(b.id).electricity).Sum(b=>Load(c,b))&&c.PowerSupplied<c.demand,"HUD power total counts actual served load during shortage");
         string supplied=string.Join(",",c.buildings.Where(b=>c.Supply(b.id).electricity).Select(b=>b.id).OrderBy(id=>id));
         c.Recalculate();Check(supplied==string.Join(",",c.buildings.Where(b=>c.Supply(b.id).electricity).Select(b=>b.id).OrderBy(id=>id)),"Unchanged network has stable load shedding");
         c=TestCity.RoundTrip(c);Check(c.Valid() && supplied==string.Join(",",c.buildings.Where(b=>c.Supply(b.id).electricity).Select(b=>b.id).OrderBy(id=>id)),"Allocation is derived identically from actual saved entities");
@@ -75,10 +76,12 @@ public static class UtilitySupplyChecks
         var consumers=c.buildings.Where(b=>CityZoningState.ZoneUse(b.Use)).ToArray();
         Check(consumers.Any(b=>c.Supply(b.id).water) && consumers.Any(b=>!c.Supply(b.id).water),"Water shortfall only denies some consumers");
         Check(consumers.Where(b=>c.Supply(b.id).water).Sum(b=>Load(c,b))<=80 && consumers.Where(b=>c.Supply(b.id).sewage).Sum(b=>Load(c,b))<=80,"Water and sewage allocations respect real component budgets");
+        Check(c.WaterSupplied==consumers.Where(b=>c.Supply(b.id).water).Sum(b=>Load(c,b))&&c.WaterSupplied<c.WaterDemand,"HUD water total counts actual served load during shortage");
         Check(consumers.All(b=>!c.Supply(b.id).sewage || c.Supply(b.id).water),"Drain service requires water from the same pipe component");
         c.SetServiceBudget(CityServiceKind.Water,100);c.SetServiceBudget(CityServiceKind.Electricity,150);
         Check(c.buildings.All(b=>c.Supply(b.id).Complete),"Restoring enough capacity restores every connected consumer");
         c.buildings.RemoveAll(b=>b is PowerBuilding);c.Recalculate();
         Check(c.power==0 && c.buildings.All(b=>!c.Supply(b.id).electricity) && c.water==0 && c.SewageCapacity==0,"Actual loss of all power generation still shuts down water facilities");
+        Check(c.PowerSupplied==0&&c.WaterSupplied==0,"Lost generation resets delivered totals");
     }
 }

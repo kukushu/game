@@ -882,6 +882,14 @@
       "text": "Power / capacity {0} / {1}\nWater / supply {2} / {3}\nSewage capacity {4}"
     },
     {
+      "key": "ui.hud.power_supply",
+      "text": "Power  Need {0} / Served {1}"
+    },
+    {
+      "key": "ui.hud.water_supply",
+      "text": "Water  Need {0} / Served {1}"
+    },
+    {
       "key": "ui.hud.delivered",
       "text": "Total deliveries {0}"
     },

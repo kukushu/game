@@ -40,6 +40,10 @@ namespace HarborCity
         // adjacency and independent pipe coverage follow the CS1 base-game manual.
         public const float ElectricityReach=6,PipeReach=6;
         public int WaterDemand {get;private set;}
+        // Read-only totals of the existing allocation, in the same game load
+        // units as demand. Capacity (power/water) is not delivered supply.
+        public int PowerSupplied {get;private set;}
+        public int WaterSupplied {get;private set;}
         public int SewageCapacity {get;private set;}
         public int InstalledSewageCapacity=>buildings.Count(b=>b is SewageBuilding)*ServiceCapacity(CityServiceKind.Water,160);
         public string WaterFacilityDetails(int id)
@@ -90,7 +94,7 @@ namespace HarborCity
         }
         public void RecalculateUtilities()
         {
-            supply=buildings.ToDictionary(b=>b.id,b=>new BuildingSupply());WaterDemand=SewageCapacity=0;if(!development.enabled)return;
+            supply=buildings.ToDictionary(b=>b.id,b=>new BuildingSupply());WaterDemand=SewageCapacity=PowerSupplied=WaterSupplied=0;if(!development.enabled)return;
             // One aggregation of actual people/job occupancy per rebuild. Calling
             // Occupancy/EmployedAt from every component was repeated O(B*(P+J)).
             var peopleByHome=new Dictionary<int,int>();foreach(var h in society.families)if(h.resident){peopleByHome.TryGetValue(h.home,out int n);peopleByHome[h.home]=n+LivingMembers(h);}
@@ -103,7 +107,8 @@ namespace HarborCity
             {
                 int capacity=group.Count(id=>GetBuilding(id) is PowerBuilding && BuildingAccess(id))*ServiceCapacity(CityServiceKind.Electricity,160);
                 power+=capacity;
-                foreach(int id in AllocateUtility(group,capacity,id=>loads[id]))supply[id].electricity=true;
+                foreach(int id in AllocateUtility(group,capacity,id=>loads[id]))
+                {if(!supply[id].electricity)PowerSupplied+=loads[id];supply[id].electricity=true;}
             }
             water=0;var pipeBuildings=layout.pipeGroups;var countedSources=new HashSet<int>();var countedDrains=new HashSet<int>();
             foreach(var pair in pipeBuildings)
@@ -117,7 +122,8 @@ namespace HarborCity
                 status.inactiveDrains.AddRange(group.Where(id=>GetBuilding(id) is SewageBuilding && (!supply[id].electricity || !BuildingAccess(id))));
                 foreach(int id in group)supply[id].pipes.Add(status);
                 var watered=AllocateUtility(group,fresh,id=>CityZoningState.ZoneUse(UseOf(id))?loads[id]:0).ToList();
-                foreach(int id in watered)supply[id].water=true;
+                foreach(int id in watered)
+                {if(!supply[id].water&&CityZoningState.ZoneUse(UseOf(id)))WaterSupplied+=loads[id];supply[id].water=true;}
                 foreach(int id in AllocateUtility(watered,drain,id=>CityZoningState.ZoneUse(UseOf(id))?loads[id]:0))supply[id].sewage=true;
             }
         }
