@@ -875,7 +875,7 @@
     },
     {
       "key": "ui.hud.rate",
-      "text": "Target {0}× · Actual rate depends on city load"
+      "text": "Target {0}× · Actual {1}× (~0.5s average)"
     },
     {
       "key": "ui.hud.supply",

@@ -72,7 +72,7 @@ namespace HarborCity
                 if(GUILayout.Button(rate==0?localization.Get("ui.hud.pause"):rate+"×",GUILayout.Height(26)))ScenarioRate(rate);GUI.backgroundColor=tint;
             }
             GUILayout.EndHorizontal();
-            GUILayout.Label(speed==0?localization.Get("ui.hud.paused"):localization.Get("ui.hud.rate",speed),wrapped);
+            GUILayout.Label(localization.Get("ui.hud.rate",speed,double.IsNaN(actualRate)?"…":actualRate.ToString("F1")),wrapped);
             GUILayout.EndArea();
         }
         void DrawToolPage()

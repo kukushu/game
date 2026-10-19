@@ -81,6 +81,10 @@ namespace HarborCity
         HarborCityBuildingViews buildingViews;
         bool hasStart;Point startPoint;bool building,oneWay,wide;int origin,destination;float speed=1;
         long previousTick;int lastSteps;
+        // Scheduling bounds, not simulation rules. At 60 FPS, 20x needs 6.67
+        // complete .05s steps per frame; the old four-step cap prevented it.
+        const int InteractiveMaximumSteps=32;
+        double actualRate=double.NaN,rateWallSeconds,rateSimulationSeconds;
         internal CityCoreIndustrySession ScenarioSession=>session;
         internal int ScenarioSteps=>lastSteps;
         internal float ScenarioCurrentRate=>speed;
@@ -96,7 +100,7 @@ namespace HarborCity
         internal bool ScenarioMeasuring;
         internal double ScenarioAdvanceMs,ScenarioVehicleMs,ScenarioStructureMs;
         internal double ScenarioRequestedSeconds;
-        internal void ScenarioRate(float rate){speed=rate;previousTick=System.Diagnostics.Stopwatch.GetTimestamp();}
+        internal void ScenarioRate(float rate){speed=rate;previousTick=System.Diagnostics.Stopwatch.GetTimestamp();actualRate=rate==0?0:double.NaN;rateWallSeconds=rateSimulationSeconds=0;}
         string notice="";
         string SavePath=>Path.Combine(Application.persistentDataPath,session==null?"harbor-road-core-v15.hcrc":"harbor-city-core-v16.hcity");
         static Vector3 V(Point p)=>new Vector3((float)p.x,(float)p.y,(float)p.z);
@@ -165,9 +169,18 @@ namespace HarborCity
         void Update()
         {
             observation?.Bind(session);roadEditor?.Bind(session);roadEditor?.Sync();buildingViews?.Select(observation?.Selected??0);
-            if(world==null)return;long now=System.Diagnostics.Stopwatch.GetTimestamp();double seconds=(now-previousTick)/(double)System.Diagnostics.Stopwatch.Frequency*speed;
+            if(world==null)return;long now=System.Diagnostics.Stopwatch.GetTimestamp();double elapsed=(now-previousTick)/(double)System.Diagnostics.Stopwatch.Frequency,seconds=elapsed*speed;
             if(ScenarioMeasuring)ScenarioRequestedSeconds=seconds;
-            using(simulationSample.Auto())lastSteps=speed==0?0:session==null?world.Advance(seconds):session.Simulation.Advance(seconds,4,8);previousTick=now;
+            double clockBefore=world.Clock;
+            using(simulationSample.Auto())lastSteps=speed==0?0:session==null?world.Advance(seconds):session.Simulation.Advance(seconds,InteractiveMaximumSteps,8);previousTick=now;
+            // Measure committed simulation time, never requested time or debt.
+            // Real elapsed time includes rendering, construction and long frames.
+            if(speed==0){actualRate=rateWallSeconds=rateSimulationSeconds=0;}
+            else
+            {
+                rateWallSeconds+=elapsed;rateSimulationSeconds+=world.Clock-clockBefore;
+                if(rateWallSeconds>=.5){actualRate=rateSimulationSeconds/rateWallSeconds;rateWallSeconds=rateSimulationSeconds=0;}
+            }
             long sampleAt=ScenarioMeasuring?System.Diagnostics.Stopwatch.GetTimestamp():0;
             if(ScenarioMeasuring)ScenarioAdvanceMs=(sampleAt-now)*1000.0/System.Diagnostics.Stopwatch.Frequency;
             if(outsideViews==null)outsideViews=new HarborCityOutsideViews(roadMaterial,localization);outsideViews.Sync(session);
