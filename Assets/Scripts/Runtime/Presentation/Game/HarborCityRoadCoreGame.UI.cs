@@ -75,8 +75,8 @@ namespace HarborCity
             GUILayout.Label(localization.Get("ui.hud.rate",speed,double.IsNaN(actualRate)?"…":actualRate.ToString("F1")),wrapped);
             if(session!=null)
             {
-                GUILayout.Label(localization.Get("ui.hud.power_supply",session.City.demand,session.City.PowerSupplied),hudText);
-                GUILayout.Label(localization.Get("ui.hud.water_supply",session.City.WaterDemand,session.City.WaterSupplied),hudText);
+                GUILayout.Label(localization.Get("ui.hud.power_supply",session.City.demand,session.City.PowerSupplied,session.City.power),hudText);
+                GUILayout.Label(localization.Get("ui.hud.water_supply",session.City.WaterDemand,session.City.WaterSupplied,session.City.water),hudText);
             }
             GUILayout.EndArea();
         }

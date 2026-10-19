@@ -883,11 +883,11 @@
     },
     {
       "key": "ui.hud.power_supply",
-      "text": "电力  需求 {0} / 实供 {1}"
+      "text": "电力  需求 {0} / 实供 {1} / 容量 {2}"
     },
     {
       "key": "ui.hud.water_supply",
-      "text": "用水  需求 {0} / 实供 {1}"
+      "text": "用水  需求 {0} / 实供 {1} / 容量 {2}"
     },
     {
       "key": "ui.hud.delivered",

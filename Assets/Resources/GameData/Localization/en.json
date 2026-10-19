@@ -883,11 +883,11 @@
     },
     {
       "key": "ui.hud.power_supply",
-      "text": "Power  Need {0} / Served {1}"
+      "text": "Power  Need {0} / Served {1} / Cap {2}"
     },
     {
       "key": "ui.hud.water_supply",
-      "text": "Water  Need {0} / Served {1}"
+      "text": "Water  Need {0} / Served {1} / Cap {2}"
     },
     {
       "key": "ui.hud.delivered",
