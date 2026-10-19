@@ -914,6 +914,14 @@
       "text": "存档位置：\n{0}"
     },
     {
+      "key": "ui.template.ready",
+      "text": "左上角已预建水电、排污和垃圾设施，接路即可使用。水电设施菜单可定位。"
+    },
+    {
+      "key": "ui.template.focus",
+      "text": "定位左上角基础设施区"
+    },
+    {
       "key": "ui.hud.welcome",
       "text": "从底部选择建设工具；WASD 移动相机，Esc 取消。"
     }

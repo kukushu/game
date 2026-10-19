@@ -133,11 +133,11 @@ namespace HarborCity
             else if(args.Any(a=>a.StartsWith("-harbor-",StringComparison.Ordinal)&&a!="-harbor-city-construction-validate"&&a!="-harbor-city-trade-validate"&&a!="-harbor-city-growing-profile")){session=CityCoreIndustrySession.Create();world=session.Transport;origin=1;destination=2;RenderBuildings();}
             else
             {
-                session=CityCoreIndustrySession.CreateEmpty(HarborCityEconomyAsset.Load());
                 // Keep existing original-terrain validation inputs comparable; normal Play starts flat.
                 bool originalTerrainCheck=args.Any(a=>a=="-harbor-city-construction-validate"||a=="-harbor-city-trade-validate"||a=="-harbor-city-growing-profile");
-                if(!originalTerrainCheck)session.City.map=CityMapState.DiagnosticFlat(CityMapState.BuildHalfSize);
-                world=session.Transport;BindLandscape();notice=localization.Get("ui.stage.current");
+                session=originalTerrainCheck?CityCoreIndustrySession.CreateEmpty(HarborCityEconomyAsset.Load()):CityNewTownTemplate.Create(HarborCityEconomyAsset.Load());
+                world=session.Transport;BindLandscape();notice=localization.Get(originalTerrainCheck?"ui.stage.current":"ui.template.ready");
+                if(!originalTerrainCheck){RenderBuildings();RenderZones();}
             }
             bool playerSession=!args.Any(a=>a.StartsWith("-harbor-",StringComparison.Ordinal))||Array.IndexOf(args,"-harbor-city-inspect")>=0;
             if(session!=null){session.Simulation.Finance.UnlimitedFunds=playerSession;if(playerSession){session.City.utilities.roadConduits=true;session.Simulation.Utilities.Refresh();}}

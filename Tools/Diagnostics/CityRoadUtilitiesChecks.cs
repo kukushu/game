@@ -17,9 +17,37 @@ static class CityRoadUtilitiesChecks
         Check(city.PowerSupplied<=city.demand&&city.WaterSupplied<=city.WaterDemand,"Delivered totals exceed actual demand");
     }
     static int Groups(CityRoadUtilityConduits graph)=>graph.network.edges.Select(e=>graph.components[e.a]).Distinct().Count();
+    static void CheckNewTownTemplate()
+    {
+        var empty=CityCoreIndustrySession.CreateEmpty();var s=CityNewTownTemplate.Create();
+        Check(empty.City.buildings.Count==0&&empty.Transport.Network.RoadCount==0,"Template changed the empty-session API or diagnostic fixtures");
+        Check(s.City.buildings.Count==74&&new[]{LandUse.Power,LandUse.Water,LandUse.Sewage}.All(use=>s.City.buildings.Count(b=>b.Use==use)==24)&&s.City.buildings.Count(b=>b.Use==LandUse.Landfill)==2,"New-town service counts incorrect");
+        Check(s.City.buildings.All(b=>b.x<0&&b.z>0&&s.Simulation.Growth.Zoning.CanPlace(b,false)&&s.Transport.GetAccess(b.id).valid),"Template placement outside northwest / invalid terrain, clearance or access");
+        for(int i=0;i<s.City.buildings.Count;i++)for(int j=i+1;j<s.City.buildings.Count;j++)Check(!s.City.buildings[i].Overlaps(s.City.buildings[j]),"Template facilities overlap");
+        Check(s.City.buildings.All(b=>s.City.Supply(b.id).Complete)&&s.City.power==3840&&s.City.water==3840&&s.City.SewageCapacity==3840,"Template providers not fully functioning at original capacities");
+        Check(s.Entities.Members.Count==0&&s.Transport.ActiveCount==0&&s.Transport.Clock==0,"Template advanced time or seeded residents/vehicles");
+        Check(s.City.money==empty.City.money&&s.Simulation.Finance.UnlimitedFunds,"Template bypassed the current unlimited-funds policy");
+        Check(s.City.utilities.electricity.edges.Count==0&&s.City.utilities.water.edges.Count==0,"Template added duplicate manual networks");CheckSupplyTotals(s.City);
+        var bytes=CityCoreSave.Write(s);var restored=CityCoreSave.Read(bytes);restored.Simulation.Growth.Zoning.SetSurface((x,z)=>2);
+        Check(bytes.SequenceEqual(CityCoreSave.Write(restored))&&Supplies(s)==Supplies(restored),"Template cold restore differs");
+        restored.Simulation.Finance.UnlimitedFunds=s.Simulation.Finance.UnlimitedFunds; // Same runtime preference as the normal Load adapter.
+        s.Advance(2);restored.Advance(2);Check(CityCoreSave.Write(s).SequenceEqual(CityCoreSave.Write(restored)),"Template normal simulation diverges after restore");
+        Action<Point[]> road=points=>{var plan=s.Transport.PlanConnectedRoad(points);s.Construction.CheckRoadPlacement(plan);Check(s.Construction.Commit(plan,out _),"Template connection road failed");};
+        road(new[]{new Point(0,2,0),new Point(40,2,0)});
+        int remote=s.Construction.PlaceFacility(LandUse.Water,20,4.5f,0,s.Simulation.Growth.Zoning);s.Simulation.Utilities.Refresh();
+        Check(!s.City.Supply(remote).electricity,"Disconnected remote facility received global power");
+        road(new[]{CityNewTownTemplate.Connection,new Point(0,2,80),new Point(0,2,0)});
+        Check(s.City.Supply(remote).Complete,"Connecting one road did not bring actual services to remote facility");
+        int link=s.Construction.PickRoad(new Point(-40,2,80));Check(link!=0,"Missing template connection road");s.Construction.RemoveRoad(link);
+        Check(!s.City.Supply(remote).electricity,"Removing link left invisible template utility service");
+        var before=CityCoreSave.Write(s);bool rejected=false;
+        try{var blocked=s.Transport.PlanConnectedRoad(new[]{new Point(-152,2,104.5),new Point(-80,2,104.5)});s.Construction.CheckRoadPlacement(blocked);}catch(InvalidOperationException){rejected=true;}
+        Check(rejected&&before.SequenceEqual(CityCoreSave.Write(s)),"Building-obstructed template road changed live city");s.Validate();
+    }
     static string Supplies(CityCoreIndustrySession s)=>string.Join(";",s.Entities.Buildings.Select(b=>b.id+":"+s.City.Supply(b.id).electricity+":"+s.City.Supply(b.id).water+":"+s.City.Supply(b.id).sewage+":"+string.Join(",",s.City.Supply(b.id).pipes.Select(p=>p.id+"/"+p.fresh+"/"+p.drain+"/"+p.load))));
     static void Main(string[] args)
     {
+        CheckNewTownTemplate();
         var w=new World();int a=w.AddJunction(new Point(-30,2,0)),b=w.AddJunction(new Point(30,2,0));w.AddRoad(a,b,new[]{w.JunctionPosition(a),w.JunctionPosition(b)},true);
         int c=w.AddJunction(new Point(0,8,-30)),d=w.AddJunction(new Point(0,8,30));w.AddRoad(c,d,new[]{w.JunctionPosition(c),w.JunctionPosition(d)});
         var empty=new CityUtilityNetwork();var graph=new CityRoadUtilityConduits(w.Network,empty);

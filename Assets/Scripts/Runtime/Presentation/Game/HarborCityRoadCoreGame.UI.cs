@@ -124,6 +124,7 @@ namespace HarborCity
         void DrawUtilityTools()
         {
             if(!GrowingCity){GUILayout.Label(localization.Get("ui.hud.no_utilities"));return;}
+            if(GUILayout.Button(localization.Get("ui.template.focus")))constructionCamera?.Focus(-112,118);
             foreach(var use in new[]{LandUse.Power,LandUse.Water,LandUse.Sewage,LandUse.Landfill})
                 if(GUILayout.Button(use==LandUse.Power?localization.Get("ui.hud.power"):use==LandUse.Water?localization.Get("ui.hud.water"):use==LandUse.Sewage?localization.Get("ui.hud.sewage"):localization.Get("ui.waste.facility"),GUILayout.Height(26)))
                 {CancelTool();facilityTool=use;notice=localization.Get("ui.hud.facility_help");}

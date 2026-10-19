@@ -914,6 +914,14 @@
       "text": "Save location:\n{0}"
     },
     {
+      "key": "ui.template.ready",
+      "text": "Northwest services are ready: connect your road. Use the utilities panel to locate them."
+    },
+    {
+      "key": "ui.template.focus",
+      "text": "Locate northwest infrastructure"
+    },
+    {
       "key": "ui.hud.welcome",
       "text": "Select a tool below; WASD moves the camera, Esc cancels."
     }
