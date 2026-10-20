@@ -20,26 +20,26 @@ namespace HarborCity
         static float Cross(float ax,float az,float bx,float bz)=>ax*bz-az*bx;
         int AddNode(RoadNode p)
         {
-            var existing=nodes.FirstOrDefault(n=>CityRoads.Length(n,p)<.08f);if(existing!=null)return existing.id;
+            var existing=nodes.FirstOrDefault(n=>CityPlanarGeometry.Length(n,p)<.08f);if(existing!=null)return existing.id;
             var n=p.Copy();n.id=nextNode++;n.y=0;nodes.Add(n);return n.id;
         }
         void AddEdge(int a,int b)
         {if(a!=b && !edges.Any(e=>e.a==a && e.b==b || e.a==b && e.b==a))edges.Add(new UtilityEdge{id=nextEdge++,a=a,b=b});}
         public RoadNode Snap(float x,float z)
         {
-            var p=new RoadNode{x=x,z=z};var near=nodes.OrderBy(n=>CityRoads.Length(n,p)).FirstOrDefault();
-            if(near!=null && CityRoads.Length(near,p)<.5f)return near.Copy();
+            var p=new RoadNode{x=x,z=z};var near=nodes.OrderBy(n=>CityPlanarGeometry.Length(n,p)).FirstOrDefault();
+            if(near!=null && CityPlanarGeometry.Length(near,p)<.5f)return near.Copy();
             float distance=.5f;RoadNode best=p;
             foreach(var e in edges)
-            {var a=Node(e.a);var b=Node(e.b);var q=CityRoads.Lerp(a,b,CityRoads.Projection(p,a,b));if(CityRoads.Length(q,p)<distance){best=q;distance=CityRoads.Length(q,p);}}
+            {var a=Node(e.a);var b=Node(e.b);var q=CityPlanarGeometry.Lerp(a,b,CityPlanarGeometry.Projection(p,a,b));if(CityPlanarGeometry.Length(q,p)<distance){best=q;distance=CityPlanarGeometry.Length(q,p);}}
             return best;
         }
         public CityUtilityNetwork Plan(RoadNode from,RoadNode to,out string error,float buildExtent=CityModel.BuildHalfSize)
         {
             error="";
-            if(from==null || to==null || !Position(from,buildExtent) || !Position(to,buildExtent) || CityRoads.Length(from,to)<.4f) {error="连接点无效、超界或线段过短";return null;}
+            if(from==null || to==null || !Position(from,buildExtent) || !Position(to,buildExtent) || CityPlanarGeometry.Length(from,to)<.4f) {error="连接点无效、超界或线段过短";return null;}
             if(nodes.Count>=19990 || edges.Count>=39990 || nextNode>int.MaxValue-100 || nextEdge>int.MaxValue-100) {error="管线数量已达上限";return null;}
-            var copy=Copy();var crosses=new List<RoadNode>{from,to};float dx=to.x-from.x,dz=to.z-from.z,length=CityRoads.Length(from,to);
+            var copy=Copy();var crosses=new List<RoadNode>{from,to};float dx=to.x-from.x,dz=to.z-from.z,length=CityPlanarGeometry.Length(from,to);
             foreach(var e in edges)
             {
                 var a=Node(e.a);var b=Node(e.b);float ex=b.x-a.x,ez=b.z-a.z,cross=Cross(dx,dz,ex,ez);
@@ -54,14 +54,14 @@ namespace HarborCity
                 }
                 float t=Cross(a.x-from.x,a.z-from.z,ex,ez)/cross,u=Cross(a.x-from.x,a.z-from.z,dx,dz)/cross;
                 if(t<-.00001f || t>1.00001f || u<-.00001f || u>1.00001f)continue;
-                var pnt=CityRoads.Lerp(a,b,Math.Clamp(u,0,1));crosses.Add(pnt);
-                if(CityRoads.Length(pnt,a)>.08f && CityRoads.Length(pnt,b)>.08f)
+                var pnt=CityPlanarGeometry.Lerp(a,b,Math.Clamp(u,0,1));crosses.Add(pnt);
+                if(CityPlanarGeometry.Length(pnt,a)>.08f && CityPlanarGeometry.Length(pnt,b)>.08f)
                 {
                     int node=copy.AddNode(pnt);copy.edges.RemoveAll(line=>line.id==e.id);copy.AddEdge(e.a,node);copy.AddEdge(node,e.b);
                 }
             }
-            crosses=crosses.OrderBy(p=>CityRoads.Projection(p,from,to)).ToList();var unique=new List<RoadNode>();
-            foreach(var p in crosses)if(unique.Count==0 || CityRoads.Length(p,unique[unique.Count-1])>.08f)unique.Add(p);
+            crosses=crosses.OrderBy(p=>CityPlanarGeometry.Projection(p,from,to)).ToList();var unique=new List<RoadNode>();
+            foreach(var p in crosses)if(unique.Count==0 || CityPlanarGeometry.Length(p,unique[unique.Count-1])>.08f)unique.Add(p);
             for(int i=1;i<unique.Count;i++)copy.AddEdge(copy.AddNode(unique[i-1]),copy.AddNode(unique[i]));
             copy.revision++;if(!copy.Valid(buildExtent)){error="管线几何校验失败";return null;}return copy;
         }
@@ -70,7 +70,7 @@ namespace HarborCity
         public UtilityEdge Pick(float x,float z,float radius=.8f)
         {
             var p=new RoadNode{x=x,z=z};UtilityEdge best=null;
-            foreach(var edge in edges){float d=CityRoads.Distance(p,Node(edge.a),Node(edge.b));if(d<radius){best=edge;radius=d;}}
+            foreach(var edge in edges){float d=CityPlanarGeometry.Distance(p,Node(edge.a),Node(edge.b));if(d<radius){best=edge;radius=d;}}
             return best;
         }
         public Dictionary<int,int> Components()
@@ -91,7 +91,7 @@ namespace HarborCity
             foreach(var n in nodes)if(n==null || n.id<1 || n.id>=nextNode || !ids.Add(n.id) || !Position(n,buildExtent) || n.y!=0)return false;
             lookup=null;
             foreach(var e in edges)if(e==null || e.id<1 || e.id>=nextEdge || !lines.Add(e.id) || !ids.Contains(e.a) || !ids.Contains(e.b) || e.a==e.b
-                || !pairs.Add(Math.Min(e.a,e.b)+":"+Math.Max(e.a,e.b)) || CityRoads.Length(Node(e.a),Node(e.b))<.08f)return false;
+                || !pairs.Add(Math.Min(e.a,e.b)+":"+Math.Max(e.a,e.b)) || CityPlanarGeometry.Length(Node(e.a),Node(e.b))<.08f)return false;
             return true;
         }
         static bool Position(RoadNode p,float buildExtent)=>!float.IsNaN(p.x) && !float.IsNaN(p.z) && !float.IsInfinity(p.x) && !float.IsInfinity(p.z)

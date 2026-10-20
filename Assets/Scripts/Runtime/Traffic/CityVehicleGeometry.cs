@@ -15,7 +15,7 @@ namespace HarborCity
         public static RoadNode Corner(RoadNode a,RoadNode n,RoadNode b,float incoming,float outgoing)=>CornerPoint(a,n,b,incoming,outgoing).ToNode();
         static Point CornerPoint(RoadNode a,RoadNode n,RoadNode b,float incoming,float outgoing)
         {
-            float il=CityRoads.Length(a,n),ol=CityRoads.Length(n,b);
+            float il=CityPlanarGeometry.Length(a,n),ol=CityPlanarGeometry.Length(n,b);
             if(il<.001f || ol<.001f)return n;
             float ix=(n.x-a.x)/il,iz=(n.z-a.z)/il,ox=(b.x-n.x)/ol,oz=(b.z-n.z)/ol;
             var p=new Point{x=n.x+iz*incoming,z=n.z-ix*incoming,y=n.y};
@@ -35,7 +35,7 @@ namespace HarborCity
             if(index>0 && index+1<trip.route.Count)
                 return CornerPoint(roads.Node(trip.route[index-1]),n,roads.Node(trip.route[index+1]),roads.TripLaneOffset(trip,index-1),roads.TripLaneOffset(trip,index));
             int s=index==0?0:index-1;var a=roads.Node(trip.route[s]);var b=roads.Node(trip.route[s+1]);
-            float length=CityRoads.Length(a,b),offset=roads.TripLaneOffset(trip,s);
+            float length=CityPlanarGeometry.Length(a,b),offset=roads.TripLaneOffset(trip,s);
             return length<.001f?(Point)n:new Point{x=n.x+(b.z-a.z)/length*offset,z=n.z-(b.x-a.x)/length*offset,y=n.y};
         }
         const float Cut=.4f;

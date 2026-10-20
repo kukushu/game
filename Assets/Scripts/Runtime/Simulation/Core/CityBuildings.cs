@@ -47,7 +47,7 @@ namespace HarborCity
         }
         public bool HitsRoad(RoadNode a, RoadNode b,float roadWidth=CityRoads.Width)
         {
-            float length = CityRoads.Length(a,b);
+            float length = CityPlanarGeometry.Length(a,b);
             return Overlaps((a.x+b.x)/2,(a.z+b.z)/2,-(float)(Math.Atan2(b.z-a.z,b.x-a.x)*180/Math.PI),length+.08f,roadWidth+.12f);
         }
     }
@@ -139,7 +139,7 @@ namespace HarborCity
             var b=GetBuilding(id); var p=new RoadNode { x=b.entranceX,z=b.entranceZ };
             RoadEdge best=FrontageEdge(p.x,p.z);
             result=new List<int>();
-            if (best!=null) result.Add(CityRoads.Length(p,roads.Node(best.a))<=CityRoads.Length(p,roads.Node(best.b)) ? best.a : best.b);
+            if (best!=null) result.Add(CityPlanarGeometry.Length(p,roads.Node(best.a))<=CityPlanarGeometry.Length(p,roads.Node(best.b)) ? best.a : best.b);
             buildingEntrances[id]=result; return result;
         }
         RoadEdge FrontageEdge(float x,float z,ISet<int> excluded=null)
@@ -148,7 +148,7 @@ namespace HarborCity
             foreach (var e in roads.edges)
             {
                 if(e.structure!=RoadStructure.Ground || !CityRoadTypes.Frontage(e.kind) || excluded?.Contains(e.id)==true)continue;
-                float d=CityRoads.Distance(p,roads.Node(e.a),roads.Node(e.b));
+                float d=CityPlanarGeometry.Distance(p,roads.Node(e.a),roads.Node(e.b));
                 if (d<CityRoadTypes.Width(e.kind)/2+.45f && d<distance) { distance=d; best=e; }
             }
             return best;
@@ -254,13 +254,13 @@ namespace HarborCity
             foreach(var e in roads.edges)
             {
                 if(e.structure!=RoadStructure.Ground || !CityRoadTypes.Frontage(e.kind))continue;
-                float d=CityRoads.Distance(mouse,roads.Node(e.a),roads.Node(e.b));
+                float d=CityPlanarGeometry.Distance(mouse,roads.Node(e.a),roads.Node(e.b));
                 if(d<=distance && (closest==null || d<distance || e.id<closest.id)) {closest=e; distance=d;}
             }
             if(closest==null) {error="离道路太远，请移到道路中心线 "+BuildingRoadSnapDistance+" 米以内"; return null;}
             var a=roads.Node(closest.a); var b=roads.Node(closest.b);
-            var p=CityRoads.Lerp(a,b,CityRoads.Projection(mouse,a,b));
-            float length=CityRoads.Length(a,b),ux=(b.x-a.x)/length,uz=(b.z-a.z)/length;
+            var p=CityPlanarGeometry.Lerp(a,b,CityPlanarGeometry.Projection(mouse,a,b));
+            float length=CityPlanarGeometry.Length(a,b),ux=(b.x-a.x)/length,uz=(b.z-a.z)/length;
             float side=(mouseX-p.x)*(-uz)+(mouseZ-p.z)*ux<0?-1:1;
             float nx=-uz*side,nz=ux*side;
             var lot=NewBuilding(use); lot.id=-1; lot.yaw=(float)(Math.Atan2(nx,nz)*180/Math.PI);

@@ -37,7 +37,7 @@ namespace HarborCity
         {
             var n=roads.Node(node);var a=roads.Node(entry);var b=roads.Node(exit);
             if(n==null || a==null || b==null)return null;
-            float al=CityRoads.Length(a,n),bl=CityRoads.Length(n,b);if(al<.01f || bl<.01f)return null;
+            float al=CityPlanarGeometry.Length(a,n),bl=CityPlanarGeometry.Length(n,b);if(al<.01f || bl<.01f)return null;
             float ix=(n.x-a.x)/al,iz=(n.z-a.z)/al,ox=(b.x-n.x)/bl,oz=(b.z-n.z)/bl;
             float incoming=roads.EdgeWidth(entry,node)/2+.2f,outgoing=roads.EdgeWidth(node,exit)/2+.2f;
             float px=iz*incoming,pz=-ix*incoming,qx=oz*outgoing,qz=-ox*outgoing,det=ix*oz-iz*ox;
@@ -89,7 +89,7 @@ namespace HarborCity
             foreach(int entry in roads.Neighbors(node))foreach(int exit in roads.Neighbors(node))if(entry!=exit)
             {
                 var p=Corner(roads,node,entry,exit);
-                if(p!=null)radius=Math.Max(radius,CityRoads.Length(p,roads.Node(node))+.65f);
+                if(p!=null)radius=Math.Max(radius,CityPlanarGeometry.Length(p,roads.Node(node))+.65f);
             }
             return radius/3;
         }
@@ -103,14 +103,14 @@ namespace HarborCity
             }
             var a=roads.Node(route[before]);var b=roads.Node(route[after]);
             float dx=0,dz=0;int count=0;
-            if(before<index){float length=CityRoads.Length(a,n);if(length>.001f){float offset=roads.EdgeWidth(a.id,n.id)/2+.2f;dx+=(n.z-a.z)/length*offset;dz-=(n.x-a.x)/length*offset;count++;}}
-            if(after>index){float length=CityRoads.Length(n,b);if(length>.001f){float offset=roads.EdgeWidth(n.id,b.id)/2+.2f;dx+=(b.z-n.z)/length*offset;dz-=(b.x-n.x)/length*offset;count++;}}
+            if(before<index){float length=CityPlanarGeometry.Length(a,n);if(length>.001f){float offset=roads.EdgeWidth(a.id,n.id)/2+.2f;dx+=(n.z-a.z)/length*offset;dz-=(n.x-a.x)/length*offset;count++;}}
+            if(after>index){float length=CityPlanarGeometry.Length(n,b);if(length>.001f){float offset=roads.EdgeWidth(n.id,b.id)/2+.2f;dx+=(b.z-n.z)/length*offset;dz-=(b.x-n.x)/length*offset;count++;}}
             return new RoadNode{x=n.x+(count>0?dx/count:0),z=n.z+(count>0?dz/count:0),y=n.y};
         }
         public static RoadNode WalkingPosition(CityRoads roads,TrafficTrip trip,int segment,float fraction)
         {
             var a=SidewalkPoint(roads,trip.route,segment);var b=SidewalkPoint(roads,trip.route,Math.Min(segment+1,trip.route.Count-1));
-            return CityRoads.Lerp(a,b,fraction);
+            return CityPlanarGeometry.Lerp(a,b,fraction);
         }
         public static float WalkingLength(CityRoads roads,TrafficTrip trip,int segment)
             =>Math.Max(.001f,CityRoads.SpatialLength(SidewalkPoint(roads,trip.route,segment),SidewalkPoint(roads,trip.route,Math.Min(segment+1,trip.route.Count-1))));
@@ -118,7 +118,7 @@ namespace HarborCity
         {
             if(!roads.CanTravel(node,arm,true))return null;
             var n=roads.Node(node);var a=roads.Node(arm);if(n==null || a==null || roads.Neighbors(node).Count<3)return null;
-            float length=CityRoads.Length(n,a);if(length<.01f)return null;
+            float length=CityPlanarGeometry.Length(n,a);if(length<.01f)return null;
             if(roads.Neighbors(node).Count==4)
             {
                 double direction=Math.Atan2(a.z-n.z,a.x-n.x);int previous=-1,next=-1;double before=Math.PI*2,after=Math.PI*2;
@@ -134,7 +134,7 @@ namespace HarborCity
             foreach(int other in roads.Neighbors(node))
             {
                 if(other==arm)continue;
-                var b=roads.Node(other);float bl=CityRoads.Length(n,b);if(bl<.01f)return null;
+                var b=roads.Node(other);float bl=CityPlanarGeometry.Length(n,b);if(bl<.01f)return null;
                 float dot=((b.x-n.x)*dx+(b.z-n.z)*dz)/bl,sine=(float)Math.Sqrt(Math.Max(0,1-dot*dot));
                 if(sine<.01f)continue;
                 along=Math.Max(along,(roads.EdgeWidth(node,other)/2+.2f+Math.Abs(dot)*across)/sine);
@@ -171,7 +171,7 @@ namespace HarborCity
             using var diagnosticScope=conflictPathSample.Auto();
 #endif
             var n=r.Node(node);var a=r.Node(entry);var b=r.Node(exit);if(n==null || a==null || b==null)return null;
-            float inLength=CityRoads.Length(a,n),outLength=CityRoads.Length(n,b);if(inLength<.01f || outLength<.01f)return null;
+            float inLength=CityPlanarGeometry.Length(a,n),outLength=CityPlanarGeometry.Length(n,b);if(inLength<.01f || outLength<.01f)return null;
             var trip=new TrafficTrip{route=new List<int>{entry,node,exit},segment=1,lane=outLane,previousLane=inLane};
             var path=new List<RoadNode>();
             // Sample the same lane corner used by vehicles and route highlighting.
@@ -184,7 +184,7 @@ namespace HarborCity
         {
             float ac=Cross(a,b,c),ad=Cross(a,b,d),ca=Cross(c,d,a),cb=Cross(c,d,b);
             if(ac*ad<0 && ca*cb<0)return 0;
-            return Math.Min(Math.Min(CityRoads.Distance(a,c,d),CityRoads.Distance(b,c,d)),Math.Min(CityRoads.Distance(c,a,b),CityRoads.Distance(d,a,b)));
+            return Math.Min(Math.Min(CityPlanarGeometry.Distance(a,c,d),CityPlanarGeometry.Distance(b,c,d)),Math.Min(CityPlanarGeometry.Distance(c,a,b),CityPlanarGeometry.Distance(d,a,b)));
         }
     }
     public sealed partial class CityRoads

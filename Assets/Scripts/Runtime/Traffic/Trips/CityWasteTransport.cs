@@ -38,7 +38,7 @@ namespace HarborCity
                     foreach(var target in city.buildings.OfType<LandfillBuilding>().Where(b=>b.id!=landfill.id && !b.emptying))
                         if(DispatchWaste(landfill.id,target.id,true)!=null)return true;
                 }
-                else foreach(var target in city.buildings.Where(b=>b.garbage>0).OrderByDescending(b=>b.garbage).ThenBy(b=>CityRoads.Length(new RoadNode{x=b.x,z=b.z},new RoadNode{x=landfill.x,z=landfill.z})))
+                else foreach(var target in city.buildings.Where(b=>b.garbage>0).OrderByDescending(b=>b.garbage).ThenBy(b=>CityPlanarGeometry.Length(new RoadNode{x=b.x,z=b.z},new RoadNode{x=landfill.x,z=landfill.z})))
                     if(DispatchWaste(landfill.id,target.id)!=null)return true;
             }
             return false;

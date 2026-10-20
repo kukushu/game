@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -93,8 +93,8 @@ namespace HarborCity
             if(path.Count>0)
             {
                 // Prototype map scale: one world unit represents one commute minute.
-                value=CityRoads.Length(new RoadNode{x=GetBuilding(home).entranceX,z=GetBuilding(home).entranceZ},roads.Node(path[0]))
-                    +CityRoads.Length(new RoadNode{x=GetBuilding(work).entranceX,z=GetBuilding(work).entranceZ},roads.Node(path[path.Count-1]));
+                value=CityPlanarGeometry.Length(new RoadNode{x=GetBuilding(home).entranceX,z=GetBuilding(home).entranceZ},roads.Node(path[0]))
+                    +CityPlanarGeometry.Length(new RoadNode{x=GetBuilding(work).entranceX,z=GetBuilding(work).entranceZ},roads.Node(path[path.Count-1]));
                 for(int i=1;i<path.Count;i++) value+=roads.TravelCost(path[i-1],path[i],walking);
             }
             commuteCache[key]=value; return value;
@@ -253,8 +253,8 @@ namespace HarborCity
             foreach(var h in society.families) if(h.resident) {population+=LivingMembers(h); demand++;}
             jobs=society.jobEntities.Count(JobFunded);
             income=society.history.Count>0?(development.enabled?society.history[society.history.Count-1].tax:society.history[society.history.Count-1].rent):0;
-            if(development.enabled) {upkeep+=utilities.electricity.edges.Sum(e=>(int)Math.Ceiling(CityRoads.Length(utilities.electricity.Node(e.a),utilities.electricity.Node(e.b))/30))
-                +utilities.water.edges.Sum(e=>(int)Math.Ceiling(CityRoads.Length(utilities.water.Node(e.a),utilities.water.Node(e.b))/30));RecalculateUtilities();DevelopmentDemand();}
+            if(development.enabled) {upkeep+=utilities.electricity.edges.Sum(e=>(int)Math.Ceiling(CityPlanarGeometry.Length(utilities.electricity.Node(e.a),utilities.electricity.Node(e.b))/30))
+                +utilities.water.edges.Sum(e=>(int)Math.Ceiling(CityPlanarGeometry.Length(utilities.water.Node(e.a),utilities.water.Node(e.b))/30));RecalculateUtilities();DevelopmentDemand();}
             happiness=society.families.Any(h=>h.resident)?(int)society.families.Where(h=>h.resident).Average(h=>Math.Clamp(85-h.hardship*5-(int)HouseholdCommute(h)/3,10,100)):70;
         }
         public void HouseholdTick()

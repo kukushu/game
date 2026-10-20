@@ -65,7 +65,7 @@ namespace HarborCity
         public bool BuildUtility(UtilityKind kind,RoadNode from,RoadNode to,out string error)
         {
             var plan=UtilityNetwork(kind).Plan(from,to,out error,map.buildHalfSize);if(plan==null)return false;
-            int cost=(int)Math.Ceiling(CityRoads.Length(from,to)*(kind==UtilityKind.Electricity?15:10));
+            int cost=(int)Math.Ceiling(CityPlanarGeometry.Length(from,to)*(kind==UtilityKind.Electricity?15:10));
             if(money<cost){error="资金不足";return false;}
             if(kind==UtilityKind.Electricity)utilities.electricity=plan;else utilities.water=plan;
             money-=cost;Recalculate();Trace("utility.built",kind+"管线建设",new CityLogDetail{amount=cost,x=to.x,z=to.z});return true;
@@ -76,9 +76,9 @@ namespace HarborCity
             money-=40;Recalculate();Trace("utility.removed",kind+"管线拆除",new CityLogDetail{count=edge});return true;
         }
         static float FootprintDistance(CityBuilding a,CityBuilding b)
-        {return Math.Max(0,CityRoads.Length(new RoadNode{x=a.x,z=a.z},new RoadNode{x=b.x,z=b.z})-(Math.Max(a.width,a.depth)+Math.Max(b.width,b.depth))/2);}
+        {return Math.Max(0,CityPlanarGeometry.Length(new RoadNode{x=a.x,z=a.z},new RoadNode{x=b.x,z=b.z})-(Math.Max(a.width,a.depth)+Math.Max(b.width,b.depth))/2);}
         static float LineDistance(CityBuilding b,CityUtilityNetwork net,UtilityEdge edge)
-        {return Math.Max(0,CityRoads.Distance(new RoadNode{x=b.x,z=b.z},net.Node(edge.a),net.Node(edge.b))-Math.Min(b.width,b.depth)/2);}
+        {return Math.Max(0,CityPlanarGeometry.Distance(new RoadNode{x=b.x,z=b.z},net.Node(edge.a),net.Node(edge.b))-Math.Min(b.width,b.depth)/2);}
         // Provisional load shedding, not a claim about CS1's exact allocation algorithm.
         // Keep essential services operating first; stable IDs avoid random daily flicker.
         // Supply whole buildings only, never spending more than this component provides.

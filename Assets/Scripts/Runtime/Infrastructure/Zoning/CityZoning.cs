@@ -94,13 +94,13 @@ namespace HarborCity
         void GenerateZoneRun(List<RoadNode> path,string block,float roadWidth,Func<float,float,float> height,Dictionary<string,LandUse> uses,Dictionary<(int,int),List<ZoneCell>> claimed)
         {
             float size=CityZoningState.CellSize,total=0;
-            var lengths=new List<float>();for(int i=1;i<path.Count;i++) {float length=CityRoads.Length(path[i-1],path[i]);lengths.Add(length);total+=length;}
+            var lengths=new List<float>();for(int i=1;i<path.Count;i++) {float length=CityPlanarGeometry.Length(path[i-1],path[i]);lengths.Add(length);total+=length;}
             int columns=(int)Math.Floor((total-roadWidth)/size);
             for(int column=0;column<columns;column++)
             {
                 float distance=roadWidth/2+(column+.5f)*size;int span=0;
                 while(span<lengths.Count-1 && distance>lengths[span]) {distance-=lengths[span];span++;}
-                var a=path[span];var b=path[span+1];var center=CityRoads.Lerp(a,b,distance/lengths[span]);
+                var a=path[span];var b=path[span+1];var center=CityPlanarGeometry.Lerp(a,b,distance/lengths[span]);
                 float dx=(b.x-a.x)/lengths[span],dz=(b.z-a.z)/lengths[span];
                 for(int side=-1;side<=1;side+=2) for(int row=0;row<CityZoningState.Depth;row++)
                 {

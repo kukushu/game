@@ -53,7 +53,7 @@ namespace HarborCity
             double x=b.x-a.x,z=b.z-a.z,rx=d.x-c.x,rz=d.z-c.z,den=x*rz-z*rx;
             if(Math.Abs(den)>1e-9)
             {double t=((c.x-a.x)*rz-(c.z-a.z)*rx)/den,u=((c.x-a.x)*z-(c.z-a.z)*x)/den;if(t>=0&&t<=1&&u>=0&&u<=1)return true;}
-            return CityRoads.Distance(a,c,d)<.08f||CityRoads.Distance(b,c,d)<.08f||CityRoads.Distance(c,a,b)<.08f||CityRoads.Distance(d,a,b)<.08f;
+            return CityPlanarGeometry.Distance(a,c,d)<.08f||CityPlanarGeometry.Distance(b,c,d)<.08f||CityPlanarGeometry.Distance(c,a,b)<.08f||CityPlanarGeometry.Distance(d,a,b)<.08f;
         }
     }
 }

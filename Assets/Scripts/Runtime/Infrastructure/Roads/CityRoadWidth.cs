@@ -9,14 +9,14 @@ namespace HarborCity
         // are legal junctions; close roads without a connection must not overlap.
         public bool RoadWidthClear(RoadNode a,RoadNode b,RoadKind kind,Func<float,float,float> height,List<int> ignore,out string reason,bool engineered=false)
         {
-            reason="";float width=CityRoadTypes.Width(kind),length=CityRoads.Length(a,b);
+            reason="";float width=CityRoadTypes.Width(kind),length=CityPlanarGeometry.Length(a,b);
             if(length<.01f){reason="道路太短。";return false;}
             foreach(var p in new[]{a,b})if(Math.Abs(p.x)+width/2>RoadHalfSize || Math.Abs(p.z)+width/2>RoadHalfSize)
             {reason="道路端部宽度超出建设边界。";return false;}
             float rx=-(b.z-a.z)/length,rz=(b.x-a.x)/length;
             for(int i=0,steps=(int)Math.Ceiling(length/.5f);i<=steps;i++)
             {
-                var p=CityRoads.Lerp(a,b,(float)i/steps);float left=0,right=0;
+                var p=CityPlanarGeometry.Lerp(a,b,(float)i/steps);float left=0,right=0;
                 for(int side=-1;side<=1;side++)
                 {
                     float x=p.x+rx*width/2*side,z=p.z+rz*width/2*side;
@@ -35,7 +35,7 @@ namespace HarborCity
                 if(ignore!=null && ignore.Contains(e.id))continue;
                 var c=roads.Node(e.a);var d=roads.Node(e.b);
                 if(CityRoads.Separated(a,b,c,d))continue;
-                if(CityRoads.Length(a,c)<.08f || CityRoads.Length(a,d)<.08f || CityRoads.Length(b,c)<.08f || CityRoads.Length(b,d)<.08f || Crosses(a,b,c,d))continue;
+                if(CityPlanarGeometry.Length(a,c)<.08f || CityPlanarGeometry.Length(a,d)<.08f || CityPlanarGeometry.Length(b,c)<.08f || CityPlanarGeometry.Length(b,d)<.08f || Crosses(a,b,c,d))continue;
                 if(!footprint.HitsRoad(c,d,CityRoadTypes.Width(e.kind)))continue;
                 if(junctions==null)junctions=RoadJunctionFootprints(a,b,width,ignore);
                 if(OutsideJunctionOverlap(footprint,e,c,d,junctions))
@@ -52,11 +52,11 @@ namespace HarborCity
             if(Math.Abs(cross)<.0001f)return false;
             float t=((c.x-a.x)*ez-(c.z-a.z)*ex)/cross,u=((c.x-a.x)*dz-(c.z-a.z)*dx)/cross;
             if(t<-.0001f || t>1.0001f || u<-.0001f || u>1.0001f)return false;
-            point=CityRoads.Lerp(c,d,Math.Clamp(u,0,1));return true;
+            point=CityPlanarGeometry.Lerp(c,d,Math.Clamp(u,0,1));return true;
         }
         List<(RoadNode point,float radius,HashSet<int> run)> RoadJunctionFootprints(RoadNode a,RoadNode b,float width,List<int> ignore)
         {
-            var result=new List<(RoadNode,float,HashSet<int>)>();float length=CityRoads.Length(a,b);
+            var result=new List<(RoadNode,float,HashSet<int>)>();float length=CityPlanarGeometry.Length(a,b);
             // An upgrade checks each sampling span separately. Its second span
             // can still overlap a junction mouth even though it does not itself
             // contain the junction center. Use the endpoints of the whole run.
@@ -68,19 +68,19 @@ namespace HarborCity
                 var center=roads.Node(node);var other=roads.Node(edge.a==node?edge.b:edge.a);
                 var run=new HashSet<int>(roads.Run(edge.id));
                 float oldWidth=roads.edges.Where(e=>run.Contains(e.id)).Max(e=>CityRoadTypes.Width(e.kind));
-                float sine=Math.Abs((b.x-a.x)*(other.z-center.z)-(b.z-a.z)*(other.x-center.x))/(length*CityRoads.Length(center,other));
+                float sine=Math.Abs((b.x-a.x)*(other.z-center.z)-(b.z-a.z)*(other.x-center.x))/(length*CityPlanarGeometry.Length(center,other));
                 result.Add((center,(width/2+oldWidth/2+.2f)/(sine<.01f?1:Math.Max(.33f,sine)),run));
             }
             foreach(var edge in roads.edges)
             {
                 if(ignore!=null && ignore.Contains(edge.id))continue;
                 var c=roads.Node(edge.a);var d=roads.Node(edge.b);RoadNode point;
-                if(CityRoads.Length(a,c)<.08f || CityRoads.Length(a,d)<.08f)point=a;
-                else if(CityRoads.Length(b,c)<.08f || CityRoads.Length(b,d)<.08f)point=b;
+                if(CityPlanarGeometry.Length(a,c)<.08f || CityPlanarGeometry.Length(a,d)<.08f)point=a;
+                else if(CityPlanarGeometry.Length(b,c)<.08f || CityPlanarGeometry.Length(b,d)<.08f)point=b;
                 else if(!RoadIntersection(a,b,c,d,out point))continue;
                 var run=new HashSet<int>(roads.Run(edge.id));
                 float oldWidth=roads.edges.Where(e=>run.Contains(e.id)).Max(e=>CityRoadTypes.Width(e.kind));
-                float sine=Math.Abs((b.x-a.x)*(d.z-c.z)-(b.z-a.z)*(d.x-c.x))/(length*CityRoads.Length(c,d));
+                float sine=Math.Abs((b.x-a.x)*(d.z-c.z)-(b.z-a.z)*(d.x-c.x))/(length*CityPlanarGeometry.Length(c,d));
                 float radius=(width/2+oldWidth/2+.2f)/(sine<.01f?1:Math.Max(.33f,sine));
                 result.Add((point,radius,run));
             }
@@ -108,7 +108,7 @@ namespace HarborCity
                 }
                 pieces=remaining;
             }
-            return pieces.Any(p=>footprint.HitsRoad(CityRoads.Lerp(a,b,p.from),CityRoads.Lerp(a,b,p.to),CityRoadTypes.Width(edge.kind)));
+            return pieces.Any(p=>footprint.HitsRoad(CityPlanarGeometry.Lerp(a,b,p.from),CityPlanarGeometry.Lerp(a,b,p.to),CityRoadTypes.Width(edge.kind)));
         }
         void RemapRoadZones(List<ZoneCell> old,Func<float,float,float> height)
         {

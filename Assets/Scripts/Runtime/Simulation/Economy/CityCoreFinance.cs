@@ -59,7 +59,7 @@ namespace HarborCity
         {
             double roads=0;foreach(int id in world.Network.RoadIds)roads+=world.Network.Centreline(id).Length*world.Network.Settings(id).lanes*rules.RoadRate;
             long total=(long)Math.Ceiling(roads);foreach(var b in entities.Buildings){var kind=b.Use==LandUse.Power?CityServiceKind.Electricity:CityServiceKind.Water;total+=b.Use==LandUse.Landfill?rules.FacilityMaintenance(b.Use):city.ServiceExpense(kind,rules.FacilityMaintenance(b.Use));}
-            foreach(var kind in new[]{UtilityKind.Electricity,UtilityKind.Water}){var net=city.UtilityNetwork(kind);foreach(var edge in net.edges)total+=(long)Math.Ceiling(CityRoads.Length(net.Node(edge.a),net.Node(edge.b))*rules.UtilityRate);}
+            foreach(var kind in new[]{UtilityKind.Electricity,UtilityKind.Water}){var net=city.UtilityNetwork(kind);foreach(var edge in net.edges)total+=(long)Math.Ceiling(CityPlanarGeometry.Length(net.Node(edge.a),net.Node(edge.b))*rules.UtilityRate);}
             if(total>int.MaxValue)throw new InvalidOperationException("Maintenance exceeds supported treasury range");return (int)total;
         }
         int CurrentMaintenanceRate()
