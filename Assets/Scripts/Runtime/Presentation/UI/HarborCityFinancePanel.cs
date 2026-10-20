@@ -7,7 +7,7 @@ namespace HarborCity
     {
         readonly CityLocalization text;CityCoreFinance finance;CityCoreUtilities services;Vector2 scroll;string message="";
         public bool IsOpen {get;set;}
-        Rect Bounds=>new Rect(Math.Max(10,(Screen.width-620)/2),152,Math.Min(620,Screen.width-20),Math.Max(160,Math.Min(650,Screen.height-312)));
+        Rect Bounds=>new Rect(Math.Max(10,(Screen.width-620)/2),96,Math.Min(620,Screen.width-20),Math.Max(160,Math.Min(650,Screen.height-152)));
         public HarborCityFinancePanel(CityLocalization text){this.text=text;}
         public bool BlocksInput(Vector2 screen)=>IsOpen; // A modal blocks map editing even outside its rectangle.
         enum Command {Tax,Budget,Borrow,Repay,Grant}

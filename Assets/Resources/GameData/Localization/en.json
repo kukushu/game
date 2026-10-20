@@ -956,6 +956,10 @@
     {
       "key": "ui.design.supply",
       "text": "Need {0} / Supply {1} / Cap {2}"
+    },
+    {
+      "key": "ui.design.rate_compact",
+      "text": "Target {0}x · Actual {1}x (0.5s average)"
     }
   ]
 }

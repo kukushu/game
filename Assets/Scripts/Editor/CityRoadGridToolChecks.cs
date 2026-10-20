@@ -93,8 +93,8 @@ namespace HarborCity
             Func<string,Rect> rect=name=>(Rect)type.GetProperty(name,flags).GetValue(game);
             Func<Vector2,bool> blocked=point=>(bool)type.GetMethod("BlocksWorldInput",flags).Invoke(game,new object[]{new Vector2(point.x,Screen.height-point.y)});
             if(rect("ToolPanelBounds").width!=0||!blocked(rect("StatusBounds").center)||!blocked(rect("ToolbarBounds").center))throw new Exception("HUD initial visibility/input boundaries incorrect");
-            // Branding occupies only its visible header; map below it stays interactive.
-            if(!blocked(rect("BrandBounds").center)||!blocked(rect("TimeBounds").center))throw new Exception("New chrome leaks map input");
+            // Compact corner cards and single bottom row block only their actual bounds.
+            if(!blocked(rect("TimeBounds").center)||rect("ToolbarBounds").height!=40||rect("StatusBounds").x!=8||rect("TimeBounds").y!=8||rect("StatusBounds").Overlaps(rect("TimeBounds")))throw new Exception("New chrome leaks map input");
             if(Screen.width>=800&&Screen.height>=480&&blocked(new Vector2(24,96)))throw new Exception("Closed HUD still blocks old menu/map area");
             foreach(string name in new[]{"Roads","Zones","Utilities","Trade","City","Options"})
             {
