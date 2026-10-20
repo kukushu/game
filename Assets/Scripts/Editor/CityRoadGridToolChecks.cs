@@ -57,7 +57,12 @@ namespace HarborCity
             send(new Point(-100,2,-100),true,false);send(new Point(-99,2,-99),false,true);
             feedback=(string)tool.GetType().GetField("feedback",flags).GetValue(tool);
             if(!extended.SequenceEqual(CityCoreSave.Write(session))||!feedback.Contains("至少"))throw new Exception("Small drag missing visible reason");
-            Debug.Log("PASS Unity grid drag handler, six pooled preview lines, preview read-only, 2x2 connected road mesh creation, one payment, release cleanup and cancellation. Programmatic handler test; physical mouse not tested.");
+            var fullPreview=new CityRoadGrid(new Point(-384,2,-384),new Point(384,2,384),24,672,(x,z)=>2);
+            var unchanged=CityCoreSave.Write(session);tool.GetType().GetMethod("Show",flags).Invoke(tool,new object[]{fullPreview,false});
+            var fullLines=UnityEngine.Object.FindObjectsByType<LineRenderer>(FindObjectsSortMode.None).Where(l=>l.name=="Grid road preview"&&l.enabled).ToArray();
+            if(fullLines.Length!=66||!unchanged.SequenceEqual(CityCoreSave.Write(session)))throw new Exception("32x32 preview missing lines or mutated city");
+            tool.GetType().GetMethod("Cancel").Invoke(tool,null);if(fullLines.Any(l=>l.enabled))throw new Exception("32x32 preview cancellation failed");
+            Debug.Log("PASS Unity grid drag handler, 32x32 pooled preview lines, preview read-only, 2x2 connected road mesh creation, one payment, release cleanup and cancellation. Programmatic handler test; physical mouse not tested.");
             Debug.Log("PASS snapped shared-border extension, no repeat payment, parallel-overlap rejection and persistent visible failure reasons.");
             var zoneTool=type.GetField("zoneBoxTool",flags).GetValue(game);var zoneDrag=zoneTool.GetType().GetMethod("Drag",flags);
             Action<Point,bool,bool,LandUse,double> zone=(point,pressed,released,use,time)=>zoneDrag.Invoke(zoneTool,new object[]{point,pressed,released,land,session,use,time,notice,(Action)(()=>type.GetMethod("RenderZones",flags).Invoke(game,null))});

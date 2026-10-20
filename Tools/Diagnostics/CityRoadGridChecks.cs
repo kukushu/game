@@ -18,7 +18,16 @@ static class CityRoadGridChecks
             foreach(var stroke in grid.Strokes)foreach(var p in stroke)Check(p.y==2&&Math.Abs(p.x)<=spacing*2&&Math.Abs(p.z)<=spacing*3,"Grid extent/height");
         }
         var capped=new CityRoadGrid(new Point(0,2,0),new Point(1000,2,1000),24,2048,Flat);
-        Check(capped.Columns==8&&capped.Rows==8&&capped.Strokes.Length==18,"Bounded grid");
+        Check(capped.Columns==32&&capped.Rows==32&&capped.Strokes.Length==66,"32-cell bounded grid");
+        var expanded=CityCoreIndustrySession.CreateEmpty();expanded.City.map=CityMapState.DiagnosticFlat(672);expanded.Simulation.Growth.Zoning.SetSurface(Flat);
+        var full=new CityRoadGrid(new Point(-384,2,-384),new Point(384,2,384),24,672,Flat);
+        var initial=Save(expanded);var fullPlan=expanded.Transport.PlanConnectedRoads(full.Strokes,snap:1,reuseExisting:true);
+        Check(initial.SequenceEqual(Save(expanded)),"32x32 planning changed active city");
+        bool fundsRejected=false;try{expanded.Construction.CheckRoadPlacement(fullPlan);}catch(InvalidOperationException){fundsRejected=true;}
+        Check(fundsRejected&&initial.SequenceEqual(Save(expanded)),"32x32 insufficient-funds rollback");
+        expanded.Simulation.Finance.UnlimitedFunds=true;expanded.Construction.CheckRoadPlacement(fullPlan);
+        Check(expanded.Construction.Commit(fullPlan,out _)&&expanded.Transport.Network.RoadCount==2112&&expanded.Transport.Network.JunctionCount==1089,"32x32 complete topology");expanded.Validate();
+        Check(Save(expanded).SequenceEqual(Save(CityCoreSave.Read(Save(expanded)))),"32x32 cold save round trip");
         var city=CityCoreIndustrySession.CreateEmpty();city.City.map=CityMapState.DiagnosticFlat(168);city.Simulation.Growth.Zoning.SetSurface(Flat);
         var rectangle=new CityRoadGrid(new Point(-32,2,-48),new Point(32,2,48),32,168,Flat);
         var before=Save(city);int cash=city.City.money;

@@ -19,7 +19,7 @@ namespace HarborCity.RoadCore
             =>ConnectMany(owner,new[]{center},oneWay,speed,snap,lanes);
         public static RoadEditPlan ConnectMany(World owner,Point[][] strokes,bool oneWay,double speed,double snap,int lanes,bool reuseExisting=false)
         {
-            if(strokes==null||strokes.Length==0||strokes.Length>18)throw new ArgumentException("A road batch needs 1 to 18 strokes");
+            if(strokes==null||strokes.Length==0||strokes.Length>66)throw new ArgumentException("A road batch needs 1 to 66 strokes");
             var draft=owner.EditDraft();
             bool added=false;
             foreach(var stroke in strokes)

@@ -6,7 +6,7 @@ namespace HarborCity
     // Transient geometry only. The existing road transaction owns topology and payment.
     public sealed class CityRoadGrid
     {
-        public const int MaxCells=8;
+        public const int MaxCells=32;
         public readonly Point[][] Strokes;
         public readonly int Columns,Rows;
         public CityRoadGrid(Point start,Point end,int spacing,float bound,Func<float,float,float> height,bool alternatingOneWay=false)

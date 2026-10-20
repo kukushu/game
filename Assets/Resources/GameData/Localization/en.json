@@ -615,7 +615,7 @@
     },
     {
       "key": "ui.grid.help",
-      "text": "Hold the left mouse button and drag a rectangle; release to build. Esc cancels. Up to 8 x 8 blocks per drag. One-way streets alternate directions."
+      "text": "Hold the left mouse button and drag a rectangle; release to build. Esc cancels. Up to 32 x 32 blocks per drag. One-way streets alternate directions."
     },
     {
       "key": "ui.grid.preview",
