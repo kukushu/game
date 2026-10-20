@@ -18,7 +18,7 @@ namespace HarborCity
         Rect StatusBounds=>new Rect(8,8,Math.Min(408,(Screen.width-24)*.51f),78);
         Rect TimeBounds=>new Rect(Screen.width-Math.Min(352,(Screen.width-24)*.46f)-8,8,Math.Min(352,(Screen.width-24)*.46f),64);
         Rect NoticeBounds=>Time.realtimeSinceStartupAsDouble<hudNoticeUntil?new Rect(Math.Max(8,(Screen.width-480)/2),96,Math.Min(480,Screen.width-16),30):new Rect();
-        Rect ToolPanelBounds=>toolPage==ToolPage.None?new Rect():new Rect(ToolbarBounds.x,Math.Max(136,ToolbarBounds.y-330),Math.Min(400,Screen.width-16),Math.Min(322,ToolbarBounds.y-144));
+        Rect ToolPanelBounds=>toolPage==ToolPage.None?new Rect():new Rect(8,96,Math.Min(280,Screen.width-16),Math.Min(256,Screen.height-152));
         bool BlocksHudInput(Vector2 point)
         {
             var p=new Vector2(point.x,Screen.height-point.y);
@@ -48,7 +48,7 @@ namespace HarborCity
             muted=new GUIStyle(wrapped){normal={textColor=Muted}};
             small=new GUIStyle(muted){fontSize=12};metric=new GUIStyle(heading){fontSize=22};
             tabText=new GUIStyle(hudText){alignment=TextAnchor.MiddleCenter,fontSize=13};
-            citySkin.label=hudText;
+            citySkin.label=new GUIStyle(hudText){wordWrap=true};
             citySkin.button=new GUIStyle(GUI.skin.button){fontSize=14,wordWrap=true,padding=new RectOffset(12,12,4,4),margin=new RectOffset(3,3,3,3),border=new RectOffset(0,0,0,0)};
             foreach(var state in new[]{citySkin.button.normal,citySkin.button.hover,citySkin.button.active,citySkin.button.onNormal,citySkin.button.onHover,citySkin.button.onActive}){state.background=Texture2D.whiteTexture;state.textColor=Color.white;}
             rateButton=new GUIStyle(citySkin.button){fontSize=12,padding=new RectOffset(4,4,3,3)};
@@ -160,7 +160,7 @@ namespace HarborCity
         bool ChoiceButton(string title,Color colour,bool selected)
         {
             var old=GUI.backgroundColor;GUI.backgroundColor=selected?new Color(colour.r*.45f,colour.g*.55f,colour.b*.55f):new Color(.14f,.21f,.27f);
-            bool clicked=GUILayout.Button(title,GUILayout.Height(40));GUI.backgroundColor=old;
+            bool clicked=GUILayout.Button(title,GUILayout.Height(32));GUI.backgroundColor=old;
             if(Event.current.type==EventType.Repaint){var r=GUILayoutUtility.GetLastRect();Fill(new Rect(r.x,r.y,3,r.height),colour);if(selected)Fill(new Rect(r.x+3,r.yMax-2,r.width-3,2),colour);}
             return clicked;
         }

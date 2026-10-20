@@ -21,7 +21,7 @@ namespace HarborCity
         public void Cancel(){dragging=false;bound=null;selection.Clear();outline.enabled=false;message=null;}
         public void DrawControls()
         {
-            GUILayout.BeginHorizontal();GUILayout.Label(text.Get("ui.zone.selection"),GUILayout.Width(80));
+            GUILayout.Label(text.Get("ui.zone.selection"));GUILayout.BeginHorizontal();
             if(GUILayout.Toggle(Box,text.Get("ui.zone.box"),GUI.skin.button,GUILayout.Width(100))&&!Box){Cancel();Box=true;}
             if(GUILayout.Toggle(!Box,text.Get("ui.zone.brush"),GUI.skin.button,GUILayout.Width(100))&&Box){Cancel();Box=false;}
             GUILayout.EndHorizontal();

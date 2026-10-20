@@ -99,6 +99,7 @@ namespace HarborCity
             foreach(string name in new[]{"Roads","Zones","Utilities","Trade","City","Options"})
             {
                 var value=Enum.Parse(page.FieldType,name);select.Invoke(game,new[]{value});
+                if(rect("ToolPanelBounds").x!=8||rect("ToolPanelBounds").y!=96||rect("ToolPanelBounds").width>280||rect("ToolPanelBounds").height>256)throw new Exception("Tool panel is not compact and left-aligned");
                 if(!blocked(rect("ToolPanelBounds").center))throw new Exception("Open category leaks map input: "+name);
                 if(name=="Roads")type.GetField("building",flags).SetValue(game,true);
                 select.Invoke(game,new[]{value});

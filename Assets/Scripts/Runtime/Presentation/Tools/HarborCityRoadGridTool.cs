@@ -26,8 +26,8 @@ namespace HarborCity
                 var colour=GUI.contentColor;GUI.contentColor=feedbackError?new Color(1,.45f,.35f):new Color(.3f,1,.6f);
                 GUILayout.Box(feedback,feedbackStyle,GUILayout.Height(42));GUI.contentColor=colour;
             }
-            GUILayout.BeginHorizontal();GUILayout.Label(text.Get("ui.grid.spacing"),GUILayout.Width(90));
-            foreach(int value in new[]{24,32,48,64})if(GUILayout.Toggle(spacing==value,value+" m",GUI.skin.button,GUILayout.Width(65)))spacing=value;
+            GUILayout.Label(text.Get("ui.grid.spacing"));GUILayout.BeginHorizontal();
+            foreach(int value in new[]{24,32,48,64})if(GUILayout.Toggle(spacing==value,value+" m",GUI.skin.button,GUILayout.Width(52)))spacing=value;
             GUILayout.EndHorizontal();GUILayout.Label(hint??text.Get("ui.grid.help"));
         }
         public void Step(Camera camera,CityLandscape land,CityCoreIndustrySession session,bool blocked,bool oneWay,bool wide,Action<string> notice,Action changed)
