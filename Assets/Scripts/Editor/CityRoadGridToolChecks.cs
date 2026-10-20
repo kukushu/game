@@ -93,8 +93,9 @@ namespace HarborCity
             Func<string,Rect> rect=name=>(Rect)type.GetProperty(name,flags).GetValue(game);
             Func<Vector2,bool> blocked=point=>(bool)type.GetMethod("BlocksWorldInput",flags).Invoke(game,new object[]{new Vector2(point.x,Screen.height-point.y)});
             if(rect("ToolPanelBounds").width!=0||!blocked(rect("StatusBounds").center)||!blocked(rect("ToolbarBounds").center))throw new Exception("HUD initial visibility/input boundaries incorrect");
-            // The old upper-left menu must release its map input area.
-            if(Screen.width>=800&&Screen.height>=480&&blocked(new Vector2(24,24)))throw new Exception("Closed HUD still blocks old menu/map area");
+            // Branding occupies only its visible header; map below it stays interactive.
+            if(!blocked(rect("BrandBounds").center)||!blocked(rect("TimeBounds").center))throw new Exception("New chrome leaks map input");
+            if(Screen.width>=800&&Screen.height>=480&&blocked(new Vector2(24,96)))throw new Exception("Closed HUD still blocks old menu/map area");
             foreach(string name in new[]{"Roads","Zones","Utilities","Trade","City","Options"})
             {
                 var value=Enum.Parse(page.FieldType,name);select.Invoke(game,new[]{value});
@@ -137,7 +138,7 @@ namespace HarborCity
         void OnGUI()
         {
             if(Game==null)return;
-            try{Game.GetType().GetMethod("DrawInterface",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(Game,null);Draws++;}
+            try{var skin=GUI.skin;var background=GUI.backgroundColor;var content=GUI.contentColor;Game.GetType().GetMethod("DrawInterface",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(Game,null);if(GUI.skin!=skin||GUI.backgroundColor!=background||GUI.contentColor!=content)throw new Exception("City theme leaked GUI state");Draws++;}
             catch(Exception error){Failure=error;}
         }
     }

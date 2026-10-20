@@ -12,7 +12,7 @@ namespace HarborCity
         int selected,family,issuePage;double refreshDeadline;long refreshed=-1;int entityRevision=-1,roadRevision=-1;Vector2 scroll;bool showIssues;
         public Action<float,float> Focus;
         public int Selected=>selected;
-        Rect Bounds=>new Rect(Math.Max(8,Screen.width-380),196,Math.Min(372,Screen.width-16),Math.Max(60,Screen.height-306));
+        Rect Bounds=>new Rect(Math.Max(8,Screen.width-380),152,Math.Min(372,Screen.width-16),Math.Max(60,Screen.height-312));
         public HarborCityObservationPanel(CityLocalization text){this.text=text;}
         public bool BlocksInput(Vector2 screen)=> (selected!=0||showIssues)&&Bounds.Contains(new Vector2(screen.x,Screen.height-screen.y));
         public void Bind(CityCoreIndustrySession current)

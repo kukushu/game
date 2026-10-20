@@ -924,6 +924,38 @@
     {
       "key": "ui.hud.welcome",
       "text": "Select a tool below; WASD moves the camera, Esc cancels."
+    },
+    {
+      "key": "ui.design.simulation",
+      "text": "SIMULATION"
+    },
+    {
+      "key": "ui.design.citydesk",
+      "text": "CITY MANAGEMENT"
+    },
+    {
+      "key": "ui.design.people",
+      "text": "POPULATION"
+    },
+    {
+      "key": "ui.design.vehicles",
+      "text": "VEHICLES"
+    },
+    {
+      "key": "ui.design.funds",
+      "text": "TREASURY"
+    },
+    {
+      "key": "ui.design.power",
+      "text": "Power"
+    },
+    {
+      "key": "ui.design.water",
+      "text": "Water"
+    },
+    {
+      "key": "ui.design.supply",
+      "text": "Need {0} / Supply {1} / Cap {2}"
     }
   ]
 }

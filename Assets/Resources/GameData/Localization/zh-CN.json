@@ -924,6 +924,38 @@
     {
       "key": "ui.hud.welcome",
       "text": "从底部选择建设工具；WASD 移动相机，Esc 取消。"
+    },
+    {
+      "key": "ui.design.simulation",
+      "text": "模拟控制"
+    },
+    {
+      "key": "ui.design.citydesk",
+      "text": "城市建设 · 管理中心"
+    },
+    {
+      "key": "ui.design.people",
+      "text": "城市人口"
+    },
+    {
+      "key": "ui.design.vehicles",
+      "text": "活动车辆"
+    },
+    {
+      "key": "ui.design.funds",
+      "text": "城市资金"
+    },
+    {
+      "key": "ui.design.power",
+      "text": "电力"
+    },
+    {
+      "key": "ui.design.water",
+      "text": "用水"
+    },
+    {
+      "key": "ui.design.supply",
+      "text": "需 {0} / 供 {1} / 容 {2}"
     }
   ]
 }
