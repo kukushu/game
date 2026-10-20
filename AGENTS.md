@@ -1,5 +1,9 @@
 # 开发约定
 
+## 单一正式运行系统（2026-10-20）
+
+旧版清理完成，当前正式链仅 HarborCityRoadCoreGame → CityCoreIndustrySession → CitySimulation（0.05 秒）→ RoadCore.World。旧 HarborCityGame/CityTraffic/CityRoads/CitySaveData JSON、旧 Tick 与服务调度已删除，不得重新引入空适配器。CityModel 及建筑/居民/岗位/家庭仍是新系统共享数据和规则；BuildingSaveData、RoadNode/纯平面几何、部分服务保存数据已单独保留，不能按历史来源删除。当前 .hcity 16/17 读取、17 写出保持，RoadCore 保存 15 保持。CityPlayerBuild 替代旧构建类；Verify.ps1 运行新 Core/调度/场景/单一引擎检查。九个清理前后全城保存一致，原生工业/建城/贸易、实际 Editor Play 与三千人城冒烟通过，详见 Docs/LegacyCleanup20261020.md。历史下文描述按日期保留，涉及旧实现路径已由本条取代。正式本地启动构建为 Temp/CurrentCityPlayer；旧 Player/性能数据仅作历史资料，不删除。本轮结束，不自动启动性能或玩法开发。
+
 ## 车辆用途配色（2026-10-19）
 
 用户授权货车同工业分区、上班/回家同住宅分区、购物同商业分区。HarborCityZoningViews.Colour统一已有分区色值；VehicleViews仅持有3份新增共享材质，绑定/池复用时选色，服务车沿用默认。无每车材质、无模拟/路线/物理/存档修改；Clear换城保留配色，Dispose仅释放自有材质。15121项隔离Unity显示生命周期/跨用途池复用/完整交通状态不变检查通过，未重建独立Player或宣称FPS改善。详见Docs/VehicleColours.md。
