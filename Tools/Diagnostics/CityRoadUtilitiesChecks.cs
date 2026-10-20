@@ -33,6 +33,16 @@ static class CityRoadUtilitiesChecks
         Check(s.City.buildings.Count(b=>b.x<=-666)==192&&s.City.buildings.Count(b=>b.z<=-666)==192,"Both boundary strips must be filled");
         Check(s.City.buildings.Where(b=>b.x<=-666).Min(b=>b.z)==-640&&s.City.buildings.Where(b=>b.x<=-666).Max(b=>b.z)>640&&s.City.buildings.Where(b=>b.z<=-666).Min(b=>b.x)==-640&&s.City.buildings.Where(b=>b.z<=-666).Max(b=>b.x)>640,"Boundary strips do not span the map");
         Check(s.Transport.Network.RoadIds.All(id=>s.Transport.Network.Settings(id).lanes==2&&s.Transport.Network.Settings(id).direction==RoadDirection.Both),"Template roads must have two lanes in each direction");
+        for(int i=0;i<CityNewTownTemplate.OutletsPerSide;i++)for(int side=0;side<2;side++)
+        {
+            float position=CityNewTownTemplate.OutletPosition(i);
+            Check(s.City.buildings.Where(b=>side==0?b.x<=-666:b.z<=-666).All(b=>Math.Abs((side==0?b.z:b.x)-position)>=15),"Outlet facility gap obstructed");
+            var from=side==0?new Point(-636,2,position):new Point(position,2,-636);
+            var to=side==0?new Point(-612,2,position):new Point(position,2,-612);
+            var outletCity=CityCoreSave.Read(CityCoreSave.Write(s));outletCity.Simulation.Growth.Zoning.SetSurface((x,z)=>2);
+            var extension=outletCity.Transport.PlanConnectedRoad(new[]{from,to},lanes:2);outletCity.Construction.CheckRoadPlacement(extension);
+            Check(outletCity.Construction.Commit(extension,out _),"Template outlet could not extend into city");outletCity.Validate();
+        }
         for(int i=0;i<s.City.buildings.Count;i++)for(int j=i+1;j<s.City.buildings.Count;j++)Check(!s.City.buildings[i].Overlaps(s.City.buildings[j]),"Template facilities overlap");
         Check(s.City.buildings.All(b=>s.City.Supply(b.id).Complete)&&s.City.power==CityNewTownTemplate.FacilitiesPerService*160&&s.City.water==CityNewTownTemplate.FacilitiesPerService*160&&s.City.SewageCapacity==CityNewTownTemplate.FacilitiesPerService*160,"Template providers not fully functioning at original capacities");
         Check(s.Entities.Members.Count==0&&s.Transport.ActiveCount==0&&s.Transport.Clock==0,"Template advanced time or seeded residents/vehicles");
