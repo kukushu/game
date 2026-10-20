@@ -1,49 +1,38 @@
 using System;
-using System.IO;
-using System.Security.Cryptography;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
-
 namespace HarborCity
 {
     public static class CityCodeLayoutChecks
     {
-        [Serializable] sealed class Manifest { public Entry[] files; }
-        [Serializable] sealed class Entry { public string oldPath, newPath, sha256, guid; }
-        // Run in a disposable workspace copy; never open/replace the user's active city.
         public static void Run()
         {
-            if (!Application.isBatchMode) throw new Exception("Use an isolated batch project");
-            string manifestPath = Environment.GetEnvironmentVariable("HARBOR_CODE_LAYOUT_MANIFEST");
-            var manifest = JsonUtility.FromJson<Manifest>(File.ReadAllText(manifestPath));
-            foreach (var entry in manifest.files)
+            if(!Application.isBatchMode)throw new Exception("Use an isolated batch project");
+            var assembly=typeof(CityCoreIndustrySession).Assembly;
+            foreach(string name in new[]{"HarborCityGame","CityTraffic","CityRoads","TrafficTrip","TrafficState","CitySaveData","CityRoadTopology","CityDailyAnalysis"})
+                if(assembly.GetType("HarborCity."+name)!=null)throw new Exception("Old runtime is still compiled: "+name);
+            if(typeof(CityModel).GetField("roads")!=null||typeof(CityModel).GetField("traffic")!=null)throw new Exception("Old mutable world still attached to CityModel");
+            int scenes=0,prefabs=0;
+            foreach(string guid in AssetDatabase.FindAssets("t:Scene",new[]{"Assets"}))
             {
-                if (AssetDatabase.GUIDToAssetPath(entry.guid) != entry.newPath)
-                    throw new Exception("GUID/path mismatch: " + entry.newPath);
-                using (var sha = SHA256.Create())
-                    if (BitConverter.ToString(sha.ComputeHash(File.ReadAllBytes(entry.newPath))).Replace("-", "") != entry.sha256)
-                        throw new Exception("Source changed: " + entry.newPath);
-                if (File.Exists(entry.oldPath)) throw new Exception("Old source duplicate: " + entry.oldPath);
+                var scene=EditorSceneManager.OpenScene(AssetDatabase.GUIDToAssetPath(guid));foreach(var root in scene.GetRootGameObjects())CheckMissing(root);scenes++;
             }
-            var scene = EditorSceneManager.OpenScene("Assets/Scenes/SampleScene.unity");
-            int components = 0;
-            foreach (var root in scene.GetRootGameObjects())
-                foreach (var transform in root.GetComponentsInChildren<Transform>(true))
-                {
-                    if (GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(transform.gameObject) != 0)
-                        throw new Exception("Missing scene script: " + transform.name);
-                    components += transform.GetComponents<MonoBehaviour>().Length;
-                }
-            foreach (var type in new[] { typeof(HarborCityRoadCoreGame), typeof(CityLandscape), typeof(HarborCityRoadViews), typeof(CityRoadGridToolChecks) })
+            foreach(string guid in AssetDatabase.FindAssets("t:Prefab",new[]{"Assets"}))
             {
-                bool found = false;
-                foreach (string guid in AssetDatabase.FindAssets(type.Name + " t:MonoScript"))
-                    if (AssetDatabase.LoadAssetAtPath<MonoScript>(AssetDatabase.GUIDToAssetPath(guid)).GetClass() == type) found = true;
-                if (!found) throw new Exception("MonoScript class missing: " + type.Name);
+                var root=PrefabUtility.LoadPrefabContents(AssetDatabase.GUIDToAssetPath(guid));try{CheckMissing(root);prefabs++;}finally{PrefabUtility.UnloadPrefabContents(root);}
             }
-            string output = Environment.GetEnvironmentVariable("HARBOR_CODE_LAYOUT_RESULT");
-            File.WriteAllText(output, "PASS: " + manifest.files.Length + " unchanged scripts/GUID mappings; scene has no missing scripts; " + components + " behaviours; runtime MonoScript types resolve.");
+            foreach(var type in new[]{typeof(HarborCityRoadCoreGame),typeof(CityLandscape),typeof(HarborCityRoadViews)})
+            {
+                bool found=false;foreach(string guid in AssetDatabase.FindAssets(type.Name+" t:MonoScript",new[]{"Assets"}))
+                    if(AssetDatabase.LoadAssetAtPath<MonoScript>(AssetDatabase.GUIDToAssetPath(guid))?.GetClass()==type)found=true;
+                if(!found)throw new Exception("Current MonoScript type missing: "+type.Name);
+            }
+            Debug.Log("PASS current runtime types only; "+scenes+" scenes / "+prefabs+" prefabs have no missing scripts; current MonoScript GUIDs resolve");
+        }
+        static void CheckMissing(GameObject root)
+        {
+            foreach(var t in root.GetComponentsInChildren<Transform>(true))if(GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(t.gameObject)!=0)throw new Exception("Missing script: "+t.name);
         }
     }
 }

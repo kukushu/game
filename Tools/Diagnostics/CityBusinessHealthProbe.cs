@@ -12,6 +12,9 @@ static class CityBusinessHealthProbe
     {
         if(IntPtr.Size!=8)throw new Exception("64-bit inspection required");
         byte[] input=File.ReadAllBytes(args[0]);var s=CityCoreSave.Read(input);s.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);s.Validate();
+        // A supported v16 input is canonically written as v17. Compare the full
+        // canonical state before/after queries, not two different wire formats.
+        byte[] canonical=CityCoreSave.Write(s);
         var workers=new Dictionary<int,int>();
         foreach(var member in s.Entities.Members)
         {
@@ -33,7 +36,8 @@ static class CityBusinessHealthProbe
         long retiredProduced=s.Entities.RetiredBuildings.OfType<IndustrialBuilding>().Sum(f=>(long)f.factory.produced),retiredStock=s.Entities.RetiredBuildings.Sum(b=>b is IndustrialBuilding f?(long)f.Stock:b is CommercialBuilding shop?(long)shop.Stock:0);
         long goodsError=produced+retiredProduced-factoryStock-shopStock-retiredStock-inTransit-carried-consumed-exported;
         if(goodsError!=0)throw new Exception("Independent goods conservation check failed");
-        if(!input.SequenceEqual(CityCoreSave.Write(s)))throw new Exception("Inspection changed persisted facts");
+        if(!canonical.SequenceEqual(CityCoreSave.Write(s)))throw new Exception("Inspection changed persisted facts");
+        if(!input.SequenceEqual(File.ReadAllBytes(args[0])))throw new Exception("Inspection changed source save file");
         var freightShops=new HashSet<int>(goods.Select(t=>t.destination));
         var stockedShops=shops.Where(b=>b.Stock>0||freightShops.Contains(b.id)).Select(b=>new{b.id,b.Stock,b.x,b.z,b.abandoned,b.burned,cash=b.Account.Cash,wholesaleFunded=b.Account.WholesaleFunded,wages=b.Account.WageCosts,workersAtWork=workers.TryGetValue(b.id,out int n)?n:0,retailSold=b.retailSold,access=s.City.BuildingAccess(b.id),supply=s.City.Supply(b.id).Complete}).ToArray();
         var report=new{mode="cold saved-fact inspection plus explicit endpoint routing; not FPS or throughput measurement",tick=s.Simulation.Tick,seconds=s.Simulation.Seconds,daySeconds=s.City.society.settings.secondsPerDay,population=s.Entities.Members.Count,employed,actualAtWork=workers.Values.Sum(),ports,maxGateTrucks=s.Simulation.Design.Economy.MaxGateTrucks,freightBatch=s.Simulation.Design.Economy.FreightBatch,shipments,rawDetails,stockedShops,

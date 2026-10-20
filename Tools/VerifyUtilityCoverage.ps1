@@ -1,4 +1,4 @@
-param([string]$Initial='Temp/CityScenarios/grid500-normal-final/initial.hcity',[string]$Reference='c729ad2')
+param([string]$Initial='Temp/CityScenarios/grid500-normal-final/initial.hcity')
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'ProjectLayout.ps1')
 $root=Split-Path $PSScriptRoot -Parent
@@ -10,11 +10,6 @@ $sources=Get-CityModelSources $root;$harness=Join-Path $PSScriptRoot 'Diagnostic
 if($LASTEXITCODE -ne 0){throw 'Coverage compile failed'}
 & $mono (Join-Path $dir 'after.exe') $Initial (Join-Path $dir 'after.csv') (Join-Path $dir 'after.hcity')
 if($LASTEXITCODE -ne 0){throw 'Coverage checks failed'}
-$old=& git show ($Reference+':Assets/Scripts/Runtime/Infrastructure/Utilities/CityUtilities.cs');if($LASTEXITCODE -ne 0){throw 'Reference unavailable'}
-$referenceSource=Join-Path $dir 'CityUtilities.cs';[IO.File]::WriteAllLines($referenceSource,$old)
-& $mono $csc /nologo /langversion:latest ('/out:'+(Join-Path $dir 'before.exe')) ($sources|Where-Object {$_ -notlike '*CityUtilities.cs'}) $referenceSource $harness
-if($LASTEXITCODE -ne 0){throw 'Reference compile failed'}
-& $mono (Join-Path $dir 'before.exe') $Initial (Join-Path $dir 'before.csv') (Join-Path $dir 'before.hcity')
-if($LASTEXITCODE -ne 0){throw 'Reference coverage checks failed'}
-foreach($file in @('csv','hcity')){if((Get-FileHash (Join-Path $dir ('before.'+$file))).Hash -ne (Get-FileHash (Join-Path $dir ('after.'+$file))).Hash){throw "Reference utility $file differs"}}
-'PASS every supply component/flag/capacity and full saved city matches original global scan after dynamic edits/budgets'
+# Exact geometric coverage is checked against the direct scan inside the harness.
+# Full frozen allocation/supply equivalence remains in VerifyUtilityLayout.ps1.
+'PASS exact original distance-filtered coverage and dynamic utility invariants; full layout oracle is a separate retained suite'

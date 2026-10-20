@@ -1,8 +1,7 @@
 @echo off
 setlocal
 chcp 65001 >nul
-set "GAME_DIR=%~dp0Temp\RoadCore\Player"
-if exist "%~dp0Temp\ManualCityPlayer\HarborCity.exe" set "GAME_DIR=%~dp0Temp\ManualCityPlayer"
+set "GAME_DIR=%~dp0Temp\CurrentCityPlayer"
 set "LOG_DIR=%~dp0Temp\ManualPlay"
 set "CITY_SAVE=%~dp0Temp\CityScenarios\challenge100000-dotnet64\final.hcity"
 if not "%~1"=="" set "CITY_SAVE=%~f1"

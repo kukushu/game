@@ -2,7 +2,7 @@
 function Get-CityModelSources([string]$ProjectRoot) {
     $assets=Join-Path $ProjectRoot 'Assets'
     @(Get-ChildItem -LiteralPath $assets -Filter 'City*.cs' -Recurse | Where-Object {
-        $_.FullName -notmatch '[/\\]Editor[/\\]' -and $_.Name -notin @('CityLandscape.cs','CityRoadView.cs')
+        $_.FullName -notmatch '[/\\]Editor[/\\]' -and $_.Name -ne 'CityLandscape.cs'
     } | Sort-Object Name | ForEach-Object FullName)
 }
 function Sync-CityWorkspaceProject([string]$SourceRoot,[string]$ProjectRoot) {

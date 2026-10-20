@@ -374,7 +374,22 @@ namespace HarborCity
                 foreach(var facility in session.City.buildings.Where(b=>b.Use==LandUse.Water||b.Use==LandUse.Sewage))session.Simulation.Utilities.Build(UtilityKind.Water,new Point(facility.x,0,-12),new Point(facility.x,0,facility.z));
                 session.Advance(121-world.Clock);if(session.City.population<=0||session.City.Employed<=0)throw new Exception("Serviced private city did not acquire actual residents/jobs");
                 int attempts=0;while(world.ActiveCount==0&&attempts++<1200)session.Advance(.05);if(world.ActiveCount==0)throw new Exception("Actual city residents never departed");trafficStart=CityCoreSave.Write(session);restore=CityCoreSave.Read(trafficStart);restore.Simulation.Growth.Zoning.SetSurface(landscape.Height);
-                bool attended=false;for(int i=0;i<1300;i++){session.Advance(.05);restore.Advance(.05);attended|=session.City.Citizens.Any(p=>p.atWork&&p.workedMinutes>0);}session.Validate();restore.Validate();if(!attended||!session.City.Citizens.Any(p=>p.canWork&&p.location==session.Entities.Member(p.id).Family.home&&p.departureDay==session.City.day))throw new Exception("Actual city commute/work/return loop failed");if(Convert.ToBase64String(CityCoreSave.Write(session))!=Convert.ToBase64String(CityCoreSave.Write(restore)))throw new Exception("Actual city in-flight utility/population continuation differs");
+                // The old fixed 65s window can end before a full work shift.
+                // Observe one complete city day and require the SAME worker to
+                // attend and return; do not infer a return from another resident.
+                bool attended=false,returned=false;var workersSeen=new HashSet<int>();int cycleSteps=(int)Math.Ceiling(session.City.society.settings.secondsPerDay/SimulationClock.StepSeconds);
+                for(int i=0;i<cycleSteps;i++)
+                {
+                    session.Advance(.05);restore.Advance(.05);
+                    foreach(var member in session.Entities.Members)
+                    {
+                        var person=member.Person;
+                        if(person.atWork&&person.workedMinutes>0){attended=true;workersSeen.Add(person.id);}
+                        if(workersSeen.Contains(person.id)&&person.canWork&&person.tripId==0&&person.location==member.Family.home&&person.departureDay==session.City.day)returned=true;
+                    }
+                }
+                session.Validate();restore.Validate();if(!attended||!returned)throw new Exception("Actual city commute/work/return loop failed");if(Convert.ToBase64String(CityCoreSave.Write(session))!=Convert.ToBase64String(CityCoreSave.Write(restore)))throw new Exception("Actual city in-flight utility/population continuation differs");
+                File.WriteAllBytes(Path.Combine(path,"ConstructionFinal.hcity"),CityCoreSave.Write(session));
                 RenderBuildings();RenderZones();RenderUtilities();File.WriteAllText(Path.Combine(path,"ConstructionResult.txt"),"PASS actual Unity blank original terrain; production mouse road/zoning tools and paid construction; private R/C/I growth; electricity, water and sewage facilities/pipes; real migration, job assignment, vehicle commute, attendance and return; unfinished-project and in-flight complete-state save continuation. No old runtime traffic/network. Sustained raw import, consumption, garbage and fiscal management are still pending.\n");
             }
             catch(Exception e){File.WriteAllText(Path.Combine(path,"ConstructionResult.txt"),"FAIL "+e);Application.Quit(1);yield break;}

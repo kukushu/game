@@ -7,7 +7,7 @@ static class CityUtilityCoverageChecks
 {
     static int checks;
     static void Check(bool b,string why){checks++;if(!b)throw new Exception(why);}
-    static float Distance(CityBuilding b,CityUtilityNetwork net,UtilityEdge edge)=>Math.Max(0,CityRoads.Distance(new RoadNode{x=b.x,z=b.z},net.Node(edge.a),net.Node(edge.b))-Math.Min(b.width,b.depth)/2);
+    static float Distance(CityBuilding b,CityUtilityNetwork net,UtilityEdge edge)=>Math.Max(0,CityPlanarGeometry.Distance(new RoadNode{x=b.x,z=b.z},net.Node(edge.a),net.Node(edge.b))-Math.Min(b.width,b.depth)/2);
     static void Index()
     {
         var net=new CityUtilityNetwork();var random=new Random(7119);
