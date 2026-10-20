@@ -9,7 +9,7 @@ using HarborCity.RoadCore;
 
 namespace HarborCity
 {
-    // Explicit concrete business DTO schema, no legacy CitySaveData.ToCity or road migration.
+    // Explicit concrete business DTO schema with a binary city boundary.
     // Save is a cold path; reflection preserves every original business scalar's exact bits.
     public static class CityCoreSave
     {

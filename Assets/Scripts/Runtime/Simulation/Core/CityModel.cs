@@ -5,15 +5,12 @@ namespace HarborCity
     public enum LandUse { Empty, Road, Residential, Commercial, Industrial, Power, Water, Park, Bulldoze, Sewage, Landfill, Clinic, ElementarySchool, FireHouse, PoliceStation, HighSchool, University, Cemetery }
     [Serializable] public sealed partial class CityModel
     {
-        public const int SaveFormat=34;
         public const float BuildHalfSize=CityMapState.BuildHalfSize, RoadHalfSize=BuildHalfSize-1.5f;
         [NonSerialized] internal CityEntities entities;
         public CityMapState map=new CityMapState();
         public int money=65000, day=1;
         public CityTradeState trade {get;internal set;}=new CityTradeState();
         public CityConsumptionState consumption {get;internal set;}=new CityConsumptionState();
-        public TrafficState traffic=new TrafficState();
-        public CityRoads roads=new CityRoads();
         [NonSerialized] public int population,jobs,income,upkeep,power,water,demand,happiness=70;
         public static int Cost(LandUse use)
         {
@@ -36,27 +33,6 @@ namespace HarborCity
                 case LandUse.Bulldoze: return 40;
                 default: return 0;
             }
-        }
-
-        public bool EntityRoadAccess(int id)=>BuildingAccess(id);
-        public void Recalculate()=>RecalculateHouseholds();
-        public void Tick()=>HouseholdTick();
-        public void SetEntranceHeight(Func<float,float,float> height)
-        {
-            if(roads.edges.Count==0) {var n=roads.Node(CityRoads.Entrance); n.y=height(n.x,n.z);roads.Changed();}
-        }
-        public bool CommitRoad(RoadPlan plan)
-        {
-            if (roads == null || !plan.Valid || plan.revision != roads.revision || money < plan.cost) return false;
-            roads = plan.network; roads.ApplySplits(traffic,plan.splits); money -= plan.cost; Recalculate();
-            Trace("road.created","道路施工成功",new CityLogDetail {amount=plan.cost,count=plan.stroke,origin=plan.start.id,destination=plan.end.id,x=plan.end.x,z=plan.end.z}); return true;
-        }
-
-        public bool Valid()=>map!=null && map.Valid() && day>0 && ValidDevelopment() && utilities!=null && utilities.Valid(map.buildHalfSize) && waste!=null && waste.Valid() && ValidBuildings() && roads!=null && roads.Valid() && zoning!=null && zoning.Valid(map.buildHalfSize) && CityTraffic.Valid(this) && ValidHouseholds() && ValidFire() && ValidPolice() && ValidBuildingGrowth() && ValidResidentAging() && ValidDeathcare() && ValidLoans();
-        public static CityModel Create()
-        {
-            var city=new CityModel();city.development.enabled=true;city.roads.nodes.Add(new RoadNode{id=CityRoads.Entrance,x=-52.5f,z=1.5f});
-            city.Recalculate();return city;
         }
     }
 }

@@ -38,24 +38,6 @@ namespace HarborCity
     }
     public sealed partial class CityModel
     {
-        public int AllocateResidentId()
-        {
-            if(society.nextCitizenId<1 || society.nextCitizenId>=int.MaxValue-1)throw new InvalidOperationException("居民编号已耗尽或编号状态无效");
-            return society.nextCitizenId++;
-        }
-        void InitializeResidents(Household h,int count)
-        {
-            if(h.people==null) h.people=new List<CityResident>();
-            while(h.people.Count<count)
-            {
-                int slot=h.people.Count, id=AllocateResidentId();
-                int age=slot==0?25+h.id%30:slot==1?24+h.id%30:6+(h.id+slot)%12;
-                h.people.Add(new CityResident {id=id,householdId=h.id, name="赵钱孙李周吴郑王陈林"[h.id%10].ToString()+
-                    new[]{"安","宁","晨","悦","远","禾","清","乐"}[id%8]+new[]{"然","明","雅","辰","舟"}[(id/8)%5],
-                    age=age,canWork=age>=18,skill=(h.id+slot)%3});
-            }
-        }
         public float ResidentMinute => society.dayElapsed/society.settings.secondsPerDay*1440;
-        public ResidentActivity ObserveResident(Household h,CityResident person)=>ObserveTransport(h,person);
     }
 }

@@ -17,11 +17,11 @@ namespace HarborCity
             using var observation=HarborCity.RoadCore.CityCoreProfile.Measure(HarborCity.RoadCore.CityCoreProfile.Part.Job);
 #endif
             if(entities!=null)return entities.Job(id);
-            return LegacyJob(id);
+            return FindJobRecord(id);
         }
-        // Keep the captured predicate in the unported city's cold branch. Putting
-        // it in Job's ternary allocates its display class even for indexed cities.
-        CityJob LegacyJob(int id)=>society?.jobEntities?.Find(j=>j.id==id);
+        // Session construction can query records before the entity index is attached.
+        // Keep that predicate out of the indexed path so it does not allocate.
+        CityJob FindJobRecord(int id)=>society?.jobEntities?.Find(j=>j.id==id);
         public CityJob ResidentJob(CityResident p)
         {
             var job=p==null?null:Job(p.jobId);
@@ -32,13 +32,6 @@ namespace HarborCity
         public IEnumerable<CityResident> Citizens => society.families.Where(h=>h.resident).SelectMany(h=>h.people).Where(p=>!p.dead);
         public int Employed => Citizens.Count(p=>p.canWork && ResidentJob(p)!=null);
         public int Unemployed => Citizens.Count(p=>p.canWork && ResidentJob(p)==null);
-        public int HouseholdSalary(Household h) => h.people.Sum(p=>ExpectedJobWage(ResidentJob(p)));
-        public float HouseholdCommute(Household h) => h.people.Where(p=>ResidentJob(p)!=null)
-            .Sum(p=>Math.Max(0,ExpectedCommute(p,h.home,Workplace(p))));
-        // No observation is invented for a worker who has never reached this workplace.
-        public float AverageCommute => Citizens.Where(p=>ResidentJob(p)!=null && p.lastCommute>=0 && p.observedWork==Workplace(p)
-            && society.families.Any(h=>h.id==p.householdId && h.home==p.observedHome))
-            .Select(p=>p.lastCommute).DefaultIfEmpty(0).Average();
         int BuildingJobSlots(int id) => GetBuilding(id)!=null && !GetBuilding(id).abandoned && (GetBuilding(id) is CommercialBuilding || GetBuilding(id) is IndustrialBuilding)?GetBuilding(id).level*(entities?.Employment.SlotsPerLevel??4):0;
         public void ReleaseJob(CityResident p)
         {
@@ -85,57 +78,6 @@ namespace HarborCity
                 }
             }
             entities?.RebuildJobs();
-        }
-        
-        bool ApplyJobPlan(Household h,HouseholdOption option)
-        {
-            var reserved=new HashSet<int>();
-            for(int i=0;i<option.citizenIds.Count;i++)
-            {
-                var p=h.people.Find(c=>c.id==option.citizenIds[i]); int id=option.jobIds[i];
-                if(p==null || (p.tripId>0 || p.atWork) && p.jobId!=id) return false;
-                if(id<0) continue;
-                var j=Job(id);
-                if(!JobFunded(j) || !p.canWork || p.age<18 || p.skill<j.requiredSkill || !reserved.Add(id) || j.occupiedCitizenId>=0 && j.occupiedCitizenId!=p.id) return false;
-            }
-            for(int i=0;i<option.citizenIds.Count;i++)
-            {
-                var p=h.people.Find(c=>c.id==option.citizenIds[i]);
-                // This transaction also serves outside applicants immediately before housing is committed.
-                int id=option.jobIds[i];
-                if(p.jobId==id) continue;
-                ReleaseJob(p);
-                if(id>=0) {p.jobId=id; Job(id).occupiedCitizenId=p.id; Trace("job.assigned","家庭决策分配个人岗位",Job(id),household:h.id,citizen:p.id,job:id,building:Workplace(p));}
-            }
-            return true;
-        }
-        public bool ValidJobs()
-        {
-            if(society.jobEntities==null || society.nextJobId<1 || society.nextCitizenId<1 || society.nextCitizenId==int.MaxValue) return false;
-            var citizens=new Dictionary<int,CityResident>(); var residentIds=new HashSet<int>();
-            foreach(var h in society.families)
-            {
-                if(h.people==null || h.people.Count==0) return false;
-                foreach(var p in h.people)
-                {
-                    if(p==null || p.id<=0 || p.id>=society.nextCitizenId || citizens.ContainsKey(p.id) || p.householdId!=h.id || p.skill<0 || p.canWork && p.age<18 || p.jobId < -1) return false;
-                    citizens.Add(p.id,p); if(h.resident) residentIds.Add(p.id);
-                }
-            }
-            var ids=new HashSet<int>(); var employees=new HashSet<int>(); var jobMap=new Dictionary<int,CityJob>();
-            foreach(var j in society.jobEntities)
-            {
-                if(j==null || j.id<1 || j.id>=society.nextJobId || !ids.Add(j.id) || BuildingJobSlots(j.buildingId)==0 || j.wage<0 || j.requiredSkill<0 || j.occupiedCitizenId < -1) return false;
-                jobMap.Add(j.id,j);
-                if(j.occupiedCitizenId<0) continue;
-                if(!citizens.TryGetValue(j.occupiedCitizenId,out var p) || !residentIds.Contains(p.id) || !employees.Add(p.id)
-                    || !p.canWork || p.skill<j.requiredSkill || p.jobId!=j.id) return false;
-            }
-            foreach(var p in citizens.Values)
-                if(p.jobId>=0 && (!jobMap.TryGetValue(p.jobId,out var j) || j.occupiedCitizenId!=p.id)) return false;
-            var counts=society.jobEntities.GroupBy(j=>j.buildingId).ToDictionary(g=>g.Key,g=>g.Count());
-            foreach(var building in buildings) {int i=building.id;counts.TryGetValue(i,out int count); if(count!=BuildingJobSlots(i)) return false;}
-            return true;
         }
     }
 }

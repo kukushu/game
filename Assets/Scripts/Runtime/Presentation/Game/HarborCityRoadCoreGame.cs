@@ -9,7 +9,7 @@ using Unity.Profiling;
 
 namespace HarborCity
 {
-    // First runnable slice of the new core. Deliberately does not instantiate CityTraffic.
+    // Production entry: CityCore owns simulation; RoadCore owns physical transport.
     public sealed partial class HarborCityRoadCoreGame:MonoBehaviour
     {
         static readonly ProfilerMarker simulationSample=new ProfilerMarker("City.Simulation"),viewsSample=new ProfilerMarker("City.RoadCore.Views");
@@ -17,9 +17,7 @@ namespace HarborCity
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Launch()
         {
-#if !CITY_TRAFFIC_BENCHMARK
             if(FindAnyObjectByType<HarborCityRoadCoreGame>()==null)new GameObject("Harbor City Road Core").AddComponent<HarborCityRoadCoreGame>();
-#endif
         }
         World world;CityCoreIndustrySession session;Camera cameraView; Material roadMaterial,carMaterial,waterLineMaterial;
         CityLandscape landscape;LandUse zoneTool=LandUse.Empty;int shownBuildings=-1,shownZones=-1,shownNetwork=-1;
@@ -98,6 +96,7 @@ namespace HarborCity
         internal double ScenarioAdvanceMs,ScenarioVehicleMs,ScenarioStructureMs;
         internal double ScenarioRequestedSeconds;
         internal void ScenarioRate(float rate){speed=rate;previousTick=System.Diagnostics.Stopwatch.GetTimestamp();actualRate=rate==0?0:double.NaN;rateWallSeconds=rateSimulationSeconds=0;}
+        static bool LegacyStateAbsent()=>typeof(CityModel).GetField("roads")==null&&typeof(CityModel).GetField("traffic")==null;
         string notice="";
         string SavePath=>Path.Combine(Application.persistentDataPath,session==null?"harbor-road-core-v15.hcrc":"harbor-city-core-v16.hcity");
         static Vector3 V(Point p)=>new Vector3((float)p.x,(float)p.y,(float)p.z);
@@ -332,7 +331,7 @@ namespace HarborCity
                 Point beforeEdit=world.Position(actor);world.SplitRoadAt(1,12.75);world.SplitRoadAt(2,20.25);var widePlan=world.PlanConnectedRoad(new[]{new Point(-35,0,30),new Point(35,0,30)},lanes:2);if(!widePlan.TryCommit())throw new Exception("Wide road transaction failed");RenderRoads();if(Point.Distance(beforeEdit,world.Position(actor))>1e-8)throw new Exception("Access edit moved truck");
                 Point beforeUpgrade=world.Position(actor);if(!world.PlanUpgradeRoad(1,3,14,RoadDirection.Both).TryCommit()||Point.Distance(beforeUpgrade,world.Position(actor))>1e-7)throw new Exception("Actual road upgrade moved freight");RenderRoads();var restored=CityCoreSave.Read(CityCoreSave.Write(session));for(int i=0;i<300;i++){session.Advance(.05);restored.Advance(.05);session.Validate();}
                 if(Convert.ToBase64String(CityCoreSave.Write(session))!=Convert.ToBase64String(CityCoreSave.Write(restored)))throw new Exception("Integrated save differs");
-                if(session.City.Factory(1).sold==0||session.City.Factory(1).sold!=world.Delivered||session.City.Goods(2)!=world.Delivered||session.City.roads.edges.Count!=0||session.City.traffic.trips.Count!=0)throw new Exception("Business loop/legacy engine invariant failed");
+                if(session.City.Factory(1).sold==0||session.City.Factory(1).sold!=world.Delivered||session.City.Goods(2)!=world.Delivered||!LegacyStateAbsent())throw new Exception("Business loop/legacy engine invariant failed");
                 var repair=CityCoreIndustrySession.Create();repair.Advance(.05);var commuter=repair.Transport.Vehicles.First();Point strandedAt=repair.Transport.Position(commuter);repair.Transport.RemoveRoad(1);repair.Transport.AddRoad(1,2,new[]{repair.Transport.JunctionPosition(1),new Point(-18,0,0),repair.Transport.JunctionPosition(2)},lanes:2);repair.Advance(.05);if(commuter.status!=VehicleStatus.Active||Point.Distance(strandedAt,repair.Transport.Position(commuter))>.7)throw new Exception("Native repaired commute failed / jumped");repair.Advance(6);repair.Validate();
                 File.WriteAllText(Path.Combine(path,"IndustryResult.txt"),"PASS actual Unity default city industry including actual resident commuting, real truck lane change and arbitrary split during maneuver: original residents/jobs credit labour, original factory produces, RoadCore trucks move, original shop receives/payments reconcile, exact combined save continues. No old Move or duplicate Depot.\n");
             }
@@ -365,7 +364,7 @@ namespace HarborCity
                 if(session.City.zoning.designations.Count==0)throw new Exception("Actual terrain zoning brush input failed");
                 var zoning=session.Simulation.Growth.Zoning;var plots=zoning.Cells().ToArray();if(plots.Length<30)throw new Exception("Terrain frontage unavailable");zoning.Paint(plots.Where(c=>c.side>0),LandUse.Residential);plots=zoning.Cells().ToArray();zoning.Paint(plots.Where(c=>c.side<0&&c.pose.x<0),LandUse.Commercial);plots=zoning.Cells().ToArray();zoning.Paint(plots.Where(c=>c.side<0&&c.pose.x>=0),LandUse.Industrial);
                 session.Advance(6);if(session.City.development.projects.Count!=3)throw new Exception("Zoning did not schedule actual building projects");var restore=CityCoreSave.Read(CityCoreSave.Write(session));restore.Simulation.Growth.Zoning.SetSurface(landscape.Height);
-                for(int i=0;i<320;i++){session.Advance(.05);restore.Advance(.05);}session.Validate();restore.Validate();if(!session.City.buildings.Any(b=>b.Use==LandUse.Residential)||!session.City.buildings.Any(b=>b.Use==LandUse.Commercial)||!session.City.buildings.Any(b=>b.Use==LandUse.Industrial))throw new Exception("All three uses did not grow");if(Convert.ToBase64String(CityCoreSave.Write(session))!=Convert.ToBase64String(CityCoreSave.Write(restore)))throw new Exception("Saved construction did not continue identically");if(session.Entities.Members.Count!=0||session.City.roads.edges.Count!=0||session.City.traffic.trips.Count!=0)throw new Exception("Invented population / old runtime network activated");
+                for(int i=0;i<320;i++){session.Advance(.05);restore.Advance(.05);}session.Validate();restore.Validate();if(!session.City.buildings.Any(b=>b.Use==LandUse.Residential)||!session.City.buildings.Any(b=>b.Use==LandUse.Commercial)||!session.City.buildings.Any(b=>b.Use==LandUse.Industrial))throw new Exception("All three uses did not grow");if(Convert.ToBase64String(CityCoreSave.Write(session))!=Convert.ToBase64String(CityCoreSave.Write(restore)))throw new Exception("Saved construction did not continue identically");if(session.Entities.Members.Count!=0||!LegacyStateAbsent())throw new Exception("Invented population / old runtime network activated");
                 foreach(var use in new[]{LandUse.Power,LandUse.Water,LandUse.Sewage})
                 {
                     bool placed=false;foreach(var cell in zoning.Cells().Where(c=>c.row==1&&c.available).ToArray())

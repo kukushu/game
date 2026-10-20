@@ -45,36 +45,10 @@ namespace HarborCity
         public int PowerSupplied {get;private set;}
         public int WaterSupplied {get;private set;}
         public int SewageCapacity {get;private set;}
-        public int InstalledSewageCapacity=>buildings.Count(b=>b is SewageBuilding)*ServiceCapacity(CityServiceKind.Water,160);
-        public string WaterFacilityDetails(int id)
-        {
-            var b=GetBuilding(id);if(!(b is SewageBuilding) && !(b is WaterBuilding))return "请选择供水或排污设施";
-            var s=Supply(id);bool road=BuildingAccess(id),connected=s.pipes.Count>0,running=road && s.electricity && connected;
-            string type=b is SewageBuilding?"排污":"供水";
-            return "水管："+(connected?"已接通 · 管网 "+string.Join(", ",s.pipes.Select(p=>"#"+p.id)):"未接通")
-                +"\n道路："+(road?"已接通":"未接通")+"\n电力："+(s.electricity?"已供电":"未供电或电网容量不足")
-                +"\n运行："+(running?"运行中":!road?"停运 · 缺道路":!s.electricity?"停运 · 缺电力":"停运 · 缺水管")
-                +"\n本设施可用"+type+"容量："+(running?ServiceCapacity(CityServiceKind.Water,160):0)+" / "+ServiceCapacity(CityServiceKind.Water,160)
-                +string.Concat(s.pipes.Select(p=>"\n\n管网 #"+p.id+" · 用水/排污需求 "+p.load+"\n供水容量 "+p.fresh+" · 排污容量 "+p.drain
-                    +(p.inactiveDrains.Count>0?"\n停运排污口："+string.Join(", ",p.inactiveDrains.Select(d=>"#"+d)):"")));
-        }
         [NonSerialized] Dictionary<int,BuildingSupply> supply=new Dictionary<int,BuildingSupply>();
         public BuildingSupply Supply(int id)
         {return supply!=null && supply.TryGetValue(id,out var result)?result:new BuildingSupply();}
         public CityUtilityNetwork UtilityNetwork(UtilityKind kind)=>kind==UtilityKind.Electricity?utilities.electricity:utilities.water;
-        public bool BuildUtility(UtilityKind kind,RoadNode from,RoadNode to,out string error)
-        {
-            var plan=UtilityNetwork(kind).Plan(from,to,out error,map.buildHalfSize);if(plan==null)return false;
-            int cost=(int)Math.Ceiling(CityPlanarGeometry.Length(from,to)*(kind==UtilityKind.Electricity?15:10));
-            if(money<cost){error="资金不足";return false;}
-            if(kind==UtilityKind.Electricity)utilities.electricity=plan;else utilities.water=plan;
-            money-=cost;Recalculate();Trace("utility.built",kind+"管线建设",new CityLogDetail{amount=cost,x=to.x,z=to.z});return true;
-        }
-        public bool RemoveUtility(UtilityKind kind,int edge)
-        {
-            if(money<40 || !UtilityNetwork(kind).Remove(edge))return false;
-            money-=40;Recalculate();Trace("utility.removed",kind+"管线拆除",new CityLogDetail{count=edge});return true;
-        }
         static float FootprintDistance(CityBuilding a,CityBuilding b)
         {return Math.Max(0,CityPlanarGeometry.Length(new RoadNode{x=a.x,z=a.z},new RoadNode{x=b.x,z=b.z})-(Math.Max(a.width,a.depth)+Math.Max(b.width,b.depth))/2);}
         static float LineDistance(CityBuilding b,CityUtilityNetwork net,UtilityEdge edge)

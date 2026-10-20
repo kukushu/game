@@ -1,10 +1,9 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Collections.Generic;
 
 namespace HarborCity
 {
-    [Serializable] public sealed class FactoryReport {public FactoryState state; public int goods;}
     [Serializable] public sealed class FactoryState
     {
         public const int RawCapacity=24, GoodsCapacity=24;
@@ -24,31 +23,14 @@ namespace HarborCity
         [NonSerialized] public float stepAttendance, stepProductive;
     }
     [Serializable] public sealed class IndustrialExposure {public float x,z,noise,pollution;}
-    [Serializable] public sealed class LocalEnvironment
-    {
-        public float noise, pollution, heavyTraffic;
-    }
     public sealed partial class CityModel
     {
-        
-        void InitializeEnvironmentPreferences(Household h)
-        {
-            h.noiseSensitivity=.2f+(h.id*37%101)/125f;
-            h.pollutionSensitivity=.2f+(h.id*53%101)/125f;
-            h.trafficSensitivity=.2f+(h.id*71%101)/125f;
-        }
         public FactoryState Factory(int id) => (GetBuilding(id) as IndustrialBuilding)?.factory;
         public bool JobFunded(CityJob job)
         {
             if(job==null)return false;
             if(entities!=null&&development.enabled){var b=GetBuilding(job.buildingId);return b is IndustrialBuilding factory?factory.factory.cash>0:b is CommercialBuilding shop&&shop.Account.Cash>0;}
             return development.enabled||Factory(job.buildingId)==null||Factory(job.buildingId).cash>0;
-        }
-        public int ExpectedJobWage(CityJob job)
-        {
-            if(job==null) return 0;
-            var f=Factory(job.buildingId);
-            return f==null || development.enabled?job.wage:(int)Math.Min(job.wage,Math.Floor(f.cash/Math.Max(1,EmployedAt(job.buildingId))));
         }
         // Employer cash becomes a saved citizen credit immediately. Day-end transfers
         // whole units to savings and carries fractions, never rounding into new money.
@@ -68,7 +50,7 @@ namespace HarborCity
             var f=Factory(id); if(f==null || amount<=0) return;
             double revenue=amount*unitPrice;
             f.cash+=revenue; f.salesRevenue+=revenue; f.sold+=amount;
-            if(notify){ObserveAnalysisSale(id,buyer);Trace("factory.sale","商品实际交付；买方简化外部经营资金支付货款",f,building:id,trip:trip);}
+            if(notify)Trace("factory.sale","商品实际交付；买方简化外部经营资金支付货款",f,building:id,trip:trip);
         }
         // Called only with the minutes actually credited by the resident attendance system.
         public void ProcessFactoryWork(CityResident person,float minutes,float actualAttendance=-1,ProductionRules rules=null)
@@ -103,30 +85,6 @@ namespace HarborCity
                 }
                 else break;
             }
-            ObserveAnalysisLabour(id,person.id,attendance,(float)(f.productiveMinutes-productiveBefore),rawLost,stockLost,fundsLost);
-        }
-        static float Falloff(float distance,float radius) => Math.Max(0,1-distance/radius);
-        public LocalEnvironment EnvironmentAt(int home)
-        {
-            var target=Residence(home);if(target==null)return new LocalEnvironment();
-            var result=EnvironmentAt(target.x,target.z);result.heavyTraffic=target.heavyTraffic;return result;
-        }
-        public LocalEnvironment EnvironmentAt(float x,float z)
-        {
-            var result=new LocalEnvironment();
-            foreach(var b in buildings)
-            {
-                var f=(b as IndustrialBuilding)?.factory; if(f==null) continue;
-                float distance=(float)Math.Sqrt((b.x-x)*(b.x-x)+(b.z-z)*(b.z-z));
-                result.noise+=f.noise*Falloff(distance,24);
-                result.pollution+=f.pollution*Falloff(distance,45);
-            }
-            foreach(var old in residualIndustry)
-            {
-                float distance=(float)Math.Sqrt((old.x-x)*(old.x-x)+(old.z-z)*(old.z-z));
-                result.noise+=old.noise*Falloff(distance,24);result.pollution+=old.pollution*Falloff(distance,45);
-            }
-            return result;
         }
         public double retiredFactoryWages;
         public List<IndustrialExposure> residualIndustry=new List<IndustrialExposure>();
@@ -150,16 +108,10 @@ namespace HarborCity
                     f.stepAttendance=f.stepProductive=0;
                 }
                 if(UseOf(b.id)!=LandUse.Residential) continue;
-                float exposure=0;
-                foreach(var t in traffic.trips)
-                {
-                    if(t.purpose<TripPurpose.Delivery || t.status==TripStatus.Visiting) continue;
-                    var a=roads.Node(t.Current); var end=roads.Node(t.Next); if(a==null || end==null) continue;
-                    float x=a.x+(end.x-a.x)*t.progress, z=a.z+(end.z-a.z)*t.progress;
-                    float distance=(float)Math.Sqrt((x-b.x)*(x-b.x)+(z-b.z)*(z-b.z));
-                    exposure+=Falloff(distance,12);
-                }
-                var home=(ResidentialBuilding)b; home.heavyTraffic=home.heavyTraffic*trafficKeep+exposure*(1-trafficKeep);
+                // RoadCore never populated the old trip-based exposure history.
+                // Preserve its existing decay; introducing road-core exposure is
+                // a separate gameplay change, not part of removing the old engine.
+                var home=(ResidentialBuilding)b;home.heavyTraffic=home.heavyTraffic*trafficKeep+0f;
             }
         }
         public bool ValidIndustry()

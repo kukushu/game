@@ -121,7 +121,7 @@ namespace HarborCity
             var original=new RoadNode{x=(float)(access.x+dx/length),z=(float)(access.z+dz/length)};
             if(preserveOriginal&&net.Plan(from,original,out _,s.City.map.buildHalfSize)!=null){Line(s,UtilityKind.Water,b.x,b.z,original.x,original.z);return;}
             RoadNode closest=null;float distance=float.MaxValue;
-            foreach(var edge in net.edges){var a=net.Node(edge.a);var z=net.Node(edge.b);var point=CityRoads.Lerp(a,z,CityRoads.Projection(from,a,z));float d=CityRoads.Length(from,point);if(d<distance){distance=d;closest=point;}}
+            foreach(var edge in net.edges){var a=net.Node(edge.a);var z=net.Node(edge.b);var point=CityPlanarGeometry.Lerp(a,z,CityPlanarGeometry.Projection(from,a,z));float d=CityPlanarGeometry.Length(from,point);if(d<distance){distance=d;closest=point;}}
             if(closest==null)throw new InvalidOperationException("Scenario has no existing pipe to connect");
             if(distance<.4f){s.Simulation.Utilities.Invalidate();s.Simulation.Utilities.Refresh();if(s.City.Supply(b.id).Complete)return;throw new InvalidOperationException("Existing pipe near facility does not provide actual complete supply");}
             Line(s,UtilityKind.Water,b.x,b.z,closest.x,closest.z);

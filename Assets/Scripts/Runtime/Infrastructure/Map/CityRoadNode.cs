@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 namespace HarborCity
 {
+    // Retained wire-data enum: utility RoadNode records in supported .hcity saves include this field.
+    public enum JunctionControl { Automatic, Uncontrolled, Signals }
     [Serializable]
     public sealed class RoadNode
     {
