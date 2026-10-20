@@ -28,11 +28,13 @@ static class CityRoadUtilitiesChecks
         var edgePlan=s.Transport.PlanConnectedRoad(new[]{new Point(620,2,620),new Point(650,2,620)},lanes:2);
         s.Construction.CheckRoadPlacement(edgePlan);Check(s.Construction.Commit(edgePlan,out _),"Road in newly available area failed");
         Check(empty.City.buildings.Count==0&&empty.Transport.Network.RoadCount==0,"Template changed the empty-session API or diagnostic fixtures");
-        Check(s.City.buildings.Count==80&&new[]{LandUse.Power,LandUse.Water,LandUse.Sewage}.All(use=>s.City.buildings.Count(b=>b.Use==use)==24)&&s.City.buildings.Count(b=>b.Use==LandUse.Landfill)==8,"New-town service counts incorrect");
-        Check(s.City.buildings.All(b=>b.x<=-148.5f&&b.x>=-150&&s.Simulation.Growth.Zoning.CanPlace(b,false)&&s.Transport.GetAccess(b.id).valid),"Template placement outside narrow western column / invalid terrain, clearance or access");
+        Check(s.City.buildings.Count==CityNewTownTemplate.TotalFacilities&&new[]{LandUse.Power,LandUse.Water,LandUse.Sewage}.All(use=>s.City.buildings.Count(b=>b.Use==use)==CityNewTownTemplate.FacilitiesPerService)&&s.City.buildings.Count(b=>b.Use==LandUse.Landfill)==CityNewTownTemplate.GarbageFacilities,"New-town service counts incorrect");
+        Check(s.City.buildings.All(b=>(b.x<=-666||b.z<=-666)&&s.Simulation.Growth.Zoning.CanPlace(b,false)&&s.Transport.GetAccess(b.id).valid),"Template placement outside western/southern boundary strips / invalid terrain, clearance or access");
+        Check(s.City.buildings.Count(b=>b.x<=-666)==192&&s.City.buildings.Count(b=>b.z<=-666)==192,"Both boundary strips must be filled");
+        Check(s.City.buildings.Where(b=>b.x<=-666).Min(b=>b.z)==-640&&s.City.buildings.Where(b=>b.x<=-666).Max(b=>b.z)>640&&s.City.buildings.Where(b=>b.z<=-666).Min(b=>b.x)==-640&&s.City.buildings.Where(b=>b.z<=-666).Max(b=>b.x)>640,"Boundary strips do not span the map");
         Check(s.Transport.Network.RoadIds.All(id=>s.Transport.Network.Settings(id).lanes==2&&s.Transport.Network.Settings(id).direction==RoadDirection.Both),"Template roads must have two lanes in each direction");
         for(int i=0;i<s.City.buildings.Count;i++)for(int j=i+1;j<s.City.buildings.Count;j++)Check(!s.City.buildings[i].Overlaps(s.City.buildings[j]),"Template facilities overlap");
-        Check(s.City.buildings.All(b=>s.City.Supply(b.id).Complete)&&s.City.power==3840&&s.City.water==3840&&s.City.SewageCapacity==3840,"Template providers not fully functioning at original capacities");
+        Check(s.City.buildings.All(b=>s.City.Supply(b.id).Complete)&&s.City.power==CityNewTownTemplate.FacilitiesPerService*160&&s.City.water==CityNewTownTemplate.FacilitiesPerService*160&&s.City.SewageCapacity==CityNewTownTemplate.FacilitiesPerService*160,"Template providers not fully functioning at original capacities");
         Check(s.Entities.Members.Count==0&&s.Transport.ActiveCount==0&&s.Transport.Clock==0,"Template advanced time or seeded residents/vehicles");
         Check(s.City.money==empty.City.money&&s.Simulation.Finance.UnlimitedFunds,"Template bypassed the current unlimited-funds policy");
         Check(s.City.utilities.electricity.edges.Count==0&&s.City.utilities.water.edges.Count==0,"Template added duplicate manual networks");CheckSupplyTotals(s.City);
@@ -49,7 +51,7 @@ static class CityRoadUtilitiesChecks
         int link=s.Construction.PickRoad(new Point(-40,2,0));Check(link!=0,"Missing template connection road");s.Construction.RemoveRoad(link);
         Check(!s.City.Supply(remote).electricity,"Removing link left invisible template utility service");
         var before=CityCoreSave.Write(s);bool rejected=false;
-        try{var blocked=s.Transport.PlanConnectedRoad(new[]{new Point(-150,2,156),new Point(-150,2,70)});s.Construction.CheckRoadPlacement(blocked);}catch(InvalidOperationException){rejected=true;}
+        try{var blocked=s.Transport.PlanConnectedRoad(new[]{new Point(-666,2,-640),new Point(-666,2,-610)});s.Construction.CheckRoadPlacement(blocked);}catch(InvalidOperationException){rejected=true;}
         Check(rejected&&before.SequenceEqual(CityCoreSave.Write(s)),"Building-obstructed template road changed live city");s.Validate();
     }
     static string Supplies(CityCoreIndustrySession s)=>string.Join(";",s.Entities.Buildings.Select(b=>b.id+":"+s.City.Supply(b.id).electricity+":"+s.City.Supply(b.id).water+":"+s.City.Supply(b.id).sewage+":"+string.Join(",",s.City.Supply(b.id).pipes.Select(p=>p.id+"/"+p.fresh+"/"+p.drain+"/"+p.load))));

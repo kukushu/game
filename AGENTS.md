@@ -1,5 +1,9 @@
 # 开发约定
 
+## 大地图边界模板（2026-10-20）
+
+新城设施更新为左侧+下侧 L 形边带，每边192座，电/水/排污/垃圾各96，总384。双向各两车道的边界主路连通，接口(-636,2,0)与(0,2,-636)。原24/24/24/8短列由此替代；原存档不自动搬迁设施。仍由原建设/入口/供给/财政规则创建，详情和验证见 Docs/NewTownTemplate.md。
+
 ## 单一正式运行系统（2026-10-20）
 
 旧版清理完成，当前正式链仅 HarborCityRoadCoreGame → CityCoreIndustrySession → CitySimulation（0.05 秒）→ RoadCore.World。旧 HarborCityGame/CityTraffic/CityRoads/CitySaveData JSON、旧 Tick 与服务调度已删除，不得重新引入空适配器。CityModel 及建筑/居民/岗位/家庭仍是新系统共享数据和规则；BuildingSaveData、RoadNode/纯平面几何、部分服务保存数据已单独保留，不能按历史来源删除。当前 .hcity 16/17 读取、17 写出保持，RoadCore 保存 15 保持。CityPlayerBuild 替代旧构建类；Verify.ps1 运行新 Core/调度/场景/单一引擎检查。九个清理前后全城保存一致，原生工业/建城/贸易、实际 Editor Play 与三千人城冒烟通过，详见 Docs/LegacyCleanup20261020.md。历史下文描述按日期保留，涉及旧实现路径已由本条取代。正式本地启动构建为 Temp/CurrentCityPlayer；旧 Player/性能数据仅作历史资料，不删除。本轮结束，不自动启动性能或玩法开发。

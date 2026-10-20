@@ -7,9 +7,11 @@ namespace HarborCity
     // Build privately through the same construction/finance rules as the player.
     public static class CityNewTownTemplate
     {
-        public const int FacilitiesPerService=24;
-        public const int GarbageFacilities=8;
-        public static Point Connection=>new Point(-132,2,0);
+        public const int FacilitiesPerService=96;
+        public const int GarbageFacilities=FacilitiesPerService;
+        public const int TotalFacilities=FacilitiesPerService*3+GarbageFacilities;
+        public static Point Connection=>new Point(-636,2,0);
+        public static Point BottomConnection=>new Point(0,2,-636);
         public static CityCoreIndustrySession Create(GameDesignData design=null)
         {
             var session=CityCoreIndustrySession.CreateEmpty(design);
@@ -17,17 +19,20 @@ namespace HarborCity
             session.City.utilities.roadConduits=true;
             session.Simulation.Finance.UnlimitedFunds=true;
             var zoning=session.Simulation.Growth.Zoning;zoning.SetSurface((x,z)=>2);
-            BuildRoad(session,new Point(-156,2,-167),new Point(-156,2,164));
-            BuildRoad(session,new Point(-156,2,0),Connection);
-            var services=new[]{LandUse.Power,LandUse.Water,LandUse.Sewage};
-            for(int i=0;i<services.Length*FacilitiesPerService;i++)
+            // Connected perimeter roads; facilities sit outside them, leaving
+            // the central map free. Both midpoints have a reserved outlet gap.
+            BuildRoad(session,new Point(-660,2,660),new Point(-660,2,-660));
+            BuildRoad(session,new Point(-660,2,-660),new Point(660,2,-660));
+            BuildRoad(session,new Point(-660,2,0),Connection);
+            BuildRoad(session,new Point(0,2,-660),BottomConnection);
+            var services=new[]{LandUse.Power,LandUse.Water,LandUse.Sewage,LandUse.Landfill};
+            for(int side=0;side<2;side++)for(int i=0;i<192;i++)
             {
-                // One narrow column. Reserve a real gap for the central outlet,
-                // so joining the city never requires building through a facility.
-                float z=156-3.3f*i-(i>=44?24:0);
-                session.Construction.PlaceFacility(services[i/FacilitiesPerService],-150,z,90,zoning);
+                float along=-640+6.6f*i+(i>=96?24:0);
+                var use=services[i%services.Length];
+                float across=use==LandUse.Landfill?-667.5f:-666;
+                session.Construction.PlaceFacility(use,side==0?across:along,side==0?along:across,side==0?270:180,zoning);
             }
-            for(int i=0;i<GarbageFacilities;i++)session.Construction.PlaceFacility(LandUse.Landfill,-148.5f,-113-7*i,90,zoning);
             session.Simulation.Utilities.Refresh();session.Validate();
             return session;
         }

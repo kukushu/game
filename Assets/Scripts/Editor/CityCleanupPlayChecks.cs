@@ -28,9 +28,9 @@ namespace HarborCity
                 var games=UnityEngine.Object.FindObjectsByType<HarborCityRoadCoreGame>(FindObjectsSortMode.None);
                 if(games.Length!=1)throw new Exception("Normal Play must launch exactly one game entry");
                 var s=(CityCoreIndustrySession)typeof(HarborCityRoadCoreGame).GetField("session",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(games[0]);
-                if(s==null||s.City.buildings.Count!=80||s.City.power<=0||s.Transport.Clock<=0)throw new Exception("Normal Play did not initialize and advance the real template city");
+                if(s==null||s.City.buildings.Count!=CityNewTownTemplate.TotalFacilities||s.City.power<=0||s.Transport.Clock<=0)throw new Exception("Normal Play did not initialize and advance the real template city");
                 s.Validate();var restored=CityCoreSave.Read(CityCoreSave.Write(s));restored.Validate();
-                string output=Path.GetFullPath(Path.Combine(Application.dataPath,"../Library/LegacyCleanupPlay"));Directory.CreateDirectory(output);File.WriteAllText(Path.Combine(output,"Result.txt"),"PASS actual normal Play: exactly one RoadCore game entry, 80 facilities, real fixed-step advancement, city validation and cold save read\n");
+                string output=Path.GetFullPath(Path.Combine(Application.dataPath,"../Library/LegacyCleanupPlay"));Directory.CreateDirectory(output);File.WriteAllText(Path.Combine(output,"Result.txt"),"PASS actual normal Play: exactly one RoadCore game entry, boundary infrastructure facilities, real fixed-step advancement, city validation and cold save read\n");
                 Debug.Log("PASS actual normal Play entry, real template city, advancing fixed steps and cold save read");EditorApplication.ExitPlaymode();
             }
             catch(Exception e){SessionState.SetBool(Active,false);Debug.LogException(e);EditorApplication.Exit(1);}
