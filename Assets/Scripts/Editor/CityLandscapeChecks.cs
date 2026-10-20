@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
@@ -56,10 +56,10 @@ namespace HarborCity
             if(terrain.IsFlat)
             {if(Mathf.Abs(minimum-2)>.002f||Mathf.Abs(maximum-2)>.002f)throw new Exception("Flat landscape must remain at height 2.");}
             else if (maximum - minimum < 20) throw new Exception("Landscape lacks expected elevation range.");
-            var game=UnityEngine.Object.FindAnyObjectByType<HarborCityGame>();
+            var game=UnityEngine.Object.FindAnyObjectByType<HarborCityRoadCoreGame>();
             if(game!=null)
             {
-                var city=(CityModel)typeof(HarborCityGame).GetField("city",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance).GetValue(game);
+                var city=((CityCoreIndustrySession)typeof(HarborCityRoadCoreGame).GetField("session",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance).GetValue(game)).City;
                 foreach(var building in city.buildings)
                     for(int z=0;z<=6;z++) for(int x=0;x<=6;x++)
                     {

@@ -35,7 +35,7 @@ namespace HarborCity
                         throw new Exception("Missing scene script: " + transform.name);
                     components += transform.GetComponents<MonoBehaviour>().Length;
                 }
-            foreach (var type in new[] { typeof(HarborCityGame), typeof(CityLandscape), typeof(CityRoadView), typeof(HarborCityStandaloneValidation) })
+            foreach (var type in new[] { typeof(HarborCityRoadCoreGame), typeof(CityLandscape), typeof(HarborCityRoadViews), typeof(CityRoadGridToolChecks) })
             {
                 bool found = false;
                 foreach (string guid in AssetDatabase.FindAssets(type.Name + " t:MonoScript"))

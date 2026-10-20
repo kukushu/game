@@ -18,9 +18,6 @@ namespace HarborCity
         static void Launch()
         {
 #if !CITY_TRAFFIC_BENCHMARK
-            // One engine owns the refactor branch. A pre-existing scene component must
-            // not launch the legacy city behind this entry; Git retains the full baseline.
-            foreach(var old in FindObjectsByType<HarborCityGame>(FindObjectsSortMode.None))old.enabled=false;
             if(FindAnyObjectByType<HarborCityRoadCoreGame>()==null)new GameObject("Harbor City Road Core").AddComponent<HarborCityRoadCoreGame>();
 #endif
         }
