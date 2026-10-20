@@ -118,6 +118,7 @@ namespace HarborCity
                 bool inspecting=Array.IndexOf(args,"-harbor-city-inspect")>=0;
                 int index=Array.IndexOf(args,inspecting?"-harbor-city-inspect":"-harbor-city-scenario-window");
                 session=CityCoreSave.Read(File.ReadAllBytes(args[index+1]));world=session.Transport;
+                if(inspecting)session.City.map.ExpandForPlay();
                 foreach(int id in world.Network.RoadIds){var geometry=world.Network.Centreline(id);for(int i=0;i<geometry.Count;i++)if(Math.Abs(geometry[i].y-2)>1e-6)throw new InvalidOperationException("Scenario window accepts only the captured flat-height-2 city fixture");}
                 landscape=new GameObject("Scenario flat landscape").AddComponent<CityLandscape>();landscape.BuildDiagnosticFlat(2,session.City.map.terrainHalfSize);
                 session.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);
@@ -278,6 +279,7 @@ namespace HarborCity
         void Save(){try{string tmp=SavePath+".tmp";File.WriteAllBytes(tmp,session==null?SaveCodec.Write(world):CityCoreSave.Write(session));if(File.Exists(SavePath))File.Replace(tmp,SavePath,SavePath+".bak");else File.Move(tmp,SavePath);notice="新格式已保存；旧城市文件未改动";}catch(Exception e){notice=localization.Error(e);}}
         void BindLandscape()
         {
+            session.City.map.ExpandForPlay();
             if(landscape==null){var land=new GameObject("City landscape");land.transform.SetParent(transform);landscape=land.AddComponent<CityLandscape>();}
             landscape.Build(session.City.map);
             session.Simulation.Growth.Zoning.SetSurface(landscape.Height);

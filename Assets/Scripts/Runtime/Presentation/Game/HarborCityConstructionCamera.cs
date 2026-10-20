@@ -26,7 +26,7 @@ namespace HarborCity
             if(!mouse.middleButton.isPressed)panning=false;if(!mouse.rightButton.isPressed)rotating=false;previous=pointer;
             float scroll=mouse.scroll.ReadValue().y;
             if(InputSystem.settings.scrollDeltaBehavior==InputSettings.ScrollDeltaBehavior.KeepPlatformSpecificInputRange&&(Application.platform==RuntimePlatform.WindowsEditor||Application.platform==RuntimePlatform.WindowsPlayer))scroll/=120;
-            if(Mathf.Abs(scroll)<.001)return;var anchor=Anchor(pointer);distance=Mathf.Clamp(distance*Mathf.Exp(-scroll*.16f),12,600);Apply();var planeAtAnchor=new Plane(Vector3.up,anchor);var rayAfter=camera.ScreenPointToRay(pointer);if(planeAtAnchor.Raycast(rayAfter,out float after)){focus+=anchor-rayAfter.GetPoint(after);Apply();}
+            if(Mathf.Abs(scroll)<.001)return;var anchor=Anchor(pointer);distance=Mathf.Clamp(distance*Mathf.Exp(-scroll*.16f),12,Mathf.Max(600,buildHalfSize*2));Apply();var planeAtAnchor=new Plane(Vector3.up,anchor);var rayAfter=camera.ScreenPointToRay(pointer);if(planeAtAnchor.Raycast(rayAfter,out float after)){focus+=anchor-rayAfter.GetPoint(after);Apply();}
         }
     }
 }

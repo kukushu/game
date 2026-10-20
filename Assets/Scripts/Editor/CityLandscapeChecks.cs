@@ -19,18 +19,23 @@ namespace HarborCity
             var field=type.GetField("session",flags);
             var session=(CityCoreIndustrySession)field.GetValue(game);
             var land=(CityLandscape)type.GetField("landscape",flags).GetValue(game);
-            if(session.City.map.terrainVersion!=3||session.City.map.buildHalfSize!=CityMapState.BuildHalfSize)
-                throw new Exception("New city must use flat terrain at original build bounds");
+            if(session.City.map.terrainVersion!=3||session.City.map.buildHalfSize!=CityMapState.GameplayBuildHalfSize)
+                throw new Exception("New city must use flat terrain at expanded build bounds");
             Validate();
-            foreach(float z in new[]{-239f,-168f,0f,168f,239f})foreach(float x in new[]{-239f,-168f,0f,168f,239f})
-                if(Mathf.Abs(land.Height(x,z)-2)>.002f)throw new Exception("Flat map edge changed height");
+            foreach(float z in new[]{-743f,-672f,0f,672f,743f})foreach(float x in new[]{-743f,-672f,0f,672f,743f})
+            {
+                Physics.SyncTransforms();
+                if(Mathf.Abs(land.Height(x,z)-2)>.002f||!land.Raycast(new Ray(new Vector3(x,200,z),Vector3.down),out var hit)||Mathf.Abs(hit.y-2)>.04f)throw new Exception("Expanded map edge height/picking failed");
+            }
             var bytes=CityCoreSave.Write(session);var restored=CityCoreSave.Read(bytes);
             if(!System.Linq.Enumerable.SequenceEqual(bytes,CityCoreSave.Write(restored)))throw new Exception("Flat city save round trip changed state");
             field.SetValue(game,restored);type.GetMethod("BindLandscape",flags).Invoke(game,null);Validate();
-            restored.City.map=new CityMapState();type.GetMethod("BindLandscape",flags).Invoke(game,null);
+            // A flat template's buildings cannot be transplanted onto hills at
+            // their unchanged height. Use a real empty hill city for this check.
+            field.SetValue(game,CityCoreIndustrySession.CreateEmpty());type.GetMethod("BindLandscape",flags).Invoke(game,null);
             if(land.IsFlat)throw new Exception("Old version-2 terrain was flattened");
             Validate();
-            restored.City.map=session.City.map;type.GetMethod("BindLandscape",flags).Invoke(game,null);Validate();
+            field.SetValue(game,restored);type.GetMethod("BindLandscape",flags).Invoke(game,null);Validate();
             Debug.Log("PASS normal new-city startup, flat height and collider picking, map edges, complete save round trip, old hills reload and return to flat. No user save written.");
         }
         [MenuItem("Harbor/Validate terrain")]

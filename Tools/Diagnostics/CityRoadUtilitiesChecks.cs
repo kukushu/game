@@ -20,6 +20,13 @@ static class CityRoadUtilitiesChecks
     static void CheckNewTownTemplate()
     {
         var empty=CityCoreIndustrySession.CreateEmpty();var s=CityNewTownTemplate.Create();
+        Check(s.City.map.Valid()&&s.City.map.buildHalfSize==672&&s.City.map.terrainHalfSize==744,"Player map was not expanded");
+        var oldMap=CityMapState.DiagnosticFlat(168);oldMap.ExpandForPlay();
+        Check(oldMap.Valid()&&oldMap.buildHalfSize==672,"Existing flat map did not expand");
+        var larger=CityMapState.DiagnosticFlat(1024);larger.ExpandForPlay();Check(larger.buildHalfSize==1024,"Existing larger map shrank");
+        var hills=new CityMapState();hills.ExpandForPlay();Check(hills.terrainVersion==2&&hills.buildHalfSize==168,"Hill save profile changed");
+        var edgePlan=s.Transport.PlanConnectedRoad(new[]{new Point(620,2,620),new Point(650,2,620)},lanes:2);
+        s.Construction.CheckRoadPlacement(edgePlan);Check(s.Construction.Commit(edgePlan,out _),"Road in newly available area failed");
         Check(empty.City.buildings.Count==0&&empty.Transport.Network.RoadCount==0,"Template changed the empty-session API or diagnostic fixtures");
         Check(s.City.buildings.Count==80&&new[]{LandUse.Power,LandUse.Water,LandUse.Sewage}.All(use=>s.City.buildings.Count(b=>b.Use==use)==24)&&s.City.buildings.Count(b=>b.Use==LandUse.Landfill)==8,"New-town service counts incorrect");
         Check(s.City.buildings.All(b=>b.x<=-148.5f&&b.x>=-150&&s.Simulation.Growth.Zoning.CanPlace(b,false)&&s.Transport.GetAccess(b.id).valid),"Template placement outside narrow western column / invalid terrain, clearance or access");

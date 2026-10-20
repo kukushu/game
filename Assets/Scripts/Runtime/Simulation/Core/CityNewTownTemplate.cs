@@ -13,7 +13,7 @@ namespace HarborCity
         public static CityCoreIndustrySession Create(GameDesignData design=null)
         {
             var session=CityCoreIndustrySession.CreateEmpty(design);
-            session.City.map=CityMapState.DiagnosticFlat(CityMapState.BuildHalfSize);
+            session.City.map=CityMapState.DiagnosticFlat(CityMapState.GameplayBuildHalfSize);
             session.City.utilities.roadConduits=true;
             session.Simulation.Finance.UnlimitedFunds=true;
             var zoning=session.Simulation.Growth.Zoning;zoning.SetSurface((x,z)=>2);
