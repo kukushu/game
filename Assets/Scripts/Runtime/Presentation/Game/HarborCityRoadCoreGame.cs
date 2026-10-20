@@ -76,6 +76,7 @@ namespace HarborCity
         HarborCityBuildingViews buildingViews;
         bool hasStart;Point startPoint;bool building,oneWay,wide;int origin,destination;float speed=1;
         long previousTick;int lastSteps;
+        readonly CityPlayerStepBudget playerStepBudget=new CityPlayerStepBudget(InteractiveMaximumSteps);
         // Scheduling bounds, not simulation rules. At 60 FPS, 20x needs 6.67
         // complete .05s steps per frame; the old four-step cap prevented it.
         const int InteractiveMaximumSteps=32;
@@ -95,7 +96,7 @@ namespace HarborCity
         internal bool ScenarioMeasuring;
         internal double ScenarioAdvanceMs,ScenarioVehicleMs,ScenarioStructureMs;
         internal double ScenarioRequestedSeconds;
-        internal void ScenarioRate(float rate){speed=rate;previousTick=System.Diagnostics.Stopwatch.GetTimestamp();actualRate=rate==0?0:double.NaN;rateWallSeconds=rateSimulationSeconds=0;}
+        internal void ScenarioRate(float rate){playerStepBudget.Reset();speed=rate;previousTick=System.Diagnostics.Stopwatch.GetTimestamp();actualRate=rate==0?0:double.NaN;rateWallSeconds=rateSimulationSeconds=0;}
         static bool LegacyStateAbsent()=>typeof(CityModel).GetField("roads")==null&&typeof(CityModel).GetField("traffic")==null;
         string notice="";
         string SavePath=>Path.Combine(Application.persistentDataPath,session==null?"harbor-road-core-v15.hcrc":"harbor-city-core-v16.hcity");
@@ -169,7 +170,19 @@ namespace HarborCity
             if(world==null)return;long now=System.Diagnostics.Stopwatch.GetTimestamp();double elapsed=(now-previousTick)/(double)System.Diagnostics.Stopwatch.Frequency,seconds=elapsed*speed;
             if(ScenarioMeasuring)ScenarioRequestedSeconds=seconds;
             double clockBefore=world.Clock;
-            using(simulationSample.Auto())lastSteps=speed==0?0:session==null?world.Advance(seconds):session.Simulation.Advance(seconds,InteractiveMaximumSteps,8);previousTick=now;
+            using(simulationSample.Auto())
+            {
+                if(speed==0)lastSteps=0;
+                else if(session==null)lastSteps=world.Advance(seconds);
+                else
+                {
+                    int allowance=playerStepBudget.Request(seconds);
+                    session.Simulation.RequestTime(seconds);
+                    lastSteps=allowance==0?0:session.Simulation.Advance(0,allowance,8);
+                    playerStepBudget.Complete(lastSteps);
+                }
+            }
+            previousTick=now;
             // Measure committed simulation time, never requested time or debt.
             // Real elapsed time includes rendering, construction and long frames.
             if(speed==0){actualRate=rateWallSeconds=rateSimulationSeconds=0;}
@@ -286,7 +299,7 @@ namespace HarborCity
             constructionCamera=new HarborCityConstructionCamera(cameraView,landscape,session.City.map.buildHalfSize);
             roadViews?.InvalidateSurface();zoningViews?.InvalidateSurface();
         }
-        void Load(){try{var bytes=File.ReadAllBytes(SavePath);var replacement=session==null?SaveCodec.Read(bytes):null;var restored=session==null?null:CityCoreSave.Read(bytes);if(restored!=null){restored.Simulation.Finance.UnlimitedFunds=session.Simulation.Finance.UnlimitedFunds;restored.City.utilities.roadConduits=true;restored.Simulation.Utilities.Refresh();}vehicleViews?.Clear();session=restored;world=restored?.Transport??replacement;CancelTool();observation?.Bind(session);roadEditor?.Bind(session);if(session!=null)BindLandscape();shownBuildings=shownZones=shownNetwork=-1;RenderRoads();RenderBuildings();RenderZones();RenderUtilities();notice="新格式已加载";}catch(Exception e){notice="读取失败："+e.Message;}}
+        void Load(){try{var bytes=File.ReadAllBytes(SavePath);var replacement=session==null?SaveCodec.Read(bytes):null;var restored=session==null?null:CityCoreSave.Read(bytes);if(restored!=null){restored.Simulation.Finance.UnlimitedFunds=session.Simulation.Finance.UnlimitedFunds;restored.City.utilities.roadConduits=true;restored.Simulation.Utilities.Refresh();}vehicleViews?.Clear();session=restored;world=restored?.Transport??replacement;playerStepBudget.Reset();CancelTool();observation?.Bind(session);roadEditor?.Bind(session);if(session!=null)BindLandscape();shownBuildings=shownZones=shownNetwork=-1;RenderRoads();RenderBuildings();RenderZones();RenderUtilities();notice="新格式已加载";}catch(Exception e){notice="读取失败："+e.Message;}}
         System.Collections.IEnumerator ValidateNative(string path)
         {
             Directory.CreateDirectory(path);speed=0;yield return null;

@@ -110,12 +110,23 @@ namespace HarborCity
             var probe=ScriptableObject.CreateInstance<CityHudGuiProbe>();
             try
             {
-                probe.Game=game;probe.position=new Rect(0,0,1280,720);probe.ShowUtility();
+                probe.Game=game;probe.ShowUtility();probe.position=new Rect(0,0,Screen.width,Screen.height);
                 foreach(string name in new[]{"None","Roads","Zones","Utilities","Trade","City","Options"})
                 {
                     page.SetValue(game,Enum.Parse(page.FieldType,name));
                     probe.SendEvent(new Event{type=EventType.Layout});probe.SendEvent(new Event{type=EventType.Repaint});
                     if(probe.Failure!=null)throw new Exception("HUD GUI rendering failed: "+name,probe.Failure);
+                }
+                page.SetValue(game,Enum.Parse(page.FieldType,"None"));
+                probe.SendEvent(new Event{type=EventType.Layout});probe.SendEvent(new Event{type=EventType.Repaint});
+                foreach(int index in new[]{1,4,1,4,2,0})
+                {
+                    var bounds=probe.SpeedBounds;float width=(bounds.width-94)/5;
+                    var pointer=new Vector2(bounds.x+86+width*index+width/2,bounds.y+20)/EditorGUIUtility.pixelsPerPoint;
+                    probe.Focus();probe.SendEvent(new Event{type=EventType.MouseDown,button=0,mousePosition=pointer});
+                    probe.SendEvent(new Event{type=EventType.MouseUp,button=0,mousePosition=pointer});
+                    float expectedRate=new[]{0f,1f,3f,20f,50f}[index];
+                    if((float)type.GetField("speed",flags).GetValue(game)!=expectedRate)throw new Exception("Speed button failed: index="+index+" actual="+type.GetField("speed",flags).GetValue(game)+" bounds="+bounds+" pointer="+pointer+" window="+probe.position+" input="+probe.LastInput);
                 }
                 if(probe.Draws<14)throw new Exception("HUD GUI events were not rendered");
             }
@@ -135,12 +146,12 @@ namespace HarborCity
     // Exercise real IMGUI layout/repaint events in the isolated Editor, not camera-only captures.
     public sealed class CityHudGuiProbe:EditorWindow
     {
-        public HarborCityRoadCoreGame Game;public Exception Failure;public int Draws;
+        public HarborCityRoadCoreGame Game;public Exception Failure;public int Draws;public Rect SpeedBounds;public string LastInput;
         void OnGUI()
         {
-            if(Game==null)return;
-            try{var skin=GUI.skin;var background=GUI.backgroundColor;var content=GUI.contentColor;Game.GetType().GetMethod("DrawInterface",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(Game,null);if(GUI.skin!=skin||GUI.backgroundColor!=background||GUI.contentColor!=content)throw new Exception("City theme leaked GUI state");Draws++;}
-            catch(Exception error){Failure=error;}
+            if(Game==null)return;var priorMatrix=GUI.matrix;GUI.matrix=Matrix4x4.Scale(new Vector3(1/EditorGUIUtility.pixelsPerPoint,1/EditorGUIUtility.pixelsPerPoint,1));
+            try{if(Event.current.isMouse)LastInput+=" BEFORE "+Event.current.type+" pos="+Event.current.mousePosition+" hot="+GUIUtility.hotControl+" enabled="+GUI.enabled;SpeedBounds=(Rect)Game.GetType().GetProperty("TimeBounds",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(Game);var skin=GUI.skin;var background=GUI.backgroundColor;var content=GUI.contentColor;Game.GetType().GetMethod("DrawInterface",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(Game,null);if(GUI.skin!=skin||GUI.backgroundColor!=background||GUI.contentColor!=content)throw new Exception("City theme leaked GUI state");if(Event.current.isMouse||Event.current.type==EventType.Used)LastInput+=" AFTER "+Event.current.type+" hot="+GUIUtility.hotControl;Draws++;}
+            catch(Exception error){Failure=error;}finally{GUI.matrix=priorMatrix;}
         }
     }
 }

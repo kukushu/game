@@ -35,6 +35,14 @@ namespace HarborCity
         {if(double.IsNaN(offset)||double.IsInfinity(offset)||offset<0||city.society.settings.secondsPerDay<1)throw new ArgumentException("Invalid calendar");Design=design??new CityGameDesign(new GameDesignData());this.city=city;this.transport=transport;this.clock=clock;this.residents=residents;this.business=business;CalendarOffset=offset;bindings=new CityCoreRoadBindings(city,transport);Payroll=new CityCorePayroll(city,entities,Design.Employment,payrollDay);production=new CityProductionSystem(city,entities,Payroll,Design);Logistics=new CityLogisticsSystem(entities,transport,this,nextDispatch);Growth=new CityCoreGrowth(city,entities,transport,Design.Production,Design.Retail);Utilities=new CityCoreUtilities(city,entities,transport);Finance=new CityCoreFinance(city,entities,transport,Design.Finance,treasury);Waste=new CityCoreWaste(city,entities,transport,Design.Waste,waste);Utilities.Finance=Finance;Population=new CityCorePopulation(city,entities,transport,Utilities);Consumption=new CityCoreConsumption(city,entities,transport,this);residents.Consumption=Consumption;residents.RequestCommute=RequestCommute;SyncCalendar(clock.Seconds);Trade=new CityCoreTrade(city,entities,transport,this);Utilities.Refresh();}
         void SyncCalendar(double seconds)
         {double absolute=CalendarOffset+seconds,daySeconds=city.society.settings.secondsPerDay;city.day=1+(int)Math.Floor(absolute/daySeconds);city.society.dayElapsed=(float)(absolute%daySeconds);}
+        // Queue elapsed player time even when this rendered frame is not yet
+        // allowed a full fixed step. Debt still has exactly one saved owner.
+        internal void RequestTime(double seconds)
+        {
+            if(Fault!=null)throw new InvalidOperationException("Simulation faulted; reload a validated save",Fault);
+            if(IsStepping||IsApplyingBoundary)throw new InvalidOperationException("Reentrant simulation advance");
+            clock.Request(seconds);
+        }
         public int Advance(double seconds)
             =>Advance(seconds,int.MaxValue,double.PositiveInfinity);
         // Interactive scheduling only: every committed step is complete and all
@@ -43,7 +51,7 @@ namespace HarborCity
         public int Advance(double seconds,int maximumSteps,double maximumMilliseconds)
         {
             if(maximumSteps<1||!(maximumMilliseconds>0)||double.IsNaN(maximumMilliseconds))throw new ArgumentOutOfRangeException("Invalid simulation work budget");
-            if(Fault!=null)throw new InvalidOperationException("Simulation faulted; reload a validated save",Fault);if(IsStepping||IsApplyingBoundary)throw new InvalidOperationException("Reentrant simulation advance");clock.Request(seconds);int steps=0;
+            RequestTime(seconds);int steps=0;
             bool limited=!double.IsPositiveInfinity(maximumMilliseconds);long started=limited?System.Diagnostics.Stopwatch.GetTimestamp():0;
             while(clock.HasStep&&steps<maximumSteps)
             {
