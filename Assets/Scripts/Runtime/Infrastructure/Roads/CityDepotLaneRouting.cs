@@ -25,8 +25,8 @@ namespace HarborCity.RoadCore
                     if (!n.outgoing.TryGetValue(lanes[i].To, out next))
                         continue;
                     foreach (var d in next)
-                    if (n.Contains(ConnectionId(lanes[i].Id, d.Id)))
-                        incoming[index[d.Id]].Add(i);
+                        if (n.Contains(ConnectionId(lanes[i].Id, d.Id)))
+                            incoming[index[d.Id]].Add(i);
                 }
             }
             internal double Link(int a, int b)
@@ -34,15 +34,13 @@ namespace HarborCity.RoadCore
                 var d = network.Get(ConnectionId(lanes[a].Id, lanes[b].Id));
                 return d.Geometry.Length / d.Speed;
             }
-            internal IEnumerable<int> Next(int a)
+            // Borrow the immutable authoritative adjacency list; no iterator allocation per expanded lane.
+            internal List<Drivable> Next(int a)
             {
-                List<Drivable> next;
-                if (network.outgoing.TryGetValue(lanes[a].To, out next))
-                foreach (var d in next)
-                if (network.Contains(ConnectionId(lanes[a].Id, d.Id)))
-                    yield return index[d.Id];
+                network.outgoing.TryGetValue(lanes[a].To, out var next);
+                return next;
             }
-            internal long ReservedBytes => lanes.LongLength * 80 + incoming.Sum(x => (long)x.Count * 4); // conservative logical graph accounting, not a managed-heap measurement
+            internal long ReservedBytes => lanes.LongLength * 80 + incoming.Sum(x => (long)x.Count * 4); // logical graph estimate, not a managed-heap measurement
         }
         DepotGraph depotGraph; internal DepotGraph GetDepotGraph() => depotGraph ?? (depotGraph = new DepotGraph(this));
         internal sealed class DepotTree
@@ -92,14 +90,22 @@ namespace HarborCity.RoadCore
                         }
                     }
                     else
-                    foreach (int t in g.Next(v))
                     {
-                        double cost = distance[v] + g.Link(v, t) + g.lanes[t].TravelLength / g.lanes[t].Speed;
-                        if (rank[t] == int.MaxValue && cost < distance[t])
+                        var targets = g.Next(v);
+                        if (targets == null)
+                            continue;
+                        foreach (var lane in targets)
                         {
-                            distance[t] = cost;
-                            hop[t] = v;
-                            queue.Push(g.lanes[t].Id, cost);
+                            if (!g.network.Contains(ConnectionId(g.lanes[v].Id, lane.Id)))
+                                continue;
+                            int t = g.index[lane.Id];
+                            double cost = distance[v] + g.Link(v, t) + lane.TravelLength / lane.Speed;
+                            if (rank[t] == int.MaxValue && cost < distance[t])
+                            {
+                                distance[t] = cost;
+                                hop[t] = v;
+                                queue.Push(lane.Id, cost);
+                            }
                         }
                     }
                 }
@@ -162,8 +168,14 @@ namespace HarborCity.RoadCore
                     return new List<long> { source.lane };
                 double best = double.PositiveInfinity;
                 int next = -1;
-                foreach (int t in graph.Next(first))
+                var successors = graph.Next(first);
+                if (successors == null)
+                    return null;
+                foreach (var lane in successors)
                 {
+                    if (!graph.network.Contains(ConnectionId(graph.lanes[first].Id, lane.Id)))
+                        continue;
+                    int t = graph.index[lane.Id];
                     double cost = (graph.lanes[first].EndDistance - source.distance) / graph.lanes[first].Speed + graph.Link(first, t) + distance[t];
                     if (cost < best || cost == best && next >= 0 && graph.lanes[t].Id < graph.lanes[next].Id)
                     {
@@ -223,11 +235,11 @@ namespace HarborCity.RoadCore
                 network = owner.Network;
             }
             foreach (var old in entries.Values.ToArray())
-            if (!Same(old.access, owner.GetAccess(old.id)))
-            {
-                entries.Remove(old.id);
-                Invalidations++;
-            }
+                if (!Same(old.access, owner.GetAccess(old.id)))
+                {
+                    entries.Remove(old.id);
+                    Invalidations++;
+                }
             if (!Valid(anchor) || !Valid(point))
                 return false;
             graph = network.GetDepotGraph();
