@@ -1,5 +1,9 @@
 # 开发约定
 
+## 当前城50倍分析（2026-10-21）
+
+本轮仅采样分析，不改生产8ms/32步或模拟规则。实际玩家保存331人/3562路，预热同状态Release两轮15.72/15.70倍；只抬128步15.80倍，32ms/128步19.20倍但FPS降到15.47。归因514次RouteSearch累计6470ms/Step8908ms，短raw主要垃圾出车/返程；暂停显示仍34FPS、97120道路View。扩展原ScenarioWindow支持SavedMap/SharedWarmup/50倍/有界预算实验，旧平地夹具默认保留；所有7窗口账时/车辆View/冷恢复20步与101预算检查通过。详见Docs/Performance/Speed50-20261021/Report.md。未修算法，不冒称50倍达标；完成分析后不自动开展优化。
+
 ## 倍率切换与欠步（2026-10-20）
 
 正常宿主用CityPlayerStepBudget约束当前倍率的执行额度，ScenarioRate与读城重置宿主额度；请求时间仍只存CitySimulation原时钟，RequestTime允许尚不足一步的帧入队，不给Advance传0步。不得为降速清空pendingSeconds；不跳0.05秒步，32步/8ms协作预算保留。50→1/3/20/暂停按钮事件和三千人Player受控欠步切换通过，详见Docs/SpeedSwitch20261020.md。
