@@ -60,7 +60,7 @@ static class CityDepotJunctionExperiment
     {
         var s=Load(File.ReadAllBytes(Path.Combine(prior,"baseline.hcity")));var n=s.Transport.Network;var queries=ReadQueries(Path.Combine(prior,"baseline-service-sequence.csv"));
         WarmCode(n,queries);
-        var od=new DispatchRoutes();var cache=new DepotJunctionRouting{Trace=true};var summary=new List<string>{"mode,queries,ms,gc_bytes,dijkstra_calls,expanded,nodes,lanes,entries,tree_bytes,graph_payload_estimate,hits,misses,builds,local_checks,fallbacks,evictions,heap_delta"};
+        var od=new DispatchRoutes();var cache=new DepotJunctionRouting{Trace=true};var summary=new List<string>{"mode,queries,ms,gc_bytes,route_api_calls,expanded,nodes,lanes,entries,tree_bytes,graph_payload_estimate,hits,misses,builds,local_checks,fallbacks,evictions,heap_delta"};
         var ratios=new List<string>{"ordinal,depot,returning,old_length,new_length,length_ratio,old_seconds,new_seconds,time_ratio,old_segments,new_segments"};
         var paths=new List<List<long>>();var starts=new List<double>();var ends=new List<double>();
         DepotJunctionRouting.CountSearches=true;
@@ -81,7 +81,7 @@ static class CityDepotJunctionExperiment
                 Check((paths[i]==null)==(r==null),"Replay reachability differs");
                 if(mode==1&&r!=null){double ol=Length(n,paths[i],starts[i],ends[i]),nl=Length(n,r,ss[i],ee[i]),ot=new DispatchBlueprint(n,paths[i],starts[i],ends[i]).seconds,nt=new DispatchBlueprint(n,r,ss[i],ee[i]).seconds;ratios.Add(string.Join(",",i,queries[i].depot,queries[i].back,ol,nl,ol==0?1:nl/ol,ot,nt,ot==0?1:nt/ot,paths[i].Count,r.Count));}
             }
-            File.WriteAllLines(Path.Combine(dir,"replay-"+mode+"-queries.csv"),new[]{"ordinal,depot,returning,ms,gc_bytes,dijkstra_calls,expanded,local_checks"}.Concat(times.Select((x,i)=>string.Join(",",i,x.q.depot,x.q.back,x.ms,x.bytes,x.calls,x.nodes,x.checks))));
+            File.WriteAllLines(Path.Combine(dir,"replay-"+mode+"-queries.csv"),new[]{"ordinal,depot,returning,ms,gc_bytes,route_api_calls,expanded,local_checks"}.Concat(times.Select((x,i)=>string.Join(",",i,x.q.depot,x.q.back,x.ms,x.bytes,x.calls,x.nodes,x.checks))));
             File.WriteAllText(Path.Combine(dir,"replay-"+mode+"-trace.csv"),cache.TraceCsv());cache.Samples.Clear();
         }
         File.WriteAllLines(Path.Combine(dir,"replay-summary.csv"),summary);File.WriteAllLines(Path.Combine(dir,"route-ratios.csv"),ratios);
@@ -95,7 +95,7 @@ static class CityDepotJunctionExperiment
     {
         byte[] input=File.ReadAllBytes(Path.Combine(prior,"warm.hcity"));
         Func<CityCoreIndustrySession> warmed=()=>{var city=Load(File.ReadAllBytes(originalSave));for(int i=0;i<200;i++)Step(city);Check(CityCoreSave.Write(city).SequenceEqual(input),"Common frozen warm state differs");return city;};
-        var rows=new List<string>{"mode,steps,ms,gc_bytes,dijkstra_calls,search_nodes,population,money,active,waste_vehicles,generated,collected,in_transit,stored,processed,balance_error,sha256"};byte[] expected=null;
+        var rows=new List<string>{"mode,steps,ms,gc_bytes,route_api_calls,search_nodes,population,money,active,waste_vehicles,generated,collected,in_transit,stored,processed,balance_error,sha256"};byte[] expected=null;
         foreach(bool enabled in new[]{false,true})
         {
             var s=warmed();s.Transport.DepotJunctionRoutingEnabled=enabled;DepotJunctionRouting.CountSearches=true;DepotJunctionRouting.SearchCalls=DepotJunctionRouting.SearchExpanded=0;
@@ -125,10 +125,22 @@ static class CityDepotJunctionExperiment
         File.WriteAllText(output,"depots,nodes,lanes,trees,tree_bytes,graph_payload_estimate,retained_heap_delta,evictions\n"+string.Join(",",cache.Count,cache.Nodes,cache.Lanes,cache.Builds,cache.TreeBytes,cache.GraphPayloadEstimate,after-before,cache.Evictions));GC.KeepAlive(cache);
         Console.WriteLine("PASS isolated retained-cache memory observation: "+(after-before)+" bytes / "+cache.Count+" depots; not exclusive arrays");
     }
+    // Populated ONLY by a temporary Network SourceOverride at the heap entry,
+    // after the direct-same-lane early return. Normal builds leave it untouched.
+    internal static long HeapCalls;
+    static void HeapCount(string prior,string output)
+    {
+        var s=Load(File.ReadAllBytes(Path.Combine(prior,"baseline.hcity")));var n=s.Transport.Network;var od=new DispatchRoutes();var q=ReadQueries(Path.Combine(prior,"baseline-service-sequence.csv"));
+        DepotJunctionRouting.CountSearches=true;DepotJunctionRouting.SearchCalls=DepotJunctionRouting.SearchExpanded=HeapCalls=0;
+        var rows=new List<string>{"ordinal,depot,returning,route_api_calls,heap_searches,expanded"};
+        for(int i=0;i<q.Count;i++){long calls=DepotJunctionRouting.SearchCalls,heap=HeapCalls,expanded=DepotJunctionRouting.SearchExpanded;Original(n,od,q[i],out _,out _);rows.Add(string.Join(",",i,q[i].depot,q[i].back,DepotJunctionRouting.SearchCalls-calls,HeapCalls-heap,DepotJunctionRouting.SearchExpanded-expanded));}
+        Check(HeapCalls>0,"Heap entry instrumentation is required, do not report zero from an ordinary build");File.WriteAllLines(output,rows);Console.WriteLine("PASS authoritative original heap entries="+HeapCalls+"; API entries="+DepotJunctionRouting.SearchCalls);
+    }
     static void Main(string[] args)
     {
         CultureInfo.CurrentCulture=CultureInfo.InvariantCulture;
         if(args[0]=="memory"){Memory(args[1],args[2]);return;}
+        if(args[0]=="heap"){HeapCount(args[1],args[2]);return;}
         Check(!Directory.Exists(args[1]),"Choose fresh results");Directory.CreateDirectory(args[1]);
         Replay(args[0],args[1]);Simulate(args[0],args[1],args.Length>2?int.Parse(args[2]):4000,args[3]);
         Console.WriteLine("PASS real-city simulation, per-step safety/waste conservation and cold continuation");
