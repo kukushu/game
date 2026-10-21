@@ -59,7 +59,7 @@ namespace HarborCity.RoadCore
         public readonly struct Sample
         {
             public readonly string kind;public readonly int depot,expanded;public readonly double ms;public readonly long bytes;
-            internal Sample(string kind,int depot,int expanded,long start,long allocated){this.kind=kind;this.depot=depot;this.expanded=expanded;ms=(Stopwatch.GetTimestamp()-start)*1000.0/Stopwatch.Frequency;bytes=Allocation()-allocated;}
+            internal Sample(string kind,int depot,int expanded,long start,long allocated){this.kind=kind;this.depot=depot;this.expanded=expanded;ms=(Stopwatch.GetTimestamp()-start)*1000.0/Stopwatch.Frequency;bytes=allocated<0?-1:Allocation()-allocated;}
         }
         readonly Dictionary<int,Entry> entries=new Dictionary<int,Entry>();
         HashSet<int> eligible;Network network;Graph graph;long clock;
@@ -77,7 +77,7 @@ namespace HarborCity.RoadCore
 #if CITY_SCENARIO_DOTNET
             return GC.GetAllocatedBytesForCurrentThread();
 #else
-            return 0; // Unity thread allocation API unavailable; use Player recorder.
+            return -1; // Unity thread allocation API unavailable; use Player recorder.
 #endif
         }
         void Observe(string kind,int depot,int expanded,long start,long bytes){if(Trace)Samples.Add(new Sample(kind,depot,expanded,start,bytes));}
@@ -144,8 +144,13 @@ namespace HarborCity.RoadCore
             foreach(var goal in new[]{target,other})if(Valid(n,goal)&&graph.upstream.TryGetValue(goal.lane,out var parents))foreach(int p in parents)
             {
                 LocalChecks++;if(e.parent[p]==-1)continue;var lanes=new List<long>();for(int s=p;s>=0;s=e.parent[s])lanes.Add(e.via[s]);lanes.Reverse();
-                route=new List<long>(lanes.Count*2+1);foreach(long lane in lanes)Append(route,lane);Append(route,goal.lane);
-                start=route[0]==e.anchor.lane?e.anchor.distance:e.other.distance;end=goal.distance;Observe("outbound",depot,0,t,a);return true;
+                start=lanes[0]==e.anchor.lane?e.anchor.distance:e.other.distance;end=goal.distance;
+                route=new List<long>(lanes.Count*2+1);bool reached=false;
+                // A cached junction path may already pass the target road before
+                // reaching the first candidate upstream state. Stop at that first
+                // legal occurrence instead of adding a gratuitous circuit.
+                foreach(long lane in lanes){Append(route,lane);if(lane==goal.lane&&(route.Count>1||start<=end)){reached=true;break;}}
+                if(!reached)Append(route,goal.lane);Observe("outbound",depot,0,t,a);return true;
             }
             Unreachable++;Observe("outbound",depot,0,t,a);return true;
         }

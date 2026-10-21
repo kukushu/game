@@ -138,6 +138,13 @@ static class CityDepotJunctionRoutingChecks
         w.RegisterAccess(5000,home.lane,home.distance);w.JunctionRoutes.SetDepots(new[]{home.endpoint,5000});
         Check(Find(w,5000,w.GetAccess(5000),home,false,out _,out _,out _),"New depot not admitted");
         w.JunctionRoutes.SetDepots(new[]{home.endpoint});Check(w.JunctionRoutes.Count<=1,"Removed new depot not pruned");
+        // One-way dead-end: outward direct access is valid, return is impossible.
+        var dead=new World();int dj1=dead.AddJunction(new Point(0,2,0)),dj2=dead.AddJunction(new Point(30,2,0));
+        int dr=dead.AddRoad(dj1,dj2,new[]{dead.JunctionPosition(dj1),dead.JunctionPosition(dj2)},oneWay:true);
+        long dl=Network.LaneId(dr,false);dead.RegisterAccess(1,dl,8);dead.RegisterAccess(2,dl,22);
+        Check(Find(dead,1,dead.GetAccess(1),dead.GetAccess(2),false,out var outward,out _,out _)&&outward!=null,"One-way outward unreachable");
+        Check(Find(dead,1,dead.GetAccess(1),dead.GetAccess(2),true,out var inward,out _,out _)&&inward==null,"One-way false return connectivity");
+        var tiny=new DepotJunctionRouting(1,1);Check(!tiny.Outbound(dead.Network,1,dead.GetAccess(1),dead.GetAccess(2),out _,out _,out _)&&tiny.Fallbacks==1,"Budget fallback missing");
         Console.WriteLine("PASS " + checks + " junction quotient checks; legal nonshortest/different route choices=" + different + "; trees=" + w.JunctionRoutes.Count + " bytes=" + w.JunctionRoutes.TreeBytes);
     }
 }

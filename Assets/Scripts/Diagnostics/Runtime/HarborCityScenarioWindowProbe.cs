@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
@@ -41,7 +41,11 @@ namespace HarborCity
                 using(var sha=SHA256.Create())File.WriteAllText(Path.Combine(output,"warm-state.sha256"),BitConverter.ToString(sha.ComputeHash(warmState)).Replace("-","").ToLowerInvariant());
                 host.ScenarioRate(rate);
             }
-            var city=host.ScenarioSession;long startTick=city.Simulation.Tick;
+            var city=host.ScenarioSession;
+            bool junctionRouting=Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-depot-junction-routing")>=0;
+            city.Transport.DepotJunctionRoutingEnabled=junctionRouting;
+            city.Transport.JunctionRoutes.Trace=Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-junction-trace")>=0;
+            long startTick=city.Simulation.Tick;
             double startPending=city.Simulation.PendingSeconds;
             var frames=new List<double>(5000);var rows=new List<Sample>(5000);
             var gc=ProfilerRecorder.StartNew(ProfilerCategory.Memory,"GC Allocated In Frame",1);
@@ -84,6 +88,9 @@ namespace HarborCity
 #if CITY_CORE_ATTRIBUTION
             if(coreProfile){HarborCity.RoadCore.CityCoreProfile.Enabled=false;File.WriteAllText(Path.Combine(output,"core-profile.csv"),HarborCity.RoadCore.CityCoreProfile.Header()+"\n"+HarborCity.RoadCore.CityCoreProfile.Row(city.Simulation.Tick,city.Transport.ActiveCount,city.Transport.RoutePreparations,GC.CollectionCount(0)-gen0,GC.CollectionCount(1)-gen1,GC.CollectionCount(2)-gen2)+"\n");}
 #endif
+            var jr=city.Transport.JunctionRoutes;
+            File.WriteAllText(Path.Combine(output,"junction-routing.csv"),jr.TraceCsv());
+            File.WriteAllText(Path.Combine(output,"junction-cache.csv"),"nodes,lanes,entries,tree_bytes,graph_payload_estimate,queries,hits,misses,evictions,invalidations,local_checks,fallbacks,unreachable,builds,expanded\n"+string.Join(",",jr.Nodes,jr.Lanes,jr.Count,jr.TreeBytes,jr.GraphPayloadEstimate,jr.Queries,jr.Hits,jr.Misses,jr.Evictions,jr.Invalidations,jr.LocalChecks,jr.Fallbacks,jr.Unreachable,jr.Builds,jr.Expanded));
             double elapsed=last-start;long endTick=city.Simulation.Tick;host.ScenarioRate(0);gc.Dispose();mainThread.Dispose();renderThread.Dispose();collect.Dispose();ui.Dispose();batches.Dispose();draws.Dispose();passes.Dispose();triangles.Dispose();
             if(raw){UnityEngine.Profiling.Profiler.enabled=false;UnityEngine.Profiling.Profiler.enableBinaryLog=false;}
             if(raw){if(recording){captureEndTick=city.Simulation.Tick;recorded=true;}File.WriteAllText(Path.Combine(output,"capture.json"),"{\"started\":"+(recorded?"true":"false")+",\"trigger_tick\":"+triggerTick+",\"start_tick\":"+captureStartTick+",\"end_tick\":"+captureEndTick+",\"observed_frames\":"+capturedFrames+",\"limit\":"+frameLimit+",\"note\":\"Partial diagnostic instrumentation; whole-window FPS is not normal uninstrumented performance.\"}");if(!recorded){File.WriteAllText(Path.Combine(output,"CaptureFailure.txt"),"Requested tick was not reached within bounded window");Application.Quit(1);yield break;}}
@@ -104,7 +111,7 @@ namespace HarborCity
                 city.Validate();byte[] final=CityCoreSave.Write(city);File.WriteAllBytes(Path.Combine(output,"final.hcity"),final);
                 if(Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-window-restore")>=0)
                 {
-                    var restored=CityCoreSave.Read(final);restored.Simulation.Growth.Zoning.SetSurface(host.ScenarioSurface);
+                    var restored=CityCoreSave.Read(final);restored.Transport.DepotJunctionRoutingEnabled=junctionRouting;restored.Simulation.Growth.Zoning.SetSurface(host.ScenarioSurface);
                     for(int i=0;i<20;i++){double request=city.Simulation.PendingSeconds>=.05?0:.05;if(city.Simulation.Advance(request,1,double.PositiveInfinity)!=1||restored.Simulation.Advance(request,1,double.PositiveInfinity)!=1)throw new InvalidOperationException("Restore check lost a full step");}
                     city.Validate();restored.Validate();if(!CityCoreSave.Write(city).SequenceEqual(CityCoreSave.Write(restored)))throw new InvalidOperationException("Warm/cold whole-city debt continuation differs");
                     File.WriteAllText(Path.Combine(output,"RestoreResult.txt"),"PASS native Unity warm/cold 20 complete steps with saved pending debt, all city/transport/money/goods/waste state byte-identical. Outside timed window; final.hcity is original measured endpoint.\n");
