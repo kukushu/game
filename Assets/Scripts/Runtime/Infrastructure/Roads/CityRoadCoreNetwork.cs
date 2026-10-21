@@ -223,7 +223,7 @@ namespace HarborCity.RoadCore
             d.ParallelLaneCount=road.lanes;
             drivables.Add(d.Id,d);List<Drivable> list;if(!outgoing.TryGetValue(d.From,out list))outgoing.Add(d.From,list=new List<Drivable>());list.Add(d);
         }
-        sealed class RouteQueue
+        internal sealed class RouteQueue
         {
             internal struct Entry { public long id;public double cost; }
             readonly List<Entry> entries=new List<Entry>();

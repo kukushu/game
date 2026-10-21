@@ -321,7 +321,8 @@ namespace HarborCity.RoadCore
             var target=GetAccess(destination);if(!EndpointExists(destination)||target==null||!target.valid||(target.use&AccessUse.Freight)==0||Network.Get(v.Current).IsConnection||v.changeTarget!=0)return null;
             // FromLane may choose the destination curb, but never a different source.
             List<long> route;double end;
-            if(!DepotJunctionRoutingEnabled||!JunctionRoutes.Return(Network,destination,target,v.Current,v.distance,out route,out end))route=AccessRouting.FromLane(Network,v.Current,v.distance,target,true,out end);
+            if(!DepotJunctionRoutingEnabled)route=AccessRouting.FromLane(Network,v.Current,v.distance,target,true,out end);
+            else if(!JunctionRoutes.Return(Network,destination,target,v.Current,v.distance,out route,out end)){long began=System.Diagnostics.Stopwatch.GetTimestamp();route=AccessRouting.FromLane(Network,v.Current,v.distance,target,true,out end);JunctionRoutes.FallbackCost(began);}
             if(route==null)return null;
             var task=new TripTask{id=data.nextTask,origin=arrival.destination,destination=destination,purpose=TransportPurpose.Service,departedAt=arrival.arrivedAt,Shipment=new Shipment{kind=CargoKind.Waste,remaining=amount}};
             return new ServiceContinuation(this,EditEpoch,v,arrival.taskId,task,new RoutePlan{segments=route,EndDistance=end});
@@ -368,7 +369,7 @@ namespace HarborCity.RoadCore
             if(purpose==TransportPurpose.Service&&source!=null&&target!=null&&ServiceSourceBlocked(source,target)){rejection=TransportRejection.SourceOccupied;return null;}
             DispatchBlueprint blueprint;
             if(DepotJunctionRoutingEnabled&&purpose==TransportPurpose.Service&&source!=null&&target!=null&&JunctionRoutes.Outbound(Network,origin,source,target,out var path,out double departure,out double arrival))blueprint=new DispatchBlueprint(Network,path,departure,arrival);
-            else blueprint=dispatchRoutes.Get(Network,origin,destination,source,target,purpose!=TransportPurpose.Freight,business as IJunctionEndpointProvider);var route=blueprint.route;double start=blueprint.start,end=blueprint.end;if(route==null||route.Length==0){rejection=TransportRejection.NoRoute;return null;}
+            else {long began=DepotJunctionRoutingEnabled&&purpose==TransportPurpose.Service?System.Diagnostics.Stopwatch.GetTimestamp():0;blueprint=dispatchRoutes.Get(Network,origin,destination,source,target,purpose!=TransportPurpose.Freight,business as IJunctionEndpointProvider);if(began!=0)JunctionRoutes.FallbackCost(began);}var route=blueprint.route;double start=blueprint.start,end=blueprint.end;if(route==null||route.Length==0){rejection=TransportRejection.NoRoute;return null;}
             if(indexDirty)Reindex();List<LaneOccupant> bucket;
             if(occupancy.TryGetValue(route[0],out bucket)){int slot=InsertionSlot(bucket,start);if(slot>0&&bucket[slot-1].distance-start<MinimumSpacing||slot<bucket.Count&&start-bucket[slot].distance<MinimumSpacing){rejection=TransportRejection.SourceOccupied;return null;}}
             var entry=Network.Get(route[0]);int reservation=start<EntryReservationEnd(entry)-1e-9?entry.From:start>StopDistance(entry)+1e-9?entry.To:0;

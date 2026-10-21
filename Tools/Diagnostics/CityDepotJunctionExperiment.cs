@@ -60,7 +60,7 @@ static class CityDepotJunctionExperiment
     {
         var s=Load(File.ReadAllBytes(Path.Combine(prior,"baseline.hcity")));var n=s.Transport.Network;var queries=ReadQueries(Path.Combine(prior,"baseline-service-sequence.csv"));
         WarmCode(n,queries);
-        var od=new DispatchRoutes();var cache=new DepotJunctionRouting{Trace=true};var summary=new List<string>{"mode,queries,ms,gc_bytes,route_api_calls,expanded,nodes,lanes,entries,tree_bytes,graph_payload_estimate,hits,misses,builds,local_checks,fallbacks,evictions,heap_delta"};
+        var od=new DispatchRoutes();var cache=new DepotJunctionRouting{Trace=true};var summary=new List<string>{"mode,queries,ms,gc_bytes,route_api_calls,expanded,nodes,lanes,entries,tree_bytes,graph_payload_estimate,hits,misses,builds,local_checks,fallbacks,evictions,heap_delta,topology_only_nodes,bfs_searches,heap_tree_searches"};
         var ratios=new List<string>{"ordinal,depot,returning,old_length,new_length,length_ratio,old_seconds,new_seconds,time_ratio,old_segments,new_segments"};
         var paths=new List<List<long>>();var starts=new List<double>();var ends=new List<double>();
         DepotJunctionRouting.CountSearches=true;
@@ -73,7 +73,7 @@ static class CityDepotJunctionExperiment
             var results=new List<List<long>>();var ss=new List<double>();var ee=new List<double>();
             foreach(var q in queries){long tick=Stopwatch.GetTimestamp(),alloc=GC.GetAllocatedBytesForCurrentThread(),dc=DepotJunctionRouting.SearchCalls,dn=DepotJunctionRouting.SearchExpanded,lc=cache.LocalChecks;double start,end;var r=mode==0?Original(n,od,q,out start,out end):Cached(n,cache,q,out start,out end);double ms=(Stopwatch.GetTimestamp()-tick)*1000.0/Stopwatch.Frequency;long delta=GC.GetAllocatedBytesForCurrentThread()-alloc;results.Add(r);ss.Add(start);ee.Add(end);times.Add(new QuerySample{q=q,ms=ms,bytes=delta,calls=DepotJunctionRouting.SearchCalls-dc,nodes=DepotJunctionRouting.SearchExpanded-dn,checks=cache.LocalChecks-lc});}
             watch.Stop();long allocated=GC.GetAllocatedBytesForCurrentThread()-bytes;long calls=DepotJunctionRouting.SearchCalls,expanded=DepotJunctionRouting.SearchExpanded;
-            summary.Add(string.Join(",",new[]{"original","junction-cold","junction-hot","junction-after-edit"}[mode],queries.Count,times.Sum(x=>x.ms),times.Sum(x=>x.bytes),calls,expanded,cache.Nodes,cache.Lanes,cache.Count,cache.TreeBytes,cache.GraphPayloadEstimate,cache.Hits,cache.Misses,cache.Builds,cache.LocalChecks,cache.Fallbacks,cache.Evictions,GC.GetTotalMemory(true)-heap));
+            summary.Add(string.Join(",",new[]{"original","junction-cold","junction-hot","junction-after-edit"}[mode],queries.Count,times.Sum(x=>x.ms),times.Sum(x=>x.bytes),calls,expanded,cache.Nodes,cache.Lanes,cache.Count,cache.TreeBytes,cache.GraphPayloadEstimate,cache.Hits,cache.Misses,cache.Builds,cache.LocalChecks,cache.Fallbacks,cache.Evictions,GC.GetTotalMemory(true)-heap,cache.TopologyOnlyNodes,0,cache.Builds));
             for(int i=0;i<queries.Count;i++)
             {
                 var r=results[i];Legal(n,queries[i],r,ss[i],ee[i]);
