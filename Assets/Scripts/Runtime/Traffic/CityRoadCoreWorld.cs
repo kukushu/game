@@ -91,15 +91,21 @@ namespace HarborCity.RoadCore
         DispatchBlueprint ServiceBlueprint(int depot,int destination,RoadAccess source,RoadAccess target)
         {
             int prior=DepotRoutingTrace.Depot;string direction=DepotRoutingTrace.Direction;DepotRoutingTrace.Depot=depot;DepotRoutingTrace.Direction="outbound";
-            try{using var sample=DepotRoutingTrace.Start("service-query");
+            try{DepotRoutingTrace.QueryObserver?.Invoke(depot,source,target,false);using var sample=DepotRoutingTrace.Start("service-query");
                 if(DepotLaneRoutingEnabled&&DepotRoutes.TryFind(this,depot,source,target,false,out var path,out double start,out double end))return new DispatchBlueprint(Network,path,start,end);
                 return dispatchRoutes.Get(Network,depot,destination,source,target,true,business as IJunctionEndpointProvider);
             }finally{DepotRoutingTrace.Depot=prior;DepotRoutingTrace.Direction=direction;}
         }
+        internal DispatchBlueprint ReplayDepotQuery(int depot,RoadAccess anchor,RoadAccess point,bool returning)
+        {
+            if(!returning)return ServiceBlueprint(depot,point.endpoint,anchor,point);
+            var path=ServiceReturn(depot,point.lane,point.distance,anchor,out double end);return new DispatchBlueprint(Network,path,point.distance,end);
+        }
+        internal void ResetDepotExperimentCaches(){DepotRoutes.Clear();dispatchRoutes.Reset(Network);}
         List<long> ServiceReturn(int depot,long lane,double distance,RoadAccess target,out double end)
         {
             int prior=DepotRoutingTrace.Depot;string direction=DepotRoutingTrace.Direction;DepotRoutingTrace.Depot=depot;DepotRoutingTrace.Direction="return";
-            try{using var sample=DepotRoutingTrace.Start("service-query");
+            try{DepotRoutingTrace.QueryObserver?.Invoke(depot,target,new RoadAccess{lane=lane,distance=distance},true);using var sample=DepotRoutingTrace.Start("service-query");
                 if(DepotLaneRoutingEnabled&&DepotRoutes.TryFind(this,depot,target,new RoadAccess{lane=lane,distance=distance},true,out var path,out _,out end))return path;
                 return AccessRouting.FromLane(Network,lane,distance,target,true,out end);
             }finally{DepotRoutingTrace.Depot=prior;DepotRoutingTrace.Direction=direction;}
