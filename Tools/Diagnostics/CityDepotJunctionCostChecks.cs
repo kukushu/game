@@ -65,7 +65,7 @@ static class CityDepotJunctionCostChecks
         if(args.Length>0)
         {
             var city=CityCoreSave.Read(File.ReadAllBytes(args[0]));var real=city.Transport.Network;var c=new DepotJunctionRouting();
-            foreach(var plant in city.City.buildings.OfType<LandfillBuilding>().Where((x,i)=>i%23==0).Take(5))Verify(real,city.Transport.GetAccess(plant.id),c,24,rows);
+            bool small=real.RoadCount<500;foreach(var plant in city.City.buildings.OfType<LandfillBuilding>().Where((x,i)=>small||i%23==0).Take(small?100:5))Verify(real,city.Transport.GetAccess(plant.id),c,small?int.MaxValue:24,rows);
             Console.WriteLine("REAL topology-only="+c.TopologyOnlyNodes+" weighted="+c.Nodes+" lanes="+c.Lanes);
         }
         if(args.Length>1)File.WriteAllLines(args[1],rows);

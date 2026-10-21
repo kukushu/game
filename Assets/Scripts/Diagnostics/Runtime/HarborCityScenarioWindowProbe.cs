@@ -69,11 +69,21 @@ namespace HarborCity
             int frameLimit=60;long triggerTick=0;int option=Array.IndexOf(arguments,"-harbor-raw-frame-limit");if(option>=0)frameLimit=int.Parse(arguments[option+1],CultureInfo.InvariantCulture);
             option=Array.IndexOf(arguments,"-harbor-raw-start-tick");if(option>=0)triggerTick=long.Parse(arguments[option+1],CultureInfo.InvariantCulture);
             if(frameLimit<5||frameLimit>120||triggerTick<0)throw new ArgumentOutOfRangeException("Bounded raw frame capture");
+            bool routingEdit=Array.IndexOf(arguments,"-harbor-window-routing-edit")>=0;
+            var editRows=new List<string>{"tick,accepted,paid,transaction_ms,error"};int editAttempts=0;bool editSucceeded=false;double nextEdit=5;
             bool recording=false,recorded=false;int capturedFrames=0;long captureStartTick=0,captureEndTick=0;
             double start=Time.realtimeSinceStartupAsDouble,last=start;long allocated=0;int gcSamples=0,peak=0,maxSteps=0;
             int gen0=GC.CollectionCount(0),gen1=GC.CollectionCount(1),gen2=GC.CollectionCount(2);
             while(Time.realtimeSinceStartupAsDouble-start<duration)
             {
+                if(routingEdit&&!editSucceeded&&editAttempts<3&&Time.realtimeSinceStartupAsDouble-start>=nextEdit)
+                {
+                    if(!junctionRouting)throw new InvalidOperationException("Routing edit probe requires junction experiment");
+                    editAttempts++;nextEdit+=3;long tick=city.Simulation.Tick;int paid=0;string error="";var watch=System.Diagnostics.Stopwatch.StartNew();
+                    try{int road=city.Transport.Network.RoadIds.Min();var settings=city.Transport.Network.Settings(road);editSucceeded=city.Construction.Commit(city.Transport.PlanUpgradeRoad(road,settings.lanes,settings.speed+1,settings.direction),out paid);}
+                    catch(InvalidOperationException e) when(e.Message.Contains("施工节点安全区")){error=e.Message.Replace(",",";").Replace("\n"," ").Replace("\r"," ");}
+                    watch.Stop();editRows.Add(string.Join(",",tick,editSucceeded,paid,watch.Elapsed.TotalMilliseconds.ToString("R",CultureInfo.InvariantCulture),error));
+                }
                 if(raw&&!recorded&&!recording&&city.Simulation.Tick>=triggerTick)
                 {UnityEngine.Profiling.Profiler.logFile=Path.Combine(output,"window.raw");UnityEngine.Profiling.Profiler.maxUsedMemory=128*1024*1024;UnityEngine.Profiling.Profiler.enableBinaryLog=true;UnityEngine.Profiling.Profiler.enabled=true;recording=true;captureStartTick=city.Simulation.Tick;}
                 yield return null;double now=Time.realtimeSinceStartupAsDouble,ms=(now-last)*1000;last=now;frames.Add(ms);
@@ -88,6 +98,7 @@ namespace HarborCity
 #if CITY_CORE_ATTRIBUTION
             if(coreProfile){HarborCity.RoadCore.CityCoreProfile.Enabled=false;File.WriteAllText(Path.Combine(output,"core-profile.csv"),HarborCity.RoadCore.CityCoreProfile.Header()+"\n"+HarborCity.RoadCore.CityCoreProfile.Row(city.Simulation.Tick,city.Transport.ActiveCount,city.Transport.RoutePreparations,GC.CollectionCount(0)-gen0,GC.CollectionCount(1)-gen1,GC.CollectionCount(2)-gen2)+"\n");}
 #endif
+            if(routingEdit)File.WriteAllLines(Path.Combine(output,"routing-edit.csv"),editRows);
             var jr=city.Transport.JunctionRoutes;
             File.WriteAllText(Path.Combine(output,"junction-routing.csv"),jr.TraceCsv());
             File.WriteAllText(Path.Combine(output,"junction-cache.csv"),"nodes,lanes,entries,tree_bytes,graph_payload_estimate,queries,hits,misses,evictions,invalidations,local_checks,fallbacks,unreachable,builds,expanded,topology_only_nodes,fallback_invalid,fallback_inactive,fallback_budget,fallback_ms\n"+string.Join(",",jr.Nodes,jr.Lanes,jr.Count,jr.TreeBytes,jr.GraphPayloadEstimate,jr.Queries,jr.Hits,jr.Misses,jr.Evictions,jr.Invalidations,jr.LocalChecks,jr.Fallbacks,jr.Unreachable,jr.Builds,jr.Expanded,jr.TopologyOnlyNodes,jr.InvalidAccessFallbacks,jr.InactiveDepotFallbacks,jr.BudgetFallbacks,jr.FallbackMilliseconds));
