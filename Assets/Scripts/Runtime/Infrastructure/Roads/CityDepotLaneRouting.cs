@@ -207,7 +207,16 @@ namespace HarborCity.RoadCore
             internal int id; internal RoadAccess access; internal Network.DepotTree[] forward = new Network.DepotTree[2], backward = new Network.DepotTree[2]; internal long age;
         }
         readonly Dictionary<int, Entry> entries = new Dictionary<int, Entry>(); Network network; Network.DepotGraph graph; long clock; public const long ByteLimit = 64L * 1024 * 1024; public const int Capacity = 128;
-        public long Hits, Misses, Evictions, Invalidations, Queries, TreeBuilds, TreeReuses; public int Count => entries.Count; public long ReservedTreeBytes => graph == null ? 0 : entries.Count * (graph.lanes.LongLength * 80 + 256); public long ReservedGraphBytes => graph?.ReservedBytes ?? 0;
+        public long Hits, Misses, Evictions, Invalidations, Queries, TreeBuilds, TreeReuses;
+        HashSet<int> liveDepots;
+        public long DepotSetRevision {get;private set;}=long.MinValue;
+        // The waste system supplies its existing live facility IDs, never new routing authority.
+        internal void RetainDepots(long revision,IEnumerable<int> ids)
+        {
+            liveDepots=liveDepots??new HashSet<int>();liveDepots.Clear();liveDepots.UnionWith(ids);DepotSetRevision=revision;
+            foreach(int id in entries.Keys.ToArray())if(!liveDepots.Contains(id)){entries.Remove(id);Invalidations++;}
+        }
+ public int Count => entries.Count; public long ReservedTreeBytes => graph == null ? 0 : entries.Count * (graph.lanes.LongLength * 80 + 256); public long ReservedGraphBytes => graph?.ReservedBytes ?? 0;
         public void Clear()
         {
             Invalidations += entries.Count;
@@ -240,6 +249,7 @@ namespace HarborCity.RoadCore
                     entries.Remove(old.id);
                     Invalidations++;
                 }
+            if(liveDepots!=null&&!liveDepots.Contains(depot))return false;
             if (!Valid(anchor) || !Valid(point))
                 return false;
             graph = network.GetDepotGraph();

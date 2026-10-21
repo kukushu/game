@@ -70,6 +70,8 @@ static class CityDepotLaneRoutingChecks
             old = AccessRouting.FromLane(w.Network, target.lane, target.distance, depot, true, out oe);
             Check(w.DepotRoutes.TryFind(w, depot.endpoint, depot, target, true, out path, out s, out e), "No reverse tree");
             Compare(w.Network, old, path, target.distance, oe, s, e);
+                Check(path==null||path[0]==target.lane&&s==target.distance,"Return moved actual source lane or position");
+                Check(path==null||AccessRouting.Matches(w.Network,depot,path[path.Count-1],e,true),"Return missed depot access");
         }
         long invalidations = w.DepotRoutes.Invalidations;
         w.SplitRoadAt(2, 12);
@@ -122,6 +124,12 @@ static class CityDepotLaneRoutingChecks
         w.DepotRoutes.TryFind(w, home.endpoint, home, unreachable, true, out noPath, out _, out _);
         Check(noPath == null && unchanged.SequenceEqual(SaveCodec.Write(w)), "Derived routing mutated world facts");
         Check(!w.DepotRoutes.TryFind(w, home.endpoint, home, new RoadAccess { lane = home.lane, distance = double.NaN }, true, out _, out _, out _), "Invalid point did not fall back");
+        w.DepotRoutes.RetainDepots(100,new[]{home.endpoint});
+        Check(w.DepotRoutes.Count<=1,"Deleted depot association retained");
+        Check(!w.DepotRoutes.TryFind(w,1000,w.GetAccess(1000),home,false,out _,out _,out _),"Deleted depot should use legacy fallback");
+        w.RegisterAccess(5000,home.lane,home.distance);w.DepotRoutes.RetainDepots(101,new[]{home.endpoint,5000});
+        Check(w.DepotRoutes.TryFind(w,5000,w.GetAccess(5000),home,false,out _,out _,out _),"New depot not admitted");
+        w.DepotRoutes.RetainDepots(102,new[]{home.endpoint});Check(w.DepotRoutes.Count<=1,"Removed new depot not pruned");
         Console.WriteLine("PASS " + checks + " lane-tree checks; equal-cost different route choices=" + different + "; trees=" + w.DepotRoutes.Count + " bytes=" + w.DepotRoutes.ReservedTreeBytes);
     }
 }
