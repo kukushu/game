@@ -1,5 +1,6 @@
 ﻿param([string]$Save='Temp/CityScenarios/grid500-normal-final/inflight.hcity',[string]$Results='Temp/CityScenarios/window500',[switch]$SkipBuild,[switch]$BuildOnly,[int]$TimeoutSeconds=180,[double]$MaxMemoryGB=8,[string]$PlayerPath='Temp/RoadCore/Player/HarborCity.exe',[ValidateSet(0,1,3,20,50)][int[]]$Rates=@(1,3),[switch]$RawProfile,[switch]$CheckRestore,[string]$NetworkReference='',[string]$RoutingReference='',[ValidateRange(15,150)][int]$RawProfileSeconds=30,[ValidateRange(5,120)][int]$RawFrameLimit=60,[long]$RawStartTick=0,[string]$HostSource='',[switch]$SharedWarmup,[ValidateRange(15,150)][int]$MeasureSeconds=60,[ValidateRange(1,64)][double]$BudgetMilliseconds=8,[ValidateRange(1,128)][int]$MaximumSteps=32,[switch]$CoreProfile,[switch]$SavedMap,[switch]$DepotJunctionRouting,[switch]$JunctionTrace,[switch]$DepotLaneReference)
 $ErrorActionPreference='Stop'
+if($RoutingReference -and ($DepotJunctionRouting -or $JunctionTrace)){throw 'Frozen routing reference cannot enable the current experiment'}
 if($DepotLaneReference -and (-not $SkipBuild -or $DepotJunctionRouting)){throw 'Lane reference requires its prebuilt independent binary and SkipBuild; cannot combine algorithms'}
 . (Join-Path $PSScriptRoot 'ProjectLayout.ps1')
 $root=Split-Path $PSScriptRoot -Parent
@@ -26,7 +27,7 @@ if(-not $SkipBuild){
  Sync-CityWorkspaceProject $root $project
  if($resolvedHostSource){Copy-Item -LiteralPath $resolvedHostSource -Destination (Join-Path $project 'Assets/Scripts/Runtime/Presentation/Game/HarborCityRoadCoreGame.cs')}
  if($resolvedRoutingReference){
-  foreach($file in @('Assets/Scripts/Runtime/Infrastructure/Roads/CityRoadCoreNetwork.cs','Assets/Scripts/Runtime/Infrastructure/Roads/CityRoadCoreAccessRouting.cs','Assets/Scripts/Runtime/Traffic/CityRoadCoreDispatchRoutes.cs','Assets/Scripts/Runtime/Traffic/CityRoadCoreWorld.cs')){
+  foreach($file in @('Assets/Scripts/Runtime/Infrastructure/Roads/CityRoadCoreNetwork.cs','Assets/Scripts/Runtime/Infrastructure/Roads/CityRoadCoreAccessRouting.cs','Assets/Scripts/Runtime/Traffic/CityRoadCoreDispatchRoutes.cs','Assets/Scripts/Runtime/Traffic/CityRoadCoreWorld.cs','Assets/Scripts/Runtime/Simulation/Services/CityCoreWaste.cs','Assets/Scripts/Diagnostics/Runtime/HarborCityScenarioWindowProbe.cs')){
    $referenceSource=& git show ($resolvedRoutingReference+':'+$file);if($LASTEXITCODE -ne 0){throw 'Routing reference source unavailable'}
    [IO.File]::WriteAllLines((Join-Path $project $file),$referenceSource)
   }

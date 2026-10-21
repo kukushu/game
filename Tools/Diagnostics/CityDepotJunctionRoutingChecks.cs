@@ -145,6 +145,14 @@ static class CityDepotJunctionRoutingChecks
         Check(Find(dead,1,dead.GetAccess(1),dead.GetAccess(2),false,out var outward,out _,out _)&&outward!=null,"One-way outward unreachable");
         Check(Find(dead,1,dead.GetAccess(1),dead.GetAccess(2),true,out var inward,out _,out _)&&inward==null,"One-way false return connectivity");
         var tiny=new DepotJunctionRouting(1,1);Check(!tiny.Outbound(dead.Network,1,dead.GetAccess(1),dead.GetAccess(2),out _,out _,out _)&&tiny.Fallbacks==1,"Budget fallback missing");
+        // A continuous two-lane cut permits only the matching lane index.
+        // Junction-only reachability would falsely join index 0 to index 1.
+        var cut=new World();int ca=cut.AddJunction(new Point(0,2,0)),cb=cut.AddJunction(new Point(30,2,0)),cc=cut.AddJunction(new Point(60,2,0));
+        int cr1=cut.AddRoad(ca,cb,new[]{cut.JunctionPosition(ca),cut.JunctionPosition(cb)},lanes:2),cr2=cut.AddRoad(cb,cc,new[]{cut.JunctionPosition(cb),cut.JunctionPosition(cc)},lanes:2);
+        cut.RegisterAccess(1,Network.LaneId(cr1,false,0),12);cut.RegisterAccess(2,Network.LaneId(cr2,false,1),12);cut.RegisterAccess(3,Network.LaneId(cr2,false,0),12);
+        Check(AccessRouting.Find(cut.Network,cut.GetAccess(1),cut.GetAccess(2),true,out _,out _)==null,"Restricted-cut fixture unexpectedly connected");
+        Check(Find(cut,1,cut.GetAccess(1),cut.GetAccess(2),false,out var wrongLane,out _,out _)&&wrongLane==null,"Illegal lane-index turn stitched");
+        Check(Find(cut,1,cut.GetAccess(1),cut.GetAccess(3),false,out var goodLane,out _,out _)&&goodLane!=null,"Legal lane-index turn missing");
         Console.WriteLine("PASS " + checks + " junction quotient checks; legal nonshortest/different route choices=" + different + "; trees=" + w.JunctionRoutes.Count + " bytes=" + w.JunctionRoutes.TreeBytes);
     }
 }
