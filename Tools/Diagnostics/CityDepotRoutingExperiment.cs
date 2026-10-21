@@ -36,6 +36,7 @@ static class CityDepotRoutingExperiment
     static void Main(string[] args)
     {
         GC.KeepAlive(CityCoreProfile.AllocationAvailable);
+        if(Directory.Exists(args[1]))throw new IOException("Choose a fresh experiment result directory");
         Directory.CreateDirectory(args[1]);
         string dir = args[1];
         int steps = int.Parse(args[2]);
