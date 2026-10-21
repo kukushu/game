@@ -68,6 +68,7 @@ namespace HarborCity.RoadCore
         }
         readonly Dictionary<int,Entry> entries=new Dictionary<int,Entry>();
         readonly HashSet<long> terminals=new HashSet<long>();
+        Func<int,RoadAccess> resolveAccess;Func<long> accessRevision;long pinRevision=-1;
         HashSet<int> eligible;Network network;Graph graph;long clock;
         public int MaximumDepots {get;} public long MaximumTreeBytes {get;}
         public long Queries,Hits,Misses,Evictions,Invalidations,LocalChecks,Fallbacks,Unreachable,Builds,Expanded;
@@ -94,14 +95,14 @@ namespace HarborCity.RoadCore
         public string TraceCsv(){var s=new StringBuilder("kind,depot,expanded,ms,gc_bytes\n");foreach(var x in Samples)s.Append(x.kind).Append(',').Append(x.depot).Append(',').Append(x.expanded).Append(',').Append(x.ms.ToString("R",CultureInfo.InvariantCulture)).Append(',').Append(x.bytes).Append('\n');return s.ToString();}
         // Waste owns the active-facility registry. Retired depots use the original
         // path, while in-flight tasks/access facts remain owned by World.
-        internal void SetDepots(IEnumerable<int> depots)
+        internal void SetDepots(IEnumerable<int> depots,Func<int,RoadAccess> resolver=null,Func<long> revision=null)
         {
-            eligible=new HashSet<int>(depots);var removed=new List<int>();foreach(var pair in entries)if(!eligible.Contains(pair.Key))removed.Add(pair.Key);
+            eligible=new HashSet<int>(depots);resolveAccess=resolver;accessRevision=revision;pinRevision=-1;var removed=new List<int>();foreach(var pair in entries)if(!eligible.Contains(pair.Key))removed.Add(pair.Key);
             foreach(int id in removed){Drop(id);Invalidations++;}
         }
         void Drop(int id){var e=entries[id];TreeBytes-=Bytes(e);entries.Remove(id);}
         static long Bytes(Entry e)=>(e.parent==null?0:e.parent.Length*20L)+(e.next==null?0:e.next.Length*20L);
-        public void Clear(){entries.Clear();TreeBytes=0;graph=null;network=null;terminals.Clear();}
+        public void Clear(){entries.Clear();TreeBytes=0;graph=null;network=null;terminals.Clear();pinRevision=-1;}
         static RoadAccess Copy(RoadAccess a)=>new RoadAccess{endpoint=a.endpoint,lane=a.lane,distance=a.distance,use=a.use,valid=a.valid};
         static RoadAccess Opposite(Network n,RoadAccess a)=>AccessRouting.AtDirection(n,a,!n.Get(a.lane).Reverse);
         static bool Valid(Network n,RoadAccess a)=>a!=null&&a.valid&&n.Contains(a.lane)&&!n.Get(a.lane).IsConnection&&a.distance>=n.Get(a.lane).StartDistance&&a.distance<=n.Get(a.lane).EndDistance;
@@ -113,7 +114,13 @@ namespace HarborCity.RoadCore
             // A depot exactly at a lane end is a terminal on THAT lane only.
             // Pin those lanes before grouping; adding a new terminal refines the
             // quotient and invalidates all affected derived labels conservatively.
-            bool changed=false;foreach(var goal in new[]{anchor,Opposite(n,anchor)})if(Valid(n,goal)&&goal.distance==n.Get(goal.lane).EndDistance)changed|=terminals.Add(goal.lane);
+            bool changed=false;
+            if(resolveAccess!=null&&(pinRevision<0||accessRevision==null||pinRevision!=accessRevision()))
+            {
+                var pins=new HashSet<long>();foreach(int id in eligible){var point=resolveAccess(id);if(!Valid(n,point))continue;foreach(var goal in new[]{point,Opposite(n,point)})if(Valid(n,goal)&&goal.distance==n.Get(goal.lane).EndDistance)pins.Add(goal.lane);}
+                changed=!terminals.SetEquals(pins);terminals.Clear();terminals.UnionWith(pins);pinRevision=accessRevision==null?0:accessRevision();
+            }
+            foreach(var goal in new[]{anchor,Opposite(n,anchor)})if(Valid(n,goal)&&goal.distance==n.Get(goal.lane).EndDistance)changed|=terminals.Add(goal.lane);
             if(changed&&graph!=null){entries.Clear();TreeBytes=0;graph=null;Invalidations++;}
             if(graph==null){long t=Stopwatch.GetTimestamp(),a=Allocation();graph=new Graph(n,terminals);Observe("graph",depot,Nodes,t,a);}
             if(Nodes*40L>MaximumTreeBytes){Fallbacks++;BudgetFallbacks++;return null;}

@@ -53,6 +53,15 @@ static class CityDepotJunctionCostChecks
         foreach(var lane in lanes.Where((x,i)=>i%7==0))foreach(double fraction in new[]{0.0,.37,1.0})
         {var anchor=new RoadAccess{endpoint=id++,lane=lane.Id,distance=lane.StartDistance+fraction*lane.TravelLength};Verify(w.Network,anchor,cache,int.MaxValue,rows);}
         if(cache.Nodes<=cache.TopologyOnlyNodes)throw new Exception("Fixture must expose unequal-cost topological classes");
+        // All active end terminals must be known before grouping. Warm/cold
+        // base query order must not change state IDs or equal-cost choices.
+        w.RegisterAccess(1000,lanes[0].Id,lanes[0].EndDistance);w.RegisterAccess(1001,lanes[7].Id,lanes[7].EndDistance);
+        var left=new DepotJunctionRouting();var right=new DepotJunctionRouting();
+        foreach(var c in new[]{left,right})c.SetDepots(new[]{1000,1001},w.GetAccess,()=>w.AccessRevision);
+        left.StateCost(w.Network,1000,w.GetAccess(1000),0,false);right.StateCost(w.Network,1001,w.GetAccess(1001),0,true);
+        var target=new RoadAccess{lane=lanes[13].Id,distance=(lanes[13].StartDistance+lanes[13].EndDistance)/2};
+        left.Outbound(w.Network,1000,w.GetAccess(1000),target,out var lp,out double ls,out double le);right.Outbound(w.Network,1000,w.GetAccess(1000),target,out var rp,out double rs,out double re);
+        if(left.Nodes!=right.Nodes||ls!=rs||le!=re||!(lp==null?rp==null:lp.SequenceEqual(rp)))throw new Exception("Terminal discovery order changed deterministic route");checks++;
         if(args.Length>0)
         {
             var city=CityCoreSave.Read(File.ReadAllBytes(args[0]));var real=city.Transport.Network;var c=new DepotJunctionRouting();

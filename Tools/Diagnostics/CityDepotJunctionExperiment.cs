@@ -60,7 +60,7 @@ static class CityDepotJunctionExperiment
     {
         var s=Load(File.ReadAllBytes(Path.Combine(prior,"baseline.hcity")));var n=s.Transport.Network;var queries=ReadQueries(Path.Combine(prior,"baseline-service-sequence.csv"));
         WarmCode(n,queries);
-        var od=new DispatchRoutes();var cache=new DepotJunctionRouting{Trace=true};var summary=new List<string>{"mode,queries,ms,gc_bytes,route_api_calls,expanded,nodes,lanes,entries,tree_bytes,graph_payload_estimate,hits,misses,builds,local_checks,fallbacks,evictions,heap_delta,topology_only_nodes,bfs_searches,heap_tree_searches"};
+        var od=new DispatchRoutes();var cache=new DepotJunctionRouting{Trace=true};cache.SetDepots(s.City.buildings.OfType<LandfillBuilding>().Select(x=>x.id),s.Transport.GetAccess,()=>s.Transport.AccessRevision);var summary=new List<string>{"mode,queries,ms,gc_bytes,route_api_calls,expanded,nodes,lanes,entries,tree_bytes,graph_payload_estimate,hits,misses,builds,local_checks,fallbacks,evictions,heap_delta,topology_only_nodes,bfs_searches,heap_tree_searches"};
         var ratios=new List<string>{"ordinal,depot,returning,old_length,new_length,length_ratio,old_seconds,new_seconds,time_ratio,old_segments,new_segments"};
         var paths=new List<List<long>>();var starts=new List<double>();var ends=new List<double>();
         DepotJunctionRouting.CountSearches=true;
@@ -85,7 +85,7 @@ static class CityDepotJunctionExperiment
             File.WriteAllText(Path.Combine(dir,"replay-"+mode+"-trace.csv"),cache.TraceCsv());cache.Samples.Clear();
         }
         File.WriteAllLines(Path.Combine(dir,"replay-summary.csv"),summary);File.WriteAllLines(Path.Combine(dir,"route-ratios.csv"),ratios);
-        var stress=new DepotJunctionRouting{Trace=true};var bases=s.City.buildings.OfType<LandfillBuilding>().Select(x=>s.Transport.GetAccess(x.id)).Where(x=>x!=null&&x.valid).ToArray();
+        var stress=new DepotJunctionRouting{Trace=true};stress.SetDepots(s.City.buildings.OfType<LandfillBuilding>().Select(x=>x.id),s.Transport.GetAccess,()=>s.Transport.AccessRevision);var bases=s.City.buildings.OfType<LandfillBuilding>().Select(x=>s.Transport.GetAccess(x.id)).Where(x=>x!=null&&x.valid).ToArray();
         var target=queries.First(x=>!x.back).point;var stressRows=new List<string>{"pass,depots,ms,bytes,entries,tree_bytes,builds,hits,misses,evictions,fallbacks"};
         for(int pass=0;pass<2;pass++){long a=GC.GetAllocatedBytesForCurrentThread();var clock=Stopwatch.StartNew();foreach(var depot in bases){var q=new Query{anchor=depot,point=target,depot=depot.endpoint};Cached(n,stress,q,out _,out _);q.back=true;Cached(n,stress,q,out _,out _);}clock.Stop();stressRows.Add(string.Join(",",pass,bases.Length,clock.Elapsed.TotalMilliseconds,GC.GetAllocatedBytesForCurrentThread()-a,stress.Count,stress.TreeBytes,stress.Builds,stress.Hits,stress.Misses,stress.Evictions,stress.Fallbacks));}
         File.WriteAllLines(Path.Combine(dir,"all-depots.csv"),stressRows);File.WriteAllText(Path.Combine(dir,"all-depots-trace.csv"),stress.TraceCsv());
@@ -119,7 +119,7 @@ static class CityDepotJunctionExperiment
         var city=Load(File.ReadAllBytes(input));var n=city.Transport.Network;
         var depots=city.City.buildings.OfType<LandfillBuilding>().Select(x=>city.Transport.GetAccess(x.id)).Where(x=>x!=null&&x.valid).ToArray();
         var target=city.City.buildings.Where(x=>!(x is LandfillBuilding)).Select(x=>city.Transport.GetAccess(x.id)).Last(x=>x!=null&&x.valid);
-        var cache=new DepotJunctionRouting();long before=GC.GetTotalMemory(true);
+        var cache=new DepotJunctionRouting();cache.SetDepots(depots.Select(x=>x.endpoint),city.Transport.GetAccess,()=>city.Transport.AccessRevision);long before=GC.GetTotalMemory(true);
         foreach(var depot in depots){cache.Outbound(n,depot.endpoint,depot,target,out _,out _,out _);cache.Return(n,depot.endpoint,depot,target.lane,target.distance,out _,out _);}
         long after=GC.GetTotalMemory(true);GC.KeepAlive(city);GC.KeepAlive(depots);GC.KeepAlive(target);
         File.WriteAllText(output,"depots,nodes,lanes,trees,tree_bytes,graph_payload_estimate,retained_heap_delta,evictions\n"+string.Join(",",cache.Count,cache.Nodes,cache.Lanes,cache.Builds,cache.TreeBytes,cache.GraphPayloadEstimate,after-before,cache.Evictions));GC.KeepAlive(cache);

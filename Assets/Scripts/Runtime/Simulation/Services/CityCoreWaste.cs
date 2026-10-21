@@ -50,7 +50,7 @@ namespace HarborCity
             var t=state.totals;var copy=new WasteServiceData{lastGenerationDay=state.lastGenerationDay,nextDispatchTick=state.nextDispatchTick,totals=new CityWasteState{enabled=t.enabled,generated=t.generated,collected=t.collected,processed=t.processed,transferred=t.transferred,lost=t.lost}};
             foreach(var m in state.missions)copy.missions.Add(m.Copy());return copy;
         }
-        void RefreshPlants(){if(buildingRevision==entities.BuildingRevision)return;plants.Clear();foreach(var b in entities.Buildings)if(b is LandfillBuilding p)plants.Add(p);buildingRevision=entities.BuildingRevision;var ids=new List<int>(plants.Count);foreach(var plant in plants)ids.Add(plant.id);world.JunctionRoutes.SetDepots(ids);}
+        void RefreshPlants(){if(buildingRevision==entities.BuildingRevision)return;plants.Clear();foreach(var b in entities.Buildings)if(b is LandfillBuilding p)plants.Add(p);buildingRevision=entities.BuildingRevision;var ids=new List<int>(plants.Count);foreach(var plant in plants)ids.Add(plant.id);world.JunctionRoutes.SetDepots(ids,world.GetAccess,()=>world.AccessRevision);}
         bool Running(LandfillBuilding b)=>!b.abandoned&&!b.burning&&!b.burned&&!b.emptying&&entities.RoadAccess(b.id)&&city.Supply(b.id).Complete;
         internal void GenerateDay()
         {
