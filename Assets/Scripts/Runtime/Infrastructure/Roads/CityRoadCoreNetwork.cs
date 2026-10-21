@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace HarborCity.RoadCore
@@ -291,6 +291,7 @@ namespace HarborCity.RoadCore
 #if CITY_CORE_ATTRIBUTION
             using var observation=CityCoreProfile.Measure(CityCoreProfile.Part.RouteSearch);
 #endif
+            if(DepotJunctionRouting.CountSearches)DepotJunctionRouting.SearchCalls++;
             selected=-1;var first=Get(start.lane);Get(goal.lane);
             if(!start.valid||first.IsConnection||start.distance<first.StartDistance||start.distance>first.EndDistance)return null;
             RoadAccess a=ValidCostAccess(goal)?goal:null,b=other!=null&&ValidCostAccess(other)?other:null;
@@ -310,6 +311,7 @@ namespace HarborCity.RoadCore
                 while(queue.Count>0)
                 {
                     var item=queue.Pop();if(item.cost>best)break;if(item.cost!=costs[item.id]||!settled.Add(item.id))continue;
+                    if(DepotJunctionRouting.CountSearches)DepotJunctionRouting.SearchExpanded++;
                     var current=Get(item.id);List<Drivable> next;if(!outgoing.TryGetValue(current.To,out next))continue;
                     foreach(var lane in next)
                     {
@@ -346,6 +348,7 @@ namespace HarborCity.RoadCore
                 while(scratch.queue.Count>0)
                 {
                     var item=scratch.queue.Pop();if(item.cost>best)break;if(item.cost!=scratch.costs[item.id]||!scratch.settled.Add(item.id))continue;
+                    if(DepotJunctionRouting.CountSearches)DepotJunctionRouting.SearchExpanded++;
                     var current=Get(item.id);List<Drivable> next;if(!outgoing.TryGetValue(current.To,out next))continue;
                     foreach(var lane in next)
                     {

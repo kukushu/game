@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 #if UNITY_5_3_OR_NEWER
 using Unity.Profiling;
@@ -85,6 +85,8 @@ namespace HarborCity.RoadCore
         readonly Dictionary<int,Vehicle> vehiclesById=new Dictionary<int,Vehicle>();
         readonly Dictionary<int,RoadAccess> accesses=new Dictionary<int,RoadAccess>();
         readonly DispatchRoutes dispatchRoutes=new DispatchRoutes();
+        public bool DepotJunctionRoutingEnabled {get;set;} // Experiment: opt in, never persisted.
+        public readonly DepotJunctionRouting JunctionRoutes=new DepotJunctionRouting();
         readonly LostOccupancy lostOccupancy=new LostOccupancy();
         public long RoutePreparations=>dispatchRoutes.Preparations;
         public int CachedRoutes=>dispatchRoutes.Count;
@@ -318,7 +320,9 @@ namespace HarborCity.RoadCore
             if(data.nextTask>=int.MaxValue)throw new InvalidOperationException("Task IDs exhausted");
             var target=GetAccess(destination);if(!EndpointExists(destination)||target==null||!target.valid||(target.use&AccessUse.Freight)==0||Network.Get(v.Current).IsConnection||v.changeTarget!=0)return null;
             // FromLane may choose the destination curb, but never a different source.
-            var route=AccessRouting.FromLane(Network,v.Current,v.distance,target,true,out double end);if(route==null)return null;
+            List<long> route;double end;
+            if(!DepotJunctionRoutingEnabled||!JunctionRoutes.Return(Network,destination,target,v.Current,v.distance,out route,out end))route=AccessRouting.FromLane(Network,v.Current,v.distance,target,true,out end);
+            if(route==null)return null;
             var task=new TripTask{id=data.nextTask,origin=arrival.destination,destination=destination,purpose=TransportPurpose.Service,departedAt=arrival.arrivedAt,Shipment=new Shipment{kind=CargoKind.Waste,remaining=amount}};
             return new ServiceContinuation(this,EditEpoch,v,arrival.taskId,task,new RoutePlan{segments=route,EndDistance=end});
         }
@@ -362,7 +366,9 @@ namespace HarborCity.RoadCore
             // reachable source used by AccessRouting.Find is blocked; never pick
             // a different route just because its departure lane happens to be free.
             if(purpose==TransportPurpose.Service&&source!=null&&target!=null&&ServiceSourceBlocked(source,target)){rejection=TransportRejection.SourceOccupied;return null;}
-            var blueprint=dispatchRoutes.Get(Network,origin,destination,source,target,purpose!=TransportPurpose.Freight,business as IJunctionEndpointProvider);var route=blueprint.route;double start=blueprint.start,end=blueprint.end;if(route==null||route.Length==0){rejection=TransportRejection.NoRoute;return null;}
+            DispatchBlueprint blueprint;
+            if(DepotJunctionRoutingEnabled&&purpose==TransportPurpose.Service&&source!=null&&target!=null&&JunctionRoutes.Outbound(Network,origin,source,target,out var path,out double departure,out double arrival))blueprint=new DispatchBlueprint(Network,path,departure,arrival);
+            else blueprint=dispatchRoutes.Get(Network,origin,destination,source,target,purpose!=TransportPurpose.Freight,business as IJunctionEndpointProvider);var route=blueprint.route;double start=blueprint.start,end=blueprint.end;if(route==null||route.Length==0){rejection=TransportRejection.NoRoute;return null;}
             if(indexDirty)Reindex();List<LaneOccupant> bucket;
             if(occupancy.TryGetValue(route[0],out bucket)){int slot=InsertionSlot(bucket,start);if(slot>0&&bucket[slot-1].distance-start<MinimumSpacing||slot<bucket.Count&&start-bucket[slot].distance<MinimumSpacing){rejection=TransportRejection.SourceOccupied;return null;}}
             var entry=Network.Get(route[0]);int reservation=start<EntryReservationEnd(entry)-1e-9?entry.From:start>StopDistance(entry)+1e-9?entry.To:0;
