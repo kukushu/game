@@ -9,20 +9,38 @@ using Unity.Profiling;
 using UnityEngine;
 namespace HarborCity
 {
-    // Observes the normal host clock and views. Never advances or repairs the city.
+    // Observes the normal host clock and views; optional fixed warmup is outside measurement.
     public sealed class HarborCityScenarioWindowProbe:MonoBehaviour
     {
         struct Sample {public double seconds,ms,advance,vehicles,structure,pending,gpu,requested,rate;public long bytes,tick,mainNs,renderNs,gcNs,uiNs,batches,drawCalls,setPass,triangles;public int steps,active,views;}
         readonly FrameTiming[] timing=new FrameTiming[1];
         HarborCityRoadCoreGame host;string savePath,output;float rate;
         public void Configure(HarborCityRoadCoreGame game,string input,string result,float speed)
-        {host=game;savePath=input;output=result;rate=speed;host.ScenarioMeasuring=true;StartCoroutine(Measure());}
+        {
+            host=game;savePath=input;output=result;rate=speed;host.ScenarioMeasuring=true;
+            var args=Environment.GetCommandLineArgs();int ms=Array.IndexOf(args,"-harbor-window-budget-ms"),steps=Array.IndexOf(args,"-harbor-window-max-steps");
+            if(ms>=0||steps>=0)host.ScenarioWorkBudget(steps<0?32:int.Parse(args[steps+1],CultureInfo.InvariantCulture),ms<0?8:double.Parse(args[ms+1],CultureInfo.InvariantCulture));
+            StartCoroutine(Measure());
+        }
         IEnumerator Measure()
         {
             Directory.CreateDirectory(output);QualitySettings.vSyncCount=0;Application.targetFrameRate=60;
             yield return null;yield return null;
-            host.ScenarioRate(rate);double warm=Time.realtimeSinceStartupAsDouble;
+            bool sharedWarmup=Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-window-shared-warmup")>=0;
+            host.ScenarioRate(sharedWarmup?0:rate);
+            if(sharedWarmup)
+            {
+                var warmCity=host.ScenarioSession;
+                for(int i=0;i<200;i++){warmCity.Simulation.Advance(.05,1,double.PositiveInfinity);if(i%10==9)yield return null;}
+            }
+            double warm=Time.realtimeSinceStartupAsDouble;
             while(Time.realtimeSinceStartupAsDouble-warm<8)yield return null;
+            if(sharedWarmup)
+            {
+                var warmCity=host.ScenarioSession;var warmState=CityCoreSave.Write(warmCity);
+                using(var sha=SHA256.Create())File.WriteAllText(Path.Combine(output,"warm-state.sha256"),BitConverter.ToString(sha.ComputeHash(warmState)).Replace("-","").ToLowerInvariant());
+                host.ScenarioRate(rate);
+            }
             var city=host.ScenarioSession;long startTick=city.Simulation.Tick;
             double startPending=city.Simulation.PendingSeconds;
             var frames=new List<double>(5000);var rows=new List<Sample>(5000);
@@ -36,6 +54,14 @@ namespace HarborCity
             double duration=raw?15:60;
             var arguments=Environment.GetCommandLineArgs();int durationFlag=Array.IndexOf(arguments,"-harbor-window-duration");
             if(raw&&durationFlag>=0){duration=double.Parse(arguments[durationFlag+1],CultureInfo.InvariantCulture);if(duration<15||duration>150)throw new ArgumentOutOfRangeException("Raw capture duration");}
+            int measureFlag=Array.IndexOf(arguments,"-harbor-window-seconds");
+            if(measureFlag>=0){duration=double.Parse(arguments[measureFlag+1],CultureInfo.InvariantCulture);if(duration<15||duration>150)throw new ArgumentOutOfRangeException("Bounded window duration");}
+            bool coreProfile=Array.IndexOf(arguments,"-harbor-window-core-profile")>=0;
+#if CITY_CORE_ATTRIBUTION
+            if(coreProfile){HarborCity.RoadCore.CityCoreProfile.Reset();HarborCity.RoadCore.CityCoreProfile.Enabled=true;}
+#else
+            if(coreProfile)throw new InvalidOperationException("Core counters require an attributed diagnostic build");
+#endif
             int frameLimit=60;long triggerTick=0;int option=Array.IndexOf(arguments,"-harbor-raw-frame-limit");if(option>=0)frameLimit=int.Parse(arguments[option+1],CultureInfo.InvariantCulture);
             option=Array.IndexOf(arguments,"-harbor-raw-start-tick");if(option>=0)triggerTick=long.Parse(arguments[option+1],CultureInfo.InvariantCulture);
             if(frameLimit<5||frameLimit>120||triggerTick<0)throw new ArgumentOutOfRangeException("Bounded raw frame capture");
@@ -55,6 +81,9 @@ namespace HarborCity
                 if(recording&&++capturedFrames>=frameLimit){captureEndTick=city.Simulation.Tick;UnityEngine.Profiling.Profiler.enabled=false;UnityEngine.Profiling.Profiler.enableBinaryLog=false;recording=false;recorded=true;}
             }
             int endGen0=GC.CollectionCount(0),endGen1=GC.CollectionCount(1),endGen2=GC.CollectionCount(2);
+#if CITY_CORE_ATTRIBUTION
+            if(coreProfile){HarborCity.RoadCore.CityCoreProfile.Enabled=false;File.WriteAllText(Path.Combine(output,"core-profile.csv"),HarborCity.RoadCore.CityCoreProfile.Header()+"\n"+HarborCity.RoadCore.CityCoreProfile.Row(city.Simulation.Tick,city.Transport.ActiveCount,city.Transport.RoutePreparations,GC.CollectionCount(0)-gen0,GC.CollectionCount(1)-gen1,GC.CollectionCount(2)-gen2)+"\n");}
+#endif
             double elapsed=last-start;long endTick=city.Simulation.Tick;host.ScenarioRate(0);gc.Dispose();mainThread.Dispose();renderThread.Dispose();collect.Dispose();ui.Dispose();batches.Dispose();draws.Dispose();passes.Dispose();triangles.Dispose();
             if(raw){UnityEngine.Profiling.Profiler.enabled=false;UnityEngine.Profiling.Profiler.enableBinaryLog=false;}
             if(raw){if(recording){captureEndTick=city.Simulation.Tick;recorded=true;}File.WriteAllText(Path.Combine(output,"capture.json"),"{\"started\":"+(recorded?"true":"false")+",\"trigger_tick\":"+triggerTick+",\"start_tick\":"+captureStartTick+",\"end_tick\":"+captureEndTick+",\"observed_frames\":"+capturedFrames+",\"limit\":"+frameLimit+",\"note\":\"Partial diagnostic instrumentation; whole-window FPS is not normal uninstrumented performance.\"}");if(!recorded){File.WriteAllText(Path.Combine(output,"CaptureFailure.txt"),"Requested tick was not reached within bounded window");Application.Quit(1);yield break;}}
@@ -75,12 +104,12 @@ namespace HarborCity
                 city.Validate();byte[] final=CityCoreSave.Write(city);File.WriteAllBytes(Path.Combine(output,"final.hcity"),final);
                 if(Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-window-restore")>=0)
                 {
-                    var restored=CityCoreSave.Read(final);restored.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);
+                    var restored=CityCoreSave.Read(final);restored.Simulation.Growth.Zoning.SetSurface(host.ScenarioSurface);
                     for(int i=0;i<20;i++){double request=city.Simulation.PendingSeconds>=.05?0:.05;if(city.Simulation.Advance(request,1,double.PositiveInfinity)!=1||restored.Simulation.Advance(request,1,double.PositiveInfinity)!=1)throw new InvalidOperationException("Restore check lost a full step");}
                     city.Validate();restored.Validate();if(!CityCoreSave.Write(city).SequenceEqual(CityCoreSave.Write(restored)))throw new InvalidOperationException("Warm/cold whole-city debt continuation differs");
                     File.WriteAllText(Path.Combine(output,"RestoreResult.txt"),"PASS native Unity warm/cold 20 complete steps with saved pending debt, all city/transport/money/goods/waste state byte-identical. Outside timed window; final.hcity is original measured endpoint.\n");
                 }
-                File.WriteAllText(Path.Combine(output,"Result.txt"),"PASS normal host visible Player, loaded captured flat mature city; not mouse construction acceptance. GC pauses not measured.\n");
+                File.WriteAllText(Path.Combine(output,"Result.txt"),"PASS normal host visible Player, loaded captured city and saved map; not mouse construction acceptance. GC pauses not measured.\n");
             }
             catch(Exception e){File.WriteAllText(Path.Combine(output,"Result.txt"),e.ToString());Application.Quit(1);yield break;}
             ScreenCapture.CaptureScreenshot(Path.Combine(output,"window.png"));yield return new WaitForEndOfFrame();yield return null;

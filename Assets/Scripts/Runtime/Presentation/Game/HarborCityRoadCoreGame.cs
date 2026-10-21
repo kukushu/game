@@ -76,12 +76,15 @@ namespace HarborCity
         HarborCityBuildingViews buildingViews;
         bool hasStart;Point startPoint;bool building,oneWay,wide;int origin,destination;float speed=1;
         long previousTick;int lastSteps;
-        readonly CityPlayerStepBudget playerStepBudget=new CityPlayerStepBudget(InteractiveMaximumSteps);
+        CityPlayerStepBudget playerStepBudget=new CityPlayerStepBudget(InteractiveMaximumSteps);
         // Scheduling bounds, not simulation rules. At 60 FPS, 20x needs 6.67
         // complete .05s steps per frame; the old four-step cap prevented it.
         const int InteractiveMaximumSteps=32;
+        double interactiveMilliseconds=8;
         double actualRate=double.NaN,rateWallSeconds,rateSimulationSeconds;
         internal CityCoreIndustrySession ScenarioSession=>session;
+        bool scenarioSavedMap;
+        internal float ScenarioSurface(float x,float z)=>scenarioSavedMap?landscape.Height(x,z):CityScenarioBuilder.Flat(x,z);
         internal int ScenarioSteps=>lastSteps;
         internal float ScenarioCurrentRate=>speed;
         internal int ScenarioVehicleViews=>vehicleViews?.Count??0;
@@ -97,6 +100,11 @@ namespace HarborCity
         internal double ScenarioAdvanceMs,ScenarioVehicleMs,ScenarioStructureMs;
         internal double ScenarioRequestedSeconds;
         internal void ScenarioRate(float rate){playerStepBudget.Reset();speed=rate;previousTick=System.Diagnostics.Stopwatch.GetTimestamp();actualRate=rate==0?0:double.NaN;rateWallSeconds=rateSimulationSeconds=0;}
+        internal void ScenarioWorkBudget(int maximumSteps,double milliseconds)
+        {
+            if(!ScenarioMeasuring||speed!=0||maximumSteps<1||maximumSteps>128||!(milliseconds>=1&&milliseconds<=64))throw new InvalidOperationException("Work-budget overrides require a paused diagnostic window");
+            playerStepBudget=new CityPlayerStepBudget(maximumSteps);interactiveMilliseconds=milliseconds;
+        }
         static bool LegacyStateAbsent()=>typeof(CityModel).GetField("roads")==null&&typeof(CityModel).GetField("traffic")==null;
         string notice="";
         string SavePath=>Path.Combine(Application.persistentDataPath,session==null?"harbor-road-core-v15.hcrc":"harbor-city-core-v16.hcity");
@@ -120,9 +128,12 @@ namespace HarborCity
                 int index=Array.IndexOf(args,inspecting?"-harbor-city-inspect":"-harbor-city-scenario-window");
                 session=CityCoreSave.Read(File.ReadAllBytes(args[index+1]));world=session.Transport;
                 if(inspecting)session.City.map.ExpandForPlay();
-                foreach(int id in world.Network.RoadIds){var geometry=world.Network.Centreline(id);for(int i=0;i<geometry.Count;i++)if(Math.Abs(geometry[i].y-2)>1e-6)throw new InvalidOperationException("Scenario window accepts only the captured flat-height-2 city fixture");}
-                landscape=new GameObject("Scenario flat landscape").AddComponent<CityLandscape>();landscape.BuildDiagnosticFlat(2,session.City.map.terrainHalfSize);
-                session.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);
+                bool savedMap=Array.IndexOf(args,"-harbor-window-saved-map")>=0;
+                scenarioSavedMap=savedMap;
+                if(!savedMap)foreach(int id in world.Network.RoadIds){var geometry=world.Network.Centreline(id);for(int i=0;i<geometry.Count;i++)if(Math.Abs(geometry[i].y-2)>1e-6)throw new InvalidOperationException("Flat fixture required; use -harbor-window-saved-map for a player city");}
+                landscape=new GameObject("Scenario landscape").AddComponent<CityLandscape>();
+                if(savedMap)landscape.Build(session.City.map);else landscape.BuildDiagnosticFlat(2,session.City.map.terrainHalfSize);
+                session.Simulation.Growth.Zoning.SetSurface(ScenarioSurface);
                 constructionCamera=new HarborCityConstructionCamera(cameraView,landscape,session.City.map.buildHalfSize);
                 float mapScale=session.City.map.buildHalfSize/CityMapState.BuildHalfSize;cameraView.transform.position=new Vector3(0,260*mapScale,-185*mapScale);cameraView.transform.LookAt(new Vector3(0,2,0));
                 RenderBuildings();RenderZones();RenderUtilities();notice=localization.Get("ui.stage.current");speed=0;Application.runInBackground=true;
@@ -178,7 +189,7 @@ namespace HarborCity
                 {
                     int allowance=playerStepBudget.Request(seconds);
                     session.Simulation.RequestTime(seconds);
-                    lastSteps=allowance==0?0:session.Simulation.Advance(0,allowance,8);
+                    lastSteps=allowance==0?0:session.Simulation.Advance(0,allowance,interactiveMilliseconds);
                     playerStepBudget.Complete(lastSteps);
                 }
             }
