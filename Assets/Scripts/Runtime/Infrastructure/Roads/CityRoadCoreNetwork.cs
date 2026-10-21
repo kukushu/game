@@ -100,7 +100,7 @@ namespace HarborCity.RoadCore
         public bool IsConnection=>JunctionId!=0;
         public int LaneIndex=>IsConnection?-1:(int)((Id>>1)&31);
     }
-    public sealed class Network
+    public sealed partial class Network
     {
         readonly NetworkData data;
         readonly Dictionary<long,Drivable> drivables=new Dictionary<long,Drivable>(CityRoadKeyComparer.Instance);
@@ -291,6 +291,7 @@ namespace HarborCity.RoadCore
 #if CITY_CORE_ATTRIBUTION
             using var observation=CityCoreProfile.Measure(CityCoreProfile.Part.RouteSearch);
 #endif
+            using var routeObservation=DepotRoutingTrace.Start("original-dijkstra");
             selected=-1;var first=Get(start.lane);Get(goal.lane);
             if(!start.valid||first.IsConnection||start.distance<first.StartDistance||start.distance>first.EndDistance)return null;
             RoadAccess a=ValidCostAccess(goal)?goal:null,b=other!=null&&ValidCostAccess(other)?other:null;
@@ -310,6 +311,7 @@ namespace HarborCity.RoadCore
                 while(queue.Count>0)
                 {
                     var item=queue.Pop();if(item.cost>best)break;if(item.cost!=costs[item.id]||!settled.Add(item.id))continue;
+                    if(routeObservation!=null)routeObservation.expanded++;
                     var current=Get(item.id);List<Drivable> next;if(!outgoing.TryGetValue(current.To,out next))continue;
                     foreach(var lane in next)
                     {

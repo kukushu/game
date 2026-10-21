@@ -85,6 +85,25 @@ namespace HarborCity.RoadCore
         readonly Dictionary<int,Vehicle> vehiclesById=new Dictionary<int,Vehicle>();
         readonly Dictionary<int,RoadAccess> accesses=new Dictionary<int,RoadAccess>();
         readonly DispatchRoutes dispatchRoutes=new DispatchRoutes();
+        // Experiment opt-in; never serialized or enabled for ordinary play.
+        public bool DepotLaneRoutingEnabled {get;set;}
+        public readonly DepotLaneRouting DepotRoutes=new DepotLaneRouting();
+        DispatchBlueprint ServiceBlueprint(int depot,int destination,RoadAccess source,RoadAccess target)
+        {
+            int prior=DepotRoutingTrace.Depot;string direction=DepotRoutingTrace.Direction;DepotRoutingTrace.Depot=depot;DepotRoutingTrace.Direction="outbound";
+            try{using var sample=DepotRoutingTrace.Start("service-query");
+                if(DepotLaneRoutingEnabled&&DepotRoutes.TryFind(this,depot,source,target,false,out var path,out double start,out double end))return new DispatchBlueprint(Network,path,start,end);
+                return dispatchRoutes.Get(Network,depot,destination,source,target,true,business as IJunctionEndpointProvider);
+            }finally{DepotRoutingTrace.Depot=prior;DepotRoutingTrace.Direction=direction;}
+        }
+        List<long> ServiceReturn(int depot,long lane,double distance,RoadAccess target,out double end)
+        {
+            int prior=DepotRoutingTrace.Depot;string direction=DepotRoutingTrace.Direction;DepotRoutingTrace.Depot=depot;DepotRoutingTrace.Direction="return";
+            try{using var sample=DepotRoutingTrace.Start("service-query");
+                if(DepotLaneRoutingEnabled&&DepotRoutes.TryFind(this,depot,target,new RoadAccess{lane=lane,distance=distance},true,out var path,out _,out end))return path;
+                return AccessRouting.FromLane(Network,lane,distance,target,true,out end);
+            }finally{DepotRoutingTrace.Depot=prior;DepotRoutingTrace.Direction=direction;}
+        }
         readonly LostOccupancy lostOccupancy=new LostOccupancy();
         public long RoutePreparations=>dispatchRoutes.Preparations;
         public int CachedRoutes=>dispatchRoutes.Count;
@@ -157,7 +176,7 @@ namespace HarborCity.RoadCore
             var targetAccesses=new Dictionary<int,RoadAccess>();foreach(var access in proposed)targetAccesses.Add(access.endpoint,access);var remaps=new List<Remap>();var interrupted=new List<KeyValuePair<Vehicle,Point>>();
             foreach(var v in data.vehicles)
             {
-                if(v.status!=VehicleStatus.Active)continue;var old=Network.Get(v.Current);if(v.changeTarget!=0&&!candidate.Contains(v.changeTarget))throw new InvalidOperationException("æ­£åœ¨æ¢é“ä½¿ç”¨å¾…æ’¤è·¯é¢ï¼Œç­‰å¾…å®Œæˆåå†æ’¤é”€ï¼›åŸå¸‚æœªä¿®æ”¹ã€‚");
+                if(v.status!=VehicleStatus.Active)continue;var old=Network.Get(v.Current);if(v.changeTarget!=0&&!candidate.Contains(v.changeTarget))throw new InvalidOperationException("ÕıÔÚ»»µÀÊ¹ÓÃ´ı³·Â·Ãæ£¬µÈ´ıÍê³ÉºóÔÙ³·Ïú£»³ÇÊĞÎ´ĞŞ¸Ä¡£");
                 Point center=old.Geometry.Sample(v.distance);candidate.Project(center,1e-6,true,hits);SpatialHit? located=null;foreach(var hit in hits){var next=candidate.Get(hit.drivable);if(next.IsConnection!=old.IsConnection)continue;if(!next.IsConnection&&(next.LaneIndex!=old.LaneIndex||next.Reverse!=old.Reverse))continue;located=hit;break;}
                 if(!located.HasValue){interrupted.Add(new KeyValuePair<Vehicle,Point>(v,Position(v)));continue;}var current=candidate.Get(located.Value.drivable);long source=current.IsConnection?(uint)(-current.Id-1):current.Id;double start=current.IsConnection?candidate.Get(source).StartDistance:located.Value.distance,end=-1;List<long> route=null;RoadAccess goal;
                 if(targetAccesses.TryGetValue(v.Task.destination,out goal)&&goal.valid)route=AccessRouting.FromLane(candidate,source,start,goal,v.Task.purpose!=TransportPurpose.Freight,out end);
@@ -184,7 +203,7 @@ namespace HarborCity.RoadCore
         public RoadEditPlan PlanUpgradeRoad(int id,int lanes,double speed,RoadDirection direction)
         {
             var n=CopyNetwork();var road=n.roads.Find(r=>r.id==id);if(road==null)throw new ArgumentException("Missing road");road.lanes=lanes;road.speed=speed;road.direction=direction;var candidate=new Network(n,Network);
-            foreach(var v in data.vehicles)if(Network.Contains(v.Current)&&!candidate.Contains(v.Current)||v.changeTarget!=0&&!candidate.Contains(v.changeTarget))throw new InvalidOperationException("å¾…æ’¤æ–¹å‘/è½¦é“ä»æœ‰è½¦è¾†ï¼Œç­‰å¾…é©¶ç¦»åå†å‡çº§ï¼›åŸå¸‚æœªä¿®æ”¹ã€‚");
+            foreach(var v in data.vehicles)if(Network.Contains(v.Current)&&!candidate.Contains(v.Current)||v.changeTarget!=0&&!candidate.Contains(v.changeTarget))throw new InvalidOperationException("´ı³··½Ïò/³µµÀÈÔÓĞ³µÁ¾£¬µÈ´ıÊ»ÀëºóÔÙÉı¼¶£»³ÇÊĞÎ´ĞŞ¸Ä¡£");
             var proposed=new List<RoadAccess>();foreach(var original in data.accesses)
             {
                 var access=original.Copy();if(access.valid&&!candidate.Contains(access.lane))
@@ -318,7 +337,7 @@ namespace HarborCity.RoadCore
             if(data.nextTask>=int.MaxValue)throw new InvalidOperationException("Task IDs exhausted");
             var target=GetAccess(destination);if(!EndpointExists(destination)||target==null||!target.valid||(target.use&AccessUse.Freight)==0||Network.Get(v.Current).IsConnection||v.changeTarget!=0)return null;
             // FromLane may choose the destination curb, but never a different source.
-            var route=AccessRouting.FromLane(Network,v.Current,v.distance,target,true,out double end);if(route==null)return null;
+            var route=ServiceReturn(destination,v.Current,v.distance,target,out double end);if(route==null)return null;
             var task=new TripTask{id=data.nextTask,origin=arrival.destination,destination=destination,purpose=TransportPurpose.Service,departedAt=arrival.arrivedAt,Shipment=new Shipment{kind=CargoKind.Waste,remaining=amount}};
             return new ServiceContinuation(this,EditEpoch,v,arrival.taskId,task,new RoutePlan{segments=route,EndDistance=end});
         }
@@ -362,7 +381,7 @@ namespace HarborCity.RoadCore
             // reachable source used by AccessRouting.Find is blocked; never pick
             // a different route just because its departure lane happens to be free.
             if(purpose==TransportPurpose.Service&&source!=null&&target!=null&&ServiceSourceBlocked(source,target)){rejection=TransportRejection.SourceOccupied;return null;}
-            var blueprint=dispatchRoutes.Get(Network,origin,destination,source,target,purpose!=TransportPurpose.Freight,business as IJunctionEndpointProvider);var route=blueprint.route;double start=blueprint.start,end=blueprint.end;if(route==null||route.Length==0){rejection=TransportRejection.NoRoute;return null;}
+            var blueprint=purpose==TransportPurpose.Service&&source!=null&&target!=null?ServiceBlueprint(origin,destination,source,target):dispatchRoutes.Get(Network,origin,destination,source,target,purpose!=TransportPurpose.Freight,business as IJunctionEndpointProvider);var route=blueprint.route;double start=blueprint.start,end=blueprint.end;if(route==null||route.Length==0){rejection=TransportRejection.NoRoute;return null;}
             if(indexDirty)Reindex();List<LaneOccupant> bucket;
             if(occupancy.TryGetValue(route[0],out bucket)){int slot=InsertionSlot(bucket,start);if(slot>0&&bucket[slot-1].distance-start<MinimumSpacing||slot<bucket.Count&&start-bucket[slot].distance<MinimumSpacing){rejection=TransportRejection.SourceOccupied;return null;}}
             var entry=Network.Get(route[0]);int reservation=start<EntryReservationEnd(entry)-1e-9?entry.From:start>StopDistance(entry)+1e-9?entry.To:0;
@@ -450,7 +469,7 @@ namespace HarborCity.RoadCore
                 if(junction==0&&distance<lane.StartDistance+Math.Min(candidate.Clearance(lane),MinimumSpacing)-1e-9)junction=lane.From;
                 if(!lane.IsConnection&&distance>Math.Max(lane.StartDistance,lane.EndDistance-Math.Min(candidate.Clearance(lane),MinimumSpacing))+1e-9)junction=lane.To;
                 if(!candidate.IsConflictJunction(junction))continue;
-                long movement=vehicle.changeTarget!=0?0:Movement(candidate,route,cursor,lane,junction);if(!owners.CanReserve(junction,movement,vehicle.id))throw new InvalidOperationException("æ–½å·¥èŠ‚ç‚¹å®‰å…¨åŒºå†…æœ‰å†²çªè½¦è¾†ï¼Œè¯·ç­‰å¾…å®ƒä»¬é©¶ç¦»åé‡è¯•ï¼›é“è·¯å’Œä»»åŠ¡æœªä¿®æ”¹ã€‚");owners.Reserve(junction,movement,vehicle.id);
+                long movement=vehicle.changeTarget!=0?0:Movement(candidate,route,cursor,lane,junction);if(!owners.CanReserve(junction,movement,vehicle.id))throw new InvalidOperationException("Ê©¹¤½Úµã°²È«ÇøÄÚÓĞ³åÍ»³µÁ¾£¬ÇëµÈ´ıËüÃÇÊ»ÀëºóÖØÊÔ£»µÀÂ·ºÍÈÎÎñÎ´ĞŞ¸Ä¡£");owners.Reserve(junction,movement,vehicle.id);
             }
         }
         public int Advance(double simulationSeconds)
