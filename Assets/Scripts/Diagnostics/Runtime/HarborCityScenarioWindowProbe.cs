@@ -196,7 +196,7 @@ namespace HarborCity
         }
         void RoadMemory(List<string> rows,string phase)
         {
-            var roads=UnityEngine.Object.FindObjectsByType<MeshFilter>(FindObjectsSortMode.None).Where(r=>r.name.StartsWith("Road chunk ",StringComparison.Ordinal)||r.name.StartsWith("Shared lane geometry ",StringComparison.Ordinal));long vertices=0,triangles=0,bytes=0;int count=0;
+            var roads=UnityEngine.Object.FindObjectsByType<MeshFilter>(FindObjectsInactive.Include,FindObjectsSortMode.None).Where(r=>r.name.StartsWith("Road chunk ",StringComparison.Ordinal)||r.name.StartsWith("Shared lane geometry ",StringComparison.Ordinal));long vertices=0,triangles=0,bytes=0;int count=0;
             foreach(var r in roads){var mesh=r.sharedMesh;if(mesh==null)continue;vertices+=mesh.vertexCount;triangles+=(long)mesh.GetIndexCount(0)/3;bytes+=UnityEngine.Profiling.Profiler.GetRuntimeMemorySizeLong(mesh);count++;}
             if(count!=host.ScenarioRoadRenderers)throw new InvalidOperationException("Actual chunk renderer count does not match ownership");
             rows.Add(string.Join(",",phase,host.ScenarioRoadViews,count,vertices,triangles,bytes,GC.GetTotalMemory(false),UnityEngine.Profiling.Profiler.GetTotalAllocatedMemoryLong()));

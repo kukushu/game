@@ -3,6 +3,7 @@ $ErrorActionPreference='Stop'
 if($AdditionalWarmSteps -gt 0 -and -not $PrewarmDepotTrees){throw 'Additional warm steps require prewarmed depots'}
 if($PrewarmDepotTrees -and (-not $SharedWarmup -or -not $DepotJunctionRouting)){throw 'PrewarmDepotTrees requires SharedWarmup and DepotJunctionRouting'}
 if($RoadViewEdit -and $RoutingEdit){throw 'Choose one edit probe'}
+if($RoadViewEdit -and $RoadViewMode -ne 'normal'){throw 'Road edits cannot be combined with a one-time road visibility ablation'}
 if($RoutingEdit -and -not $DepotJunctionRouting){throw 'RoutingEdit requires the junction experiment flag'}
 if($RoutingReference -and ($DepotJunctionRouting -or $JunctionTrace)){throw 'Frozen routing reference cannot enable the current experiment'}
 if($DepotLaneReference -and (-not $SkipBuild -or $DepotJunctionRouting)){throw 'Lane reference requires its prebuilt independent binary and SkipBuild; cannot combine algorithms'}
