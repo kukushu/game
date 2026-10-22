@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
@@ -60,8 +60,8 @@ namespace HarborCity
             if(roadMode!="normal")
             {
                 if(roadMode!="renderers-off"&&roadMode!="inactive"&&roadMode!="shadows-off")throw new ArgumentException("Unknown diagnostic road-view mode");
-                var renderers=UnityEngine.Object.FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None).Where(r=>r.name.StartsWith("Shared lane geometry ",StringComparison.Ordinal)).ToArray();
-                if(renderers.Length!=host.ScenarioRoadViews)throw new InvalidOperationException("Road ablation did not identify exactly the owned road views");
+                var renderers=UnityEngine.Object.FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None).Where(r=>(r.name.StartsWith("Shared lane geometry ",StringComparison.Ordinal)||r.name.StartsWith("Road chunk ",StringComparison.Ordinal))).ToArray();
+                if(renderers.Length!=host.ScenarioRoadRenderers)throw new InvalidOperationException("Road ablation did not identify exactly the owned road views");
                 foreach(var renderer in renderers){if(roadMode=="renderers-off")renderer.enabled=false;else if(roadMode=="inactive")renderer.gameObject.SetActive(false);else{renderer.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;renderer.receiveShadows=false;}}
                 File.WriteAllText(Path.Combine(output,"road-ablation.csv"),"mode,road_objects\n"+roadMode+","+renderers.Length+"\n");
             }
@@ -79,6 +79,8 @@ namespace HarborCity
             city.Transport.JunctionRoutes.Trace=Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-junction-trace")>=0;
             var initialCache=city.Transport.JunctionRoutes;
             long initialBuilds=initialCache.Builds,initialExpanded=initialCache.Expanded,initialQueries=initialCache.Queries,initialHits=initialCache.Hits,initialMisses=initialCache.Misses,initialInvalidations=initialCache.Invalidations,initialEvictions=initialCache.Evictions;
+            var roadMemory=new List<string>{"phase,drivables,renderers,vertices,triangles,mesh_runtime_bytes,managed_live_bytes,unity_allocated_bytes"};
+            RoadMemory(roadMemory,"start");
             long startTick=city.Simulation.Tick;
             double startPending=city.Simulation.PendingSeconds;
             var frames=new List<double>(5000);var rows=new List<Sample>(5000);
@@ -148,7 +150,8 @@ namespace HarborCity
             File.WriteAllLines(Path.Combine(output,"frames.csv"),new[]{"real_seconds,frame_ms,gc_bytes,tick,fixed_steps,active_vehicles,vehicle_views,advance_ms,vehicle_sync_ms,structure_sync_ms,pending_seconds,main_thread_ns,render_thread_ns,gc_collect_ns,gpu_ms,ui_ns,requested_seconds,batches,draw_calls,setpass_calls,triangles,actual_rate"}.Concat(rows.Select(r=>string.Join(",",r.seconds.ToString("R",CultureInfo.InvariantCulture),r.ms.ToString("R",CultureInfo.InvariantCulture),r.bytes,r.tick,r.steps,r.active,r.views,r.advance,r.vehicles,r.structure,r.pending,r.mainNs,r.renderNs,r.gcNs,r.gpu,r.uiNs,r.requested,r.batches,r.drawCalls,r.setPass,r.triangles,r.rate))));
             File.WriteAllText(Path.Combine(output,"clock-balance.json"),"{\"initial_pending_seconds\":"+startPending.ToString("R",CultureInfo.InvariantCulture)+",\"requested_seconds\":"+rows.Sum(r=>r.requested).ToString("R",CultureInfo.InvariantCulture)+",\"completed_steps\":"+(endTick-startTick)+",\"final_pending_seconds\":"+endPending.ToString("R",CultureInfo.InvariantCulture)+",\"balance_error_seconds\":"+balanceError.ToString("R",CultureInfo.InvariantCulture)+"}");
             File.WriteAllText(Path.Combine(output,"attribution.json"),"{\"advance_mean_ms\":"+rows.Average(r=>r.advance).ToString("R",CultureInfo.InvariantCulture)+",\"vehicle_sync_mean_ms\":"+rows.Average(r=>r.vehicles).ToString("R",CultureInfo.InvariantCulture)+",\"structure_sync_mean_ms\":"+rows.Average(r=>r.structure).ToString("R",CultureInfo.InvariantCulture)+",\"max_pending_seconds\":"+rows.Max(r=>r.pending).ToString("R",CultureInfo.InvariantCulture)+",\"note\":\"Stopwatch host scopes are current Update. ProfilerRecorder and GPU timings may lag; unavailable is -1. Main Thread can include waits; GC.Collect marker is not a proven complete pause total. This probe does not budget or discard steps.\"}");
-            File.WriteAllText(Path.Combine(output,"summary.csv"),"input_sha256,rate,real_seconds,start_tick,end_tick,sim_ratio,fps,p95_ms,p99_ms,max_ms,gc_bytes_per_frame,gc_samples,gen0,gen1,gen2,peak_vehicles,max_steps_frame,building_views,population,zone_plots,zone_renderers,road_views,utility_views,created_vehicle_views,reused_vehicle_views,inactive_vehicle_views\n"+string.Join(",",hash,rate,elapsed,startTick,endTick,(endTick-startTick)*.05/elapsed,frames.Count/elapsed,p95,p99,frames.Last(),gcSamples==frames.Count?(double)allocated/gcSamples:-1,gcSamples,endGen0-gen0,endGen1-gen1,endGen2-gen2,peak,maxSteps,host.ScenarioBuildingViews,city.City.population,host.ScenarioZonePlots,host.ScenarioZoneRenderers,host.ScenarioRoadViews,host.ScenarioUtilityViews,host.ScenarioCreatedVehicleViews,host.ScenarioReusedVehicleViews,host.ScenarioPooledVehicles));
+            File.WriteAllText(Path.Combine(output,"summary.csv"),"input_sha256,rate,real_seconds,start_tick,end_tick,sim_ratio,fps,p95_ms,p99_ms,max_ms,gc_bytes_per_frame,gc_samples,gen0,gen1,gen2,peak_vehicles,max_steps_frame,building_views,population,zone_plots,zone_renderers,road_views,utility_views,created_vehicle_views,reused_vehicle_views,inactive_vehicle_views,road_renderers,road_chunk_size\n"+string.Join(",",hash,rate,elapsed,startTick,endTick,(endTick-startTick)*.05/elapsed,frames.Count/elapsed,p95,p99,frames.Last(),gcSamples==frames.Count?(double)allocated/gcSamples:-1,gcSamples,endGen0-gen0,endGen1-gen1,endGen2-gen2,peak,maxSteps,host.ScenarioBuildingViews,city.City.population,host.ScenarioZonePlots,host.ScenarioZoneRenderers,host.ScenarioRoadViews,host.ScenarioUtilityViews,host.ScenarioCreatedVehicleViews,host.ScenarioReusedVehicleViews,host.ScenarioPooledVehicles,host.ScenarioRoadRenderers,host.ScenarioRoadChunkSize));
+            RoadMemory(roadMemory,"end");File.WriteAllLines(Path.Combine(output,"road-memory.csv"),roadMemory);
             // Validation and disk output are outside the measured window.
             yield return null;
             if(city.Simulation.Tick!=endTick||city.Simulation.PendingSeconds!=endPending)throw new InvalidOperationException("Paused host silently drains saved debt");
@@ -167,6 +170,13 @@ namespace HarborCity
             catch(Exception e){File.WriteAllText(Path.Combine(output,"Result.txt"),e.ToString());Application.Quit(1);yield break;}
             ScreenCapture.CaptureScreenshot(Path.Combine(output,"window.png"));yield return new WaitForEndOfFrame();yield return null;
             Debug.Log("Harbor window probe: validation/output complete; requesting Player shutdown");Application.Quit(0);
+        }
+        void RoadMemory(List<string> rows,string phase)
+        {
+            var roads=UnityEngine.Object.FindObjectsByType<MeshFilter>(FindObjectsSortMode.None).Where(r=>r.name.StartsWith("Road chunk ",StringComparison.Ordinal)||r.name.StartsWith("Shared lane geometry ",StringComparison.Ordinal));long vertices=0,triangles=0,bytes=0;int count=0;
+            foreach(var r in roads){var mesh=r.sharedMesh;if(mesh==null)continue;vertices+=mesh.vertexCount;triangles+=(long)mesh.GetIndexCount(0)/3;bytes+=UnityEngine.Profiling.Profiler.GetRuntimeMemorySizeLong(mesh);count++;}
+            if(count!=host.ScenarioRoadRenderers)throw new InvalidOperationException("Actual chunk renderer count does not match ownership");
+            rows.Add(string.Join(",",phase,host.ScenarioRoadViews,count,vertices,triangles,bytes,GC.GetTotalMemory(false),UnityEngine.Profiling.Profiler.GetTotalAllocatedMemoryLong()));
         }
         const double WorldStepSeconds=HarborCity.RoadCore.World.StepSeconds;
     }

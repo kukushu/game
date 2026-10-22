@@ -13,19 +13,15 @@ namespace HarborCity
         static void Check(bool ok,string message){checks++;if(!ok)throw new Exception(message);}
         static void Geometry(World world,HarborCityRoadViews views,Func<float,float,float> ground)
         {
-            foreach(var d in world.Network.Drivables)
-            {
-                if(d.TravelLength<1e-8)continue;var go=views.Instance(d.Id);Check(go!=null,"Missing true drivable view");var expected=HarborCitySurfaceMesh.Ribbon(d.Geometry,d.StartDistance,d.EndDistance,ground);var actual=go.GetComponent<MeshFilter>().sharedMesh;
-                Check(expected.vertices.SequenceEqual(actual.vertices)&&expected.triangles.SequenceEqual(actual.triangles)&&expected.normals.SequenceEqual(actual.normals)&&expected.uv.SequenceEqual(actual.uv),"Incremental road mesh differs from full frozen Ribbon operation");UnityEngine.Object.DestroyImmediate(expected);
-            }
+            var result=HarborCityRoadGeometryChecks.Verify(world,views,ground,views.RenderObjects.First().GetComponent<Renderer>().sharedMaterial,HarborCitySurfaceMesh.Ribbon);Check(result.checks>0,"No native geometry checks");
         }
         public static void Run()
         {
             var material=new Material(Resources.Load<Shader>("RoadCore"));var views=new HarborCityRoadViews(material);Func<float,float,float> ground=(x,z)=>2+x*.002f+z*.001f;var world=new World();
             int a=world.AddJunction(new Point(-30,2,0)),b=world.AddJunction(new Point(0,2,0)),c=world.AddJunction(new Point(30,2,0));int road=world.AddRoad(a,b,new[]{world.JunctionPosition(a),world.JunctionPosition(b)});world.AddRoad(b,c,new[]{world.JunctionPosition(b),world.JunctionPosition(c)});
-            views.Sync(world,ground);Geometry(world,views,ground);var before=SaveCodec.Write(world);int created=views.Created;var ids=world.Network.Drivables.Where(d=>d.TravelLength>=1e-8).ToDictionary(d=>d.Id,d=>views.Instance(d.Id));
+            views.Sync(world,ground);Geometry(world,views,ground);var before=SaveCodec.Write(world);int created=views.Created;var ids=views.RenderObjects.ToDictionary(go=>go.name,go=>go);
             for(int i=0;i<20;i++)views.Sync(world,ground);Check(views.Created==created&&before.SequenceEqual(SaveCodec.Write(world)),"Repeated sync rebuilt views or changed world");
-            int x=world.AddJunction(new Point(-30,2,30)),y=world.AddJunction(new Point(30,2,30));world.AddRoad(x,y,new[]{world.JunctionPosition(x),world.JunctionPosition(y)});views.Sync(world,ground);foreach(var pair in ids)Check(ReferenceEquals(pair.Value,views.Instance(pair.Key)),"Independent edit recreated old object");Geometry(world,views,ground);
+            int x=world.AddJunction(new Point(230,2,230)),y=world.AddJunction(new Point(250,2,230));world.AddRoad(x,y,new[]{world.JunctionPosition(x),world.JunctionPosition(y)});views.Sync(world,ground);foreach(var pair in ids)Check(views.RenderObjects.Any(go=>go.name==pair.Key&&ReferenceEquals(go,pair.Value)),"Independent edit recreated old object");Geometry(world,views,ground);
             world.SplitRoadAt(road,14);views.Sync(world,ground);Geometry(world,views,ground);world.RemoveRoad(road);views.Sync(world,ground);Geometry(world,views,ground);
             var plan=world.PlanUpgradeRoad(2,2,12,RoadDirection.Both);Check(plan.TryCommit(),"Widen fixture did not commit");views.Sync(world,ground);Geometry(world,views,ground);
             Func<float,float,float> changed=(u,v)=>ground(u,v)+.25f;views.Sync(world,changed);Geometry(world,views,changed);

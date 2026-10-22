@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -95,6 +95,9 @@ namespace HarborCity
         internal int ScenarioZonePlots=>zoningViews?.PlotCount??0;
         internal int ScenarioZoneRenderers=>zoningViews?.RendererCount??0;
         internal int ScenarioRoadViews=>roadViews?.Count??0;
+        internal int ScenarioRoadRenderers=>roadViews?.RendererCount??0;
+        internal int ScenarioRoadChunkSize=>roadViews?.ChunkSize??0;
+        internal void ScenarioRefreshRoads(){if(!ScenarioMeasuring)throw new InvalidOperationException("Diagnostic road refresh outside measurement");RenderRoads();}
         internal int ScenarioUtilityViews=>utilityViews.Count;
         internal bool ScenarioMeasuring;
         internal double ScenarioAdvanceMs,ScenarioVehicleMs,ScenarioStructureMs;
@@ -276,7 +279,7 @@ namespace HarborCity
         }
         void RenderRoads()
         {
-            if(roadViews==null)roadViews=new HarborCityRoadViews(roadMaterial);
+            if(roadViews==null){int chunk=64;var args=Environment.GetCommandLineArgs();int flag=Array.IndexOf(args,"-harbor-road-chunk-size");if(ScenarioMeasuring&&flag>=0)chunk=int.Parse(args[flag+1],System.Globalization.CultureInfo.InvariantCulture);roadViews=new HarborCityRoadViews(roadMaterial,chunk);}
             roadViews.Sync(world,landscape==null?null:landscape.Height);
         }
         void RenderBuildings()

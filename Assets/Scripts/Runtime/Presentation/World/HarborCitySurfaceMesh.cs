@@ -19,6 +19,14 @@ namespace HarborCity
         public static Mesh Ribbon(Geometry g, double start, double end, Func<float,float,float> height)
         {
             var vertices=new List<Vector3>();
+            RibbonVertices(g,start,end,height,vertices);
+            var indices=new int[Math.Max(0,vertices.Count/2-1)*6];
+            for(int i=0;i<indices.Length/6;i++){int a=i*2,b=i*6;indices[b]=a;indices[b+1]=a+2;indices[b+2]=a+1;indices[b+3]=a+1;indices[b+4]=a+2;indices[b+5]=a+3;}
+            var mesh=new Mesh();mesh.SetVertices(vertices);mesh.triangles=indices;mesh.RecalculateNormals();return mesh;
+        }
+        // Same ribbon samples, without a temporary Mesh. Caller supplies an empty buffer.
+        internal static void RibbonVertices(Geometry g,double start,double end,Func<float,float,float> height,List<Vector3> vertices)
+        {
             for(int segment=1;segment<g.Count;segment++)
             {
                 double lo=Math.Max(start,g.At(segment-1)),hi=Math.Min(end,g.At(segment));if(hi<=lo)continue;
@@ -32,9 +40,6 @@ namespace HarborCity
                     vertices.Add(a);vertices.Add(b);
                 }
             }
-            var indices=new int[Math.Max(0,vertices.Count/2-1)*6];
-            for(int i=0;i<indices.Length/6;i++){int a=i*2,b=i*6;indices[b]=a;indices[b+1]=a+2;indices[b+2]=a+1;indices[b+3]=a+1;indices[b+4]=a+2;indices[b+5]=a+3;}
-            var mesh=new Mesh();mesh.SetVertices(vertices);mesh.triangles=indices;mesh.RecalculateNormals();return mesh;
         }
         public static Mesh Plot(CityBuilding pose,Func<float,float,float> height)
         {

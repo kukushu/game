@@ -30,7 +30,7 @@ for number in metadata.get('rates', [1, 3]):
         assert (folder / 'cache-window.csv').is_file(), 'Missing measured-only cache counters'
     if metadata.get('roadViewMode', 'normal') != 'normal':
         ablation = next(csv.DictReader((folder / 'road-ablation.csv').read_text().splitlines()))
-        assert ablation['mode'] == metadata['roadViewMode'] and int(ablation['road_objects']) == int(result['road_views']), 'Unverified road-view ablation'
+        assert ablation['mode'] == metadata['roadViewMode'] and int(ablation['road_objects']) == int(result.get('road_renderers',result['road_views'])), 'Unverified road-view ablation'
     previous = int(result['start_tick'])
     for row in rows:
         if 'actual_rate' in row:
