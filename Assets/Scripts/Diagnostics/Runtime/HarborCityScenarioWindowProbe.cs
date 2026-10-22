@@ -114,7 +114,7 @@ namespace HarborCity
             int gen0=GC.CollectionCount(0),gen1=GC.CollectionCount(1),gen2=GC.CollectionCount(2);
             while(Time.realtimeSinceStartupAsDouble-start<duration)
             {
-                if(roadEdit&&!roadEdited&&Time.realtimeSinceStartupAsDouble-start>=5)
+                if(roadEdit&&!roadEdited&&Time.realtimeSinceStartupAsDouble-start>=(raw?1:5))
                 {
                     roadEdited=true;bool accepted=false;int paid=0;string error="";double syncMs=0;int made=0,removed=0;
                     var watch=System.Diagnostics.Stopwatch.StartNew();
