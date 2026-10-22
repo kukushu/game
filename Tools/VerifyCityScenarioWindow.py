@@ -24,6 +24,13 @@ for number in metadata.get('rates', [1, 3]):
     assert not resources.get('terminatedBy'), 'Measurement may exist but Player did not exit normally'
     assert (folder / 'window.png').is_file() and (folder / 'final.hcity').stat().st_size > 0
     assert result['input_sha256'].lower() == metadata['inputHash'].lower(), 'Different city input'
+    if metadata.get('prewarmDepotTrees'):
+        warm_cache = next(csv.DictReader((folder / 'cache-prewarm.csv').read_text().splitlines()))
+        assert int(warm_cache['depots']) > 0 and int(warm_cache['builds']) == 2 * int(warm_cache['depots']), 'Missing full bidirectional depot prewarm'
+        assert (folder / 'cache-window.csv').is_file(), 'Missing measured-only cache counters'
+    if metadata.get('roadViewMode', 'normal') != 'normal':
+        ablation = next(csv.DictReader((folder / 'road-ablation.csv').read_text().splitlines()))
+        assert ablation['mode'] == metadata['roadViewMode'] and int(ablation['road_objects']) == int(result['road_views']), 'Unverified road-view ablation'
     previous = int(result['start_tick'])
     for row in rows:
         if 'actual_rate' in row:
@@ -70,3 +77,5 @@ for number in metadata.get('rates', [1, 3]):
 print('No mouse acceptance or economic-health/performance-threshold claim.')
 if metadata.get('hostSource'):
     print('Diagnostic presentation source override: this is an ablation/control, not full normal rendering performance.')
+if metadata.get('roadViewMode', 'normal') != 'normal':
+    print('Road-view ablation: diagnostic evidence only, not a normal-rendering optimization result.')
