@@ -50,6 +50,12 @@ namespace HarborCity
                 watch.Stop();if(!before.SequenceEqual(CityCoreSave.Write(warmSession)))throw new InvalidOperationException("Cache prewarm changed saved city facts");
                 File.WriteAllText(Path.Combine(output,"cache-prewarm.csv"),"depots,builds,expanded,tree_bytes,wall_ms\n"+string.Join(",",depots,cache.Builds,cache.Expanded,cache.TreeBytes,watch.Elapsed.TotalMilliseconds.ToString("R",CultureInfo.InvariantCulture)));
             }
+            int extraFlag=Array.IndexOf(warmArgs,"-harbor-window-extra-warm-steps");
+            if(extraFlag>=0)
+            {
+                int extra=int.Parse(warmArgs[extraFlag+1],CultureInfo.InvariantCulture);if(!prewarm||extra<0||extra>20000)throw new ArgumentException("Additional steady warmup requires prewarmed depots and a bounded step count");
+                for(int i=0;i<extra;i++){if(warmSession.Simulation.Advance(.05,1,double.PositiveInfinity)!=1)throw new InvalidOperationException("Warm step lost");if(i%32==31)yield return null;}
+            }
             string roadMode="normal";int modeFlag=Array.IndexOf(warmArgs,"-harbor-window-road-views");if(modeFlag>=0)roadMode=warmArgs[modeFlag+1];
             if(roadMode!="normal")
             {
