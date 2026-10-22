@@ -33,6 +33,32 @@ namespace HarborCity
                 var warmCity=host.ScenarioSession;
                 for(int i=0;i<200;i++){warmCity.Simulation.Advance(.05,1,double.PositiveInfinity);if(i%10==9)yield return null;}
             }
+            var warmArgs=Environment.GetCommandLineArgs();var warmSession=host.ScenarioSession;
+            bool prewarm=Array.IndexOf(warmArgs,"-harbor-window-prewarm-depots")>=0;
+            bool experiment=Array.IndexOf(warmArgs,"-harbor-depot-junction-routing")>=0;
+            if(prewarm)
+            {
+                if(!sharedWarmup||!experiment)throw new InvalidOperationException("Depot prewarm needs shared warmup and the junction experiment");
+                byte[] before=CityCoreSave.Write(warmSession);warmSession.Transport.DepotJunctionRoutingEnabled=true;
+                var cache=warmSession.Transport.JunctionRoutes;var watch=System.Diagnostics.Stopwatch.StartNew();int depots=0;
+                foreach(var plant in warmSession.City.buildings.OfType<LandfillBuilding>().OrderBy(p=>p.id))
+                {
+                    var access=warmSession.Transport.GetAccess(plant.id);if(access==null||!access.valid)continue;
+                    cache.StateCost(warmSession.Transport.Network,plant.id,access,0,false);cache.StateCost(warmSession.Transport.Network,plant.id,access,0,true);depots++;
+                    if(depots%8==0)yield return null;
+                }
+                watch.Stop();if(!before.SequenceEqual(CityCoreSave.Write(warmSession)))throw new InvalidOperationException("Cache prewarm changed saved city facts");
+                File.WriteAllText(Path.Combine(output,"cache-prewarm.csv"),"depots,builds,expanded,tree_bytes,wall_ms\n"+string.Join(",",depots,cache.Builds,cache.Expanded,cache.TreeBytes,watch.Elapsed.TotalMilliseconds.ToString("R",CultureInfo.InvariantCulture)));
+            }
+            string roadMode="normal";int modeFlag=Array.IndexOf(warmArgs,"-harbor-window-road-views");if(modeFlag>=0)roadMode=warmArgs[modeFlag+1];
+            if(roadMode!="normal")
+            {
+                if(roadMode!="renderers-off"&&roadMode!="inactive"&&roadMode!="shadows-off")throw new ArgumentException("Unknown diagnostic road-view mode");
+                var renderers=UnityEngine.Object.FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None).Where(r=>r.name.StartsWith("Shared lane geometry ",StringComparison.Ordinal)).ToArray();
+                if(renderers.Length!=host.ScenarioRoadViews)throw new InvalidOperationException("Road ablation did not identify exactly the owned road views");
+                foreach(var renderer in renderers){if(roadMode=="renderers-off")renderer.enabled=false;else if(roadMode=="inactive")renderer.gameObject.SetActive(false);else{renderer.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;renderer.receiveShadows=false;}}
+                File.WriteAllText(Path.Combine(output,"road-ablation.csv"),"mode,road_objects\n"+roadMode+","+renderers.Length+"\n");
+            }
             double warm=Time.realtimeSinceStartupAsDouble;
             while(Time.realtimeSinceStartupAsDouble-warm<8)yield return null;
             if(sharedWarmup)
@@ -45,6 +71,8 @@ namespace HarborCity
             bool junctionRouting=Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-depot-junction-routing")>=0;
             city.Transport.DepotJunctionRoutingEnabled=junctionRouting;
             city.Transport.JunctionRoutes.Trace=Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-junction-trace")>=0;
+            var initialCache=city.Transport.JunctionRoutes;
+            long initialBuilds=initialCache.Builds,initialExpanded=initialCache.Expanded,initialQueries=initialCache.Queries,initialHits=initialCache.Hits,initialMisses=initialCache.Misses,initialInvalidations=initialCache.Invalidations,initialEvictions=initialCache.Evictions;
             long startTick=city.Simulation.Tick;
             double startPending=city.Simulation.PendingSeconds;
             var frames=new List<double>(5000);var rows=new List<Sample>(5000);
@@ -100,6 +128,7 @@ namespace HarborCity
 #endif
             if(routingEdit)File.WriteAllLines(Path.Combine(output,"routing-edit.csv"),editRows);
             var jr=city.Transport.JunctionRoutes;
+            File.WriteAllText(Path.Combine(output,"cache-window.csv"),"builds,expanded,queries,hits,misses,invalidations,evictions\n"+string.Join(",",jr.Builds-initialBuilds,jr.Expanded-initialExpanded,jr.Queries-initialQueries,jr.Hits-initialHits,jr.Misses-initialMisses,jr.Invalidations-initialInvalidations,jr.Evictions-initialEvictions));
             File.WriteAllText(Path.Combine(output,"junction-routing.csv"),jr.TraceCsv());
             File.WriteAllText(Path.Combine(output,"junction-cache.csv"),"nodes,lanes,entries,tree_bytes,graph_payload_estimate,queries,hits,misses,evictions,invalidations,local_checks,fallbacks,unreachable,builds,expanded,topology_only_nodes,fallback_invalid,fallback_inactive,fallback_budget,fallback_ms\n"+string.Join(",",jr.Nodes,jr.Lanes,jr.Count,jr.TreeBytes,jr.GraphPayloadEstimate,jr.Queries,jr.Hits,jr.Misses,jr.Evictions,jr.Invalidations,jr.LocalChecks,jr.Fallbacks,jr.Unreachable,jr.Builds,jr.Expanded,jr.TopologyOnlyNodes,jr.InvalidAccessFallbacks,jr.InactiveDepotFallbacks,jr.BudgetFallbacks,jr.FallbackMilliseconds));
             double elapsed=last-start;long endTick=city.Simulation.Tick;host.ScenarioRate(0);gc.Dispose();mainThread.Dispose();renderThread.Dispose();collect.Dispose();ui.Dispose();batches.Dispose();draws.Dispose();passes.Dispose();triangles.Dispose();
