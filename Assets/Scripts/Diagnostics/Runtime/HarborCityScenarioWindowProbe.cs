@@ -79,7 +79,7 @@ namespace HarborCity
             city.Transport.JunctionRoutes.Trace=Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-junction-trace")>=0;
             var initialCache=city.Transport.JunctionRoutes;
             long initialBuilds=initialCache.Builds,initialExpanded=initialCache.Expanded,initialQueries=initialCache.Queries,initialHits=initialCache.Hits,initialMisses=initialCache.Misses,initialInvalidations=initialCache.Invalidations,initialEvictions=initialCache.Evictions;
-            var roadMemory=new List<string>{"phase,drivables,renderers,vertices,triangles,mesh_runtime_bytes,managed_live_bytes,unity_allocated_bytes"};
+            var roadMemory=new List<string>{"phase,drivables,renderers,vertices,triangles,mesh_runtime_bytes,managed_gc_bytes,unity_allocated_bytes"};
             RoadMemory(roadMemory,"start");
             long startTick=city.Simulation.Tick;
             double startPending=city.Simulation.PendingSeconds;
@@ -105,6 +105,8 @@ namespace HarborCity
             int frameLimit=60;long triggerTick=0;int option=Array.IndexOf(arguments,"-harbor-raw-frame-limit");if(option>=0)frameLimit=int.Parse(arguments[option+1],CultureInfo.InvariantCulture);
             option=Array.IndexOf(arguments,"-harbor-raw-start-tick");if(option>=0)triggerTick=long.Parse(arguments[option+1],CultureInfo.InvariantCulture);
             if(frameLimit<5||frameLimit>120||triggerTick<0)throw new ArgumentOutOfRangeException("Bounded raw frame capture");
+            bool roadEdit=Array.IndexOf(arguments,"-harbor-window-road-edit")>=0,roadEdited=false;
+            var roadEditRows=new List<string>{"tick,accepted,paid,plan_commit_ms,road_sync_ms,created_renderers,removed_renderers,logical_drivables,renderers,error"};
             bool routingEdit=Array.IndexOf(arguments,"-harbor-window-routing-edit")>=0;
             var editRows=new List<string>{"tick,accepted,paid,transaction_ms,error"};int editAttempts=0;bool editSucceeded=false;double nextEdit=5;
             bool recording=false,recorded=false;int capturedFrames=0;long captureStartTick=0,captureEndTick=0;
@@ -112,6 +114,26 @@ namespace HarborCity
             int gen0=GC.CollectionCount(0),gen1=GC.CollectionCount(1),gen2=GC.CollectionCount(2);
             while(Time.realtimeSinceStartupAsDouble-start<duration)
             {
+                if(roadEdit&&!roadEdited&&Time.realtimeSinceStartupAsDouble-start>=5)
+                {
+                    roadEdited=true;bool accepted=false;int paid=0;string error="";double syncMs=0;int made=0,removed=0;
+                    var watch=System.Diagnostics.Stopwatch.StartNew();
+                    try
+                    {
+                        float half=city.City.map.buildHalfSize,x=half-32,z=half-40;
+                        var plan=city.Transport.PlanConnectedRoad(new[]{new HarborCity.RoadCore.Point(x,host.ScenarioSurface(x,z),z),new HarborCity.RoadCore.Point(x,host.ScenarioSurface(x,z+12),z+12)},lanes:2);
+                        city.Construction.CheckRoadPlacement(plan);accepted=city.Construction.Commit(plan,out paid);watch.Stop();
+                        if(accepted)
+                        {
+                            var actors=city.Transport.Vehicles.Select(v=>new{vehicle=v,position=city.Transport.Position(v)}).ToArray();int created=host.ScenarioRoadCreated,released=host.ScenarioRoadRemoved;
+                            var sync=System.Diagnostics.Stopwatch.StartNew();host.ScenarioRefreshRoads();sync.Stop();syncMs=sync.Elapsed.TotalMilliseconds;made=host.ScenarioRoadCreated-created;removed=host.ScenarioRoadRemoved-released;
+                            foreach(var actor in actors)if(HarborCity.RoadCore.Point.Distance(actor.position,city.Transport.Position(actor.vehicle))!=0)throw new InvalidOperationException("Road display moved a real actor");
+                        }
+                    }
+                    catch(Exception e){error=e.Message.Replace(",",";").Replace("\n"," ").Replace("\r"," ");watch.Stop();}
+                    roadEditRows.Add(string.Join(",",city.Simulation.Tick,accepted,paid,watch.Elapsed.TotalMilliseconds.ToString("R",CultureInfo.InvariantCulture),syncMs.ToString("R",CultureInfo.InvariantCulture),made,removed,host.ScenarioRoadViews,host.ScenarioRoadRenderers,error));
+                    if(!accepted||error.Length>0){File.WriteAllLines(Path.Combine(output,"road-edit.csv"),roadEditRows);throw new InvalidOperationException("Road-view edit probe did not complete: "+error);}
+                }
                 if(routingEdit&&!editSucceeded&&editAttempts<3&&Time.realtimeSinceStartupAsDouble-start>=nextEdit)
                 {
                     if(!junctionRouting)throw new InvalidOperationException("Routing edit probe requires junction experiment");
@@ -134,6 +156,7 @@ namespace HarborCity
 #if CITY_CORE_ATTRIBUTION
             if(coreProfile){HarborCity.RoadCore.CityCoreProfile.Enabled=false;File.WriteAllText(Path.Combine(output,"core-profile.csv"),HarborCity.RoadCore.CityCoreProfile.Header()+"\n"+HarborCity.RoadCore.CityCoreProfile.Row(city.Simulation.Tick,city.Transport.ActiveCount,city.Transport.RoutePreparations,GC.CollectionCount(0)-gen0,GC.CollectionCount(1)-gen1,GC.CollectionCount(2)-gen2)+"\n");}
 #endif
+            if(roadEdit)File.WriteAllLines(Path.Combine(output,"road-edit.csv"),roadEditRows);
             if(routingEdit)File.WriteAllLines(Path.Combine(output,"routing-edit.csv"),editRows);
             var jr=city.Transport.JunctionRoutes;
             File.WriteAllText(Path.Combine(output,"cache-window.csv"),"builds,expanded,queries,hits,misses,invalidations,evictions\n"+string.Join(",",jr.Builds-initialBuilds,jr.Expanded-initialExpanded,jr.Queries-initialQueries,jr.Hits-initialHits,jr.Misses-initialMisses,jr.Invalidations-initialInvalidations,jr.Evictions-initialEvictions));

@@ -97,6 +97,8 @@ namespace HarborCity
         internal int ScenarioRoadViews=>roadViews?.Count??0;
         internal int ScenarioRoadRenderers=>roadViews?.RendererCount??0;
         internal int ScenarioRoadChunkSize=>roadViews?.ChunkSize??0;
+        internal int ScenarioRoadCreated=>roadViews?.Created??0;
+        internal int ScenarioRoadRemoved=>roadViews?.Removed??0;
         internal void ScenarioRefreshRoads(){if(!ScenarioMeasuring)throw new InvalidOperationException("Diagnostic road refresh outside measurement");RenderRoads();}
         internal int ScenarioUtilityViews=>utilityViews.Count;
         internal bool ScenarioMeasuring;

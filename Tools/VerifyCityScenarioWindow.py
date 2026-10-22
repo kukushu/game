@@ -46,7 +46,11 @@ for number in metadata.get('rates', [1, 3]):
         assert previous == int(result['start_tick']) and all(float(r.get('requested_seconds',0)) == 0 for r in rows), 'Paused-labelled run advanced the city'
         expected_hash = ((folder / 'warm-state.sha256').read_text().strip()
                          if metadata.get('warmupSimulationSteps', 0) else metadata['inputHash'])
-        assert hashlib.sha256((folder / 'final.hcity').read_bytes()).hexdigest().lower() == expected_hash.lower(), 'Paused observation changed complete saved facts'
+        if metadata.get('roadViewEdit'):
+            edits = list(csv.DictReader((folder / 'road-edit.csv').read_text().splitlines()))
+            assert len(edits) == 1 and edits[0]['accepted'] == 'True' and not edits[0]['error'], 'Paused construction probe failed'
+        else:
+            assert hashlib.sha256((folder / 'final.hcity').read_bytes()).hexdigest().lower() == expected_hash.lower(), 'Paused observation changed complete saved facts'
     elif all('requested_seconds' in r for r in rows):
         requested = sum(float(r['requested_seconds']) for r in rows)
         edge = max(float(r['frame_ms']) for r in rows) / 1000 * number + .01
