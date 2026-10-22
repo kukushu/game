@@ -37,7 +37,7 @@ namespace HarborCity
         static void Visit(HierarchyFrameDataView data,int id,string parent,int frame,string thread,StringBuilder rows)
         {
             string name=data.GetItemName(id),path=parent.Length==0?name:parent+"/"+name;double self=data.GetItemColumnDataAsDouble(id,HierarchyFrameDataView.columnSelfTime);
-            if(name.StartsWith("City.",StringComparison.Ordinal)||name=="PlayerLoop"||name=="GC.Collect"||self>=.2)
+            if(name.StartsWith("City.",StringComparison.Ordinal)||name=="PlayerLoop"||name=="GC.Collect"||name=="DrawBuffersBatchMode"||name=="ExecuteRenderQueueJob"||name=="CullObjectsWithoutUmbra"||self>=.2)
             {
                 rows.Append(frame).Append(',').Append(Quote(thread)).Append(',').Append(Quote(path));
                 foreach(int column in new[]{HierarchyFrameDataView.columnTotalTime,HierarchyFrameDataView.columnSelfTime,HierarchyFrameDataView.columnCalls,HierarchyFrameDataView.columnGcMemory})rows.Append(',').Append(N(data.GetItemColumnDataAsDouble(id,column)));rows.AppendLine();
