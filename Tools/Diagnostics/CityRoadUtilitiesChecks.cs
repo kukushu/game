@@ -29,19 +29,33 @@ static class CityRoadUtilitiesChecks
         s.Construction.CheckRoadPlacement(edgePlan);Check(s.Construction.Commit(edgePlan,out _),"Road in newly available area failed");
         Check(empty.City.buildings.Count==0&&empty.Transport.Network.RoadCount==0,"Template changed the empty-session API or diagnostic fixtures");
         Check(s.City.buildings.Count==CityNewTownTemplate.TotalFacilities&&new[]{LandUse.Power,LandUse.Water,LandUse.Sewage}.All(use=>s.City.buildings.Count(b=>b.Use==use)==CityNewTownTemplate.FacilitiesPerService)&&s.City.buildings.Count(b=>b.Use==LandUse.Landfill)==CityNewTownTemplate.GarbageFacilities,"New-town service counts incorrect");
-        Check(s.City.buildings.All(b=>(b.x<=-666||b.z<=-666)&&s.Simulation.Growth.Zoning.CanPlace(b,false)&&s.Transport.GetAccess(b.id).valid),"Template placement outside western/southern boundary strips / invalid terrain, clearance or access");
-        Check(s.City.buildings.Count(b=>b.x<=-666)==192&&s.City.buildings.Count(b=>b.z<=-666)==192,"Both boundary strips must be filled");
-        Check(s.City.buildings.Where(b=>b.x<=-666).Min(b=>b.z)==-640&&s.City.buildings.Where(b=>b.x<=-666).Max(b=>b.z)>640&&s.City.buildings.Where(b=>b.z<=-666).Min(b=>b.x)==-640&&s.City.buildings.Where(b=>b.z<=-666).Max(b=>b.x)>640,"Boundary strips do not span the map");
+        Func<CityBuilding,int,bool> edge=(b,side)=>side==0?b.x<=-666:side==1?b.z<=-666:side==2?b.x>=666:b.z>=666;
+        Check(s.City.buildings.All(b=>s.Simulation.Growth.Zoning.CanPlace(b,false)&&s.Transport.GetAccess(b.id).valid),"Invalid template terrain, clearance or access");
+        for(int side=0;side<4;side++)
+        {
+            var strip=s.City.buildings.Where(b=>edge(b,side)).ToArray();
+            Check(strip.Length==192,"Every perimeter side must contain 192 facilities");
+            Check(new[]{LandUse.Power,LandUse.Water,LandUse.Sewage,LandUse.Landfill}.All(use=>strip.Count(b=>b.Use==use)==48),"Side lacks an original service type");
+            Check(strip.Min(b=>side%2==0?b.z:b.x)==-640&&strip.Max(b=>side%2==0?b.z:b.x)>640,"Perimeter side does not span the map");
+        }
+        var central=s.City.buildings.Where(b=>Math.Abs(b.x)<660&&Math.Abs(b.z)<660).ToArray();
+        Check(central.Length==CityNewTownTemplate.CentralGarbageFacilities&&central.All(b=>b.Use==LandUse.Landfill),"Central cross must contain garbage facilities only");
+        Check(central.Count(b=>b.x>20)==48&&central.Count(b=>b.x< -20)==48&&central.Count(b=>b.z>20)==48&&central.Count(b=>b.z< -20)==48,"Central cross lacks a full arm or banks");
+        Check(central.All(b=>Math.Abs(b.x)==7.5f||Math.Abs(b.z)==7.5f),"Central facilities left their road banks");
         Check(s.Transport.Network.RoadIds.All(id=>s.Transport.Network.Settings(id).lanes==2&&s.Transport.Network.Settings(id).direction==RoadDirection.Both),"Template roads must have two lanes in each direction");
-        for(int i=0;i<CityNewTownTemplate.OutletsPerSide;i++)for(int side=0;side<2;side++)
+        for(int i=0;i<CityNewTownTemplate.OutletsPerSide;i++)for(int side=0;side<4;side++)
         {
             float position=CityNewTownTemplate.OutletPosition(i);
-            Check(s.City.buildings.Where(b=>side==0?b.x<=-666:b.z<=-666).All(b=>Math.Abs((side==0?b.z:b.x)-position)>=15),"Outlet facility gap obstructed");
-            var from=side==0?new Point(-636,2,position):new Point(position,2,-636);
-            var to=side==0?new Point(-612,2,position):new Point(position,2,-612);
+            Check(s.City.buildings.Where(b=>edge(b,side)).All(b=>Math.Abs((side%2==0?b.z:b.x)-position)>=15),"Perimeter outlet facility gap obstructed");
+            Check(central.All(b=>Math.Abs((Math.Abs(b.z)==7.5f?b.x:b.z)-position)>=15),"Cross connection corridor obstructed");
+            var from=CityNewTownTemplate.Outlet(side,i);
+            // Centre outlets already extend to the cross. Attach a real branch
+            // there; other outlets must still extend into their clear corridors.
+            var to=position==0?(side%2==0?new Point(from.x,2,20):new Point(20,2,from.z)):
+                side==0?new Point(-612,2,position):side==1?new Point(position,2,-612):side==2?new Point(612,2,position):new Point(position,2,612);
             var outletCity=CityCoreSave.Read(CityCoreSave.Write(s));outletCity.Simulation.Growth.Zoning.SetSurface((x,z)=>2);
             var extension=outletCity.Transport.PlanConnectedRoad(new[]{from,to},lanes:2);outletCity.Construction.CheckRoadPlacement(extension);
-            Check(outletCity.Construction.Commit(extension,out _),"Template outlet could not extend into city");outletCity.Validate();
+            Check(outletCity.Construction.Commit(extension,out _),"Template outlet could not connect into city");outletCity.Validate();
         }
         for(int i=0;i<s.City.buildings.Count;i++)for(int j=i+1;j<s.City.buildings.Count;j++)Check(!s.City.buildings[i].Overlaps(s.City.buildings[j]),"Template facilities overlap");
         Check(s.City.buildings.All(b=>s.City.Supply(b.id).Complete)&&s.City.power==CityNewTownTemplate.FacilitiesPerService*160&&s.City.water==CityNewTownTemplate.FacilitiesPerService*160&&s.City.SewageCapacity==CityNewTownTemplate.FacilitiesPerService*160,"Template providers not fully functioning at original capacities");
@@ -53,12 +67,12 @@ static class CityRoadUtilitiesChecks
         restored.Simulation.Finance.UnlimitedFunds=s.Simulation.Finance.UnlimitedFunds; // Same runtime preference as the normal Load adapter.
         s.Advance(2);restored.Advance(2);Check(CityCoreSave.Write(s).SequenceEqual(CityCoreSave.Write(restored)),"Template normal simulation diverges after restore");
         Action<Point[]> road=points=>{var plan=s.Transport.PlanConnectedRoad(points);s.Construction.CheckRoadPlacement(plan);Check(s.Construction.Commit(plan,out _),"Template connection road failed");};
-        road(new[]{new Point(0,2,0),new Point(40,2,0)});
-        int remote=s.Construction.PlaceFacility(LandUse.Water,20,4.5f,0,s.Simulation.Growth.Zoning);s.Simulation.Utilities.Refresh();
+        road(new[]{new Point(-120,2,80),new Point(-80,2,80)});
+        int remote=s.Construction.PlaceFacility(LandUse.Water,-100,84.5f,0,s.Simulation.Growth.Zoning);s.Simulation.Utilities.Refresh();
         Check(!s.City.Supply(remote).electricity,"Disconnected remote facility received global power");
-        road(new[]{CityNewTownTemplate.Connection,new Point(0,2,0)});
+        road(new[]{CityNewTownTemplate.Outlet(0,3),new Point(-120,2,240),new Point(-120,2,80)});
         Check(s.City.Supply(remote).Complete,"Connecting one road did not bring actual services to remote facility");
-        int link=s.Construction.PickRoad(new Point(-40,2,0));Check(link!=0,"Missing template connection road");s.Construction.RemoveRoad(link);
+        int link=s.Construction.PickRoad(new Point(-120,2,160));Check(link!=0,"Missing template connection road");s.Construction.RemoveRoad(link);
         Check(!s.City.Supply(remote).electricity,"Removing link left invisible template utility service");
         var before=CityCoreSave.Write(s);bool rejected=false;
         try{var blocked=s.Transport.PlanConnectedRoad(new[]{new Point(-666,2,-640),new Point(-666,2,-610)});s.Construction.CheckRoadPlacement(blocked);}catch(InvalidOperationException){rejected=true;}
