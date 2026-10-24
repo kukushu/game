@@ -55,7 +55,14 @@ public sealed class HarborCityZoningBatchValidation:MonoBehaviour
             var cells=new List<ZoneCell>();var uses=new[]{LandUse.Empty,LandUse.Residential,LandUse.Commercial,LandUse.Industrial,LandUse.Power};
             for(int i=0;i<600;i++)cells.Add(new ZoneCell{key="test:"+i,use=uses[i%uses.Length],occupiedBuilding=i%13==0?7:-1,available=i%7!=0,pose=new ResidentialBuilding{x=(i%30-15)*3.3f,z=(i/30-10)*3.3f,yaw=i%4*23.5f,width=i%9==0?5.12f:2.96f,depth=2.96f,groundY=i%3*.1f+2}});
             foreach(Func<float,float,float> height in new Func<float,float,float>[]{null,(x,z)=>2,(x,z)=>2+(float)Math.Sin(x*.03)*.5f+z*.002f})
-            {view.Sync(cells,height);Validate(view,cells,height,palette);Check(view.RendererCount<view.PlotCount,"No actual spatial batching");}
+            {
+                view.Sync(cells,height);Validate(view,cells,height,palette);Check(view.RendererCount<view.PlotCount,"No actual spatial batching");
+                var retained=Objects(view).ToArray();view.Sync(cells,height);Check(view.RebuiltChunks==0&&retained.SequenceEqual(Objects(view)),"Unchanged projection rebuilt chunks");
+                // Same-count/same-surface updates exercise the sparse display path.
+                cells[4].occupiedBuilding=cells[4].occupiedBuilding<0?4:-1;cells[5].use=cells[5].use==LandUse.Industrial?LandUse.Residential:LandUse.Industrial;
+                view.Sync(cells,height);Validate(view,cells,height,palette);Check(view.RebuiltChunks<=4,"Local edit rebuilt remote chunks");
+                cells[6].pose.x+=128;view.Sync(cells,height);Validate(view,cells,height,palette);
+            }
             // Painting, occupation and spatial movement must rebuild the same data.
             foreach(var cell in cells.Take(30)){cell.use=LandUse.Industrial;cell.occupiedBuilding=-1;cell.pose.x-=128;}
             view.Sync(cells,null);Validate(view,cells,null,palette);
