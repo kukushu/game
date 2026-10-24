@@ -13,14 +13,27 @@ namespace HarborCity.RoadCore
         public sealed class Sample : IDisposable
         {
             public string kind, direction; public int depot, expanded; readonly long start = Stopwatch.GetTimestamp(), bytes = GC.GetAllocatedBytesForCurrentThread(); public double ms; public long allocated;
+#if UNITY_5_3_OR_NEWER
+            static class UnitySamples
+            {
+                internal static readonly Unity.Profiling.ProfilerMarker Forward=new Unity.Profiling.ProfilerMarker("City.DepotLane.ForwardTree"),Reverse=new Unity.Profiling.ProfilerMarker("City.DepotLane.ReverseTree"),Search=new Unity.Profiling.ProfilerMarker("City.DepotLane.OriginalSearch"),Query=new Unity.Profiling.ProfilerMarker("City.DepotLane.ServiceQuery");
+            }
+            readonly Unity.Profiling.ProfilerMarker.AutoScope unity;
+#endif
             internal Sample(string k)
             {
+#if UNITY_5_3_OR_NEWER
+                unity=(k=="forward-tree"?UnitySamples.Forward:k=="reverse-tree"?UnitySamples.Reverse:k=="original-dijkstra"?UnitySamples.Search:UnitySamples.Query).Auto();
+#endif
                 kind = k;
                 direction = Direction;
                 depot = Depot;
             }
             public void Dispose()
             {
+#if UNITY_5_3_OR_NEWER
+                unity.Dispose();
+#endif
                 ms = (Stopwatch.GetTimestamp() - start) * 1000.0 / Stopwatch.Frequency;
                 allocated = CityCoreProfile.AllocationAvailable ? GC.GetAllocatedBytesForCurrentThread() - bytes : -1;
                 Rows.Add(this);

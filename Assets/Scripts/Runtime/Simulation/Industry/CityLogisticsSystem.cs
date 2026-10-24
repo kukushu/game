@@ -8,11 +8,12 @@ namespace HarborCity
         readonly CityEntities entities;readonly World transport;readonly CitySimulation simulation;
         readonly Dictionary<int,int> incoming=new Dictionary<int,int>();
         readonly CityFreightCandidates candidates;
+        readonly CityCoreIndustryBusiness business;
         readonly List<CommercialBuilding> shops=new List<CommercialBuilding>();
         readonly EconomyRules rules;
         public long NextDispatchTick {get;private set;}
-        internal CityLogisticsSystem(CityEntities entities,World transport,CitySimulation simulation,long nextTick)
-        {this.entities=entities;this.transport=transport;this.simulation=simulation;rules=simulation.Design.Economy;NextDispatchTick=nextTick;candidates=new CityFreightCandidates(entities,transport);}
+        internal CityLogisticsSystem(CityEntities entities,World transport,CitySimulation simulation,long nextTick,CityCoreIndustryBusiness business)
+        {this.entities=entities;this.transport=transport;this.simulation=simulation;this.business=business;rules=simulation.Design.Economy;NextDispatchTick=nextTick;candidates=new CityFreightCandidates(entities,transport);}
         internal void Step(TimeContext time)
         {
 #if CITY_CORE_ATTRIBUTION
@@ -29,7 +30,7 @@ namespace HarborCity
                 if(factory.Stock<=0||transport.FreightSourceBlocked(factory.id))continue;
                 candidates.Collect(transport.GetAccess(factory.id),shops);
                 foreach(var shop in shops)
-                {incoming.TryGetValue(shop.id,out int reserved);int amount=Math.Min(rules.FreightBatch,Math.Min(factory.Stock,32-shop.Stock-reserved));if(amount<=0)continue;var task=simulation.RequestFreight(factory.id,shop.id,amount,rules.GoodsWholesalePrice);if(task!=null){incoming[shop.id]=reserved+amount;break;}}
+                {incoming.TryGetValue(shop.id,out int reserved);int amount=Math.Min(rules.FreightBatch,Math.Min(factory.Stock,32-shop.Stock-reserved));if(amount<=0||!business.CanFundLocalFreight(shop,amount,rules.GoodsWholesalePrice))continue;var task=simulation.RequestFreight(factory.id,shop.id,amount,rules.GoodsWholesalePrice);if(task!=null){incoming[shop.id]=reserved+amount;break;}}
             }
         }
     }

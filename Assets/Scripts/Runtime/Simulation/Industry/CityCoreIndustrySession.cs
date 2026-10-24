@@ -37,13 +37,17 @@ namespace HarborCity
         internal EconomyRules Economy;
         public CityCoreIndustryBusiness(CityModel city){this.city=city;}
         public bool Exists(int id)=>city.GetBuilding(id)!=null&&!city.GetBuilding(id).abandoned&&!city.GetBuilding(id).burned;
+        // A read-only local-goods gate. Depart still owns and rechecks payment;
+        // freight candidates keep their original order and exact batch size.
+        internal bool CanFundLocalFreight(CommercialBuilding shop,int amount,double price)
+            =>!city.development.enabled||!(shop.Account.Cash<amount*price);
         internal bool Depart(TripTask v)
         {
             if(v.purpose!=TransportPurpose.Freight)return Residents!=null&&Residents.Depart(v);
             if(v.Shipment==null||v.Shipment.kind!=CargoKind.Goods&&v.Shipment.kind!=CargoKind.RawMaterial)return false;
             if(v.Shipment?.kind==CargoKind.RawMaterial||city.entities.Connection(v.destination)!=null)return Trade!=null&&Trade.Depart(v);
             if(!(city.GetBuilding(v.origin) is IndustrialBuilding factory)||!(city.GetBuilding(v.destination) is CommercialBuilding shop)||!Exists(v.origin)||!Exists(v.destination)||factory.Stock<v.Cargo||shop.Stock+v.Cargo>32||v.Price!=(Economy?.GoodsWholesalePrice??FactoryState.SalePrice))return false;
-            if(city.development.enabled){double payment=v.Cargo*v.Price;if(shop.Account.Cash<payment)return false;shop.Account.Cash-=payment;shop.Account.WholesaleFunded+=payment;}
+            if(city.development.enabled){double payment=v.Cargo*v.Price;if(!CanFundLocalFreight(shop,v.Cargo,v.Price))return false;shop.Account.Cash-=payment;shop.Account.WholesaleFunded+=payment;}
             factory.Stock-=v.Cargo;factory.factory.shipped+=v.Cargo;return true;
         }
         internal bool Deliver(TransportArrival v)

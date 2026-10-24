@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
@@ -29,11 +29,16 @@ namespace HarborCity
             Directory.CreateDirectory(output);QualitySettings.vSyncCount=0;Application.targetFrameRate=60;
             yield return null;yield return null;
             bool sharedWarmup=Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-window-shared-warmup")>=0;
+            var laneArgs=Environment.GetCommandLineArgs();int laneWarmIndex=Array.IndexOf(laneArgs,"-harbor-window-lane-warm-steps");
+            int laneWarmSteps=laneWarmIndex<0?0:int.Parse(laneArgs[laneWarmIndex+1],CultureInfo.InvariantCulture);
+            if(laneWarmSteps<0||laneWarmSteps>20000||laneWarmSteps>0&&(!sharedWarmup||Array.IndexOf(laneArgs,"-harbor-depot-lane-routing")<0))throw new InvalidOperationException("Lane warmup requires shared warmup and explicit lane routing");
             host.ScenarioRate(sharedWarmup?0:rate);
             if(sharedWarmup)
             {
                 var warmCity=host.ScenarioSession;
+                if(laneWarmSteps>0)warmCity.Transport.DepotLaneRoutingEnabled=true;
                 for(int i=0;i<200;i++){warmCity.Simulation.Advance(.05,1,double.PositiveInfinity);if(i%10==9)yield return null;}
+                for(int i=0;i<laneWarmSteps;i++){warmCity.Simulation.Advance(.05,1,double.PositiveInfinity);if(i%10==9)yield return null;}
             }
             var warmArgs=Environment.GetCommandLineArgs();var warmSession=host.ScenarioSession;
             bool prewarm=Array.IndexOf(warmArgs,"-harbor-window-prewarm-depots")>=0;
@@ -84,6 +89,8 @@ namespace HarborCity
             city.Transport.JunctionRoutes.Trace=Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-junction-trace")>=0;
             var initialCache=city.Transport.JunctionRoutes;
             long initialBuilds=initialCache.Builds,initialExpanded=initialCache.Expanded,initialQueries=initialCache.Queries,initialHits=initialCache.Hits,initialMisses=initialCache.Misses,initialInvalidations=initialCache.Invalidations,initialEvictions=initialCache.Evictions;
+            var laneCache=city.Transport.DepotRoutes;
+            long laneQueries=laneCache.Queries,laneHits=laneCache.Hits,laneMisses=laneCache.Misses,laneEvictions=laneCache.Evictions,laneInvalidations=laneCache.Invalidations,laneBuilds=laneCache.TreeBuilds,laneReuses=laneCache.TreeReuses;
             var roadMemory=new List<string>{"phase,drivables,renderers,vertices,triangles,mesh_runtime_bytes,managed_gc_bytes,unity_allocated_bytes"};
             RoadMemory(roadMemory,"start");
             long startTick=city.Simulation.Tick;
@@ -160,6 +167,7 @@ namespace HarborCity
             int endGen0=GC.CollectionCount(0),endGen1=GC.CollectionCount(1),endGen2=GC.CollectionCount(2);
             if(HarborCity.RoadCore.DepotRoutingTrace.Enabled){HarborCity.RoadCore.DepotRoutingTrace.Enabled=false;HarborCity.RoadCore.DepotRoutingTrace.Write(Path.Combine(output,"routing-window.csv"));}
             var depotCache=city.Transport.DepotRoutes;
+            File.WriteAllText(Path.Combine(output,"lane-cache-window.csv"),"enabled,queries,hits,misses,evictions,invalidations,tree_builds,tree_reuses,resident_depots,reserved_tree_bytes\n"+string.Join(",",city.Transport.DepotLaneRoutingEnabled,laneCache.Queries-laneQueries,laneCache.Hits-laneHits,laneCache.Misses-laneMisses,laneCache.Evictions-laneEvictions,laneCache.Invalidations-laneInvalidations,laneCache.TreeBuilds-laneBuilds,laneCache.TreeReuses-laneReuses,laneCache.Count,laneCache.ReservedTreeBytes));
             File.WriteAllText(Path.Combine(output,"routing-cache.csv"),"enabled,depots,hits,misses,evictions,invalidations,reserved_tree_bytes,reserved_graph_bytes,tree_builds,tree_reuses\n"+string.Join(",",city.Transport.DepotLaneRoutingEnabled,depotCache.Count,depotCache.Hits,depotCache.Misses,depotCache.Evictions,depotCache.Invalidations,depotCache.ReservedTreeBytes,depotCache.ReservedGraphBytes,depotCache.TreeBuilds,depotCache.TreeReuses));
 
 #if CITY_CORE_ATTRIBUTION

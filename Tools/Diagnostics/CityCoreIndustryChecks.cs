@@ -18,6 +18,7 @@ public static class CityCoreIndustryChecks
         ZoningCacheTests();
         ReachabilityTests();
         FreightCandidateTests();
+        FreightFundingTests();
         TaskTests();
         ConstructionTests();
         PopulationUtilityTests();
@@ -214,6 +215,29 @@ public static class CityCoreIndustryChecks
         verify();s.Transport.SplitRoadAt(1,380);verify();s.Transport.RemoveRoad(2);verify();
         var load=CityCoreSave.Read(CityCoreSave.Write(s));var restoredIndex=new CityFreightCandidates(load.Entities,load.Transport);
         foreach(var f in load.Entities.Factories){restoredIndex.Collect(load.Transport.GetAccess(f.id),result);Check(result.SequenceEqual(load.Entities.Shops.Where(shop=>load.Transport.Network.CanReach(load.Transport.GetAccess(f.id),load.Transport.GetAccess(shop.id)))),"Loaded freight index wrong");}
+    }
+    static void FreightFundingTests()
+    {
+        var s=CityCoreIndustrySession.Create(startAtWork:true);
+        var shop=s.Entities.Shops.First();var business=new CityCoreIndustryBusiness(s.City);
+        foreach(bool enabled in new[]{false,true})
+        foreach(int amount in new[]{1,4,8})
+        foreach(double price in new[]{0.0,1.0,5.0})
+        foreach(double offset in new[]{-1e-9,0.0,1e-9})
+        {
+            s.City.development.enabled=enabled;shop.Account.Cash=amount*price+offset;
+            double cash=shop.Account.Cash,funded=shop.Account.WholesaleFunded;
+            Check(business.CanFundLocalFreight(shop,amount,price)==(!enabled||!(cash<amount*price)),"Freight funding changed exact payment boundary");
+            Check(shop.Account.Cash==cash&&shop.Account.WholesaleFunded==funded,"Funding query moved money");
+        }
+        s.City.development.enabled=true;shop.Account.Cash=0;
+        Check(!business.CanFundLocalFreight(shop,8,5),"Insolvent shop passed funding gate");
+        shop.Account.Cash=40;
+        Check(business.CanFundLocalFreight(shop,8,5),"New funding was hidden by stale eligibility cache");
+        // Public requests still perform their original transport/business checks.
+        s=CityCoreIndustrySession.Create(startAtWork:true);shop=s.Entities.Shops.First();
+        byte[] before=CityCoreSave.Write(s);s.Simulation.RequestFreight(s.Entities.Factories.First().id,shop.id,1,999);
+        Check(before.SequenceEqual(CityCoreSave.Write(s)),"Failed direct freight changed saved facts");
     }
     static void TaskTests()
     {
