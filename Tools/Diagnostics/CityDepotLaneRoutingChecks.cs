@@ -41,6 +41,8 @@ static class CityDepotLaneRoutingChecks
     }
     static void Main()
     {
+        Check(DepotLaneRouting.ReservationForLanes(9508)==609536,"Four-tree array reservation changed");
+        Check(128*DepotLaneRouting.ReservationForLanes(9508)>64L*1024*1024,"Count-cap regression fixture must exceed the former byte cap");
         var w = new World();
         var ids = new int[4, 4];
         for (int z = 0; z < 4; z++)
@@ -110,7 +112,7 @@ static class CityDepotLaneRoutingChecks
             w.RegisterAccess(i, anchor.lane, anchor.distance);
             w.DepotRoutes.TryFind(w, i, w.GetAccess(i), anchor, false, out _, out _, out _);
         }
-        Check(w.DepotRoutes.Count <= DepotLaneRouting.Capacity && w.DepotRoutes.ReservedTreeBytes <= DepotLaneRouting.ByteLimit && w.DepotRoutes.Evictions > 0, "LRU bound not enforced");
+        Check(w.DepotRoutes.Count <= DepotLaneRouting.Capacity && w.DepotRoutes.Evictions > 0, "Depot-count LRU bound not enforced");
         w.DepotRoutes.Clear();
         Recheck(w);
         var testLane = w.Network.Drivables.First(d => !d.IsConnection);

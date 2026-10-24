@@ -206,7 +206,7 @@ namespace HarborCity.RoadCore
         {
             internal int id; internal RoadAccess access; internal Network.DepotTree[] forward = new Network.DepotTree[2], backward = new Network.DepotTree[2]; internal long age;
         }
-        readonly Dictionary<int, Entry> entries = new Dictionary<int, Entry>(); Network network; Network.DepotGraph graph; long clock; public const long ByteLimit = 64L * 1024 * 1024; public const int Capacity = 128;
+        readonly Dictionary<int, Entry> entries = new Dictionary<int, Entry>(); Network network; Network.DepotGraph graph; long clock; public const int Capacity = 128;
         public long Hits, Misses, Evictions, Invalidations, Queries, TreeBuilds, TreeReuses;
         HashSet<int> liveDepots;
         public long DepotSetRevision {get;private set;}=long.MinValue;
@@ -216,7 +216,12 @@ namespace HarborCity.RoadCore
             liveDepots=liveDepots??new HashSet<int>();liveDepots.Clear();liveDepots.UnionWith(ids);DepotSetRevision=revision;
             foreach(int id in entries.Keys.ToArray())if(!liveDepots.Contains(id)){entries.Remove(id);Invalidations++;}
         }
- public int Count => entries.Count; public long ReservedTreeBytes => graph == null ? 0 : entries.Count * (graph.lanes.LongLength * 80 + 256); public long ReservedGraphBytes => graph?.ReservedBytes ?? 0;
+        // At most four trees, each with double distance + int hop + int rank.
+        // Estimate all four even before construction, plus 1 KiB per entry for
+        // array headers/trees/access/entry overhead. This is telemetry, not a
+        // byte admission limit. The cache is bounded by depot count/lifecycle.
+        internal static long ReservationForLanes(long lanes)=>checked(lanes*4*(sizeof(double)+2*sizeof(int))+1024);
+ public int Count => entries.Count; public long ReservedTreeBytes => graph == null ? 0 : entries.Count * ReservationForLanes(graph.lanes.LongLength); public long ReservedGraphBytes => graph?.ReservedBytes ?? 0;
         public void Clear()
         {
             Invalidations += entries.Count;
@@ -253,12 +258,10 @@ namespace HarborCity.RoadCore
             if (!Valid(anchor) || !Valid(point))
                 return false;
             graph = network.GetDepotGraph();
-            if (graph.lanes.LongLength * 80 + 256 > ByteLimit)
-                return false;
             if (!entries.TryGetValue(depot, out var e))
             {
                 Misses++;
-                while (entries.Count >= Capacity || (entries.Count + 1) * (graph.lanes.LongLength * 80 + 256) > ByteLimit)
+                while (entries.Count >= Capacity)
                 {
                     var victim = entries.Values.OrderBy(x => x.age).First();
                     entries.Remove(victim.id);
