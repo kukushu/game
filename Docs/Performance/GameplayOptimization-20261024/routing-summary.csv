@@ -1,0 +1,6 @@
+kind,direction,calls,total_ms,p95_ms,p99_ms,max_ms,expanded
+original-dijkstra,other,3156,2301.1276,4.6197,9.7872,12.5931,1988726
+service-query,outbound,19594,629.2383,0.0287,0.064,24.5747,0
+service-query,return,643,223.0865,0.0699,21.0704,23.074,0
+forward-tree,outbound,30,288.1457,13.5646,13.7423,13.7423,236415
+reverse-tree,return,18,192.6776,12.45,12.45,12.45,170208

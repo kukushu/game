@@ -1,0 +1,12 @@
+stage,rate,enabled,queries,hits,misses,evictions,invalidations,tree_builds,tree_reuses,resident_depots,reserved_tree_bytes
+baseline,0x,True,0,0,0,0,0,0,0,88,66958848
+baseline,1x,True,1136,1127,9,9,0,38,2234,88,66958848
+baseline,50x,True,17673,17552,121,121,0,438,34908,88,66958848
+freight,1x,True,1136,1127,9,9,0,38,2234,88,66958848
+freight,50x,True,21983,21817,166,166,0,592,43374,88,66958848
+accounting-control,1x,True,1136,1136,0,0,0,20,2252,96,58515456
+accounting-control,50x,True,28151,28151,0,0,0,48,56254,96,58515456
+final,1x,True,1136,1136,0,0,0,20,2252,96,58515456
+final,50x,True,28624,28624,0,0,0,48,57200,96,58515456
+baseline-repeat,50x,True,17903,17782,121,121,0,440,35366,88,66958848
+final-repeat,50x,True,28623,28623,0,0,0,48,57198,96,58515456
