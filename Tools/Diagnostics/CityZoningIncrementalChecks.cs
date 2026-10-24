@@ -71,7 +71,20 @@ static class CityZoningIncrementalChecks
         oracle=Bind(s,flakey);Compare(s,oracle,"failure_surface_initial");Add(s,80,70,110,100);var failureBefore=CityCoreSave.Write(s);fail=true;bool threw=false;
         try{s.Simulation.Growth.Zoning.Cells();}catch(InvalidOperationException){threw=true;}if(!threw||!failureBefore.SequenceEqual(CityCoreSave.Write(s)))throw new Exception("Derived terrain failure changed facts");fail=false;Compare(s,oracle,"failure_recovery");
         var growing=CityGrowingGridFixture.Create();var growthOracle=Bind(growing,CityScenarioBuilder.Flat);Compare(growing,growthOracle,"growth_initial");
-        for(int i=0;i<4800;i++){growing.Advance(.05);if(i%120==0)Compare(growing,growthOracle,"growth_"+i);}Compare(growing,growthOracle,"growth_final");growing.Validate();
+        int localChanges=0;
+        for(int i=0;i<4800;i++)
+        {
+            int priorBuildings=growing.Entities.BuildingRevision,priorProjects=growing.City.development.revision;growing.Advance(.05);
+            if(priorBuildings!=growing.Entities.BuildingRevision||priorProjects!=growing.City.development.revision)
+            {
+                var zone=growing.Simulation.Growth.Zoning;var all=zone.Cells();
+                if(zone.LastOccupancyCells>=all.Count)throw new Exception("Local growth rebuilt all occupancy cells");
+                localChanges++;Compare(growing,growthOracle,"local_growth_"+i);
+            }
+            if(i%120==0)Compare(growing,growthOracle,"growth_"+i);
+        }
+        if(localChanges<5)throw new Exception("Insufficient actual local growth transitions");
+        Compare(growing,growthOracle,"growth_final");growing.Validate();
     }
     static void Stress()
     {
@@ -124,5 +137,5 @@ static class CityZoningIncrementalChecks
             Compare(clone,oracle,label+"_edited");clone.Advance(16);Compare(clone,oracle,label+"_continued");clone.Validate();
         }
     }
-    static void Main(string[] args){Directory.CreateDirectory(args[1]);if(args.Length>2&&args[2]=="stress")Stress();else if(args.Length>2&&args[2]=="locality")Locality(args[0]);else if(args.Length>2&&args[2]=="occupied")OccupiedEdits();else{Busy(args[0]);Fixtures();}File.WriteAllLines(Path.Combine(args[1],"snapshots.csv"),rows);File.WriteAllText(Path.Combine(args[1],"Result.txt"),"PASS "+snapshots+" ordered zoning snapshots / "+cellsChecked+" exact cells including key/block/column/row/side/use/availability/owner/float geometry; frozen 8273ffa oracle. Scope is the explicitly selected full, dense, locality or occupied edit suite; see stdout and snapshots.csv.\n");}
+    static void Main(string[] args){Directory.CreateDirectory(args[1]);if(args.Length>2&&args[2]=="stress")Stress();else if(args.Length>2&&args[2]=="locality")Locality(args[0]);else if(args.Length>2&&args[2]=="occupied")OccupiedEdits();else if(args.Length>2&&args[2]=="fixtures")Fixtures();else{Busy(args[0]);Fixtures();}File.WriteAllLines(Path.Combine(args[1],"snapshots.csv"),rows);File.WriteAllText(Path.Combine(args[1],"Result.txt"),"PASS "+snapshots+" ordered zoning snapshots / "+cellsChecked+" exact cells including key/block/column/row/side/use/availability/owner/float geometry; frozen 8273ffa oracle. Scope is the explicitly selected full, dense, locality or occupied edit suite; see stdout and snapshots.csv.\n");}
 }

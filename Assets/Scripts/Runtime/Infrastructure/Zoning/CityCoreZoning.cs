@@ -15,6 +15,10 @@ namespace HarborCity
         Func<float,float,float> height;float geometryExtent;
         readonly List<CityBuilding> projectPoses=new List<CityBuilding>();
         OccupancyIndex occupancyIndex;
+        // Immutable geometry/priority snapshots detect precisely which claims
+        // changed; the authoritative buildings/projects remain city/entities.
+        Dictionary<(bool,int),(float x,float z,float yaw,float width,float depth,int owner,int order)> occupancyFacts;
+        public int LastOccupancyCells {get;private set;}
         sealed class Stamp {internal ZoneDesignation fact;internal CityBuilding pose;}
         readonly struct PlotClaim
         {
@@ -93,7 +97,7 @@ namespace HarborCity
 #if CITY_CORE_ATTRIBUTION
                 using var part=CityCoreProfile.Measure(CityCoreProfile.Part.ZoningOccupancy);
 #endif
-                RefreshOccupancy(occupancy||LastGeometryFull?cells:refreshedCells,occupancy||LastGeometryFull);
+                RefreshOccupancy(occupancy||LastGeometryFull?cells:refreshedCells,occupancy||LastGeometryFull,geometry);
             }
             roads=world.NetworkGeneration;geometryExtent=city.map.buildHalfSize;
             buildings=entities.BuildingRevision;zones=city.zoning.revision;projects=city.development.revision;
@@ -114,14 +118,35 @@ namespace HarborCity
                 for(int x=bx-1;x<=bx+1;x++)for(int z=bz-1;z<=bz+1;z++)if(stamps.TryGetValue((x,z),out var land))foreach(var stamp in land)if(stamp.fact.id>newest&&stamp.pose.Contains(pose.x,pose.z)){newest=stamp.fact.id;cell.use=stamp.fact.use;}
             }
         }
-        void RefreshOccupancy(IEnumerable<ZoneCell> targets,bool rebuildIndex)
+        void RefreshOccupancy(IEnumerable<ZoneCell> targets,bool rebuildIndex,bool geometry)
         {
+            LastOccupancyCells=0;
             if(rebuildIndex||occupancyIndex==null){projectPoses.Clear();foreach(var project in city.development.projects)projectPoses.Add(project.building.ToBuilding());
-            occupancyIndex=new OccupancyIndex();foreach(var building in entities.Buildings)occupancyIndex.Add(building,building.id);foreach(var pose in projectPoses)occupancyIndex.Add(pose,-1);}
+            var next=new Dictionary<(bool,int),(float x,float z,float yaw,float width,float depth,int owner,int order)>();int order=0;
+            foreach(var b in entities.Buildings)next.Add((false,b.id),(b.x,b.z,b.yaw,b.width,b.depth,b.id,order++));
+            for(int i=0;i<projectPoses.Count;i++){var b=projectPoses[i];next.Add((true,city.development.projects[i].id),(b.x,b.z,b.yaw,b.width,b.depth,-1,order++));}
+            if(!geometry&&occupancyFacts!=null)
+            {
+                var changed=new HashSet<ZoneCell>();
+                foreach(var pair in occupancyFacts)if(!next.TryGetValue(pair.Key,out var current)||!current.Equals(pair.Value))Collect(pair.Value,changed);
+                foreach(var pair in next)if(!occupancyFacts.TryGetValue(pair.Key,out var old)||!old.Equals(pair.Value))Collect(pair.Value,changed);
+                targets=changed;
+            }
+            var index=new OccupancyIndex();foreach(var building in entities.Buildings)index.Add(building,building.id);foreach(var pose in projectPoses)index.Add(pose,-1);
+            occupancyIndex=index;occupancyFacts=next;}
             foreach(var cell in targets)
             {
-                cell.available=!occupancyIndex.Find(cell.pose,out int owner);cell.occupiedBuilding=owner;
+                cell.available=!occupancyIndex.Find(cell.pose,out int owner);cell.occupiedBuilding=owner;LastOccupancyCells++;
             }
+        }
+        void Collect((float x,float z,float yaw,float width,float depth,int owner,int order) fact,HashSet<ZoneCell> changed)
+        {
+            var bounds=new PlotClaim(new ResidentialBuilding{x=fact.x,z=fact.z,yaw=fact.yaw,width=fact.width,depth=fact.depth});double size=CityZoningState.CellSize;
+            // Existing accepted-cell centre buckets; a full CellSize margin
+            // conservatively includes each rotated cell's half extent.
+            int x0=(int)Math.Floor((fact.x-bounds.x-size)/size),x1=(int)Math.Floor((fact.x+bounds.x+size)/size);
+            int z0=(int)Math.Floor((fact.z-bounds.z-size)/size),z1=(int)Math.Floor((fact.z+bounds.z+size)/size);
+            for(int x=x0;x<=x1;x++)for(int z=z0;z<=z1;z++)if(claims.TryGetValue((x,z),out var bucket))foreach(var claim in bucket)changed.Add(claim.cell);
         }
         public void SelectRectangle(float x0,float z0,float x1,float z1,List<ZoneCell> selection)
         {
