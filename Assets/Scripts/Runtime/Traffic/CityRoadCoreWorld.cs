@@ -296,7 +296,7 @@ namespace HarborCity.RoadCore
         {
             CheckNewAccess(endpoint,lane,distance,use);var drivable=Network.Get(lane);
             var access=new RoadAccess{endpoint=endpoint,preferredIndex=drivable.LaneIndex,lane=lane,distance=distance,use=use};data.accesses.Add(access);accesses.Add(endpoint,access);
-            dispatchRoutes.Reset(Network);
+            dispatchRoutes.InvalidateEndpoint(endpoint);
             AccessRevision++;
             EditEpoch++;
         }
@@ -309,7 +309,7 @@ namespace HarborCity.RoadCore
             if(registrations==null)throw new ArgumentNullException(nameof(registrations));var ids=new HashSet<int>();
             foreach(var r in registrations){CheckNewAccess(r.endpoint,r.lane,r.distance,r.use);if(!ids.Add(r.endpoint))throw new ArgumentException("Duplicate access registration");}
             foreach(var r in registrations){var d=Network.Get(r.lane);var access=new RoadAccess{endpoint=r.endpoint,preferredIndex=d.LaneIndex,lane=r.lane,distance=r.distance,use=r.use};data.accesses.Add(access);accesses.Add(r.endpoint,access);}
-            if(registrations.Count>0){dispatchRoutes.Reset(Network);AccessRevision++;EditEpoch++;}
+            if(registrations.Count>0){dispatchRoutes.InvalidateEndpoints(ids);AccessRevision++;EditEpoch++;}
         }
         public bool RebindAccess(int endpoint,long lane,double distance)
         =>RebindAccesses(new[]{new AccessBinding(endpoint,lane,distance)});

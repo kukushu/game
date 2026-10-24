@@ -29,6 +29,34 @@ namespace HarborCity.RoadCore
         readonly Dictionary<long,Entry> freight=new Dictionary<long,Entry>(CityRoadKeyComparer.Instance);
         readonly Dictionary<long,Entry> passengers=new Dictionary<long,Entry>(CityRoadKeyComparer.Instance);
         Entry newest,oldest;
+        void Remove(Entry entry)
+        {
+            (entry.resident?passengers:freight).Remove(entry.key);
+            if(entry.newer!=null)entry.newer.older=entry.older;else newest=entry.older;
+            if(entry.older!=null)entry.older.newer=entry.newer;else oldest=entry.newer;
+        }
+        // Access creation changes only pairs that mention that endpoint, including
+        // cached failures or routes previously using its junction fallback.
+        // Scan the existing bounded LRU without allocating another dependency index.
+        public void InvalidateEndpoint(int endpoint)
+        {
+            for(var entry=oldest;entry!=null;)
+            {
+                var next=entry.newer;
+                if((int)(entry.key>>32)==endpoint||(int)entry.key==endpoint)Remove(entry);
+                entry=next;
+            }
+        }
+        public void InvalidateEndpoints(HashSet<int> endpoints)
+        {
+            if(endpoints.Count==0)return;
+            for(var entry=oldest;entry!=null;)
+            {
+                var next=entry.newer;
+                if(endpoints.Contains((int)(entry.key>>32))||endpoints.Contains((int)entry.key))Remove(entry);
+                entry=next;
+            }
+        }
         void Touch(Entry entry)
         {
             if(ReferenceEquals(entry,newest))return;
@@ -41,8 +69,7 @@ namespace HarborCity.RoadCore
         {
             if(Count==Capacity)
             {
-                var removed=oldest;(removed.resident?passengers:freight).Remove(removed.key);oldest=removed.newer;
-                if(oldest!=null)oldest.older=null;else newest=null;
+                var removed=oldest;Remove(removed);
 #if CITY_CORE_ATTRIBUTION
                 CityCoreProfile.CacheEvictions++;
                 CityCoreProfile.ObserveQuery(CityCoreProfile.QueryKind.Evicted,CityCoreProfile.QueryResult.Miss,0,(int)(removed.key>>32),(int)removed.key,removed.resident);
