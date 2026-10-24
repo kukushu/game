@@ -40,3 +40,9 @@
 使用现有 `Tools/Verify.ps1`、`Tools/VerifyRoadViewBatches.ps1` 和两个现有寻路检查；原始日志位于隔离工作区 `Temp/Integration-20261024/`：`core-tests.log`、`lane-checks.txt`、`junction-checks.txt`、`geometry/Result.txt`、`native-running/Result.txt`、`native-running/views.csv`。测试入口额外放入临时Unity项目，正常项目不装载测试探针。
 
 合并在隔离工作区完成；原项目三个用户修改cmd及未跟踪`.editorconfig`保留。曾有一次未提交合并误落原目录，已立即abort，原HEAD及用户文件校验保留，再于隔离目录执行正式合并。
+
+## 当前编辑器已切换
+
+第二笔合并为 `c0a51ca59123a292a73847b5f88b75e9419bedb9`。原Unity项目目录 `C:/Users/16934/Documents/unity_game/test` 已切到合并后的 `codex/road-core-20261014`；编辑器实际完成脚本编译、重新进入正常Play，并通过游戏菜单读取城市，显示切换前的1,161人口/410活动车辆，当前保留游戏暂停。不是只在隔离目录合并、主窗口仍停旧分支。
+
+切换前备份原保存和用户文件至 `Temp/IntegrationSwitchBackup-20261024/`，随后通过原游戏保存按钮保留当前运行进度；新保存及单独的 `current-live-city.hcity` SHA256为 `ea2b0e3435bd498533d8e8631c95c87a899dd26ebfde0d1b1dbfeea7158212bb`。原388a7ab4存档仍在备份目录，不删除；读入新分支后保存文件哈希不变。退出原旧Play时曾出现已有LineRenderer销毁异常，本次未扩展处理；合并后编译/进入Play/读取过程没有出现该异常。两个源分支和main的引用保持不变。
