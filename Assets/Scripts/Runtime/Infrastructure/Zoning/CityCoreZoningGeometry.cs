@@ -32,6 +32,23 @@ namespace HarborCity
         public int LastResolvedRoads {get;private set;}
         public bool LastGeometryFull {get;private set;}
         const float RunBucket=16;
+        // Preserve accepted-cell order within the same road. Growth's outer
+        // candidate order stays unchanged; only its repeated global queries shrink.
+        internal ZoneCell[] GrowthFootprint(ZoneCell first,int width,int depth)
+        {
+            return runs[cellOwners[first.key]].accepted.Where(c=>c.side==first.side&&c.row<depth&&c.column>=first.column&&c.column<first.column+width).ToArray();
+        }
+        internal bool OverlapsOtherPlot(CityBuilding lot,ZoneCell[] footprint)
+        {
+            var plot=new PlotClaim(lot);double margin=CityZoningState.CellSize;
+            int x0=(int)Math.Floor((lot.x-plot.x-margin)/margin),x1=(int)Math.Floor((lot.x+plot.x+margin)/margin);
+            int z0=(int)Math.Floor((lot.z-plot.z-margin)/margin),z1=(int)Math.Floor((lot.z+plot.z+margin)/margin);
+            // A cell's rotated half extent is <= CellSize/sqrt(2), so the
+            // extra full cell includes every possible SAT overlap, even at seams.
+            for(int x=x0;x<=x1;x++)for(int z=z0;z<=z1;z++)if(claims.TryGetValue((x,z),out var bucket))foreach(var other in bucket)
+                if(!footprint.Contains(other.cell)&&other.cell.pose.Overlaps(lot))return true;
+            return false;
+        }
         static bool SameGeometry(Geometry a,Geometry b)
         {if(ReferenceEquals(a,b))return true;if(a.Count!=b.Count)return false;for(int i=0;i<a.Count;i++){var x=a[i];var y=b[i];if(BitConverter.DoubleToInt64Bits(x.x)!=BitConverter.DoubleToInt64Bits(y.x)||BitConverter.DoubleToInt64Bits(x.y)!=BitConverter.DoubleToInt64Bits(y.y)||BitConverter.DoubleToInt64Bits(x.z)!=BitConverter.DoubleToInt64Bits(y.z))return false;}return true;}
         static bool SameDrivable(Drivable a,Drivable b)=>a.StartDistance==b.StartDistance&&a.EndDistance==b.EndDistance&&SameGeometry(a.Geometry,b.Geometry);

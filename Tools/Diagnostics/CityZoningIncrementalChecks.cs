@@ -14,6 +14,20 @@ static class CityZoningIncrementalChecks
         if(actual.Count!=expected.Count)throw new Exception(label+" cell count "+actual.Count+" != "+expected.Count);
         for(int i=0;i<actual.Count;i++)if(!Same(actual[i],expected[i]))throw new Exception(label+" ordered cell differs at "+i+" actual "+actual[i].key+" "+actual[i].block+" expected "+expected[i].key+" "+expected[i].block);
         if(!before.SequenceEqual(CityCoreSave.Write(s)))throw new Exception(label+" read-only zoning mutated facts");
+        // Frozen global queries are the oracle for bounded growth lookups,
+        // including curved/split road gaps and cross-road SAT competition.
+        if(actual.Count>0)foreach(int index in new[]{0,actual.Count/2,actual.Count-1})
+        {
+            var first=actual[index];int width=2+index%3,depth=2+index%2;
+            var expectedFootprint=actual.Where(c=>c.block==first.block&&c.side==first.side&&c.row<depth&&c.column>=first.column&&c.column<first.column+width).ToArray();
+            var footprint=s.Simulation.Growth.Zoning.GrowthFootprint(first,width,depth);
+            if(!footprint.SequenceEqual(expectedFootprint))throw new Exception(label+" growth footprint order changed");
+            foreach(float angle in new[]{first.pose.yaw,first.pose.yaw+37})
+            {
+                var lot=new ResidentialBuilding{x=first.pose.x,z=first.pose.z,yaw=angle,width=width*CityZoningState.CellSize-.1f,depth=depth*CityZoningState.CellSize-.1f};
+                if(s.Simulation.Growth.Zoning.OverlapsOtherPlot(lot,footprint)!=actual.Any(c=>c.pose.Overlaps(lot)&&!footprint.Contains(c)))throw new Exception(label+" bounded overlap differs from full SAT scan");
+            }
+        }
         snapshots++;cellsChecked+=actual.Count;rows.Add(label+","+actual.Count+","+Hash(before));Console.WriteLine("PASS "+label+" "+actual.Count);
     }
     static int Add(CityCoreIndustrySession s,double x,double z,double X,double Z)

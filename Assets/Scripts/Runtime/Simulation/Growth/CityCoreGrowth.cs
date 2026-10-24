@@ -45,9 +45,9 @@ namespace HarborCity
                     var size=CityModel.GrowthFootprints[(city.development.nextProjectId-1+i)%CityModel.GrowthFootprints.Length];
                     foreach(var first in candidates.Where(c=>c.row==0&&c.available&&c.use==use))
                     {
-                        var footprint=candidates.Where(c=>c.block==first.block&&c.side==first.side&&c.row<size.depth&&c.column>=first.column&&c.column<first.column+size.width).ToArray();if(footprint.Length!=size.width*size.depth||footprint.Any(c=>!c.available||c.use!=use))continue;
+                        var footprint=Zoning.GrowthFootprint(first,size.width,size.depth);if(footprint.Length!=size.width*size.depth||footprint.Any(c=>!c.available||c.use!=use))continue;
                         var lot=CityModel.NewBuilding(use);lot.x=footprint.Average(c=>c.pose.x);lot.z=footprint.Average(c=>c.pose.z);lot.yaw=first.pose.yaw;lot.width=CityZoningState.CellSize*size.width-.1f;lot.depth=CityZoningState.CellSize*size.depth-.1f;
-                        if(footprint.Any(c=>!lot.Contains(c.pose.x,c.pose.z))||candidates.Any(c=>c.pose.Overlaps(lot)&&!footprint.Contains(c))||!Zoning.CanPlace(lot)||!Zoning.Entrance(lot).HasValue)continue;
+                        if(footprint.Any(c=>!lot.Contains(c.pose.x,c.pose.z))||Zoning.OverlapsOtherPlot(lot,footprint)||!Zoning.CanPlace(lot)||!Zoning.Entrance(lot).HasValue)continue;
                         if(lot is ResidentialBuilding home){home.housingUnits=1;home.askingRent=0;}
                         city.development.projects.Add(new DevelopmentProject{id=city.development.nextProjectId++,started=(float)time.Start,completeAt=(float)(time.Start+12),building=BuildingSaveData.FromBuilding(lot),cells=footprint.Select(c=>c.key).ToList()});city.development.revision++;planned=true;break;
                     }
