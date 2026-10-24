@@ -17,7 +17,11 @@ namespace HarborCity
         HarborCityRoadCoreGame host;string savePath,output;float rate;
         public void Configure(HarborCityRoadCoreGame game,string input,string result,float speed)
         {
-            host=game;savePath=input;output=result;rate=speed;host.ScenarioMeasuring=true;
+            host=game;
+            var experimentArgs=Environment.GetCommandLineArgs();
+            HarborCity.RoadCore.DepotRoutingTrace.Enabled=Array.IndexOf(experimentArgs,"-harbor-depot-routing-trace")>=0;
+            HarborCity.RoadCore.DepotRoutingTrace.Reset();
+            savePath=input;output=result;rate=speed;host.ScenarioMeasuring=true;
             var args=Environment.GetCommandLineArgs();int ms=Array.IndexOf(args,"-harbor-window-budget-ms"),steps=Array.IndexOf(args,"-harbor-window-max-steps");
             if(ms>=0||steps>=0)host.ScenarioWorkBudget(steps<0?32:int.Parse(args[steps+1],CultureInfo.InvariantCulture),ms<0?8:double.Parse(args[ms+1],CultureInfo.InvariantCulture));
             StartCoroutine(Measure());
@@ -41,7 +45,11 @@ namespace HarborCity
                 using(var sha=SHA256.Create())File.WriteAllText(Path.Combine(output,"warm-state.sha256"),BitConverter.ToString(sha.ComputeHash(warmState)).Replace("-","").ToLowerInvariant());
                 host.ScenarioRate(rate);
             }
-            var city=host.ScenarioSession;long startTick=city.Simulation.Tick;
+            var city=host.ScenarioSession;
+            city.Transport.DepotLaneRoutingEnabled=Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-depot-lane-routing")>=0;
+            if(HarborCity.RoadCore.DepotRoutingTrace.Enabled){HarborCity.RoadCore.DepotRoutingTrace.Write(Path.Combine(output,"routing-warmup.csv"));HarborCity.RoadCore.DepotRoutingTrace.Reset();}
+            if(Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-depot-lane-cold")>=0)city.Transport.DepotRoutes.Clear();
+            long startTick=city.Simulation.Tick;
             double startPending=city.Simulation.PendingSeconds;
             var frames=new List<double>(5000);var rows=new List<Sample>(5000);
             var gc=ProfilerRecorder.StartNew(ProfilerCategory.Memory,"GC Allocated In Frame",1);
@@ -81,6 +89,9 @@ namespace HarborCity
                 if(recording&&++capturedFrames>=frameLimit){captureEndTick=city.Simulation.Tick;UnityEngine.Profiling.Profiler.enabled=false;UnityEngine.Profiling.Profiler.enableBinaryLog=false;recording=false;recorded=true;}
             }
             int endGen0=GC.CollectionCount(0),endGen1=GC.CollectionCount(1),endGen2=GC.CollectionCount(2);
+            if(HarborCity.RoadCore.DepotRoutingTrace.Enabled){HarborCity.RoadCore.DepotRoutingTrace.Enabled=false;HarborCity.RoadCore.DepotRoutingTrace.Write(Path.Combine(output,"routing-window.csv"));}
+            var depotCache=city.Transport.DepotRoutes;
+            File.WriteAllText(Path.Combine(output,"routing-cache.csv"),"enabled,depots,hits,misses,evictions,invalidations,reserved_tree_bytes,reserved_graph_bytes,tree_builds,tree_reuses\n"+string.Join(",",city.Transport.DepotLaneRoutingEnabled,depotCache.Count,depotCache.Hits,depotCache.Misses,depotCache.Evictions,depotCache.Invalidations,depotCache.ReservedTreeBytes,depotCache.ReservedGraphBytes,depotCache.TreeBuilds,depotCache.TreeReuses));
 #if CITY_CORE_ATTRIBUTION
             if(coreProfile){HarborCity.RoadCore.CityCoreProfile.Enabled=false;File.WriteAllText(Path.Combine(output,"core-profile.csv"),HarborCity.RoadCore.CityCoreProfile.Header()+"\n"+HarborCity.RoadCore.CityCoreProfile.Row(city.Simulation.Tick,city.Transport.ActiveCount,city.Transport.RoutePreparations,GC.CollectionCount(0)-gen0,GC.CollectionCount(1)-gen1,GC.CollectionCount(2)-gen2)+"\n");}
 #endif
@@ -104,7 +115,7 @@ namespace HarborCity
                 city.Validate();byte[] final=CityCoreSave.Write(city);File.WriteAllBytes(Path.Combine(output,"final.hcity"),final);
                 if(Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-window-restore")>=0)
                 {
-                    var restored=CityCoreSave.Read(final);restored.Simulation.Growth.Zoning.SetSurface(host.ScenarioSurface);
+                    var restored=CityCoreSave.Read(final);restored.Simulation.Growth.Zoning.SetSurface(host.ScenarioSurface);restored.Transport.DepotLaneRoutingEnabled=city.Transport.DepotLaneRoutingEnabled;
                     for(int i=0;i<20;i++){double request=city.Simulation.PendingSeconds>=.05?0:.05;if(city.Simulation.Advance(request,1,double.PositiveInfinity)!=1||restored.Simulation.Advance(request,1,double.PositiveInfinity)!=1)throw new InvalidOperationException("Restore check lost a full step");}
                     city.Validate();restored.Validate();if(!CityCoreSave.Write(city).SequenceEqual(CityCoreSave.Write(restored)))throw new InvalidOperationException("Warm/cold whole-city debt continuation differs");
                     File.WriteAllText(Path.Combine(output,"RestoreResult.txt"),"PASS native Unity warm/cold 20 complete steps with saved pending debt, all city/transport/money/goods/waste state byte-identical. Outside timed window; final.hcity is original measured endpoint.\n");
