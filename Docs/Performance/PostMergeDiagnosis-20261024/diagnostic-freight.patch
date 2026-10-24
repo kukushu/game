@@ -1,0 +1,228 @@
+--- a/Assets/Scripts/Diagnostics/Runtime/CityCoreProfile.cs
++++ b/Assets/Scripts/Diagnostics/Runtime/CityCoreProfile.cs
+@@ -1,4 +1,4 @@
+-using System;
++﻿using System;
+ using System.Diagnostics;
+ using System.Globalization;
+ using System.Text;
+@@ -30,6 +30,8 @@
+         public enum Part {Step,Residents,Job,Production,Logistics,Dispatch,RouteLookup,RouteSearch,Admission,Occupancy,Movement,Settlement,Growth,Utilities,Population,Consumption,Trade,Payroll,ZoningRebuild,GrowthSearch,Placement,Finance,FinanceAccrual,Waste,ZoningGeometry,ZoningLandUse,ZoningOccupancy,UtilityRebuild,UtilityPowerCoverage,UtilityWaterCoverage,CommuteEstimate,CostSearch,PlacementTerrain,PlacementBuildings,ClearanceQuery,ClearanceOverlap,ZoningCellKey,CommuteLookup,OccupancyClear,OccupancyActors,OccupancySort}
+         const int PartCount=41;
+         public static bool Enabled;
++        public static long FreightAttempts,FreightPrepared,FreightBusinessRejected,FreightCommitted,FreightCashRejected;
++        public static readonly long[] FreightRejections=new long[8];
+         public static bool AllocationAvailable {get;}=ProbeAllocationCounter();
+         static bool ProbeAllocationCounter(){long before=GC.GetAllocatedBytesForCurrentThread();var probe=new byte[128];GC.KeepAlive(probe);return GC.GetAllocatedBytesForCurrentThread()>before;}
+         public static long CommuteEstimateHits,CommuteEstimateMisses;
+@@ -67,7 +69,7 @@
+             }
+         }
+         public static Scope Measure(Part part)=>new Scope(part);
+-        public static void Reset(){if(depth!=0)throw new InvalidOperationException("Cannot reset nested sample");CommuteEstimateHits=CommuteEstimateMisses=Unreachable=SourceBlocked=CacheFlushes=CacheHits=CacheEvictions=ZoningCandidatePairs=ZoningExactOverlaps=0;Array.Clear(Calls,0,PartCount);Array.Clear(Ticks,0,PartCount);Array.Clear(SelfTicks,0,PartCount);Array.Clear(Bytes,0,PartCount);Array.Clear(SelfBytes,0,PartCount);if(!AllocationAvailable)for(int i=0;i<PartCount;i++)Bytes[i]=SelfBytes[i]=-1;}
++        public static void Reset(){if(depth!=0)throw new InvalidOperationException("Cannot reset nested sample");FreightAttempts=FreightPrepared=FreightBusinessRejected=FreightCommitted=FreightCashRejected=0;Array.Clear(FreightRejections,0,FreightRejections.Length);CommuteEstimateHits=CommuteEstimateMisses=Unreachable=SourceBlocked=CacheFlushes=CacheHits=CacheEvictions=ZoningCandidatePairs=ZoningExactOverlaps=0;Array.Clear(Calls,0,PartCount);Array.Clear(Ticks,0,PartCount);Array.Clear(SelfTicks,0,PartCount);Array.Clear(Bytes,0,PartCount);Array.Clear(SelfBytes,0,PartCount);if(!AllocationAvailable)for(int i=0;i<PartCount;i++)Bytes[i]=SelfBytes[i]=-1;}
+         public static string Header()
+         {var b=new StringBuilder("tick,active,route_preparations,gc0,gc1,gc2,unreachable,source_blocked,cache_flushes,cache_hits,cache_evictions,commute_estimate_hits,commute_estimate_misses,allocation_counter_supported,zoning_candidate_pairs,zoning_exact_overlaps");foreach(Part p in Enum.GetValues(typeof(Part)))b.Append(',').Append(p).Append("_ms,").Append(p).Append("_self_ms,").Append(p).Append("_calls,").Append(p).Append("_bytes,").Append(p).Append("_self_bytes");return b.ToString();}
+         public static string Row(long tick,int active,long routes,int gc0,int gc1,int gc2)
+--- a/Assets/Scripts/Diagnostics/Runtime/CityDepotRoutingTrace.cs
++++ b/Assets/Scripts/Diagnostics/Runtime/CityDepotRoutingTrace.cs
+@@ -13,14 +13,27 @@
+         public sealed class Sample : IDisposable
+         {
+             public string kind, direction; public int depot, expanded; readonly long start = Stopwatch.GetTimestamp(), bytes = GC.GetAllocatedBytesForCurrentThread(); public double ms; public long allocated;
++#if UNITY_5_3_OR_NEWER
++            static class UnitySamples
++            {
++                internal static readonly Unity.Profiling.ProfilerMarker Forward=new Unity.Profiling.ProfilerMarker("City.DepotLane.ForwardTree"),Reverse=new Unity.Profiling.ProfilerMarker("City.DepotLane.ReverseTree"),Search=new Unity.Profiling.ProfilerMarker("City.DepotLane.OriginalSearch"),Query=new Unity.Profiling.ProfilerMarker("City.DepotLane.ServiceQuery");
++            }
++            readonly Unity.Profiling.ProfilerMarker.AutoScope unity;
++#endif
+             internal Sample(string k)
+             {
++#if UNITY_5_3_OR_NEWER
++                unity=(k=="forward-tree"?UnitySamples.Forward:k=="reverse-tree"?UnitySamples.Reverse:k=="original-dijkstra"?UnitySamples.Search:UnitySamples.Query).Auto();
++#endif
+                 kind = k;
+                 direction = Direction;
+                 depot = Depot;
+             }
+             public void Dispose()
+             {
++#if UNITY_5_3_OR_NEWER
++                unity.Dispose();
++#endif
+                 ms = (Stopwatch.GetTimestamp() - start) * 1000.0 / Stopwatch.Frequency;
+                 allocated = CityCoreProfile.AllocationAvailable ? GC.GetAllocatedBytesForCurrentThread() - bytes : -1;
+                 Rows.Add(this);
+--- a/Assets/Scripts/Diagnostics/Runtime/HarborCityScenarioWindowProbe.cs
++++ b/Assets/Scripts/Diagnostics/Runtime/HarborCityScenarioWindowProbe.cs
+@@ -1,4 +1,4 @@
+-using System;
++﻿using System;
+ using System.Collections;
+ using System.Collections.Generic;
+ using System.Globalization;
+@@ -29,11 +29,16 @@
+             Directory.CreateDirectory(output);QualitySettings.vSyncCount=0;Application.targetFrameRate=60;
+             yield return null;yield return null;
+             bool sharedWarmup=Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-window-shared-warmup")>=0;
++            var laneArgs=Environment.GetCommandLineArgs();int laneWarmIndex=Array.IndexOf(laneArgs,"-harbor-window-lane-warm-steps");
++            int laneWarmSteps=laneWarmIndex<0?0:int.Parse(laneArgs[laneWarmIndex+1],CultureInfo.InvariantCulture);
++            if(laneWarmSteps<0||laneWarmSteps>20000||laneWarmSteps>0&&(!sharedWarmup||Array.IndexOf(laneArgs,"-harbor-depot-lane-routing")<0))throw new InvalidOperationException("Lane warmup requires shared warmup and explicit lane routing");
+             host.ScenarioRate(sharedWarmup?0:rate);
+             if(sharedWarmup)
+             {
+                 var warmCity=host.ScenarioSession;
++                if(laneWarmSteps>0)warmCity.Transport.DepotLaneRoutingEnabled=true;
+                 for(int i=0;i<200;i++){warmCity.Simulation.Advance(.05,1,double.PositiveInfinity);if(i%10==9)yield return null;}
++                for(int i=0;i<laneWarmSteps;i++){warmCity.Simulation.Advance(.05,1,double.PositiveInfinity);if(i%10==9)yield return null;}
+             }
+             var warmArgs=Environment.GetCommandLineArgs();var warmSession=host.ScenarioSession;
+             bool prewarm=Array.IndexOf(warmArgs,"-harbor-window-prewarm-depots")>=0;
+@@ -84,6 +89,8 @@
+             city.Transport.JunctionRoutes.Trace=Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-junction-trace")>=0;
+             var initialCache=city.Transport.JunctionRoutes;
+             long initialBuilds=initialCache.Builds,initialExpanded=initialCache.Expanded,initialQueries=initialCache.Queries,initialHits=initialCache.Hits,initialMisses=initialCache.Misses,initialInvalidations=initialCache.Invalidations,initialEvictions=initialCache.Evictions;
++            var laneCache=city.Transport.DepotRoutes;
++            long laneQueries=laneCache.Queries,laneHits=laneCache.Hits,laneMisses=laneCache.Misses,laneEvictions=laneCache.Evictions,laneInvalidations=laneCache.Invalidations,laneBuilds=laneCache.TreeBuilds,laneReuses=laneCache.TreeReuses;
+             var roadMemory=new List<string>{"phase,drivables,renderers,vertices,triangles,mesh_runtime_bytes,managed_gc_bytes,unity_allocated_bytes"};
+             RoadMemory(roadMemory,"start");
+             long startTick=city.Simulation.Tick;
+@@ -160,10 +167,15 @@
+             int endGen0=GC.CollectionCount(0),endGen1=GC.CollectionCount(1),endGen2=GC.CollectionCount(2);
+             if(HarborCity.RoadCore.DepotRoutingTrace.Enabled){HarborCity.RoadCore.DepotRoutingTrace.Enabled=false;HarborCity.RoadCore.DepotRoutingTrace.Write(Path.Combine(output,"routing-window.csv"));}
+             var depotCache=city.Transport.DepotRoutes;
++            File.WriteAllText(Path.Combine(output,"lane-cache-window.csv"),"enabled,queries,hits,misses,evictions,invalidations,tree_builds,tree_reuses,resident_depots,reserved_tree_bytes\n"+string.Join(",",city.Transport.DepotLaneRoutingEnabled,laneCache.Queries-laneQueries,laneCache.Hits-laneHits,laneCache.Misses-laneMisses,laneCache.Evictions-laneEvictions,laneCache.Invalidations-laneInvalidations,laneCache.TreeBuilds-laneBuilds,laneCache.TreeReuses-laneReuses,laneCache.Count,laneCache.ReservedTreeBytes));
+             File.WriteAllText(Path.Combine(output,"routing-cache.csv"),"enabled,depots,hits,misses,evictions,invalidations,reserved_tree_bytes,reserved_graph_bytes,tree_builds,tree_reuses\n"+string.Join(",",city.Transport.DepotLaneRoutingEnabled,depotCache.Count,depotCache.Hits,depotCache.Misses,depotCache.Evictions,depotCache.Invalidations,depotCache.ReservedTreeBytes,depotCache.ReservedGraphBytes,depotCache.TreeBuilds,depotCache.TreeReuses));
+ 
+ #if CITY_CORE_ATTRIBUTION
+-            if(coreProfile){HarborCity.RoadCore.CityCoreProfile.Enabled=false;File.WriteAllText(Path.Combine(output,"core-profile.csv"),HarborCity.RoadCore.CityCoreProfile.Header()+"\n"+HarborCity.RoadCore.CityCoreProfile.Row(city.Simulation.Tick,city.Transport.ActiveCount,city.Transport.RoutePreparations,GC.CollectionCount(0)-gen0,GC.CollectionCount(1)-gen1,GC.CollectionCount(2)-gen2)+"\n");}
++            if(coreProfile){
++                var freightRows=new List<string>{"metric,count","attempts,"+HarborCity.RoadCore.CityCoreProfile.FreightAttempts,"prepared,"+HarborCity.RoadCore.CityCoreProfile.FreightPrepared,"business_rejected,"+HarborCity.RoadCore.CityCoreProfile.FreightBusinessRejected,"committed,"+HarborCity.RoadCore.CityCoreProfile.FreightCommitted,"shop_cash_rejected,"+HarborCity.RoadCore.CityCoreProfile.FreightCashRejected};
++                for(int i=0;i<8;i++)freightRows.Add("admission_"+((HarborCity.RoadCore.TransportRejection)i)+","+HarborCity.RoadCore.CityCoreProfile.FreightRejections[i]);
++                File.WriteAllLines(Path.Combine(output,"freight-dispatch.csv"),freightRows);
++                HarborCity.RoadCore.CityCoreProfile.Enabled=false;File.WriteAllText(Path.Combine(output,"core-profile.csv"),HarborCity.RoadCore.CityCoreProfile.Header()+"\n"+HarborCity.RoadCore.CityCoreProfile.Row(city.Simulation.Tick,city.Transport.ActiveCount,city.Transport.RoutePreparations,GC.CollectionCount(0)-gen0,GC.CollectionCount(1)-gen1,GC.CollectionCount(2)-gen2)+"\n");}
+ #endif
+             if(roadEdit)File.WriteAllLines(Path.Combine(output,"road-edit.csv"),roadEditRows);
+             if(routingEdit)File.WriteAllLines(Path.Combine(output,"routing-edit.csv"),editRows);
+--- a/Assets/Scripts/Runtime/Simulation/Core/CitySimulation.cs
++++ b/Assets/Scripts/Runtime/Simulation/Core/CitySimulation.cs
+@@ -1,4 +1,4 @@
+-using System;
++﻿using System;
+ using HarborCity.RoadCore;
+ #if UNITY_5_3_OR_NEWER
+ using Unity.Profiling;
+@@ -167,7 +167,23 @@
+ #if CITY_CORE_ATTRIBUTION
+             using var observation=HarborCity.RoadCore.CityCoreProfile.Measure(HarborCity.RoadCore.CityCoreProfile.Part.Dispatch);
+ #endif
+-if(Fault!=null)throw new InvalidOperationException("Cannot dispatch into a faulted simulation",Fault);var admission=transport.PrepareTransport(origin,destination,cargo,price,purpose,citizen);if(admission==null)return null;transport.CheckAdmission(admission);if(admission.vehicle.Task.Shipment!=null)admission.vehicle.Task.Shipment.kind=kind;if(!business.Depart(admission.vehicle.Task))return null;return transport.CommitAdmission(admission);}
++if(Fault!=null)throw new InvalidOperationException("Cannot dispatch into a faulted simulation",Fault);
++#if CITY_CORE_ATTRIBUTION
++bool traceFreight=CityCoreProfile.Enabled&&purpose==TransportPurpose.Freight;if(traceFreight)CityCoreProfile.FreightAttempts++;
++var admission=transport.PrepareTransport(origin,destination,cargo,price,purpose,citizen,out var rejection);
++if(traceFreight){if(admission!=null)CityCoreProfile.FreightPrepared++;else CityCoreProfile.FreightRejections[(int)rejection]++;}
++#else
++var admission=transport.PrepareTransport(origin,destination,cargo,price,purpose,citizen);
++#endif
++if(admission==null)return null;transport.CheckAdmission(admission);if(admission.vehicle.Task.Shipment!=null)admission.vehicle.Task.Shipment.kind=kind;if(!business.Depart(admission.vehicle.Task)){
++#if CITY_CORE_ATTRIBUTION
++if(traceFreight)CityCoreProfile.FreightBusinessRejected++;
++#endif
++return null;}
++#if CITY_CORE_ATTRIBUTION
++if(traceFreight)CityCoreProfile.FreightCommitted++;
++#endif
++return transport.CommitAdmission(admission);}
+         internal void AssertSaveBoundary(){if(IsStepping||IsApplyingBoundary||Fault!=null)throw new InvalidOperationException("Cannot save a partial/faulted simulation step");}
+     }
+ }
+--- a/Assets/Scripts/Runtime/Simulation/Industry/CityCoreIndustrySession.cs
++++ b/Assets/Scripts/Runtime/Simulation/Industry/CityCoreIndustrySession.cs
+@@ -1,4 +1,4 @@
+-using System;
++﻿using System;
+ using System.Collections.Generic;
+ using System.Linq;
+ using HarborCity.RoadCore;
+@@ -43,7 +43,11 @@
+             if(v.Shipment==null||v.Shipment.kind!=CargoKind.Goods&&v.Shipment.kind!=CargoKind.RawMaterial)return false;
+             if(v.Shipment?.kind==CargoKind.RawMaterial||city.entities.Connection(v.destination)!=null)return Trade!=null&&Trade.Depart(v);
+             if(!(city.GetBuilding(v.origin) is IndustrialBuilding factory)||!(city.GetBuilding(v.destination) is CommercialBuilding shop)||!Exists(v.origin)||!Exists(v.destination)||factory.Stock<v.Cargo||shop.Stock+v.Cargo>32||v.Price!=(Economy?.GoodsWholesalePrice??FactoryState.SalePrice))return false;
+-            if(city.development.enabled){double payment=v.Cargo*v.Price;if(shop.Account.Cash<payment)return false;shop.Account.Cash-=payment;shop.Account.WholesaleFunded+=payment;}
++            if(city.development.enabled){double payment=v.Cargo*v.Price;if(shop.Account.Cash<payment){
++#if CITY_CORE_ATTRIBUTION
++if(CityCoreProfile.Enabled)CityCoreProfile.FreightCashRejected++;
++#endif
++return false;}shop.Account.Cash-=payment;shop.Account.WholesaleFunded+=payment;}
+             factory.Stock-=v.Cargo;factory.factory.shipped+=v.Cargo;return true;
+         }
+         internal bool Deliver(TransportArrival v)
+--- a/Assets/Scripts/Runtime/Simulation/Industry/CityFreightCandidates.cs
++++ b/Assets/Scripts/Runtime/Simulation/Industry/CityFreightCandidates.cs
+@@ -1,4 +1,4 @@
+-using System;
++﻿using System;
+ using System.Collections.Generic;
+ using HarborCity.RoadCore;
+ namespace HarborCity
+@@ -8,6 +8,9 @@
+     internal sealed class CityFreightCandidates
+     {
+         readonly CityEntities entities;readonly World world;
++#if CITY_CORE_ATTRIBUTION && UNITY_5_3_OR_NEWER
++        static readonly Unity.Profiling.ProfilerMarker collectSample=new Unity.Profiling.ProfilerMarker("City.Diagnosis.FreightCandidates.Collect"),refreshSample=new Unity.Profiling.ProfilerMarker("City.Diagnosis.FreightCandidates.Refresh");
++#endif
+         sealed class Entry {internal CommercialBuilding shop;internal RoadAccess access;internal int order;}
+         sealed class StationOrder:IComparer<Entry>
+         {internal static readonly StationOrder Instance=new StationOrder();public int Compare(Entry a,Entry b){int c=a.access.distance.CompareTo(b.access.distance);return c!=0?c:a.order.CompareTo(b.order);}}
+@@ -19,6 +22,9 @@
+         internal CityFreightCandidates(CityEntities entities,World world){this.entities=entities;this.world=world;}
+         void Refresh()
+         {
++#if CITY_CORE_ATTRIBUTION && UNITY_5_3_OR_NEWER
++            using var sample=refreshSample.Auto();
++#endif
+             if(ReferenceEquals(network,world.Network)&&revision==entities.Revision&&accessRevision==world.AccessRevision)return;
+             lanes.Clear();network=world.Network;revision=entities.Revision;accessRevision=world.AccessRevision;
+             for(int i=0;i<entities.Shops.Count;i++)
+@@ -32,6 +38,9 @@
+         }
+         internal void Collect(RoadAccess source,List<CommercialBuilding> output)
+         {
++#if CITY_CORE_ATTRIBUTION && UNITY_5_3_OR_NEWER
++            using var sample=collectSample.Auto();
++#endif
+             Refresh();scratch.Clear();output.Clear();if(source==null||!source.valid||(source.use&AccessUse.Freight)==0)return;
+             foreach(var pair in lanes)
+             {
+--- a/Tools/RunCityScenarioWindow.ps1
++++ b/Tools/RunCityScenarioWindow.ps1
+@@ -1,6 +1,7 @@
+-param([string]$Save='Temp/CityScenarios/grid500-normal-final/inflight.hcity',[string]$Results='Temp/CityScenarios/window500',[switch]$SkipBuild,[switch]$BuildOnly,[int]$TimeoutSeconds=180,[double]$MaxMemoryGB=8,[string]$PlayerPath='Temp/RoadCore/Player/HarborCity.exe',[ValidateSet(0,1,3,20,50)][int[]]$Rates=@(1,3),[switch]$RawProfile,[switch]$CheckRestore,[string]$NetworkReference='',[string]$RoutingReference='',[ValidateRange(15,150)][int]$RawProfileSeconds=30,[ValidateRange(5,120)][int]$RawFrameLimit=60,[long]$RawStartTick=0,[string]$HostSource='',[string]$RoadViewReference='',[switch]$SharedWarmup,[ValidateRange(15,150)][int]$MeasureSeconds=60,[ValidateRange(1,64)][double]$BudgetMilliseconds=8,[ValidateRange(1,128)][int]$MaximumSteps=32,[switch]$CoreProfile,[switch]$SavedMap,[switch]$DepotLaneRouting,[switch]$DepotRoutingTrace,[switch]$ColdDepotTrees,[switch]$DepotJunctionRouting,[switch]$JunctionTrace,[switch]$DepotLaneReference,[switch]$RoutingEdit,[switch]$RoadViewEdit,[ValidateSet(32,64,128)][int]$RoadChunkSize=64,[switch]$PrewarmDepotTrees,[ValidateRange(0,20000)][int]$AdditionalWarmSteps=0,[ValidateSet('normal','renderers-off','inactive','shadows-off')][string]$RoadViewMode='normal')
++﻿param([string]$Save='Temp/CityScenarios/grid500-normal-final/inflight.hcity',[string]$Results='Temp/CityScenarios/window500',[switch]$SkipBuild,[switch]$BuildOnly,[int]$TimeoutSeconds=180,[double]$MaxMemoryGB=8,[string]$PlayerPath='Temp/RoadCore/Player/HarborCity.exe',[ValidateSet(0,1,3,20,50)][int[]]$Rates=@(1,3),[switch]$RawProfile,[switch]$CheckRestore,[string]$NetworkReference='',[string]$RoutingReference='',[ValidateRange(15,150)][int]$RawProfileSeconds=30,[ValidateRange(5,120)][int]$RawFrameLimit=60,[long]$RawStartTick=0,[string]$HostSource='',[string]$RoadViewReference='',[switch]$SharedWarmup,[ValidateRange(15,150)][int]$MeasureSeconds=60,[ValidateRange(1,64)][double]$BudgetMilliseconds=8,[ValidateRange(1,128)][int]$MaximumSteps=32,[switch]$CoreProfile,[switch]$SavedMap,[switch]$DepotLaneRouting,[switch]$DepotRoutingTrace,[switch]$ColdDepotTrees,[ValidateRange(0,20000)][int]$LaneWarmSteps=0,[switch]$DepotJunctionRouting,[switch]$JunctionTrace,[switch]$DepotLaneReference,[switch]$RoutingEdit,[switch]$RoadViewEdit,[ValidateSet(32,64,128)][int]$RoadChunkSize=64,[switch]$PrewarmDepotTrees,[ValidateRange(0,20000)][int]$AdditionalWarmSteps=0,[ValidateSet('normal','renderers-off','inactive','shadows-off')][string]$RoadViewMode='normal')
+ $ErrorActionPreference='Stop'
+ if($DepotLaneRouting -and ($DepotJunctionRouting -or $DepotLaneReference -or $RoutingReference -or $PrewarmDepotTrees)){throw 'Choose one depot routing implementation'}
++if($LaneWarmSteps -gt 0 -and (-not $SharedWarmup -or -not $DepotLaneRouting)){throw 'LaneWarmSteps requires SharedWarmup and DepotLaneRouting'}
+ if($AdditionalWarmSteps -gt 0 -and -not $PrewarmDepotTrees){throw 'Additional warm steps require prewarmed depots'}
+ if($PrewarmDepotTrees -and (-not $SharedWarmup -or -not $DepotJunctionRouting)){throw 'PrewarmDepotTrees requires SharedWarmup and DepotJunctionRouting'}
+ if($RoadViewEdit -and $RoutingEdit){throw 'Choose one edit probe'}
+@@ -57,7 +58,7 @@
+  $build=Start-Process 'C:/Program Files/Unity/Hub/Editor/6000.6.3f1/Editor/Unity.exe' -ArgumentList '-batchmode','-quit','-projectPath',('"'+$project+'"'),'-executeMethod','HarborCity.CityPlayerBuild.BuildResearchValidation','-logFile',('"'+(Join-Path $resultsPath 'build.log')+'"') -WindowStyle Hidden -PassThru
+  if(-not $build.WaitForExit(600000)){$build.Kill($true);$build.WaitForExit();throw "Unity build exceeded 600 seconds; build log preserved"};if($build.ExitCode -ne 0){throw 'Unity build failed'}
+ }
+-@{hostSource=$resolvedHostSource;hostSourceHash=$(if($resolvedHostSource){(Get-FileHash -LiteralPath $resolvedHostSource).Hash}else{$null});routingReference=$resolvedRoutingReference;roadViewReference=$resolvedRoadViewReference;networkReference=$resolvedNetworkReference;commit=(& git rev-parse HEAD);dirty=@(& git status --porcelain);inputPath=$inputFile;inputHash=(Get-FileHash -LiteralPath $inputFile).Hash;playerPath=$player;playerHash=(Get-FileHash -LiteralPath $player).Hash;managedHash=(Get-FileHash -LiteralPath (Join-Path (Split-Path $player) 'HarborCity_Data/Managed/Assembly-CSharp.dll')).Hash;cpu=(Get-CimInstance Win32_Processor|Select-Object -ExpandProperty Name);os=[Environment]::OSVersion.ToString();unity=(Get-Content ProjectSettings/ProjectVersion.txt);utc=[DateTime]::UtcNow.ToString('o');warmupSeconds=8;warmupSimulationSteps=$(if($SharedWarmup){200+$AdditionalWarmSteps}else{0});additionalWarmSteps=$AdditionalWarmSteps;budgetMilliseconds=$BudgetMilliseconds;maximumSteps=$MaximumSteps;coreProfile=$CoreProfile.IsPresent;savedMap=$SavedMap.IsPresent;depotLaneRouting=$DepotLaneRouting.IsPresent;depotRoutingTrace=$DepotRoutingTrace.IsPresent;coldDepotTrees=$ColdDepotTrees.IsPresent;depotJunctionRouting=$DepotJunctionRouting.IsPresent;junctionTrace=$JunctionTrace.IsPresent;depotLaneReference=$DepotLaneReference.IsPresent;routingEdit=$RoutingEdit.IsPresent;roadViewEdit=$RoadViewEdit.IsPresent;prewarmDepotTrees=$PrewarmDepotTrees.IsPresent;roadViewMode=$RoadViewMode;roadChunkSize=$RoadChunkSize;measureSeconds=$(if($RawProfile){$RawProfileSeconds}else{$MeasureSeconds});rawProfile=$RawProfile.IsPresent;rawFrameLimit=$RawFrameLimit;rawStartTick=$RawStartTick;checkRestore=$CheckRestore.IsPresent;rates=$Rates;resolution='1440x900';targetFps=60;vsync=0}|ConvertTo-Json -Depth 5|Set-Content (Join-Path $resultsPath 'environment.json')
++@{hostSource=$resolvedHostSource;hostSourceHash=$(if($resolvedHostSource){(Get-FileHash -LiteralPath $resolvedHostSource).Hash}else{$null});routingReference=$resolvedRoutingReference;roadViewReference=$resolvedRoadViewReference;networkReference=$resolvedNetworkReference;commit=(& git rev-parse HEAD);dirty=@(& git status --porcelain);inputPath=$inputFile;inputHash=(Get-FileHash -LiteralPath $inputFile).Hash;playerPath=$player;playerHash=(Get-FileHash -LiteralPath $player).Hash;managedHash=(Get-FileHash -LiteralPath (Join-Path (Split-Path $player) 'HarborCity_Data/Managed/Assembly-CSharp.dll')).Hash;cpu=(Get-CimInstance Win32_Processor|Select-Object -ExpandProperty Name);os=[Environment]::OSVersion.ToString();unity=(Get-Content ProjectSettings/ProjectVersion.txt);utc=[DateTime]::UtcNow.ToString('o');warmupSeconds=8;warmupSimulationSteps=$(if($SharedWarmup){200+$AdditionalWarmSteps+$LaneWarmSteps}else{0});additionalWarmSteps=$AdditionalWarmSteps;laneWarmSteps=$LaneWarmSteps;budgetMilliseconds=$BudgetMilliseconds;maximumSteps=$MaximumSteps;coreProfile=$CoreProfile.IsPresent;savedMap=$SavedMap.IsPresent;depotLaneRouting=$DepotLaneRouting.IsPresent;depotRoutingTrace=$DepotRoutingTrace.IsPresent;coldDepotTrees=$ColdDepotTrees.IsPresent;depotJunctionRouting=$DepotJunctionRouting.IsPresent;junctionTrace=$JunctionTrace.IsPresent;depotLaneReference=$DepotLaneReference.IsPresent;routingEdit=$RoutingEdit.IsPresent;roadViewEdit=$RoadViewEdit.IsPresent;prewarmDepotTrees=$PrewarmDepotTrees.IsPresent;roadViewMode=$RoadViewMode;roadChunkSize=$RoadChunkSize;measureSeconds=$(if($RawProfile){$RawProfileSeconds}else{$MeasureSeconds});rawProfile=$RawProfile.IsPresent;rawFrameLimit=$RawFrameLimit;rawStartTick=$RawStartTick;checkRestore=$CheckRestore.IsPresent;rates=$Rates;resolution='1440x900';targetFps=60;vsync=0}|ConvertTo-Json -Depth 5|Set-Content (Join-Path $resultsPath 'environment.json')
+ if($BuildOnly){Write-Output "Unity Player built only; runtime/window validation was not performed";return}
+ foreach($rate in $Rates){
+  foreach($existing in @(Get-Process -Name ([IO.Path]::GetFileNameWithoutExtension($player)) -ErrorAction SilentlyContinue)){
+@@ -65,7 +66,7 @@
+  }
+  $target=Join-Path $resultsPath ($rate.ToString()+'x')
+  $launch=@('-harbor-city-scenario-window',('"'+$inputFile+'"'),('"'+$target+'"'),$rate,'-harbor-window-seconds',$(if($RawProfile){$RawProfileSeconds}else{$MeasureSeconds}),'-harbor-window-budget-ms',$BudgetMilliseconds,'-harbor-window-max-steps',$MaximumSteps,'-screen-width','1440','-screen-height','900','-logFile',('"'+(Join-Path $resultsPath ($rate.ToString()+'x.log'))+'"'));$launch+=@('-harbor-road-chunk-size',$RoadChunkSize);if($AdditionalWarmSteps -gt 0){$launch+=@('-harbor-window-extra-warm-steps',$AdditionalWarmSteps)};if($PrewarmDepotTrees){$launch+='-harbor-window-prewarm-depots'};if($RoadViewMode -ne 'normal'){$launch+=@('-harbor-window-road-views',$RoadViewMode)};if($RoadViewEdit){$launch+='-harbor-window-road-edit'};if($RoutingEdit){$launch+='-harbor-window-routing-edit'};if($DepotLaneReference){$launch+='-harbor-depot-lane-routing'};if($DepotJunctionRouting){$launch+='-harbor-depot-junction-routing'};if($JunctionTrace){$launch+='-harbor-junction-trace'};if($SavedMap){$launch+='-harbor-window-saved-map'};if($SharedWarmup){$launch+='-harbor-window-shared-warmup'};if($CoreProfile){$launch+='-harbor-window-core-profile'};if($RawProfile){$launch+=@('-harbor-window-raw','-harbor-window-duration',$RawProfileSeconds,'-harbor-raw-frame-limit',$RawFrameLimit,'-harbor-raw-start-tick',$(if($rate -eq 0){0}else{$RawStartTick}))};if($CheckRestore){$launch+='-harbor-window-restore'}
+- if($DepotLaneRouting){$launch+='-harbor-depot-lane-routing'};if($DepotRoutingTrace){$launch+='-harbor-depot-routing-trace'};if($ColdDepotTrees){$launch+='-harbor-depot-lane-cold'}
++ if($LaneWarmSteps -gt 0){$launch+=@('-harbor-window-lane-warm-steps',$LaneWarmSteps)};if($DepotLaneRouting){$launch+='-harbor-depot-lane-routing'};if($DepotRoutingTrace){$launch+='-harbor-depot-routing-trace'};if($ColdDepotTrees){$launch+='-harbor-depot-lane-cold'}
+  $run=Start-Process $player -ArgumentList $launch -WindowStyle Normal -PassThru
+  $processHandle=$run.Handle;$watch=[Diagnostics.Stopwatch]::StartNew();$peak=0L;$stopped=$null
+  while(-not $run.WaitForExit(1000)){$run.Refresh();try{$peak=[Math]::Max($peak,$run.WorkingSet64)}catch{if(-not $run.HasExited){throw}};if($watch.Elapsed.TotalSeconds -gt $TimeoutSeconds){$stopped='wall-time-limit'}elseif($peak -gt $MaxMemoryGB*1GB){$stopped='memory-limit'};if($stopped){$run.Kill($true);$run.WaitForExit();break}}

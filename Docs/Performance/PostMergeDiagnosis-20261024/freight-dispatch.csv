@@ -1,0 +1,14 @@
+metric,count
+attempts,1950806
+prepared,1950806
+business_rejected,1950494
+committed,312
+shop_cash_rejected,1950494
+admission_None,0
+admission_EndpointUnavailable,0
+admission_AccessUnavailable,0
+admission_SourceBlocked,0
+admission_Unreachable,0
+admission_NoRoute,0
+admission_SourceOccupied,0
+admission_JunctionReserved,0

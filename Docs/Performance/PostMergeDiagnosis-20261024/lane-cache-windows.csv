@@ -1,0 +1,8 @@
+run,rate,enabled,queries,hits,misses,evictions,invalidations,tree_builds,tree_reuses,resident_depots,reserved_tree_bytes
+release,0,True,0,0,0,0,0,0,0,88,66958848
+release,1,True,1136,1127,9,9,0,38,2234,88,66958848
+release,50,True,17673,17552,121,121,0,438,34908,88,66958848
+diagnostic,0,True,0,0,0,0,0,0,0,88,66958848
+diagnostic,50,True,14420,14332,88,88,0,320,28520,88,66958848
+freight-reasons,50,True,14420,14332,88,88,0,320,28520,88,66958848
+budget32,50,True,22016,21848,168,168,0,604,43428,88,66958848
