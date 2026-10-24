@@ -24,7 +24,7 @@ namespace HarborCity
             using(var raw=ProfilerDriver.GetRawFrameDataView(frame,thread))
             {
                 if(!raw.valid)break;string name=raw.threadName;
-                if(name!="Main Thread"&&name!="Render Thread"&&name.IndexOf("Gfx",StringComparison.OrdinalIgnoreCase)<0)continue;
+                if(name!="Main Thread"&&name!="Render Thread"&&name.IndexOf("Gfx",StringComparison.OrdinalIgnoreCase)<0&&!name.StartsWith("Job.Worker",StringComparison.Ordinal))continue;
                 frames.Append(frame).Append(',').Append(Quote(name)).Append(',').Append(N(raw.frameTimeMs)).Append(',').Append(N(raw.frameGpuTimeMs>0?raw.frameGpuTimeMs:-1)).AppendLine();
                 using(var data=ProfilerDriver.GetHierarchyFrameDataView(frame,thread,HierarchyFrameDataView.ViewModes.MergeSamplesWithTheSameName,HierarchyFrameDataView.columnDontSort,false))
                     if(data.valid){Visit(data,data.GetRootItemID(),"",frame,name,rows);count++;}
@@ -37,7 +37,7 @@ namespace HarborCity
         static void Visit(HierarchyFrameDataView data,int id,string parent,int frame,string thread,StringBuilder rows)
         {
             string name=data.GetItemName(id),path=parent.Length==0?name:parent+"/"+name;double self=data.GetItemColumnDataAsDouble(id,HierarchyFrameDataView.columnSelfTime);
-            if(name.StartsWith("City.",StringComparison.Ordinal)||name=="PlayerLoop"||name=="GC.Collect"||self>=.2)
+            if(name.StartsWith("City.",StringComparison.Ordinal)||name=="PlayerLoop"||name=="GC.Collect"||name=="DrawBuffersBatchMode"||name=="ExecuteRenderQueueJob"||name=="CullObjectsWithoutUmbra"||self>=.2)
             {
                 rows.Append(frame).Append(',').Append(Quote(thread)).Append(',').Append(Quote(path));
                 foreach(int column in new[]{HierarchyFrameDataView.columnTotalTime,HierarchyFrameDataView.columnSelfTime,HierarchyFrameDataView.columnCalls,HierarchyFrameDataView.columnGcMemory})rows.Append(',').Append(N(data.GetItemColumnDataAsDouble(id,column)));rows.AppendLine();

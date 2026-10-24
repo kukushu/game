@@ -24,6 +24,13 @@ for number in metadata.get('rates', [1, 3]):
     assert not resources.get('terminatedBy'), 'Measurement may exist but Player did not exit normally'
     assert (folder / 'window.png').is_file() and (folder / 'final.hcity').stat().st_size > 0
     assert result['input_sha256'].lower() == metadata['inputHash'].lower(), 'Different city input'
+    if metadata.get('prewarmDepotTrees'):
+        warm_cache = next(csv.DictReader((folder / 'cache-prewarm.csv').read_text().splitlines()))
+        assert int(warm_cache['depots']) > 0 and int(warm_cache['builds']) == 2 * int(warm_cache['depots']), 'Missing full bidirectional depot prewarm'
+        assert (folder / 'cache-window.csv').is_file(), 'Missing measured-only cache counters'
+    if metadata.get('roadViewMode', 'normal') != 'normal':
+        ablation = next(csv.DictReader((folder / 'road-ablation.csv').read_text().splitlines()))
+        assert ablation['mode'] == metadata['roadViewMode'] and int(ablation['road_objects']) == int(result.get('road_renderers',result['road_views'])), 'Unverified road-view ablation'
     previous = int(result['start_tick'])
     for row in rows:
         if 'actual_rate' in row:
@@ -39,7 +46,11 @@ for number in metadata.get('rates', [1, 3]):
         assert previous == int(result['start_tick']) and all(float(r.get('requested_seconds',0)) == 0 for r in rows), 'Paused-labelled run advanced the city'
         expected_hash = ((folder / 'warm-state.sha256').read_text().strip()
                          if metadata.get('warmupSimulationSteps', 0) else metadata['inputHash'])
-        assert hashlib.sha256((folder / 'final.hcity').read_bytes()).hexdigest().lower() == expected_hash.lower(), 'Paused observation changed complete saved facts'
+        if metadata.get('roadViewEdit'):
+            edits = list(csv.DictReader((folder / 'road-edit.csv').read_text().splitlines()))
+            assert len(edits) == 1 and edits[0]['accepted'] == 'True' and not edits[0]['error'], 'Paused construction probe failed'
+        else:
+            assert hashlib.sha256((folder / 'final.hcity').read_bytes()).hexdigest().lower() == expected_hash.lower(), 'Paused observation changed complete saved facts'
     elif all('requested_seconds' in r for r in rows):
         requested = sum(float(r['requested_seconds']) for r in rows)
         edge = max(float(r['frame_ms']) for r in rows) / 1000 * number + .01
@@ -70,3 +81,5 @@ for number in metadata.get('rates', [1, 3]):
 print('No mouse acceptance or economic-health/performance-threshold claim.')
 if metadata.get('hostSource'):
     print('Diagnostic presentation source override: this is an ablation/control, not full normal rendering performance.')
+if metadata.get('roadViewMode', 'normal') != 'normal':
+    print('Road-view ablation: diagnostic evidence only, not a normal-rendering optimization result.')

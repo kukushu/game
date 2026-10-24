@@ -1,0 +1,5 @@
+case,tick,accepted,paid,plan_commit_ms,road_sync_ms,created_renderers,removed_renderers,logical_drivables,renderers,error
+edit-old,145241,True,320,227.2735,11.2901,4,0,97124,97124,
+edit-new,145241,True,320,233.6955,13.706000000000001,4,0,97124,351,
+edit-profile-old,145241,True,320,295.523,10.6096,4,0,97124,97124,
+edit-profile-new,145241,True,320,281.4803,11.549000000000001,4,0,97124,351,

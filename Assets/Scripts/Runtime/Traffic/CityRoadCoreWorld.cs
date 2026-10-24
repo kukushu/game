@@ -85,15 +85,19 @@ namespace HarborCity.RoadCore
         readonly Dictionary<int,Vehicle> vehiclesById=new Dictionary<int,Vehicle>();
         readonly Dictionary<int,RoadAccess> accesses=new Dictionary<int,RoadAccess>();
         readonly DispatchRoutes dispatchRoutes=new DispatchRoutes();
-        // Experiment opt-in; never serialized or enabled for ordinary play.
-        public bool DepotLaneRoutingEnabled {get;set;}
+        bool depotLaneRouting,depotJunctionRouting;
+        public bool DepotJunctionRoutingEnabled {get=>depotJunctionRouting;set{if(value&&depotLaneRouting)throw new InvalidOperationException("Choose one depot routing algorithm");depotJunctionRouting=value;}} // Alternative diagnostic algorithm, never persisted.
+        public readonly DepotJunctionRouting JunctionRoutes=new DepotJunctionRouting();
+        // Runtime selection, never serialized. The normal player host selects lane trees.
+        public bool DepotLaneRoutingEnabled {get=>depotLaneRouting;set{if(value&&depotJunctionRouting)throw new InvalidOperationException("Choose one depot routing algorithm");depotLaneRouting=value;}}
         public readonly DepotLaneRouting DepotRoutes=new DepotLaneRouting();
         DispatchBlueprint ServiceBlueprint(int depot,int destination,RoadAccess source,RoadAccess target)
         {
             int prior=DepotRoutingTrace.Depot;string direction=DepotRoutingTrace.Direction;DepotRoutingTrace.Depot=depot;DepotRoutingTrace.Direction="outbound";
             try{DepotRoutingTrace.QueryObserver?.Invoke(depot,source,target,false);using var sample=DepotRoutingTrace.Start("service-query");
                 if(DepotLaneRoutingEnabled&&DepotRoutes.TryFind(this,depot,source,target,false,out var path,out double start,out double end))return new DispatchBlueprint(Network,path,start,end);
-                return dispatchRoutes.Get(Network,depot,destination,source,target,true,business as IJunctionEndpointProvider);
+                if(DepotJunctionRoutingEnabled&&JunctionRoutes.Outbound(Network,depot,source,target,out var junctionPath,out double junctionStart,out double junctionEnd))return new DispatchBlueprint(Network,junctionPath,junctionStart,junctionEnd);
+                long began=DepotJunctionRoutingEnabled?System.Diagnostics.Stopwatch.GetTimestamp():0;var result=dispatchRoutes.Get(Network,depot,destination,source,target,true,business as IJunctionEndpointProvider);if(began!=0)JunctionRoutes.FallbackCost(began);return result;
             }finally{DepotRoutingTrace.Depot=prior;DepotRoutingTrace.Direction=direction;}
         }
         internal DispatchBlueprint ReplayDepotQuery(int depot,RoadAccess anchor,RoadAccess point,bool returning)
@@ -101,13 +105,14 @@ namespace HarborCity.RoadCore
             if(!returning)return ServiceBlueprint(depot,point.endpoint,anchor,point);
             var path=ServiceReturn(depot,point.lane,point.distance,anchor,out double end);return new DispatchBlueprint(Network,path,point.distance,end);
         }
-        internal void ResetDepotExperimentCaches(){DepotRoutes.Clear();dispatchRoutes.Reset(Network);}
+        internal void ResetDepotExperimentCaches(){DepotRoutes.Clear();JunctionRoutes.Clear();dispatchRoutes.Reset(Network);}
         List<long> ServiceReturn(int depot,long lane,double distance,RoadAccess target,out double end)
         {
             int prior=DepotRoutingTrace.Depot;string direction=DepotRoutingTrace.Direction;DepotRoutingTrace.Depot=depot;DepotRoutingTrace.Direction="return";
             try{DepotRoutingTrace.QueryObserver?.Invoke(depot,target,new RoadAccess{lane=lane,distance=distance},true);using var sample=DepotRoutingTrace.Start("service-query");
                 if(DepotLaneRoutingEnabled&&DepotRoutes.TryFind(this,depot,target,new RoadAccess{lane=lane,distance=distance},true,out var path,out _,out end))return path;
-                return AccessRouting.FromLane(Network,lane,distance,target,true,out end);
+                if(DepotJunctionRoutingEnabled&&JunctionRoutes.Return(Network,depot,target,lane,distance,out var junctionPath,out end))return junctionPath;
+                long began=DepotJunctionRoutingEnabled?System.Diagnostics.Stopwatch.GetTimestamp():0;var result=AccessRouting.FromLane(Network,lane,distance,target,true,out end);if(began!=0)JunctionRoutes.FallbackCost(began);return result;
             }finally{DepotRoutingTrace.Depot=prior;DepotRoutingTrace.Direction=direction;}
         }
         readonly LostOccupancy lostOccupancy=new LostOccupancy();
@@ -182,7 +187,7 @@ namespace HarborCity.RoadCore
             var targetAccesses=new Dictionary<int,RoadAccess>();foreach(var access in proposed)targetAccesses.Add(access.endpoint,access);var remaps=new List<Remap>();var interrupted=new List<KeyValuePair<Vehicle,Point>>();
             foreach(var v in data.vehicles)
             {
-                if(v.status!=VehicleStatus.Active)continue;var old=Network.Get(v.Current);if(v.changeTarget!=0&&!candidate.Contains(v.changeTarget))throw new InvalidOperationException("ÕıÔÚ»»µÀÊ¹ÓÃ´ı³·Â·Ãæ£¬µÈ´ıÍê³ÉºóÔÙ³·Ïú£»³ÇÊĞÎ´ĞŞ¸Ä¡£");
+                if(v.status!=VehicleStatus.Active)continue;var old=Network.Get(v.Current);if(v.changeTarget!=0&&!candidate.Contains(v.changeTarget))throw new InvalidOperationException("æ­£åœ¨æ¢é“ä½¿ç”¨å¾…æ’¤è·¯é¢ï¼Œç­‰å¾…å®Œæˆåå†æ’¤é”€ï¼›åŸå¸‚æœªä¿®æ”¹ã€‚");
                 Point center=old.Geometry.Sample(v.distance);candidate.Project(center,1e-6,true,hits);SpatialHit? located=null;foreach(var hit in hits){var next=candidate.Get(hit.drivable);if(next.IsConnection!=old.IsConnection)continue;if(!next.IsConnection&&(next.LaneIndex!=old.LaneIndex||next.Reverse!=old.Reverse))continue;located=hit;break;}
                 if(!located.HasValue){interrupted.Add(new KeyValuePair<Vehicle,Point>(v,Position(v)));continue;}var current=candidate.Get(located.Value.drivable);long source=current.IsConnection?(uint)(-current.Id-1):current.Id;double start=current.IsConnection?candidate.Get(source).StartDistance:located.Value.distance,end=-1;List<long> route=null;RoadAccess goal;
                 if(targetAccesses.TryGetValue(v.Task.destination,out goal)&&goal.valid)route=AccessRouting.FromLane(candidate,source,start,goal,v.Task.purpose!=TransportPurpose.Freight,out end);
@@ -209,7 +214,7 @@ namespace HarborCity.RoadCore
         public RoadEditPlan PlanUpgradeRoad(int id,int lanes,double speed,RoadDirection direction)
         {
             var n=CopyNetwork();var road=n.roads.Find(r=>r.id==id);if(road==null)throw new ArgumentException("Missing road");road.lanes=lanes;road.speed=speed;road.direction=direction;var candidate=new Network(n,Network);
-            foreach(var v in data.vehicles)if(Network.Contains(v.Current)&&!candidate.Contains(v.Current)||v.changeTarget!=0&&!candidate.Contains(v.changeTarget))throw new InvalidOperationException("´ı³··½Ïò/³µµÀÈÔÓĞ³µÁ¾£¬µÈ´ıÊ»ÀëºóÔÙÉı¼¶£»³ÇÊĞÎ´ĞŞ¸Ä¡£");
+            foreach(var v in data.vehicles)if(Network.Contains(v.Current)&&!candidate.Contains(v.Current)||v.changeTarget!=0&&!candidate.Contains(v.changeTarget))throw new InvalidOperationException("å¾…æ’¤æ–¹å‘/è½¦é“ä»æœ‰è½¦è¾†ï¼Œç­‰å¾…é©¶ç¦»åå†å‡çº§ï¼›åŸå¸‚æœªä¿®æ”¹ã€‚");
             var proposed=new List<RoadAccess>();foreach(var original in data.accesses)
             {
                 var access=original.Copy();if(access.valid&&!candidate.Contains(access.lane))
@@ -343,7 +348,8 @@ namespace HarborCity.RoadCore
             if(data.nextTask>=int.MaxValue)throw new InvalidOperationException("Task IDs exhausted");
             var target=GetAccess(destination);if(!EndpointExists(destination)||target==null||!target.valid||(target.use&AccessUse.Freight)==0||Network.Get(v.Current).IsConnection||v.changeTarget!=0)return null;
             // FromLane may choose the destination curb, but never a different source.
-            var route=ServiceReturn(destination,v.Current,v.distance,target,out double end);if(route==null)return null;
+            var route=ServiceReturn(destination,v.Current,v.distance,target,out double end);
+            if(route==null)return null;
             var task=new TripTask{id=data.nextTask,origin=arrival.destination,destination=destination,purpose=TransportPurpose.Service,departedAt=arrival.arrivedAt,Shipment=new Shipment{kind=CargoKind.Waste,remaining=amount}};
             return new ServiceContinuation(this,EditEpoch,v,arrival.taskId,task,new RoutePlan{segments=route,EndDistance=end});
         }
@@ -475,7 +481,7 @@ namespace HarborCity.RoadCore
                 if(junction==0&&distance<lane.StartDistance+Math.Min(candidate.Clearance(lane),MinimumSpacing)-1e-9)junction=lane.From;
                 if(!lane.IsConnection&&distance>Math.Max(lane.StartDistance,lane.EndDistance-Math.Min(candidate.Clearance(lane),MinimumSpacing))+1e-9)junction=lane.To;
                 if(!candidate.IsConflictJunction(junction))continue;
-                long movement=vehicle.changeTarget!=0?0:Movement(candidate,route,cursor,lane,junction);if(!owners.CanReserve(junction,movement,vehicle.id))throw new InvalidOperationException("Ê©¹¤½Úµã°²È«ÇøÄÚÓĞ³åÍ»³µÁ¾£¬ÇëµÈ´ıËüÃÇÊ»ÀëºóÖØÊÔ£»µÀÂ·ºÍÈÎÎñÎ´ĞŞ¸Ä¡£");owners.Reserve(junction,movement,vehicle.id);
+                long movement=vehicle.changeTarget!=0?0:Movement(candidate,route,cursor,lane,junction);if(!owners.CanReserve(junction,movement,vehicle.id))throw new InvalidOperationException("æ–½å·¥èŠ‚ç‚¹å®‰å…¨åŒºå†…æœ‰å†²çªè½¦è¾†ï¼Œè¯·ç­‰å¾…å®ƒä»¬é©¶ç¦»åé‡è¯•ï¼›é“è·¯å’Œä»»åŠ¡æœªä¿®æ”¹ã€‚");owners.Reserve(junction,movement,vehicle.id);
             }
         }
         public int Advance(double simulationSeconds)

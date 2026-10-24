@@ -58,6 +58,24 @@ static class CityDepotLaneRoutingChecks
         var accesses = lanes.Select((d, i) => new RoadAccess { endpoint = i + 1, lane = d.Id, distance = d.StartDistance + d.TravelLength * (.15 + (i % 7) * .1) }).ToArray();
         foreach (var a in accesses)
             w.RegisterAccess(a.endpoint, a.lane, a.distance);
+        var baseAccess=accesses[0];var destinationAccess=accesses[8];
+        byte[] routingFacts=SaveCodec.Write(w);
+        w.DepotLaneRoutingEnabled=true;
+        var lanePlan=w.ReplayDepotQuery(baseAccess.endpoint,baseAccess,destinationAccess,false);
+        Check(w.DepotRoutes.TreeBuilds>0&&w.JunctionRoutes.Builds==0,"Lane selection accidentally ran junction routing");
+        long laneBuilds=w.DepotRoutes.TreeBuilds;
+        bool rejected=false;try{w.DepotJunctionRoutingEnabled=true;}catch(InvalidOperationException){rejected=true;}
+        Check(rejected&&w.DepotLaneRoutingEnabled&&!w.DepotJunctionRoutingEnabled,"Conflicting algorithm switch was not atomic");
+        w.DepotLaneRoutingEnabled=false;w.DepotJunctionRoutingEnabled=true;
+        w.JunctionRoutes.SetDepots(new[]{baseAccess.endpoint},w.GetAccess,()=>w.AccessRevision);
+        var junctionPlan=w.ReplayDepotQuery(baseAccess.endpoint,baseAccess,destinationAccess,false);
+        Check(w.JunctionRoutes.Builds>0&&w.DepotRoutes.TreeBuilds==laneBuilds,"Junction selection accidentally ran lane routing");
+        rejected=false;try{w.DepotLaneRoutingEnabled=true;}catch(InvalidOperationException){rejected=true;}
+        Check(rejected&&!w.DepotLaneRoutingEnabled&&w.DepotJunctionRoutingEnabled,"Reverse conflicting switch was not atomic");
+        w.DepotJunctionRoutingEnabled=false;w.DepotLaneRoutingEnabled=true;
+        var warmLane=w.ReplayDepotQuery(baseAccess.endpoint,baseAccess,destinationAccess,false);
+        Check(lanePlan.route.SequenceEqual(warmLane.route)&&w.DepotRoutes.TreeBuilds==laneBuilds,"Switch back lost deterministic warm lane cache");
+        Check(routingFacts.SequenceEqual(SaveCodec.Write(w)),"Routing selection changed authoritative world facts");
         foreach (var depot in accesses.Take(12))
         foreach (var target in accesses)
         {

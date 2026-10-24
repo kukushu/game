@@ -95,6 +95,11 @@ namespace HarborCity
         internal int ScenarioZonePlots=>zoningViews?.PlotCount??0;
         internal int ScenarioZoneRenderers=>zoningViews?.RendererCount??0;
         internal int ScenarioRoadViews=>roadViews?.Count??0;
+        internal int ScenarioRoadRenderers=>roadViews?.RendererCount??0;
+        internal int ScenarioRoadChunkSize=>roadViews?.ChunkSize??0;
+        internal int ScenarioRoadCreated=>roadViews?.Created??0;
+        internal int ScenarioRoadRemoved=>roadViews?.Removed??0;
+        internal void ScenarioRefreshRoads(){if(!ScenarioMeasuring)throw new InvalidOperationException("Diagnostic road refresh outside measurement");RenderRoads();}
         internal int ScenarioUtilityViews=>utilityViews.Count;
         internal bool ScenarioMeasuring;
         internal double ScenarioAdvanceMs,ScenarioVehicleMs,ScenarioStructureMs;
@@ -149,7 +154,7 @@ namespace HarborCity
                 if(!originalTerrainCheck){RenderBuildings();RenderZones();}
             }
             bool playerSession=!args.Any(a=>a.StartsWith("-harbor-",StringComparison.Ordinal))||Array.IndexOf(args,"-harbor-city-inspect")>=0;
-            if(session!=null){session.Simulation.Finance.UnlimitedFunds=playerSession;if(playerSession){session.City.utilities.roadConduits=true;session.Simulation.Utilities.Refresh();}}
+            if(session!=null){session.Simulation.Finance.UnlimitedFunds=playerSession;if(playerSession){world.DepotLaneRoutingEnabled=true;session.City.utilities.roadConduits=true;session.Simulation.Utilities.Refresh();}}
             RenderRoads();
             previousTick=System.Diagnostics.Stopwatch.GetTimestamp();
             int flag=Array.IndexOf(args,"-harbor-core-validate");if(flag>=0&&flag+1<args.Length)StartCoroutine(ValidateNative(args[flag+1]));
@@ -276,7 +281,7 @@ namespace HarborCity
         }
         void RenderRoads()
         {
-            if(roadViews==null)roadViews=new HarborCityRoadViews(roadMaterial);
+            if(roadViews==null){int chunk=64;var args=Environment.GetCommandLineArgs();int flag=Array.IndexOf(args,"-harbor-road-chunk-size");if(ScenarioMeasuring&&flag>=0)chunk=int.Parse(args[flag+1],System.Globalization.CultureInfo.InvariantCulture);roadViews=new HarborCityRoadViews(roadMaterial,chunk);}
             roadViews.Sync(world,landscape==null?null:landscape.Height);
         }
         void RenderBuildings()
@@ -310,7 +315,7 @@ namespace HarborCity
             constructionCamera=new HarborCityConstructionCamera(cameraView,landscape,session.City.map.buildHalfSize);
             roadViews?.InvalidateSurface();zoningViews?.InvalidateSurface();
         }
-        void Load(){try{var bytes=File.ReadAllBytes(SavePath);var replacement=session==null?SaveCodec.Read(bytes):null;var restored=session==null?null:CityCoreSave.Read(bytes);if(restored!=null){restored.Simulation.Finance.UnlimitedFunds=session.Simulation.Finance.UnlimitedFunds;restored.City.utilities.roadConduits=true;restored.Simulation.Utilities.Refresh();}vehicleViews?.Clear();session=restored;world=restored?.Transport??replacement;playerStepBudget.Reset();CancelTool();observation?.Bind(session);roadEditor?.Bind(session);if(session!=null)BindLandscape();shownBuildings=shownZones=shownNetwork=-1;RenderRoads();RenderBuildings();RenderZones();RenderUtilities();notice="新格式已加载";}catch(Exception e){notice="读取失败："+e.Message;}}
+        void Load(){try{var bytes=File.ReadAllBytes(SavePath);var replacement=session==null?SaveCodec.Read(bytes):null;var restored=session==null?null:CityCoreSave.Read(bytes);if(restored!=null){restored.Transport.DepotLaneRoutingEnabled=world.DepotLaneRoutingEnabled;restored.Transport.DepotJunctionRoutingEnabled=world.DepotJunctionRoutingEnabled;restored.Simulation.Finance.UnlimitedFunds=session.Simulation.Finance.UnlimitedFunds;restored.City.utilities.roadConduits=true;restored.Simulation.Utilities.Refresh();}vehicleViews?.Clear();session=restored;world=restored?.Transport??replacement;playerStepBudget.Reset();CancelTool();observation?.Bind(session);roadEditor?.Bind(session);if(session!=null)BindLandscape();shownBuildings=shownZones=shownNetwork=-1;RenderRoads();RenderBuildings();RenderZones();RenderUtilities();notice="新格式已加载";}catch(Exception e){notice="读取失败："+e.Message;}}
         System.Collections.IEnumerator ValidateNative(string path)
         {
             Directory.CreateDirectory(path);speed=0;yield return null;

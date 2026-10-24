@@ -1,0 +1,8 @@
+city,source,nodes,lanes,entries,tree_bytes,graph_payload_estimate,queries,hits,misses,evictions,invalidations,local_checks,fallbacks,unreachable,builds,expanded,topology_only_nodes,fallback_invalid,fallback_inactive,fallback_budget,fallback_ms
+real,player-real-C,7128,14248,42,7099488,1821152,383,341,42,0,0,383,0,0,83,590916,,,,,
+real,player-real-D,14241,14248,42,23924880,6634852,414,372,42,0,0,414,0,0,84,1195089,7128,0,0,0,0
+3000,player-3000-C,170,170,20,81600,24696,397,377,20,0,0,396,0,0,40,6760,,,,,
+3000,player-3000-D,170,170,20,136000,48104,534,514,20,0,0,530,0,0,40,6760,170,0,0,0,0
+real,gc-real-A,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+real,gc-real-D,14241,14248,42,23924880,6634852,405,363,42,0,0,405,0,0,84,1195089,7128,0,0,0,0
+real,gc-real-D-edit,14241,14248,42,23924880,6634852,405,323,82,0,1,405,0,0,154,2190980,7128,0,0,0,0
