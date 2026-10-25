@@ -1,4 +1,4 @@
-param([Parameter(Mandatory)][string]$Save,[Parameter(Mandatory)][string]$Results,[string]$Reference='',[int]$Road=87,[ValidateSet('in-place','demolition','demolition-repair','service-pickup','service-return')][string]$Scenario='in-place')
+param([Parameter(Mandatory)][string]$Save,[Parameter(Mandatory)][string]$Results,[string]$Reference='',[int]$Road=87,[ValidateSet('in-place','demolition','demolition-repair','service-pickup','service-return','waste-loss')][string]$Scenario='in-place')
 $ErrorActionPreference='Stop';. (Join-Path $PSScriptRoot 'ProjectLayout.ps1');$root=Split-Path $PSScriptRoot -Parent
 if(Test-Path $Results){throw 'Fresh result path required'};$result=[IO.Path]::GetFullPath((Join-Path $root $Results));New-Item -ItemType Directory $result|Out-Null
 $project=Join-Path $root 'Temp/RoadCoreUnity';Sync-CityWorkspaceProject $root $project

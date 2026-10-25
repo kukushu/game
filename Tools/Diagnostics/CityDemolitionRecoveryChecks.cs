@@ -73,5 +73,5 @@ public static class CityDemolitionRecoveryChecks
         if(output!=null){Directory.CreateDirectory(output);File.WriteAllBytes(Path.Combine(output,"waste-pickup.hcity"),pickup);File.WriteAllBytes(Path.Combine(output,"waste-return.hcity"),returning);}
     }
     public static string Run(string output=null){checks=0;FreightTests();ResidentTests();WasteTests(output);return "PASS "+checks+" demolition recovery checks";}
-    public static void Main(string[] args)=>Console.WriteLine(Run(args.Length>0?args[0]:null));
+    public static void Main(string[] args){Console.WriteLine(Run(args.Length>0?args[0]:null));Console.WriteLine(CityDemolitionWasteLossChecks.Run(Path.Combine(args.Length>0?args[0]:"Temp/DemolitionRecovery-20261025/checks","loss")));}
 }
