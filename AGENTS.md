@@ -313,3 +313,9 @@ Unity正常Play新城改用已有terrainVersion=3、海拔2的平地，与规模
 codex/experiment-demolition-task-recovery-20261025从批量实验ea8e1aa创建，运行时7e764f4、测试566672f；不合并正式48eeb325。仅RemoveRoad明确使原当前Drivable消失才进入AwaitingRestart离路队列；未来路径断开/建筑关闭/原因不明的旧Stranded不套用。货运及Work/Home/Shopping保留同Task/Shipment/ID/出发时间，不再Depart或扣货付款，复用正常PrepareDeparture/IndexDeparture检查，按原顺序每20固定tick重试；入口无效仍等待。垃圾Pickup直接原目标收取并原站入库，Return仅卸已有垃圾，容量保留，单次结算后退休任务/车辆/mission归队；其余垃圾规则不改。现有status字段保存新状态，无旧格式适配；旧程序不能读带新状态的保存。不在最后位置绘制离路队列，原任务仍存在，ActiveCount不包含排队。
 
 517专项、150937核心、23614城市、10000就业、1522方格、83分区、460474水电模板、101预算、840批量通过；不删路真实城6200步全检查点/终态与ea8e1aa同及80冷步通过。原生真实同tick删87仅4辆失当前路面（垃圾返程8货/购物/两个回家各2货）：未修路1车归队3任务等待；恢复原路后3同任务重发、1车归队、0待重发，200冷热步全状态同；两个实际成长城垃圾阶段原生亦通过。Release同档1倍59.75→59.74FPS、50目标22.67→22.45倍/58.16→58.15FPS，无可归因的明显回退，不称达50。原生脚本施工最长仍约300ms，不是全删路性能解决。报告Docs/Performance/DemolitionTaskRecovery-20261025/Report.md及汇总CSV，原始本地Temp同名目录。不修改Network/空间索引/Dijkstra/交通运动，不替永久关闭的普通任务起点虚构新地点；本轮止于此。
+
+## 拆路垃圾车容量容错（2026-10-25，仅实验分支）
+
+用户本轮授权覆盖上条垃圾车容量不足等待规则：codex/experiment-demolition-waste-loss-20261025从2df2896创建，运行时e4055b7仅改CityCoreWaste。仅明确AwaitingRestart服务任务：Pickup全量放得下才收取入库，否则取消、建筑垃圾/collected/lost不变；Return按剩余容量入库，余量记原lost，原建筑与collected不变；均清货、完成原任务并回收车辆/mission/车队。generated=待收+场内+在途+处理+lost，collected=场内+在途+处理+lost，lost非负且不大于collected，未知消失仍报错。仅离路异常mission取消入库预约，正常Active和其他Stranded仍完整预约；引用/阶段/货物/生命周期/重复mission/非法库存仍硬失败，不吞异常，无复杂回滚。普通货运居民和World批量恢复、Network/寻路/显示/保存布局未改；无旧档适配。
+
+787新专项及原517、840批量、101预算、23614综合城市/10000就业/1522方格/83分区/460474模板通过；真实无拆路城6200步所有完整检查点/终态与2df2896一致及80冷步通过。Unity功能夹具（真实成长后守恒补满库存，非性能样本）Pickup满取消、Return3载2收1损及3载0收3损，三场原生保存结算前后冷热80步全状态同。报告Docs/Performance/DemolitionWasteLoss-20261025/Report.md及案例CSV；最终原始数据Temp/DemolitionWasteLoss-20261025/checks-final、native-pickup-final、native-return-free2/0、no-edit-final。未新测FPS，不自动合并正式48eeb325或改原实验2df2896，本轮到此。

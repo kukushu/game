@@ -1,0 +1,4 @@
+run,phase,free,cargo,accepted,lost_delta,collected_delta,building_delta,completed_tasks
+native-pickup-final,Pickup,0,0,0,0,0,0,1
+native-return-free2,Return,2,3,2,1,0,0,1
+native-return-free0,Return,0,3,0,3,0,0,1
