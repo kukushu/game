@@ -41,8 +41,19 @@ namespace HarborCity.RoadCore
         }
         public static List<long> FromLane(Network network,long lane,double distance,RoadAccess target,bool bothDirections,out double end)
         {
-            var source=new RoadAccess{lane=lane,distance=distance};var route=network.Route(source,target);end=target.distance;double cost=Cost(network,route,distance,end);
-            if(bothDirections){var opposite=Opposite(network,target);if(opposite!=null){var candidate=network.Route(source,opposite);double other=Cost(network,candidate,distance,opposite.distance);if(other<cost){route=candidate;end=opposite.distance;}}}return route;
+            var source=new RoadAccess{lane=lane,distance=distance};end=target.distance;
+            if(bothDirections)
+            {
+                var opposite=Opposite(network,target);
+                if(opposite!=null)
+                {
+                    // The physical source is fixed. Share one canonical frontier
+                    // for the two legal destination curbs, preferring the first on ties.
+                    var route=network.RouteToEither(source,target,opposite,out int selected);
+                    if(selected==1)end=opposite.distance;return route;
+                }
+            }
+            return network.Route(source,target);
         }
         static double Cost(Network network,List<long> route,double start,double end)
         {if(route==null)return double.PositiveInfinity;double cost=0;for(int i=0;i<route.Count;i++){var d=network.Get(route[i]);cost+=((i==route.Count-1?end:d.EndDistance)-(i==0?start:d.StartDistance))/d.Speed;}return cost;}
