@@ -1,0 +1,13 @@
+run,check,result,detail
+native-final,before_canonical_save,PASS,0110347d2bc4e40e8cd98e841ee92f62d675935d076a21ae58d7f7a5a9adb6cd
+native-final,pending_canonical_save,PASS,140eb4cbdecfcd0003428a4500c88def6e4d4fc8cee7cc8f24a1d4ca01f50548
+native-final,final_canonical_save,PASS,9c231e1ee087885d290f63cad605fb4ef7626286a4e2af7c6b70dadc9b587487
+native-final,cold_80_steps,PASS,"PASS diagnostic-only, exact saved edit, full validation, 80 fixed-step hot/cold state identical; CPU and coroutine clocks recorded separately."
+native-repeat2,before_canonical_save,PASS,0110347d2bc4e40e8cd98e841ee92f62d675935d076a21ae58d7f7a5a9adb6cd
+native-repeat2,pending_canonical_save,PASS,140eb4cbdecfcd0003428a4500c88def6e4d4fc8cee7cc8f24a1d4ca01f50548
+native-repeat2,final_canonical_save,PASS,9c231e1ee087885d290f63cad605fb4ef7626286a4e2af7c6b70dadc9b587487
+native-repeat2,cold_80_steps,PASS,"PASS diagnostic-only, exact saved edit, full validation, 80 fixed-step hot/cold state identical; CPU and coroutine clocks recorded separately."
+native-repeat3,before_canonical_save,PASS,0110347d2bc4e40e8cd98e841ee92f62d675935d076a21ae58d7f7a5a9adb6cd
+native-repeat3,pending_canonical_save,PASS,140eb4cbdecfcd0003428a4500c88def6e4d4fc8cee7cc8f24a1d4ca01f50548
+native-repeat3,final_canonical_save,PASS,9c231e1ee087885d290f63cad605fb4ef7626286a4e2af7c6b70dadc9b587487
+native-repeat3,cold_80_steps,PASS,"PASS diagnostic-only, exact saved edit, full validation, 80 fixed-step hot/cold state identical; CPU and coroutine clocks recorded separately."
