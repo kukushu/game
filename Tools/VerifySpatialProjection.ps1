@@ -1,4 +1,4 @@
-param([string]$Results='Temp/CityScenarios/SpatialProjectionChecks',[string]$Reference='9abf728',[string]$SpatialSource='',[string]$Save='Temp/CityScenarios/challenge30000-traffic10000/threshold.hcity',[int]$Road=87)
+param([string]$Results='Temp/CityScenarios/SpatialProjectionChecks',[string]$Reference='286124c',[string]$SpatialSource='',[string]$Save='Temp/CityScenarios/challenge30000-traffic10000/threshold.hcity',[int]$Road=87)
 $ErrorActionPreference='Stop';. (Join-Path $PSScriptRoot 'ProjectLayout.ps1');$root=Split-Path $PSScriptRoot -Parent
 if(Test-Path -LiteralPath $Results){throw 'Fresh results required'};New-Item -ItemType Directory $Results|Out-Null
 $dir=[IO.Path]::GetFullPath((Join-Path $root $Results));$sources=Get-CityModelSources $root

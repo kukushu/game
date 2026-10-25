@@ -1,0 +1,13 @@
+{
+  "inputHash": "0110347D2BC4E40E8CD98E841EE92F62D675935D076A21AE58D7F7A5A9ADB6CD",
+  "actualHash": "E047AB67DEE196551650737375197329C55E2608514B9368F4795280EFAAC332",
+  "spatialSource": "",
+  "sourceHash": "5F0CE256A28EF8520571D9938518B072EACCF49B5C23D9CD80A99DD9FC986221",
+  "referenceHash": "E047AB67DEE196551650737375197329C55E2608514B9368F4795280EFAAC332",
+  "reference": "286124c",
+  "bytes": 254076253,
+  "bytewiseEqual": true,
+  "checks": "13680 queries / 523695 ordered hits / all ordered bucket fields / prior immutability / full state and 80 cold steps",
+  "clipOnlyTransitions": 11,
+  "connectionTransitions": 6
+}

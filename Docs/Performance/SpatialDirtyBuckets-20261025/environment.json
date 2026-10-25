@@ -1,0 +1,58 @@
+{
+  "old1": {
+    "input": "C:\\Users\\16934\\Documents\\unity_game\\road-core-integration-20261024\\Temp\\BatchRecovery-20261025\\case-old-live\\before.hcity",
+    "assemblyHash": "F42D50234E14E6A5A22100FE8027A9E44C25C4665AF109A8E830FA064200448C",
+    "spatialReference": "286124c",
+    "dirty": [
+      " M Tools/RunRecoveryWindow.ps1"
+    ],
+    "viewReference": "",
+    "road": 87,
+    "inputHash": "0110347D2BC4E40E8CD98E841EE92F62D675935D076A21AE58D7F7A5A9ADB6CD",
+    "note": "Development instrumented scripted paused edit at exact saved tick; 8s display warmup; not ordinary-game FPS",
+    "source": "286124c0faed3e9dc1e0a0418f77764493ad3aa7"
+  },
+  "new1": {
+    "assemblyHash": "D884876B57D6C873BA6DDB3B588156A6EF1036E16ED3F555B5ABC733068A3F40",
+    "note": "Development instrumented scripted paused edit at exact saved tick; 8s display warmup; not ordinary-game FPS",
+    "road": 87,
+    "source": "286124c0faed3e9dc1e0a0418f77764493ad3aa7",
+    "dirty": [
+      " M Assets/Scripts/Runtime/Infrastructure/Roads/CityRoadCoreSpatial.cs",
+      " M Tools/AddDemolitionFrameInstrumentation.ps1",
+      " M Tools/Diagnostics/CitySpatialProjectionChecks.cs",
+      " M Tools/RunRecoveryWindow.ps1"
+    ],
+    "viewReference": "",
+    "spatialReference": "",
+    "input": "C:\\Users\\16934\\Documents\\unity_game\\road-core-integration-20261024\\Temp\\BatchRecovery-20261025\\case-old-live\\before.hcity",
+    "inputHash": "0110347D2BC4E40E8CD98E841EE92F62D675935D076A21AE58D7F7A5A9ADB6CD"
+  },
+  "old_raw": {
+    "path": "C:\\Users\\16934\\Documents\\unity_game\\road-core-integration-20261024\\Temp\\ZoningViewDelta-20261025\\new-raw\\window\\window.raw",
+    "sha256": "B909F0D3AFC7AE9F0F09BADDEC93518E450467751169C9ED5094957964ED730D"
+  },
+  "new_raw": {
+    "path": "C:\\Users\\16934\\Documents\\unity_game\\road-core-integration-20261024\\Temp\\SpatialDirtyBuckets-20261025\\new-raw\\window\\window.raw",
+    "sha256": "8AC21B861FE0EA087AA693472EEFB2DA00EAAAE0D181D4730F423D281FBF0890"
+  },
+  "baseline": "286124c0faed3e9dc1e0a0418f77764493ad3aa7",
+  "input_hash": "0110347D2BC4E40E8CD98E841EE92F62D675935D076A21AE58D7F7A5A9ADB6CD",
+  "old_runs": [
+    "old1",
+    "old2",
+    "old3",
+    "old4",
+    "old5"
+  ],
+  "new_runs": [
+    "new1",
+    "new2",
+    "new3",
+    "new4",
+    "new5"
+  ],
+  "note": "All complete timing windows included; new1/old4 failed after validation in shutdown; clean paired subset separately; raw excluded from normal medians",
+  "implementationCommit": "7259c850587b0113a29413a819c03efc7ff42ff5",
+  "spatialSourceGitBlob": "d4dc70f20999d8cf386c3cea75d436e38956a020"
+}

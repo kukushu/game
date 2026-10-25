@@ -1,0 +1,12 @@
+run,exit_code,termination,wall_seconds
+old2,0,,32.9410715
+new2,0,,34.7705798
+new3,0,,35.2626248
+old3,0,,34.6016657
+old4,-1,completed-validation-shutdown-wait,42.5807101
+new4,0,,33.6246496
+new5,0,,35.6751222
+old5,0,,35.9961387
+new-raw,0,,34.7854301
+old1,0,,not-recorded
+new1,-1,completed-validation-shutdown-timeout-240s,240-plus-build

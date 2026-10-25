@@ -47,12 +47,16 @@ static class CitySpatialProjectionChecks
   if(retained.Count>0)
   {
    var before=retained[retained.Count-1].network;
+   bool sharedGeometry=false;int changedConnections=0;
    foreach(var d in n.Drivables)if(before.Contains(d.Id))
    {
     var previous=before.Get(d.Id);bool sameGeometry=ReferenceEquals(previous.Geometry,d.Geometry);
+    sharedGeometry|=sameGeometry;
     if(sameGeometry&&(BitConverter.DoubleToInt64Bits(previous.StartDistance)!=BitConverter.DoubleToInt64Bits(d.StartDistance)||BitConverter.DoubleToInt64Bits(previous.EndDistance)!=BitConverter.DoubleToInt64Bits(d.EndDistance)))clipOnlyChanges++;
-    if(d.IsConnection&&!sameGeometry)connectionChanges++;
+    if(d.IsConnection&&!sameGeometry)changedConnections++;
    }
+   // Independent cold fixtures may reuse IDs; do not count those as edits.
+   if(sharedGeometry)connectionChanges+=changedConnections;
   }
   foreach(var item in retained)if(!Buckets(item.network).SequenceEqual(item.buckets))throw new Exception("A later index mutated a retained prior index");
   if(keep)retained.Add((n,buckets));
