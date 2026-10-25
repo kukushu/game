@@ -327,7 +327,13 @@ namespace HarborCity.RoadCore
         public bool RebindAccesses(IReadOnlyList<AccessBinding> bindings)
         {
             if(bindings==null||bindings.Count==0)return false;var replacements=new Dictionary<int,RoadAccess>();foreach(var binding in bindings){var old=GetAccess(binding.endpoint);var road=Network.Get(binding.lane);if(old==null||old.valid)return false;if(road.IsConnection||binding.distance<road.StartDistance||binding.distance>road.EndDistance||double.IsNaN(binding.distance)||double.IsInfinity(binding.distance))throw new ArgumentException("Invalid replacement access");replacements.Add(binding.endpoint,new RoadAccess{endpoint=binding.endpoint,preferredIndex=road.LaneIndex,lane=binding.lane,distance=binding.distance,use=old.use});}
-            var proposed=new List<RoadAccess>();foreach(var access in data.accesses){RoadAccess replacement;proposed.Add(replacements.TryGetValue(access.endpoint,out replacement)?replacement:access.Copy());}var networkData=CopyNetwork();return new RoadEditPlan(this,networkData,new Network(networkData,Network),accesses:proposed).TryCommit();
+            var proposed=new List<RoadAccess>();foreach(var access in data.accesses){RoadAccess replacement;proposed.Add(replacements.TryGetValue(access.endpoint,out replacement)?replacement:access.Copy());}
+            // Binding facts change, geometry does not. Keep the original complete
+            // transaction validation/versioning, borrowing the immutable network.
+            bool committed=new RoadEditPlan(this,data.network,Network,accesses:proposed).TryCommit();
+            // These caches formerly noticed the replacement Network lazily. Keep
+            // that conservative invalidation explicit when its identity is reused.
+            if(committed){DepotRoutes.Clear();JunctionRoutes.Clear();}return committed;
         }
         bool PlanStrandedResume(Vehicle v,out Remap remap)
         {
