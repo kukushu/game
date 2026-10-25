@@ -67,6 +67,35 @@ namespace HarborCity
             File.WriteAllLines(output,rows);
         }
         internal static string Summary()=>"queries="+Queries+" checks="+Checks+" changed_routes="+RouteChanges+" cost_bit_changes="+CostBitChanges+" max_cost_delta="+MaxCostDelta.ToString("R",CultureInfo.InvariantCulture);
+        internal static void LargeCoordinateMetric()
+        {
+            // Finite individual road lengths, but squared point-to-goal distance
+            // overflows. A nonfinite heuristic must not prune the faster detour.
+            var data=new NetworkData();int next=1;
+            int Node(double x,double z){int id=next++;data.junctions.Add(new Junction{id=id,position=new Point(x,0,z)});return id;}
+            void Road(int id,int a,int b,double speed){data.roads.Add(new PhysicalRoad{id=id,from=a,to=b,speed=speed,direction=RoadDirection.Forward,points=new[]{data.junctions[a-1].position,data.junctions[b-1].position}});}
+            int origin=Node(0,0),start=Node(1e153,0),goal=Node(20e153,0),end=Node(21e153,0);Road(1,origin,start,1);Road(2,goal,end,1);
+            int prev=start;for(int i=2;i<=20;i++){int id=i==20?goal:Node(i*1e153,0);Road(10+i,prev,id,1);prev=id;}
+            prev=Node(1e153,1e152);Road(100,start,prev,2);for(int i=2;i<=20;i++){int id=Node(i*1e153,1e152);Road(100+i,prev,id,2);prev=id;}Road(121,prev,goal,2);data.nextJunction=next;data.nextRoad=122;
+            var n=new Network(data);var source=n.Get(Network.LaneId(1,false));var target=n.Get(Network.LaneId(2,false));Pair(n,source.Id,source.EndDistance,new RoadAccess{lane=target.Id,distance=target.StartDistance},false);
+        }
+        static byte[] Business(CityCoreIndustrySession city)
+        {using(var stream=new MemoryStream())using(var writer=new BinaryWriter(stream)){typeof(CityCoreSave).GetMethod("Put",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic).Invoke(null,new object[]{writer,typeof(CityCoreBusinessData),city.SnapshotBusiness()});return stream.ToArray();}}
+        static byte[] Actor(World world,Vehicle v)
+        {
+            using(var stream=new MemoryStream())using(var w=new BinaryWriter(stream))
+            {
+                var t=v.Task;w.Write(v.id);w.Write((int)v.status);w.Write(v.Current);w.Write(v.distance);w.Write(v.Position.IsFrozen);var p=world.Position(v);w.Write(p.x);w.Write(p.y);w.Write(p.z);w.Write(v.cursor);w.Write(v.changeTarget);w.Write(v.changeElapsed);
+                w.Write(t.id);w.Write(t.origin);w.Write(t.destination);w.Write((int)t.purpose);w.Write(t.citizenId);w.Write(t.departedAt);w.Write((int)t.state);w.Write(t.Shipment!=null);if(t.Shipment!=null){w.Write((int)t.Shipment.kind);w.Write(t.Shipment.remaining);w.Write(t.Shipment.unitPrice);}return stream.ToArray();
+            }
+        }
+        internal static void Boundary(string oldFile,string newFile,string output)
+        {
+            var old=CityCoreSave.Read(File.ReadAllBytes(oldFile));var next=CityCoreSave.Read(File.ReadAllBytes(newFile));old.Validate();next.Validate();Check(Business(old).SequenceEqual(Business(next)),"Boundary business/clock/economy/waste/households differ");
+            var actors=old.Transport.Vehicles.ToDictionary(v=>v.id);Check(actors.Count==next.Transport.Vehicles.Count(),"Boundary vehicle set changed");int different=0;
+            foreach(var v in next.Transport.Vehicles){Check(actors.TryGetValue(v.id,out var prior)&&Actor(old.Transport,prior).SequenceEqual(Actor(next.Transport,v)),"Boundary pose/task/cargo/status changed vehicle "+v.id);if(!prior.Route.SequenceEqual(v.Route)||prior.Plan.EndDistance!=v.Plan.EndDistance)different++;}
+            File.WriteAllText(output,"PASS complete business facts, identical vehicle IDs/status/physical poses/navigation cursors/tasks/cargo; changed legal future plans="+different+" / "+actors.Count);Console.WriteLine(File.ReadAllText(output));
+        }
         internal static void Pressure(string output)
         {
             var data=new NetworkData();for(int i=0;i<=420;i++)data.junctions.Add(new Junction{id=i+1,position=new Point(i*30,0,0)});

@@ -356,7 +356,11 @@ namespace HarborCity.RoadCore
         double RouteLowerBound(Lane lane,Point goal,double radius=0)
         {
             if(!RouteHeuristicEnabled)return 0;
-            return Math.Max(0,Point.Distance(lane.Exit.Position,goal)-routeSeams-radius)/routeMaxSpeed*(1-1e-12);
+            double distance=Point.Distance(lane.Exit.Position,goal);
+            // Finite edges can span a graph whose squared straight-line norm
+            // overflows. Falling back to h=0 retains a legal lower bound.
+            if(double.IsNaN(distance)||double.IsInfinity(distance))return 0;
+            return Math.Max(0,distance-routeSeams-radius)/routeMaxSpeed*(1-1e-12);
         }
         List<long> ExpandRoute(Dictionary<long,long> parents,long last,long terminal=0)
         {
