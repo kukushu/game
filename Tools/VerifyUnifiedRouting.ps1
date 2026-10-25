@@ -5,14 +5,19 @@ $fixture=[IO.File]::ReadAllText((Join-Path $PSScriptRoot 'Diagnostics/CityFromLa
 $fixture=$fixture.Substring(0,$a)+"    static void Pair(Network n,long lane,double distance,RoadAccess target,bool both){HarborCity.UnifiedRoutingChecks.Pair(n,lane,distance,target,both);}`n"+$fixture.Substring($b)
 $fixture=$fixture.Replace('static void Main(string[] args)','static void Fixtures(string[] args)').Replace('var n=Grid(seed);','var n=Grid(seed);HarborCity.UnifiedRoutingChecks.Junctions(n);')
 $fixture=$fixture.Replace('Console.WriteLine("PASS "+checks+" checks / "+queries+" exact old FromLane queries: route, terminal bits, cost bits, one-way, multilane, disconnected, zero connection, ties and boundaries");','')
-$entry='static void Main(string[] args){Fixtures(new string[0]);HarborCity.UnifiedRoutingChecks.Replay(args[0],args[1],args[2]);HarborCity.UnifiedRoutingChecks.Pressure(args[3]);if(args.Length>4)HarborCity.UnifiedRoutingChecks.Continue(args[4],args[5],int.Parse(args[6]));Console.WriteLine(HarborCity.UnifiedRoutingChecks.Summary());}'
+$quoteFixture=[IO.File]::ReadAllText((Join-Path $PSScriptRoot 'Diagnostics/CityTravelTimeQuoteChecks.cs'));$a=$quoteFixture.IndexOf(' static void Compare(');$b=$quoteFixture.IndexOf(' static Network Grid(',$a)
+$quoteFixture=$quoteFixture.Substring(0,$a)+" static void Compare(Network n,RoadAccess a,RoadAccess b,bool both){HarborCity.UnifiedRoutingChecks.Pair(n,a.lane,a.distance,b,both);}`n"+$quoteFixture.Substring($b)
+$quoteFixture=$quoteFixture.Replace('static class CityTravelTimeQuoteChecks','static class AdditionalCostFixtures').Replace('static void Main(string[] args)','public static void Run(string[] args)')
+$quoteFixture=[regex]::Replace($quoteFixture,'Console.WriteLine\("PASS "\+checks\+" checks including "\+numericChecks[^;]+;','')
+$quoteFile=Join-Path $dir 'AdditionalCostFixtures.cs';[IO.File]::WriteAllText($quoteFile,$quoteFixture)
+$entry='static void Main(string[] args){Fixtures(new string[0]);AdditionalCostFixtures.Run(new string[0]);HarborCity.UnifiedRoutingChecks.Replay(args[0],args[1],args[2]);HarborCity.UnifiedRoutingChecks.Pressure(args[3]);if(args.Length>4)HarborCity.UnifiedRoutingChecks.Continue(args[4],args[5],int.Parse(args[6]));Console.WriteLine(HarborCity.UnifiedRoutingChecks.Summary());}'
 $fixture=$fixture.Insert($fixture.LastIndexOf('}'),$entry);$file=Join-Path $dir 'Entry.cs';[IO.File]::WriteAllText($file,$fixture)
 $mono='C:/Program Files/Unity/Hub/Editor/6000.6.3f1/Editor/Data/MonoBleedingEdge/bin/mono.exe';$csc='C:/Program Files/Unity/Hub/Editor/6000.6.3f1/Editor/Data/MonoBleedingEdge/lib/mono/4.5/csc.exe'
-& $mono $csc /nologo /langversion:latest ('/out:'+(Join-Path $dir 'checks.exe')) (Get-CityModelSources $root) (Join-Path $PSScriptRoot 'Diagnostics/CityRoutingDijkstraOracle.cs') (Join-Path $PSScriptRoot 'Diagnostics/CityUnifiedRoutingChecks.cs') $file
+& $mono $csc /nologo /langversion:latest ('/out:'+(Join-Path $dir 'checks.exe')) (Get-CityModelSources $root) (Join-Path $PSScriptRoot 'Diagnostics/CityRoutingDijkstraOracle.cs') (Join-Path $PSScriptRoot 'Diagnostics/CityUnifiedRoutingChecks.cs') $file $quoteFile
 if($LASTEXITCODE -ne 0){throw 'Unified routing compile failed'}
 $arguments=@((Join-Path $root 'Temp/RecoverySearch-20261025/native-after/window/pending.hcity'),(Join-Path $root 'Docs/Performance/RecoveryRouteSharing-20261025/queries-new.csv'),(Join-Path $dir 'replay.csv'),(Join-Path $dir 'pressure.csv'));if($CitySave){$arguments+=@((Resolve-Path $CitySave).Path,(Join-Path $dir 'city'),$Steps)}
 if($Runtime -eq 'DotNet64'){
- $texts=@($fixture,[IO.File]::ReadAllText((Join-Path $PSScriptRoot 'Diagnostics/CityRoutingDijkstraOracle.cs')),[IO.File]::ReadAllText((Join-Path $PSScriptRoot 'Diagnostics/CityUnifiedRoutingChecks.cs')))
+ $texts=@($fixture,$quoteFixture,[IO.File]::ReadAllText((Join-Path $PSScriptRoot 'Diagnostics/CityRoutingDijkstraOracle.cs')),[IO.File]::ReadAllText((Join-Path $PSScriptRoot 'Diagnostics/CityUnifiedRoutingChecks.cs')))
  $usings=@($texts|ForEach-Object {[regex]::Matches($_,'(?m)^using [^;]+;')|ForEach-Object Value}|Select-Object -Unique)
  $combined=($usings -join "`n")+"`n"+(($texts|ForEach-Object {[regex]::Replace($_,'(?m)^using [^;]+;','')}) -join "`n")
  $combinedFile=Join-Path $dir 'Combined.cs';[IO.File]::WriteAllText($combinedFile,$combined)
