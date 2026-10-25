@@ -13,6 +13,14 @@ $networkPath=Join-Path $project 'Assets/Scripts/Runtime/Infrastructure/Roads/Cit
 $networkSource=[IO.File]::ReadAllText($networkPath);$pattern='void Rebuild\(Network prior\)\s*\{'
 if([regex]::Matches($networkSource,$pattern).Count -ne 1){throw 'Network instrumentation signature missing'}
 [IO.File]::WriteAllText($networkPath,([regex]::Replace($networkSource,$pattern,{param($m) $m.Value+'using var recoveryNetworkScope=global::HarborCity.RecoveryCounters.Measure("NetworkRebuild");'})))
+foreach($spec in @(
+ @{file='Infrastructure/Roads/CityRoadCoreAccessRouting.cs';methods=@{'public static List<long> FromLane(Network network,long lane,double distance,RoadAccess target,bool bothDirections,out double end)'='FromLane'}},
+ @{file='Infrastructure/Roads/CityRoadCoreSpatial.cs';methods=@{'public RoadSpatialIndex(Network network,RoadSpatialIndex prior=null)'='SpatialBuild';'public void Project(Point p,double radius,bool connections,List<SpatialHit> output)'='SpatialQuery'}},
+ @{file='Infrastructure/Roads/CityRoadCoreNetwork.cs';methods=@{'internal List<long> RouteToEither(RoadAccess start,RoadAccess goal,RoadAccess other,out int selected)'='Dijkstra';'public void Project(Point point,double radius,bool includeConnections,List<SpatialHit> output)'='Project'}})){
+ $path=Join-Path $project ('Assets/Scripts/Runtime/'+$spec.file);if($Reference -and $spec.file.EndsWith('CityRoadCoreAccessRouting.cs')){$source=(& git show ($Reference+':Assets/Scripts/Runtime/'+$spec.file)) -join "`n";if($LASTEXITCODE -ne 0){throw 'Missing frozen access routing'}}else{$source=[IO.File]::ReadAllText($path)}
+ foreach($signature in $spec.methods.Keys){$pattern=[regex]::Escape($signature)+'\s*\{';if([regex]::Matches($source,$pattern).Count -ne 1){throw ('Missing detail marker '+$signature)};$label=$spec.methods[$signature];$source=[regex]::Replace($source,$pattern,{param($m) $m.Value+'using var detailScope=global::HarborCity.RecoveryCounters.Measure("'+$label+'");'})}
+ [IO.File]::WriteAllText($path,$source)
+}
 $hostPath=Join-Path $project 'Assets/Scripts/Runtime/Presentation/Game/HarborCityRoadCoreGame.cs';[IO.File]::WriteAllText($hostPath,([IO.File]::ReadAllText($hostPath).Replace('AddComponent<HarborCityScenarioWindowProbe>()','AddComponent<HarborCityRecoveryWindowProbe>()')))
 Copy-Item (Join-Path $PSScriptRoot 'Diagnostics/HarborCityRecoveryWindowProbe.cs') (Join-Path $project 'Assets/Scripts/Diagnostics/Runtime/HarborCityRecoveryWindowProbe.cs')
 if($Scenario -ne 'in-place'){

@@ -27,6 +27,9 @@ static class CityAccessRebindMeasure
         for(int run=-1;run<3;run++)
         {
             var s=CityCoreSave.Read(File.ReadAllBytes(args[0]));s.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);s.Transport.DepotLaneRoutingEnabled=true;
+            // Match the displayed Player's loaded city: its ORIGINAL spatial
+            // index already exists. The edited candidate index remains cold.
+            var lane=s.Transport.Network.Drivables.First(d=>!d.IsConnection);s.Transport.Network.Project(lane.Geometry.Sample(lane.StartDistance),4,false,new List<SpatialHit>());
             RebindMeters.Run=run;RebindMeters.Enabled=run>=0;RebindMeters.Phase="delete";long memory=GC.GetAllocatedBytesForCurrentThread();var timer=Stopwatch.StartNew();new RoadEditHistory(s.Transport).Execute(()=>s.Construction.RemoveRoad(87));timer.Stop();if(run>=0)summary.Add(run+",delete,"+timer.Elapsed.TotalMilliseconds.ToString("R",CultureInfo.InvariantCulture)+","+(GC.GetAllocatedBytesForCurrentThread()-memory));
             RebindMeters.Phase="bindings";memory=GC.GetAllocatedBytesForCurrentThread();timer.Restart();new CityCoreRoadBindings(s.City,s.Transport).RefreshIfChanged();timer.Stop();if(run>=0)summary.Add(run+",bindings,"+timer.Elapsed.TotalMilliseconds.ToString("R",CultureInfo.InvariantCulture)+","+(GC.GetAllocatedBytesForCurrentThread()-memory));RebindMeters.Enabled=false;
             s.Validate();if(run>=0)File.WriteAllBytes(Path.Combine(output,"run"+run+"-boundary.hcity"),CityCoreSave.Write(s));
