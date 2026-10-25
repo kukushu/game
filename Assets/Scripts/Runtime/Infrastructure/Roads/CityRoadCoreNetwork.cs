@@ -317,7 +317,8 @@ namespace HarborCity.RoadCore
                     var current=Get(item.id);List<Drivable> next;if(!outgoing.TryGetValue(current.To,out next))continue;
                     foreach(var lane in next)
                     {
-                        long link=ConnectionId(current.Id,lane.Id);if(!Contains(link))continue;double prefix=item.cost+Get(link).Geometry.Length/Get(link).Speed;bool terminal=false;
+                        // Reuse the same immutable connection for both cost fields.
+                        long link=ConnectionId(current.Id,lane.Id);Drivable connection;if(!drivables.TryGetValue(link,out connection))continue;double prefix=item.cost+connection.Geometry.Length/connection.Speed;bool terminal=false;
                         if(a!=null&&lane.Id==a.lane){double cost=prefix+(a.distance-lane.StartDistance)/lane.Speed;if(cost<best||cost==best&&selected>0){best=cost;selected=0;beforeGoal=current.Id;}terminal=true;}
                         if(b!=null&&lane.Id==b.lane){double cost=prefix+(b.distance-lane.StartDistance)/lane.Speed;if(cost<best){best=cost;selected=1;beforeGoal=current.Id;}terminal=true;}
                         // With one goal this is exactly the original terminal rule.

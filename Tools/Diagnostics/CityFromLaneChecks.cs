@@ -1,10 +1,11 @@
 using System;
 using System.Linq;
 using System.Collections.Generic;
+using System.IO;
 using HarborCity.RoadCore;
 static class CityFromLaneChecks
 {
-    static int checks,queries;
+    static int checks,queries;static BinaryWriter output;
     static void Check(bool ok,string why){checks++;if(!ok)throw new Exception(why);}
     static RoadAccess Other(Network n,RoadAccess a)
     {var d=n.Get(a.lane);long id=Network.LaneId(d.RoadId,!d.Reverse,d.LaneIndex);return n.Contains(id)?new RoadAccess{endpoint=a.endpoint,lane=id,distance=d.Geometry.MapReverseDistance(n.Get(id).Geometry,a.distance),use=a.use}:null;}
@@ -16,6 +17,7 @@ static class CityFromLaneChecks
     static void Pair(Network n,long lane,double distance,RoadAccess target,bool both)
     {
         queries++;var expected=Old(n,lane,distance,target,both,out double a);var actual=AccessRouting.FromLane(n,lane,distance,target,both,out double b);
+        if(output!=null){output.Write(actual!=null);output.Write(b);if(actual!=null){output.Write(actual.Count);foreach(long id in actual)output.Write(id);output.Write(Cost(n,actual,distance,b));}}
         string detail="source="+lane+"/"+distance+" target="+target.lane+"/"+target.distance+" both="+both;
         Check((expected==null)==(actual==null),"Reachability changed "+detail);Check(BitConverter.DoubleToInt64Bits(a)==BitConverter.DoubleToInt64Bits(b),"Destination side/distance changed "+detail);
         if(actual!=null){Check(expected.SequenceEqual(actual),"Exact route/tie order changed "+detail+" old="+string.Join("/",expected)+" new="+string.Join("/",actual));n.ValidateRoute(actual);Check(BitConverter.DoubleToInt64Bits(Cost(n,expected,distance,a))==BitConverter.DoubleToInt64Bits(Cost(n,actual,distance,b)),"Cost bits changed");}
@@ -32,8 +34,9 @@ static class CityFromLaneChecks
         int p=data.nextJunction++,q=data.nextJunction++;data.junctions.Add(new Junction{id=p,position=new Point(200,2,0)});data.junctions.Add(new Junction{id=q,position=new Point(230,2,0)});data.roads.Add(new PhysicalRoad{id=data.nextRoad++,from=p,to=q,direction=RoadDirection.Both,lanes=2,speed=12,points=new[]{new Point(200,2,0),new Point(230,2,0)}});
         return new Network(data);
     }
-    static void Main()
+    static void Main(string[] args)
     {
+        if(args.Length>0)output=new BinaryWriter(File.Create(args[0]));
         foreach(int seed in new[]{0,7,41})
         {
             var n=Grid(seed);var lanes=n.Drivables.Where(d=>!d.IsConnection).OrderBy(d=>d.Id).ToArray();
@@ -44,6 +47,6 @@ static class CityFromLaneChecks
         // Two collinear roads provide zero-length connections and terminal ties.
         var w=new World();int j=w.AddJunction(new Point()),k=w.AddJunction(new Point(20,0,0)),l=w.AddJunction(new Point(40,0,0));w.AddRoad(j,k,new[]{w.JunctionPosition(j),w.JunctionPosition(k)});w.AddRoad(k,l,new[]{w.JunctionPosition(k),w.JunctionPosition(l)});
         foreach(var a in w.Network.Drivables.Where(d=>!d.IsConnection))foreach(var b in w.Network.Drivables.Where(d=>!d.IsConnection))foreach(double s in new[]{a.StartDistance,a.EndDistance})foreach(double e in new[]{b.StartDistance,b.EndDistance})Pair(w.Network,a.Id,s,new RoadAccess{lane=b.Id,distance=e},true);
-        Console.WriteLine("PASS "+checks+" checks / "+queries+" exact old FromLane queries: route, terminal bits, cost bits, one-way, multilane, disconnected, zero connection, ties and boundaries");
+        output?.Dispose();Console.WriteLine("PASS "+checks+" checks / "+queries+" exact old FromLane queries: route, terminal bits, cost bits, one-way, multilane, disconnected, zero connection, ties and boundaries");
     }
 }
