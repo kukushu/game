@@ -307,3 +307,9 @@ Unity正常Play新城改用已有terrainVersion=3、海拔2的平地，与规模
 ## 删路批量恢复实验（2026-10-25，仅实验分支）
 
 从正式48eeb325/标签before-road-demolition-performance-experiments独立创建codex/experiment-batch-stranded-recovery-20261025；运行时1b9d2ed仅World恢复和Bindings入口。保留原顺序、路线查询和完整Validate/AssertSafety，路口预约等前缀仍检查，同一私有候选，全部通过才提交，真实恢复Reindex一次；不改RemoveRoad/Network/Dijkstra/业务。真实较早DE51城+20步删87，136尝试17恢复119仍滞留，新旧全保存/600模型步/80原生冷热步相同；不是最新F52成功删除，非新30k/50k。原生暂停脚本同tick施工恢复5336→132ms、最大帧5533→300ms、帧GC4.193GB→91.1MB；整个Bindings Snapshot35→2/World18→2/Validate18→3/Reindex36→5（含原入口重绑）。专项840和既有核心/城市/预算/模板通过；普通Release同档1倍约59.7FPS、50目标21.88→22.67倍/57.88→58.16FPS，无明显回退，不归因普通窗口小差值于恢复优化。报告Docs/Performance/BatchStrandedRecovery-20261025/Report.md。正式分支及用户修改未动，不自动合并；永久Stranded和余下约300ms留后续。
+
+## 删除当前路面的任务处置（2026-10-25，仅实验分支）
+
+codex/experiment-demolition-task-recovery-20261025从批量实验ea8e1aa创建，运行时7e764f4、测试566672f；不合并正式48eeb325。仅RemoveRoad明确使原当前Drivable消失才进入AwaitingRestart离路队列；未来路径断开/建筑关闭/原因不明的旧Stranded不套用。货运及Work/Home/Shopping保留同Task/Shipment/ID/出发时间，不再Depart或扣货付款，复用正常PrepareDeparture/IndexDeparture检查，按原顺序每20固定tick重试；入口无效仍等待。垃圾Pickup直接原目标收取并原站入库，Return仅卸已有垃圾，容量保留，单次结算后退休任务/车辆/mission归队；其余垃圾规则不改。现有status字段保存新状态，无旧格式适配；旧程序不能读带新状态的保存。不在最后位置绘制离路队列，原任务仍存在，ActiveCount不包含排队。
+
+517专项、150937核心、23614城市、10000就业、1522方格、83分区、460474水电模板、101预算、840批量通过；不删路真实城6200步全检查点/终态与ea8e1aa同及80冷步通过。原生真实同tick删87仅4辆失当前路面（垃圾返程8货/购物/两个回家各2货）：未修路1车归队3任务等待；恢复原路后3同任务重发、1车归队、0待重发，200冷热步全状态同；两个实际成长城垃圾阶段原生亦通过。Release同档1倍59.75→59.74FPS、50目标22.67→22.45倍/58.16→58.15FPS，无可归因的明显回退，不称达50。原生脚本施工最长仍约300ms，不是全删路性能解决。报告Docs/Performance/DemolitionTaskRecovery-20261025/Report.md及汇总CSV，原始本地Temp同名目录。不修改Network/空间索引/Dijkstra/交通运动，不替永久关闭的普通任务起点虚构新地点；本轮止于此。

@@ -1,0 +1,5 @@
+run,scenario,road,pending,restarted,settled_services,remaining_pending,delete_ms,bindings_ms,views_ms,paired_200_steps_with_assertions_ms
+native-real,demolition,87,4,0,1,3,56.0889,131.3432,13.0245,36059.6335
+native-repaired,demolition-repair,87,4,3,1,0,59.1199,131.28480000000002,12.036900000000001,36995.0253
+native-pickup,service-pickup,4,1,0,1,0,4.1898,1.9622000000000002,2.4621,263.8036
+native-return,service-return,7,1,0,1,0,4.7663,1.9800000000000002,1.9739,269.8953

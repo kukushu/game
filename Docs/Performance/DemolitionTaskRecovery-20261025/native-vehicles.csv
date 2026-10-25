@@ -1,0 +1,11 @@
+run,vehicle,purpose,phase,task,cargo,final_status,final_task
+native-real,132364,Service,Return,166952,8,retired,0
+native-real,132740,Shopping,,167052,0,AwaitingRestart,167052
+native-real,132820,Home,,167136,2,AwaitingRestart,167136
+native-real,132823,Home,,167140,2,AwaitingRestart,167140
+native-repaired,132364,Service,Return,166952,8,retired,0
+native-repaired,132740,Shopping,,167052,0,Active,167052
+native-repaired,132820,Home,,167136,2,retired,0
+native-repaired,132823,Home,,167140,2,retired,0
+native-pickup,58,Service,Pickup,58,0,retired,0
+native-return,58,Service,Return,60,3,retired,0
