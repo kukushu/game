@@ -34,6 +34,11 @@ static class CityFromLaneChecks
         int p=data.nextJunction++,q=data.nextJunction++;data.junctions.Add(new Junction{id=p,position=new Point(200,2,0)});data.junctions.Add(new Junction{id=q,position=new Point(230,2,0)});data.roads.Add(new PhysicalRoad{id=data.nextRoad++,from=p,to=q,direction=RoadDirection.Both,lanes=2,speed=12,points=new[]{new Point(200,2,0),new Point(230,2,0)}});
         return new Network(data);
     }
+    static void Small(Network n)
+    {
+        var lanes=n.Drivables.Where(d=>!d.IsConnection).OrderBy(d=>d.Id).Take(8).ToArray();
+        foreach(var a in lanes)foreach(var b in lanes)foreach(double x in new[]{0.0,.5,1.0})foreach(double y in new[]{0.0,.3,1.0})foreach(bool both in new[]{false,true})Pair(n,a.Id,a.StartDistance+x*a.TravelLength,new RoadAccess{lane=b.Id,distance=b.StartDistance+y*b.TravelLength},both);
+    }
     static void Main(string[] args)
     {
         if(args.Length>0)output=new BinaryWriter(File.Create(args[0]));
@@ -47,6 +52,10 @@ static class CityFromLaneChecks
         // Two collinear roads provide zero-length connections and terminal ties.
         var w=new World();int j=w.AddJunction(new Point()),k=w.AddJunction(new Point(20,0,0)),l=w.AddJunction(new Point(40,0,0));w.AddRoad(j,k,new[]{w.JunctionPosition(j),w.JunctionPosition(k)});w.AddRoad(k,l,new[]{w.JunctionPosition(k),w.JunctionPosition(l)});
         foreach(var a in w.Network.Drivables.Where(d=>!d.IsConnection))foreach(var b in w.Network.Drivables.Where(d=>!d.IsConnection))foreach(double s in new[]{a.StartDistance,a.EndDistance})foreach(double e in new[]{b.StartDistance,b.EndDistance})Pair(w.Network,a.Id,s,new RoadAccess{lane=b.Id,distance=e},true);
+        var original=w.Network;Small(original);w.SplitRoadAt(1,10);Small(w.Network);
+        if(!w.PlanUpgradeRoad(2,2,18,RoadDirection.Forward).TryCommit())throw new Exception("Warm-cache upgrade rejected");Small(w.Network);
+        if(!w.PlanUpgradeRoad(2,2,22,RoadDirection.Forward).TryCommit())throw new Exception("Warm-cache speed edit rejected");Small(w.Network);
+        w.RemoveRoad(2);Small(w.Network);Small(original);Small(SaveCodec.Read(SaveCodec.Write(w)).Network);
         output?.Dispose();Console.WriteLine("PASS "+checks+" checks / "+queries+" exact old FromLane queries: route, terminal bits, cost bits, one-way, multilane, disconnected, zero connection, ties and boundaries");
     }
 }

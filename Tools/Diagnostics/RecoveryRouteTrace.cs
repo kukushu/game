@@ -15,7 +15,7 @@ namespace HarborCity
         public static IDisposable Owner(int id,int p)=>active?new Context(id,p):null;
         public sealed class Sample:IDisposable
         {
-            internal int vehicle,purpose,target,count,expanded,calls,candidates,legal;internal long lane,targetLane,otherLane;internal double start,end,otherEnd,ms;internal bool both,success,oldTrace;internal long began;internal int traceStart;internal long[] route;internal readonly List<long> nodes=new List<long>();
+            internal int vehicle,purpose,target,count,expanded,calls,candidates,legal,cacheLookups,cacheHits,traversed;internal long lane,targetLane,otherLane;internal double start,end,otherEnd,ms;internal bool both,success,oldTrace;internal long began;internal int traceStart;internal long[] route;internal readonly List<long> nodes=new List<long>();
             public void Dispose(){ms=(Stopwatch.GetTimestamp()-began)*1000.0/Stopwatch.Frequency;for(int i=traceStart;i<DepotRoutingTrace.Rows.Count;i++){calls++;expanded+=DepotRoutingTrace.Rows[i].expanded;}DepotRoutingTrace.Enabled=oldTrace;rows.Add(this);current=null;}
         }
         public static Sample Begin(Network n,long lane,double start,RoadAccess target,bool both)
@@ -26,12 +26,14 @@ namespace HarborCity
         }
         public static void Expand(long lane){current?.nodes.Add(lane);}
         public static void Edge(bool legal){if(current!=null){if(legal)current.legal++;else current.candidates++;}}
+        public static void Cache(bool hit){if(current!=null){current.cacheLookups++;if(hit)current.cacheHits++;}}
+        public static void Traverse(){if(current!=null)current.traversed++;}
         public static List<long> Result(Sample sample,List<long> result){if(sample!=null){sample.success=result!=null;sample.count=result?.Count??0;sample.route=result?.ToArray();}return result;}
         public static void Reset(){rows.Clear();DepotRoutingTrace.Reset();active=true;vehicle=purpose=0;}
         static string N(double d)=>d.ToString("R",CultureInfo.InvariantCulture);
         public static void Write(string output)
         {
-            active=false;File.WriteAllLines(Path.Combine(output,"recovery-queries.csv"),new[]{"vehicle,purpose,source_lane,start_distance,target_endpoint,target_lane,target_distance,both_directions,other_lane,other_distance,success,route_segments,searches,expanded,candidate_links,legal_links,ms,route"}.Concat(rows.Select(s=>string.Join(",",s.vehicle,s.purpose,s.lane,N(s.start),s.target,s.targetLane,N(s.end),s.both,s.otherLane,N(s.otherEnd),s.success,s.count,s.calls,s.expanded,s.candidates,s.legal,N(s.ms),s.route==null?"":string.Join("/",s.route)))));
+            active=false;File.WriteAllLines(Path.Combine(output,"recovery-queries.csv"),new[]{"vehicle,purpose,source_lane,start_distance,target_endpoint,target_lane,target_distance,both_directions,other_lane,other_distance,success,route_segments,searches,expanded,candidate_links,legal_links,cache_lookups,cache_hits,traversed_links,ms,route"}.Concat(rows.Select(s=>string.Join(",",s.vehicle,s.purpose,s.lane,N(s.start),s.target,s.targetLane,N(s.end),s.both,s.otherLane,N(s.otherEnd),s.success,s.count,s.calls,s.expanded,s.candidates,s.legal,s.cacheLookups,s.cacheHits,s.traversed,N(s.ms),s.route==null?"":string.Join("/",s.route)))));
             File.WriteAllLines(Path.Combine(output,"recovery-expanded.csv"),new[]{"query,lane"}.Concat(rows.SelectMany((s,i)=>s.nodes.Select(lane=>i+","+lane))));
         }
     }

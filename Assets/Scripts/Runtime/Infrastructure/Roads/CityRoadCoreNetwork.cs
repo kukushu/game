@@ -259,6 +259,22 @@ namespace HarborCity.RoadCore
             }
         }
         RouteScratch accessSearch;
+        Dictionary<long,List<LaneConnection>> accessConnections;
+        // Read-only projections of this Network's existing connection objects.
+        // Build only expanded lanes, in the original outgoing-lane order. New
+        // Network instances own fresh caches; access/actor changes do not alter it.
+        List<LaneConnection> AccessConnections(long lane)
+        {
+            if(accessConnections==null)accessConnections=new Dictionary<long,List<LaneConnection>>(CityRoadKeyComparer.Instance);
+            if(accessConnections.TryGetValue(lane,out var cached))return cached;
+            List<LaneConnection> result=null;
+            if(outgoing.TryGetValue(Get(lane).To,out var next))foreach(var target in next)
+            {
+                if(!drivables.TryGetValue(ConnectionId(lane,target.Id),out var connection))continue;
+                if(result==null)result=new List<LaneConnection>(next.Count);result.Add((LaneConnection)connection);
+            }
+            accessConnections.Add(lane,result);return result;
+        }
         // Dijkstra over lane ends with a heap: O((L+C) log L), independent of sample count.
         // No route scans or per-vehicle searches in Step; road edits validate references once.
         public List<long> Route(int from,int to)
@@ -314,19 +330,18 @@ namespace HarborCity.RoadCore
                     var item=queue.Pop();if(item.cost>best)break;if(item.cost!=costs[item.id]||!settled.Add(item.id))continue;
                     if(routeObservation!=null)routeObservation.expanded++;
                     if(DepotJunctionRouting.CountSearches)DepotJunctionRouting.SearchExpanded++;
-                    var current=Get(item.id);List<Drivable> next;if(!outgoing.TryGetValue(current.To,out next))continue;
-                    foreach(var lane in next)
+                    var next=AccessConnections(item.id);if(next==null)continue;
+                    foreach(var connection in next)
                     {
-                        // Reuse the same immutable connection for both cost fields.
-                        long link=ConnectionId(current.Id,lane.Id);Drivable connection;if(!drivables.TryGetValue(link,out connection))continue;double prefix=item.cost+connection.Geometry.Length/connection.Speed;bool terminal=false;
-                        if(a!=null&&lane.Id==a.lane){double cost=prefix+(a.distance-lane.StartDistance)/lane.Speed;if(cost<best||cost==best&&selected>0){best=cost;selected=0;beforeGoal=current.Id;}terminal=true;}
-                        if(b!=null&&lane.Id==b.lane){double cost=prefix+(b.distance-lane.StartDistance)/lane.Speed;if(cost<best){best=cost;selected=1;beforeGoal=current.Id;}terminal=true;}
+                        var lane=connection.Outgoing;double prefix=item.cost+connection.Geometry.Length/connection.Speed;bool terminal=false;
+                        if(a!=null&&lane.Id==a.lane){double cost=prefix+(a.distance-lane.StartDistance)/lane.Speed;if(cost<best||cost==best&&selected>0){best=cost;selected=0;beforeGoal=item.id;}terminal=true;}
+                        if(b!=null&&lane.Id==b.lane){double cost=prefix+(b.distance-lane.StartDistance)/lane.Speed;if(cost<best){best=cost;selected=1;beforeGoal=item.id;}terminal=true;}
                         // With one goal this is exactly the original terminal rule.
                         // With two goals, allow traversal at the same cost so a
                         // zero-length boundary cannot hide the earlier-ranked goal.
                         if(terminal&&(a==null||b==null))continue;
                         if(settled.Contains(lane.Id))continue;double candidate=prefix+lane.TravelLength/lane.Speed,old;
-                        if(!costs.TryGetValue(lane.Id,out old)||candidate<old){costs[lane.Id]=candidate;parents[lane.Id]=current.Id;queue.Push(lane.Id,candidate);}
+                        if(!costs.TryGetValue(lane.Id,out old)||candidate<old){costs[lane.Id]=candidate;parents[lane.Id]=item.id;queue.Push(lane.Id,candidate);}
                     }
                 }
                 if(selected<0)return null;
