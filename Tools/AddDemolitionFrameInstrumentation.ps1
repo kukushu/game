@@ -28,8 +28,17 @@ function Phases([string]$file,[string]$start,[string]$end,[object[]]$anchors){
 }
 Phases 'Infrastructure/Roads/CityRoadCoreNetwork.cs' 'void Rebuild(Network prior)' 'static bool Finite(Point p)' @(
  @('var junctions=new Dictionary<int,Junction>();','Network.Nodes'),@('var roads=new HashSet<int>();','Network.Lanes'),@('var approaches=new Dictionary<int,List<Point>>();','Network.Junctions'),@('var ports=new HashSet<int>(conflictJunctions);','Network.Ports'),@('foreach(var a in lanes)','Network.Connections'),@('connectionConflicts=new ConnectionConflicts(this);','Network.Conflicts'))
-Phases 'Infrastructure/Roads/CityRoadCoreSpatial.cs' 'public RoadSpatialIndex(Network network,RoadSpatialIndex prior=null)' 'public void Project(Point p' @(
- @('HashSet<long> changed=null;','Spatial.CopyBuckets'),@('foreach(var road in network.Drivables)shapes.Add','Spatial.Shapes'),@('if(prior!=null)','Spatial.CompareShapes'),@('foreach(var bucket in prior.cells)','Spatial.ScanBuckets'),@("            foreach(var road in network.Drivables)`n            {`n                if(changed!=null",'Spatial.Segments'))
+$localSpatial=(ReadSource 'Infrastructure/Roads/CityRoadCoreSpatial.cs').Contains('var dirtyCells=new HashSet<long>')
+$spatialPhases=@(@('HashSet<long> changed=null;','Spatial.CopyBuckets'),@('foreach(var road in network.Drivables)shapes.Add','Spatial.Shapes'),@('if(prior!=null)','Spatial.CompareShapes'))
+if($localSpatial){$spatialPhases+=@(@('var dirtyCells=new HashSet<long>','Spatial.FindDirtyBuckets'),@('foreach(long cell in dirtyCells)','Spatial.UpdateDirtyBuckets'))}
+else{$spatialPhases+=,@('foreach(var bucket in prior.cells)','Spatial.ScanBuckets')}
+$spatialPhases+=,@("            foreach(var road in network.Drivables)`n            {`n                if(changed!=null",'Spatial.Segments')
+Phases 'Infrastructure/Roads/CityRoadCoreSpatial.cs' 'public RoadSpatialIndex(Network network,RoadSpatialIndex prior=null)' 'public void Project(Point p' $spatialPhases
+$file='Infrastructure/Roads/CityRoadCoreSpatial.cs';$s=ReadSource $file
+$anchor=if($localSpatial){'foreach(long cell in dirtyCells)'}else{'foreach(var bucket in prior.cells)'}
+$amount=if($localSpatial){'dirtyCells.Count'}else{'prior.cells.Count'}
+$prefix='global::HarborCity.DemolitionFrameCounters.Count("Spatial.PriorBuckets",prior.cells.Count);global::HarborCity.DemolitionFrameCounters.Count("Spatial.PriorShapes",prior.shapes.Count);global::HarborCity.DemolitionFrameCounters.Count("Spatial.ChangedDrivables",changed.Count);global::HarborCity.DemolitionFrameCounters.Count("Spatial.OldBucketsVisited",'+$amount+');'
+$s=ReplaceOne $s $anchor ($prefix+$anchor);WriteSource $file $s
 Phases 'Traffic/CityRoadCoreWorld.cs' 'public void RemoveRoad(int id)' 'public void Validate()' @(
  @('var n=CopyNetwork();','Remove.CopyAndBuild'),@('var remaps=new List<Remap>();','Remove.VehicleRoutes'),@('ValidateEditReservations(replacement,remaps);','Remove.Reservations'),@('var accessPlan=data.accesses.ConvertAll','Remove.Accesses'),@('new RoadEditPlan(this,n,replacement,remaps,interrupted,accessPlan,demolition:true).TryCommit();','Remove.Commit'))
 Phases 'Traffic/CityRoadCoreWorld.cs' 'public WorldData Snapshot()' 'NetworkData CopyNetwork()' @(

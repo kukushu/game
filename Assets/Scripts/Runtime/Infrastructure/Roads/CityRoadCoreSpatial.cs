@@ -47,6 +47,28 @@ namespace HarborCity.RoadCore
             else if(writable!=null&&!writable.Contains(key))cells[key]=list=new List<Segment>(list);
             writable?.Add(key);list.Add(segment);
         }
+        interface ICellVisitor {void Visit(int x,int z);}
+        struct SegmentCells:ICellVisitor
+        {
+            internal RoadSpatialIndex index;internal Segment segment;
+            public void Visit(int x,int z)=>index.Add(x,z,segment);
+        }
+        struct DirtyCells:ICellVisitor
+        {
+            internal HashSet<long> keys;
+            public void Visit(int x,int z)=>keys.Add(Key(x,z));
+        }
+        // The same supercover walk inserts segments and locates their old cells.
+        // Replay only changed Shapes, avoiding both a global bucket scan and a
+        // persistent drivable-to-cells table. Includes corner side cells and the
+        // raw geometry's clipped/invalid segments, exactly as insertion does.
+        static void WalkCells<T>(Point a,Point b,ref T visitor) where T:struct,ICellVisitor
+        {
+            int x=Coordinate(a.x),z=Coordinate(a.z),endX=Coordinate(b.x),endZ=Coordinate(b.z),sx=Math.Sign(b.x-a.x),sz=Math.Sign(b.z-a.z);
+            if(Math.Abs((long)endX-x)+Math.Abs((long)endZ-z)>100000)throw new ArgumentException("Single geometry segment exceeds spatial index budget");
+            double dx=b.x-a.x,dz=b.z-a.z,deltaX=sx==0?double.PositiveInfinity:Cell/Math.Abs(dx),deltaZ=sz==0?double.PositiveInfinity:Cell/Math.Abs(dz),tx=sx==0?double.PositiveInfinity:((sx>0?x+1:x)*Cell-a.x)/dx,tz=sz==0?double.PositiveInfinity:((sz>0?z+1:z)*Cell-a.z)/dz;
+            visitor.Visit(x,z);while(x!=endX||z!=endZ){if(tx<tz){x+=sx;tx+=deltaX;}else if(tz<tx){z+=sz;tz+=deltaZ;}else{if(x!=endX)visitor.Visit(x+sx,z);if(z!=endZ)visitor.Visit(x,z+sz);x+=sx;z+=sz;tx+=deltaX;tz+=deltaZ;}visitor.Visit(x,z);}
+        }
         public RoadSpatialIndex(Network network,RoadSpatialIndex prior=null)
         {
             HashSet<long> changed=null;
@@ -57,11 +79,13 @@ namespace HarborCity.RoadCore
                 changed=new HashSet<long>(CityRoadKeyComparer.Instance);writable=new HashSet<long>(CityRoadKeyComparer.Instance);
                 foreach(var road in network.Drivables){Shape old;if(!prior.shapes.TryGetValue(road.Id,out old)||!old.Same(road))changed.Add(road.Id);}
                 foreach(long id in prior.shapes.Keys)if(!shapes.ContainsKey(id))changed.Add(id);
-                foreach(var bucket in prior.cells)
+                var dirtyCells=new HashSet<long>(CityRoadKeyComparer.Instance);var visitor=new DirtyCells{keys=dirtyCells};
+                foreach(long id in changed)if(prior.shapes.TryGetValue(id,out var old))
+                    for(int sample=1;sample<old.geometry.Count;sample++)WalkCells(old.geometry[sample-1],old.geometry[sample],ref visitor);
+                foreach(long cell in dirtyCells)
                 {
-                    bool dirty=false;foreach(var segment in bucket.Value)if(changed.Contains(segment.drivable)){dirty=true;break;}
-                    if(!dirty)continue;var replacement=new List<Segment>();foreach(var segment in bucket.Value)if(!changed.Contains(segment.drivable))replacement.Add(segment);
-                    cells[bucket.Key]=replacement;writable.Add(bucket.Key);
+                    var bucket=prior.cells[cell];var replacement=new List<Segment>();foreach(var segment in bucket)if(!changed.Contains(segment.drivable))replacement.Add(segment);
+                    cells[cell]=replacement;writable.Add(cell);
                 }
             }
             foreach(var road in network.Drivables)
@@ -69,10 +93,8 @@ namespace HarborCity.RoadCore
                 if(changed!=null&&!changed.Contains(road.Id))continue;
                 for(int sample=1;sample<road.Geometry.Count;sample++)
             {
-                var segment=new Segment(road,sample);Point a=road.Geometry[sample-1],b=road.Geometry[sample];int x=Coordinate(a.x),z=Coordinate(a.z),endX=Coordinate(b.x),endZ=Coordinate(b.z),sx=Math.Sign(b.x-a.x),sz=Math.Sign(b.z-a.z);
-                if(Math.Abs((long)endX-x)+Math.Abs((long)endZ-z)>100000)throw new ArgumentException("Single geometry segment exceeds spatial index budget");
-                double dx=b.x-a.x,dz=b.z-a.z,deltaX=sx==0?double.PositiveInfinity:Cell/Math.Abs(dx),deltaZ=sz==0?double.PositiveInfinity:Cell/Math.Abs(dz),tx=sx==0?double.PositiveInfinity:((sx>0?x+1:x)*Cell-a.x)/dx,tz=sz==0?double.PositiveInfinity:((sz>0?z+1:z)*Cell-a.z)/dz;
-                Add(x,z,segment);while(x!=endX||z!=endZ){if(tx<tz){x+=sx;tx+=deltaX;}else if(tz<tx){z+=sz;tz+=deltaZ;}else{if(x!=endX)Add(x+sx,z,segment);if(z!=endZ)Add(x,z+sz,segment);x+=sx;z+=sz;tx+=deltaX;tz+=deltaZ;}Add(x,z,segment);}
+                var visitor=new SegmentCells{index=this,segment=new Segment(road,sample)};
+                WalkCells(road.Geometry[sample-1],road.Geometry[sample],ref visitor);
             }
             }
         }

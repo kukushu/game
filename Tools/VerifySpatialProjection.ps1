@@ -1,4 +1,4 @@
-param([string]$Results='Temp/CityScenarios/SpatialProjectionChecks',[string]$Reference='9abf728',[string]$SpatialSource='',[string]$Save='Temp/CityScenarios/challenge30000-traffic10000/threshold.hcity')
+param([string]$Results='Temp/CityScenarios/SpatialProjectionChecks',[string]$Reference='9abf728',[string]$SpatialSource='',[string]$Save='Temp/CityScenarios/challenge30000-traffic10000/threshold.hcity',[int]$Road=87)
 $ErrorActionPreference='Stop';. (Join-Path $PSScriptRoot 'ProjectLayout.ps1');$root=Split-Path $PSScriptRoot -Parent
 if(Test-Path -LiteralPath $Results){throw 'Fresh results required'};New-Item -ItemType Directory $Results|Out-Null
 $dir=[IO.Path]::GetFullPath((Join-Path $root $Results));$sources=Get-CityModelSources $root
@@ -9,7 +9,7 @@ if($SpatialSource){$sources=@($sources|Where-Object{$_ -notlike '*CityRoadCoreSp
 foreach($label in @('reference','actual')){
  $files=if($label -eq 'reference'){$oldSources}else{$sources};$exe=Join-Path $dir ($label+'.exe');$answer=Join-Path $dir ($label+'.bin')
  & $mono $csc /nologo /langversion:latest ('/out:'+$exe) $files (Join-Path $PSScriptRoot 'Diagnostics/CitySpatialProjectionChecks.cs');if($LASTEXITCODE -ne 0){throw 'Compile failed'}
- $p=Start-Process $mono -ArgumentList ('"'+$exe+'"'),('"'+(Resolve-Path $Save).Path+'"'),('"'+$answer+'"') -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $dir ($label+'.log')) -RedirectStandardError (Join-Path $dir ($label+'-error.log'));$handle=$p.Handle;$watch=[Diagnostics.Stopwatch]::StartNew();$peak=0L;$reason=$null
+ $p=Start-Process $mono -ArgumentList ('"'+$exe+'"'),('"'+(Resolve-Path $Save).Path+'"'),('"'+$answer+'"'),$Road -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $dir ($label+'.log')) -RedirectStandardError (Join-Path $dir ($label+'-error.log'));$handle=$p.Handle;$watch=[Diagnostics.Stopwatch]::StartNew();$peak=0L;$reason=$null
  while(-not $p.WaitForExit(1000)){$p.Refresh();if($p.HasExited){break};$peak=[Math]::Max($peak,$p.WorkingSet64);if($watch.Elapsed.TotalSeconds -gt 120){$reason='wall-limit'}elseif($p.WorkingSet64 -gt 4GB){$reason='memory-limit'};if($reason){$p.Kill($true);$p.WaitForExit();break}}
  $p.WaitForExit();@{exitCode=$p.ExitCode;terminatedBy=$reason;wallSeconds=$watch.Elapsed.TotalSeconds;peakWorkingSetBytes=$peak}|ConvertTo-Json|Set-Content (Join-Path $dir ($label+'-resources.json'));Get-Content (Join-Path $dir ($label+'.log'));if($reason -or $p.ExitCode -ne 0){Get-Content (Join-Path $dir ($label+'-error.log'));throw 'Projection check failed; evidence retained'}
 }
