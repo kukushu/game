@@ -1,4 +1,4 @@
-param([Parameter(Mandatory)][string]$Save,[Parameter(Mandatory)][string]$Results,[string]$Reference='',[int]$Road=87)
+param([Parameter(Mandatory)][string]$Save,[Parameter(Mandatory)][string]$Results,[string]$Reference='',[int]$Road=87,[ValidateSet('in-place','demolition','demolition-repair','service-pickup','service-return')][string]$Scenario='in-place')
 $ErrorActionPreference='Stop';. (Join-Path $PSScriptRoot 'ProjectLayout.ps1');$root=Split-Path $PSScriptRoot -Parent
 if(Test-Path $Results){throw 'Fresh result path required'};$result=[IO.Path]::GetFullPath((Join-Path $root $Results));New-Item -ItemType Directory $result|Out-Null
 $project=Join-Path $root 'Temp/RoadCoreUnity';Sync-CityWorkspaceProject $root $project
@@ -11,11 +11,16 @@ foreach($relative in @('Traffic/CityRoadCoreWorld.cs','Simulation/Core/CityCoreR
 }
 $hostPath=Join-Path $project 'Assets/Scripts/Runtime/Presentation/Game/HarborCityRoadCoreGame.cs';[IO.File]::WriteAllText($hostPath,([IO.File]::ReadAllText($hostPath).Replace('AddComponent<HarborCityScenarioWindowProbe>()','AddComponent<HarborCityRecoveryWindowProbe>()')))
 Copy-Item (Join-Path $PSScriptRoot 'Diagnostics/HarborCityRecoveryWindowProbe.cs') (Join-Path $project 'Assets/Scripts/Diagnostics/Runtime/HarborCityRecoveryWindowProbe.cs')
+if($Scenario -ne 'in-place'){
+ if($Reference){throw 'Demolition behaviour probe requires the new runtime'}
+ [IO.File]::WriteAllText($hostPath,([IO.File]::ReadAllText($hostPath).Replace('AddComponent<HarborCityRecoveryWindowProbe>()','AddComponent<HarborCityDemolitionWindowProbe>()')))
+ Copy-Item (Join-Path $PSScriptRoot 'Diagnostics/HarborCityDemolitionWindowProbe.cs') (Join-Path $project 'Assets/Scripts/Diagnostics/Runtime/HarborCityDemolitionWindowProbe.cs')
+}
 $player=Join-Path $result 'Player/HarborCity.exe';$env:HARBOR_PLAYER_RELEASE='0';$env:HARBOR_CORE_ATTRIBUTION='0';$env:HARBOR_TRAFFIC_VALIDATION_PLAYER=$player
 $p=Start-Process 'C:/Program Files/Unity/Hub/Editor/6000.6.3f1/Editor/Unity.exe' -ArgumentList '-batchmode','-quit','-projectPath',('"'+$project+'"'),'-executeMethod','HarborCity.CityPlayerBuild.BuildResearchValidation','-logFile',('"'+(Join-Path $result 'build.log')+'"') -WindowStyle Hidden -PassThru
 if(-not $p.WaitForExit(600000)){$p.Kill($true);throw 'Build timeout'};if($p.ExitCode -ne 0){throw 'Build failed'}
 $inputPath=(Resolve-Path $Save).Path
 @{source=$(if($Reference){git rev-parse $Reference}else{git rev-parse HEAD});dirty=@(git status --porcelain);input=$inputPath;inputHash=(Get-FileHash $inputPath).Hash;assemblyHash=(Get-FileHash (Join-Path $result 'Player/HarborCity_Data/Managed/Assembly-CSharp.dll')).Hash;road=$Road;note='Development instrumented scripted paused edit at exact saved tick; 8s display warmup; not ordinary-game FPS'}|ConvertTo-Json|Set-Content (Join-Path $result 'environment.json')
-$p=Start-Process $player -ArgumentList '-harbor-city-scenario-window',('"'+$inputPath+'"'),('"'+(Join-Path $result 'window')+'"'),'0','-harbor-window-saved-map','-harbor-recovery-road',$Road,'-screen-width','1440','-screen-height','900','-logFile',('"'+(Join-Path $result 'player.log')+'"') -WindowStyle Normal -PassThru
+$p=Start-Process $player -ArgumentList '-harbor-city-scenario-window',('"'+$inputPath+'"'),('"'+(Join-Path $result 'window')+'"'),'0','-harbor-window-saved-map','-harbor-recovery-road',$Road,'-harbor-recovery-scenario',$Scenario,'-screen-width','1440','-screen-height','900','-logFile',('"'+(Join-Path $result 'player.log')+'"') -WindowStyle Normal -PassThru
 if(-not $p.WaitForExit(240000)){$p.Kill($true);throw 'Player timeout'};if($p.ExitCode -ne 0){throw 'Player failed'}
 Get-Content (Join-Path $result 'window/summary.csv');Get-Content (Join-Path $result 'window/Result.txt')
