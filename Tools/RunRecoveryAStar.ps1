@@ -1,7 +1,8 @@
-param([string]$Results='Temp/RecoveryAStar/model',[string]$Save='Temp/RecoverySearch-20261025/native-after/window/pending.hcity',[string]$Queries='Docs/Performance/RecoveryRouteSharing-20261025/queries-new.csv')
+param([string]$Results='Temp/RecoveryAStar/model',[string]$Save='Temp/RecoverySearch-20261025/native-after/window/pending.hcity',[string]$Queries='Docs/Performance/RecoveryRouteSharing-20261025/queries-new.csv',[string]$NetworkReference='a703b0b')
 $ErrorActionPreference='Stop';. (Join-Path $PSScriptRoot 'ProjectLayout.ps1');$root=Split-Path $PSScriptRoot -Parent
 $dir=Join-Path $root $Results;if(Test-Path $dir){throw 'Fresh output required'};New-Item -ItemType Directory $dir|Out-Null
 $sources=Get-CityModelSources $root
+$frozen=Join-Path $dir 'Network.reference.cs';$text=(& git show ($NetworkReference+':Assets/Scripts/Runtime/Infrastructure/Roads/CityRoadCoreNetwork.cs')) -join "`n";if($LASTEXITCODE -ne 0){throw 'Missing historical Dijkstra baseline'};[IO.File]::WriteAllText($frozen,$text);$sources=@($sources|Where-Object {$_ -notlike '*CityRoadCoreNetwork.cs'})+$frozen
 $extra=@((Join-Path $PSScriptRoot 'Diagnostics/RecoveryAStar.cs'),(Join-Path $PSScriptRoot 'Diagnostics/RecoveryAStarReplay.cs'))
 $mono='C:/Program Files/Unity/Hub/Editor/6000.6.3f1/Editor/Data/MonoBleedingEdge/bin/mono.exe';$csc='C:/Program Files/Unity/Hub/Editor/6000.6.3f1/Editor/Data/MonoBleedingEdge/lib/mono/4.5/csc.exe'
 $fixture=[IO.File]::ReadAllText((Join-Path $PSScriptRoot 'Diagnostics/CityFromLaneChecks.cs'))

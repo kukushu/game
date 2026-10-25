@@ -1,5 +1,6 @@
 param([Parameter(Mandatory)][string]$Save,[Parameter(Mandatory)][string]$Results,[string]$Reference='',[int]$Road=87,[ValidateSet('in-place','demolition','demolition-repair','service-pickup','service-return','waste-loss','access-rebind','frame-breakdown')][string]$Scenario='in-place',[switch]$FrameRaw,[string]$ViewReference='',[switch]$CheckZoningViews,[string]$SpatialReference='',[switch]$TraceRecoveryRoutes,[string]$RoutingReference='',[switch]$AStarReplay)
-if($AStarReplay -and ($Scenario -ne 'frame-breakdown' -or $RoutingReference -or $Reference -or $FrameRaw -or $TraceRecoveryRoutes)){throw 'AStar shadow replay requires the current frame-breakdown source without intrusive trace/raw or frozen overrides'}
+if($AStarReplay -and ($Scenario -ne 'frame-breakdown' -or $Reference -or $FrameRaw -or $TraceRecoveryRoutes)){throw 'Historical AStar shadow replay requires frame-breakdown without intrusive trace/raw or World overrides'}
+if($AStarReplay -and -not $RoutingReference){$RoutingReference='a703b0b'}
 if($Scenario -eq 'frame-breakdown' -and $Road -ne 87){throw 'The frame-breakdown probe is the frozen road-87 comparison case'}
 if($FrameRaw -and $Scenario -ne 'frame-breakdown'){throw 'FrameRaw requires the frame-breakdown scenario'}
 if(($ViewReference -or $CheckZoningViews) -and $Scenario -ne 'frame-breakdown'){throw 'View comparison requires the frame-breakdown scenario'}

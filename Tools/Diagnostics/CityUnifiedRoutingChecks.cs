@@ -85,7 +85,7 @@ namespace HarborCity
             var timer=Stopwatch.StartNew();for(int i=0;i<steps;i++)
             {
                 control.Transport.Network.RouteSharingEnabled=false;hot.Simulation.Advance(.05,1,double.PositiveInfinity);control.Simulation.Advance(.05,1,double.PositiveInfinity);
-                if(i%40==39){hot.Validate();control.Validate();Check(CityCoreSave.Write(hot).SequenceEqual(CityCoreSave.Write(control)),"Shared/uncached full city diverged at step "+i);}
+                if(i%40==39){hot.Validate();control.Validate();Check(CityCoreSave.Write(hot).SequenceEqual(CityCoreSave.Write(control)),"Shared/uncached full city diverged at step "+i);}if(i%400==399)Console.WriteLine("Validated paired city steps "+(i+1));
             }
             timer.Stop();hot.Validate();control.Validate();var final=CityCoreSave.Write(hot);File.WriteAllBytes(Path.Combine(directory,"final.hcity"),final);Check(final.SequenceEqual(CityCoreSave.Write(control)),"Final cache state divergence");
             var cold=CityCoreSave.Read(final);cold.Transport.DepotLaneRoutingEnabled=true;cold.Simulation.Growth.Zoning.SetSurface((x,z)=>2);

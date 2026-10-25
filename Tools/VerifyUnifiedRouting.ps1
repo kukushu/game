@@ -1,4 +1,4 @@
-param([string]$Results='Temp/UnifiedRouting/checks',[string]$CitySave='',[int]$Steps=4000)
+param([string]$Results='Temp/UnifiedRouting/checks',[string]$CitySave='',[int]$Steps=4000,[ValidateSet('Mono','DotNet64')][string]$Runtime='Mono')
 $ErrorActionPreference='Stop';. (Join-Path $PSScriptRoot 'ProjectLayout.ps1');$root=Split-Path $PSScriptRoot -Parent;$dir=Join-Path $root $Results
 if(Test-Path $dir){throw 'Fresh output required'};New-Item -ItemType Directory $dir|Out-Null
 $fixture=[IO.File]::ReadAllText((Join-Path $PSScriptRoot 'Diagnostics/CityFromLaneChecks.cs'));$a=$fixture.IndexOf('    static void Pair(');$b=$fixture.IndexOf('    static Network Grid(',$a)
@@ -11,5 +11,12 @@ $mono='C:/Program Files/Unity/Hub/Editor/6000.6.3f1/Editor/Data/MonoBleedingEdge
 & $mono $csc /nologo /langversion:latest ('/out:'+(Join-Path $dir 'checks.exe')) (Get-CityModelSources $root) (Join-Path $PSScriptRoot 'Diagnostics/CityRoutingDijkstraOracle.cs') (Join-Path $PSScriptRoot 'Diagnostics/CityUnifiedRoutingChecks.cs') $file
 if($LASTEXITCODE -ne 0){throw 'Unified routing compile failed'}
 $arguments=@((Join-Path $root 'Temp/RecoverySearch-20261025/native-after/window/pending.hcity'),(Join-Path $root 'Docs/Performance/RecoveryRouteSharing-20261025/queries-new.csv'),(Join-Path $dir 'replay.csv'),(Join-Path $dir 'pressure.csv'));if($CitySave){$arguments+=@((Resolve-Path $CitySave).Path,(Join-Path $dir 'city'),$Steps)}
-& $mono (Join-Path $dir 'checks.exe') @arguments | Tee-Object (Join-Path $dir 'checks.log')
+if($Runtime -eq 'DotNet64'){
+ $texts=@($fixture,[IO.File]::ReadAllText((Join-Path $PSScriptRoot 'Diagnostics/CityRoutingDijkstraOracle.cs')),[IO.File]::ReadAllText((Join-Path $PSScriptRoot 'Diagnostics/CityUnifiedRoutingChecks.cs')))
+ $usings=@($texts|ForEach-Object {[regex]::Matches($_,'(?m)^using [^;]+;')|ForEach-Object Value}|Select-Object -Unique)
+ $combined=($usings -join "`n")+"`n"+(($texts|ForEach-Object {[regex]::Replace($_,'(?m)^using [^;]+;','')}) -join "`n")
+ $combinedFile=Join-Path $dir 'Combined.cs';[IO.File]::WriteAllText($combinedFile,$combined)
+ $binary=Build-CityDotNetHost -ProjectRoot $root -OutputDirectory $dir -Entry $combinedFile
+ & dotnet $binary @arguments | Tee-Object (Join-Path $dir 'checks.log')
+}else{& $mono (Join-Path $dir 'checks.exe') @arguments | Tee-Object (Join-Path $dir 'checks.log')}
 if($LASTEXITCODE -ne 0){throw 'Unified routing checks failed'}
