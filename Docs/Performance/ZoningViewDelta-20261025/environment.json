@@ -1,0 +1,72 @@
+{
+  "baseline-final": {
+    "road": 87,
+    "assemblyHash": "807D1C63840351032AD79A2CF9AFFC51FB6C5D5E1BC9CC302A1BCD8E6CB6DE24",
+    "note": "Development instrumented scripted paused edit at exact saved tick; 8s display warmup; not ordinary-game FPS",
+    "inputHash": "0110347D2BC4E40E8CD98E841EE92F62D675935D076A21AE58D7F7A5A9ADB6CD",
+    "source": "7b285b797b457ce7d3cd3f7556de97cd62c046ac",
+    "dirty": [
+      " M Assets/Scripts/Runtime/Presentation/World/HarborCityZoningViews.cs",
+      " M Tools/AddDemolitionFrameInstrumentation.ps1",
+      " M Tools/Diagnostics/HarborCityDemolitionFrameProbe.cs",
+      " M Tools/Diagnostics/HarborCityZoningBatchValidation.cs",
+      " M Tools/RunRecoveryWindow.ps1",
+      " M Tools/VerifyZoneViewBatches.ps1",
+      "?? Tools/Diagnostics/HarborCityZoningViewDeltaChecks.cs"
+    ],
+    "viewReference": "7b285b7",
+    "input": "C:\\Users\\16934\\Documents\\unity_game\\road-core-integration-20261024\\Temp\\BatchRecovery-20261025\\case-old-live\\before.hcity"
+  },
+  "new1": {
+    "viewReference": "",
+    "assemblyHash": "AC8475E87F280E3EB0C873C34DDB3A6173F890170D209C67B75DC3A2D243E092",
+    "dirty": [
+      " M Assets/Scripts/Runtime/Presentation/World/HarborCityZoningViews.cs",
+      " M Tools/AddDemolitionFrameInstrumentation.ps1",
+      " M Tools/Diagnostics/HarborCityDemolitionFrameProbe.cs",
+      " M Tools/Diagnostics/HarborCityZoningBatchValidation.cs",
+      " M Tools/RunRecoveryWindow.ps1",
+      " M Tools/VerifyZoneViewBatches.ps1",
+      "?? Tools/Diagnostics/HarborCityZoningViewDeltaChecks.cs"
+    ],
+    "inputHash": "0110347D2BC4E40E8CD98E841EE92F62D675935D076A21AE58D7F7A5A9ADB6CD",
+    "note": "Development instrumented scripted paused edit at exact saved tick; 8s display warmup; not ordinary-game FPS",
+    "input": "C:\\Users\\16934\\Documents\\unity_game\\road-core-integration-20261024\\Temp\\BatchRecovery-20261025\\case-old-live\\before.hcity",
+    "source": "7b285b797b457ce7d3cd3f7556de97cd62c046ac",
+    "road": 87
+  },
+  "baseline": "7b285b797b457ce7d3cd3f7556de97cd62c046ac",
+  "old_runs": [
+    "old1",
+    "old2",
+    "old3",
+    "old4",
+    "old5"
+  ],
+  "new_runs": [
+    "new2",
+    "new3",
+    "new4",
+    "new5",
+    "new6"
+  ],
+  "execution_order": [
+    "old1",
+    "old2",
+    "old3",
+    "new2",
+    "new3",
+    "new4",
+    "old4",
+    "new5",
+    "new6",
+    "old5"
+  ],
+  "old_raw": "C:\\Users\\16934\\Documents\\unity_game\\road-core-integration-20261024\\Temp\\DemolitionFrame-20261025\\final-raw\\window\\window.raw",
+  "new_raw": "C:\\Users\\16934\\Documents\\unity_game\\road-core-integration-20261024\\Temp\\ZoningViewDelta-20261025\\new-raw\\window\\window.raw",
+  "old_raw_sha256": "F180C6CF99751B4FE90AB0918E891FDB97B3A0A40F264A017047770B9FEA59F3",
+  "new_raw_sha256": "B909F0D3AFC7AE9F0F09BADDEC93518E450467751169C9ED5094957964ED730D",
+  "note": "Same saved tick, paused scripted Player edit; diagnostic instrumentation; raw excluded from normal medians; post-window oracle shutdown cases excluded",
+  "implementationCommit": "5aa4fbd0fc7ad5545e7a766940600aa031954260",
+  "runtimeViewGitBlob": "726ba96c241c6703f990fd49cf2467a46f16b8c6"
+}
