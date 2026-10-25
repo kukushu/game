@@ -1,0 +1,16 @@
+version,name,calls,inclusive_ms,allocated_bytes
+before,Snapshot,35,81.5842,-1
+before,Validate,18,25.7748,-1
+before,Reindex,36,3163.9314,-1
+before,Safety,18,3158.5915999999993,-1
+before,WorldCreate,18,5169.9111,-1
+before,Resume,136,5276.1985000000213,-1
+before,Bindings,1,5335.7646,-1
+after,Snapshot,2,2.9779,-1
+after,Validate,3,2.6953,-1
+after,Reindex,5,21.6845,-1
+after,Safety,3,21.228399999999997,-1
+after,WorldCreate,2,23.4861,-1
+after,Attempt,136,66.074500000000256,-1
+after,Bulk,1,70.9085,-1
+after,Bindings,1,130.7981,-1

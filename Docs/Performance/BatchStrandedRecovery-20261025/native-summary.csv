@@ -1,0 +1,3 @@
+version,tick,road,attempted,resumed,remaining,delete_ms,views_ms,recovery_ms
+before,642633,87,136,17,119,82.9821,13.9357,5336.4938
+after,642633,87,136,17,119,82.6858,12.817300000000001,131.5744
