@@ -1,0 +1,23 @@
+{
+  "searches": 17,
+  "successful_routes": 17,
+  "exact_query_keys": 17,
+  "distinct_source_lanes": 13,
+  "expanded": 30942,
+  "unique_expanded_lanes": 9423,
+  "old_candidate_links": 238886,
+  "old_legal_links": 176980,
+  "old_connection_dictionary_calls": 592846,
+  "new_connection_dictionary_calls": 72642,
+  "new_cached_edge_references": 53782,
+  "adjacency_lookups": 30942,
+  "adjacency_hits": 21519,
+  "traversed_edges": 176980,
+  "expansion_event_sha256": "6F4293224D4304032EA6E74D5205050B5EE9AD3B0295D5D17C7442C388C8F2EA",
+  "identical_expansion_order": true,
+  "purposes": {
+    "freight": 4,
+    "home": 11,
+    "service": 2
+  }
+}

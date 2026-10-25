@@ -1,0 +1,15 @@
+run,exit_code,termination,wall_seconds
+old2,0,,30.3119554
+fold2,-1,completed-validation-shutdown-wait,37.5663148
+fold3,0,,29.9306937
+old3,0,,29.3759094
+old4,0,,29.4199449
+adj2,0,,29.263701
+adj3,0,,29.2470021
+old5,0,,29.3424032
+adj4,0,,29.4295091
+adj5,0,,29.5903122
+adj-raw,0,,29.4345219
+old1,0,,not-recorded
+new1,0,,not-recorded
+adj1,0,,not-recorded

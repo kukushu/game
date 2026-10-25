@@ -1,0 +1,90 @@
+{
+  "old1": {
+    "viewReference": "",
+    "input": "C:\\Users\\16934\\Documents\\unity_game\\road-core-integration-20261024\\Temp\\BatchRecovery-20261025\\case-old-live\\before.hcity",
+    "source": "4ed17612c03a01876d949abcb02c5d90a19e1dba",
+    "routingReference": "4ed1761",
+    "traceRecoveryRoutes": false,
+    "road": 87,
+    "spatialReference": "",
+    "inputHash": "0110347D2BC4E40E8CD98E841EE92F62D675935D076A21AE58D7F7A5A9ADB6CD",
+    "dirty": [
+      " M Assets/Scripts/Runtime/Infrastructure/Roads/CityRoadCoreNetwork.cs",
+      " M Tools/Diagnostics/CityFromLaneChecks.cs",
+      " M Tools/RunRecoveryWindow.ps1",
+      " M Tools/VerifyFromLane.ps1",
+      "?? Tools/Diagnostics/RecoveryRouteTrace.cs"
+    ],
+    "note": "Development instrumented scripted paused edit at exact saved tick; 8s display warmup; not ordinary-game FPS",
+    "assemblyHash": "5C2D1E100D84959F2A71275581042C5320EA77B11080BB277232A53075BE2D98"
+  },
+  "new1": {
+    "traceRecoveryRoutes": false,
+    "assemblyHash": "5404E3FC85B851503F6F0F1F7291D7645DC4491A1470677F3B712740EC914E44",
+    "viewReference": "",
+    "road": 87,
+    "inputHash": "0110347D2BC4E40E8CD98E841EE92F62D675935D076A21AE58D7F7A5A9ADB6CD",
+    "input": "C:\\Users\\16934\\Documents\\unity_game\\road-core-integration-20261024\\Temp\\BatchRecovery-20261025\\case-old-live\\before.hcity",
+    "source": "4ed17612c03a01876d949abcb02c5d90a19e1dba",
+    "dirty": [
+      " M Assets/Scripts/Runtime/Infrastructure/Roads/CityRoadCoreNetwork.cs",
+      " M Tools/Diagnostics/CityFromLaneChecks.cs",
+      " M Tools/RunRecoveryWindow.ps1",
+      " M Tools/VerifyFromLane.ps1",
+      "?? Tools/Diagnostics/RecoveryRouteTrace.cs"
+    ],
+    "note": "Development instrumented scripted paused edit at exact saved tick; 8s display warmup; not ordinary-game FPS",
+    "spatialReference": "",
+    "routingReference": ""
+  },
+  "adj1": {
+    "note": "Development instrumented scripted paused edit at exact saved tick; 8s display warmup; not ordinary-game FPS",
+    "spatialReference": "",
+    "traceRecoveryRoutes": false,
+    "input": "C:\\Users\\16934\\Documents\\unity_game\\road-core-integration-20261024\\Temp\\BatchRecovery-20261025\\case-old-live\\before.hcity",
+    "source": "1d4499a966d484306255f4be915c4d81e699a4ec",
+    "road": 87,
+    "inputHash": "0110347D2BC4E40E8CD98E841EE92F62D675935D076A21AE58D7F7A5A9ADB6CD",
+    "routingReference": "",
+    "assemblyHash": "F446ED25F8515B2CBF8E2410C137DE0E4F7F42B0D111CC0D85BBE46C6D4846D6",
+    "viewReference": "",
+    "dirty": [
+      " M Assets/Scripts/Runtime/Infrastructure/Roads/CityRoadCoreNetwork.cs",
+      " M Tools/Diagnostics/CityFromLaneChecks.cs",
+      " M Tools/Diagnostics/RecoveryRouteTrace.cs",
+      " M Tools/RunRecoveryWindow.ps1"
+    ]
+  },
+  "old_raw": {
+    "path": "C:\\Users\\16934\\Documents\\unity_game\\road-core-integration-20261024\\Temp\\SpatialDirtyBuckets-20261025\\new-raw\\window\\window.raw",
+    "sha256": "8AC21B861FE0EA087AA693472EEFB2DA00EAAAE0D181D4730F423D281FBF0890"
+  },
+  "new_raw": {
+    "path": "C:\\Users\\16934\\Documents\\unity_game\\road-core-integration-20261024\\Temp\\RecoverySharing-20261025\\adj-raw\\window\\window.raw",
+    "sha256": "825377DA357FE4D318B22BAFA8358AE1FB478F25BA943DFE3771810E943C0A28"
+  },
+  "baseline": "4ed17612c03a01876d949abcb02c5d90a19e1dba",
+  "lookup_only_commit": "1d4499a",
+  "old_runs": [
+    "old1",
+    "old2",
+    "old3",
+    "old4",
+    "old5"
+  ],
+  "new_runs": [
+    "adj1",
+    "adj2",
+    "adj3",
+    "adj4",
+    "adj5"
+  ],
+  "prototype_runs": [
+    "new1",
+    "fold2",
+    "fold3"
+  ],
+  "note": "Paused scripted real-city edit; new Network adjacency cold, rendering warmed 8s; raw and intrusive query traces excluded from score medians",
+  "implementationCommit": "cb2212584bec625f99b2d2b3d8214f71fc34ea93",
+  "routingSourceGitBlob": "dff2c19172a959a08b5dda5fd23f93b62474bd97"
+}
