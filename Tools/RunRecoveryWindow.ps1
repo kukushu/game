@@ -1,18 +1,22 @@
-param([Parameter(Mandatory)][string]$Save,[Parameter(Mandatory)][string]$Results,[string]$Reference='',[int]$Road=87,[ValidateSet('in-place','demolition','demolition-repair','service-pickup','service-return','waste-loss')][string]$Scenario='in-place')
+param([Parameter(Mandatory)][string]$Save,[Parameter(Mandatory)][string]$Results,[string]$Reference='',[int]$Road=87,[ValidateSet('in-place','demolition','demolition-repair','service-pickup','service-return','waste-loss','access-rebind')][string]$Scenario='in-place')
 $ErrorActionPreference='Stop';. (Join-Path $PSScriptRoot 'ProjectLayout.ps1');$root=Split-Path $PSScriptRoot -Parent
 if(Test-Path $Results){throw 'Fresh result path required'};$result=[IO.Path]::GetFullPath((Join-Path $root $Results));New-Item -ItemType Directory $result|Out-Null
 $project=Join-Path $root 'Temp/RoadCoreUnity';Sync-CityWorkspaceProject $root $project
 foreach($relative in @('Traffic/CityRoadCoreWorld.cs','Simulation/Core/CityCoreRoadBindings.cs')){
  $path=Join-Path $project ('Assets/Scripts/Runtime/'+$relative);if($Reference){$source=(& git show ($Reference+':Assets/Scripts/Runtime/'+$relative)) -join "`n";if($LASTEXITCODE -ne 0){throw 'Missing frozen source'}}else{$source=[IO.File]::ReadAllText($path)}
- $methods=if($relative.StartsWith('Traffic')){@{'public WorldData Snapshot()'='Snapshot';'World(WorldData state,SimulationClock clock,IEnumerable<int> endpoints,bool owned,Network prepared,bool draft=false)'='WorldCreate';'public bool TryResumeStranded(int id)'='Resume';'public void Validate()'='Validate';'public void AssertSafety()'='Safety';'void Reindex()'='Reindex'}}else{@{'public void RefreshIfChanged()'='Bindings'}}
+ $methods=if($relative.StartsWith('Traffic')){@{'public WorldData Snapshot()'='Snapshot';'World(WorldData state,SimulationClock clock,IEnumerable<int> endpoints,bool owned,Network prepared,bool draft=false)'='WorldCreate';'public bool TryResumeStranded(int id)'='Resume';'public void Validate()'='Validate';'public void AssertSafety()'='Safety';'void Reindex()'='Reindex';'public bool RebindAccesses(IReadOnlyList<AccessBinding> bindings)'='RebindAccesses'}}else{@{'public void RefreshIfChanged()'='Bindings'}}
  if($source.Contains('public int ResumeStrandedVehicles()')){$methods['public int ResumeStrandedVehicles()']='Bulk';$methods['bool PlanStrandedResume(Vehicle v,out Remap remap)']='Attempt'}
  foreach($signature in $methods.Keys){$pattern=[regex]::Escape($signature)+'\s*\{';$matches=[regex]::Matches($source,$pattern);if($matches.Count -ne 1){throw ('Instrumentation signature missing: '+$signature)};$label=$methods[$signature];$source=[regex]::Replace($source,$pattern,{param($m) $m.Value+'using var recoveryScope=global::HarborCity.RecoveryCounters.Measure("'+$label+'");'})}
  [IO.File]::WriteAllText($path,$source)
 }
+$networkPath=Join-Path $project 'Assets/Scripts/Runtime/Infrastructure/Roads/CityRoadCoreNetwork.cs'
+$networkSource=[IO.File]::ReadAllText($networkPath);$pattern='void Rebuild\(Network prior\)\s*\{'
+if([regex]::Matches($networkSource,$pattern).Count -ne 1){throw 'Network instrumentation signature missing'}
+[IO.File]::WriteAllText($networkPath,([regex]::Replace($networkSource,$pattern,{param($m) $m.Value+'using var recoveryNetworkScope=global::HarborCity.RecoveryCounters.Measure("NetworkRebuild");'})))
 $hostPath=Join-Path $project 'Assets/Scripts/Runtime/Presentation/Game/HarborCityRoadCoreGame.cs';[IO.File]::WriteAllText($hostPath,([IO.File]::ReadAllText($hostPath).Replace('AddComponent<HarborCityScenarioWindowProbe>()','AddComponent<HarborCityRecoveryWindowProbe>()')))
 Copy-Item (Join-Path $PSScriptRoot 'Diagnostics/HarborCityRecoveryWindowProbe.cs') (Join-Path $project 'Assets/Scripts/Diagnostics/Runtime/HarborCityRecoveryWindowProbe.cs')
 if($Scenario -ne 'in-place'){
- if($Reference){throw 'Demolition behaviour probe requires the new runtime'}
+ if($Reference -and $Scenario -ne 'access-rebind'){throw 'This behaviour probe requires the new runtime'}
  [IO.File]::WriteAllText($hostPath,([IO.File]::ReadAllText($hostPath).Replace('AddComponent<HarborCityRecoveryWindowProbe>()','AddComponent<HarborCityDemolitionWindowProbe>()')))
  Copy-Item (Join-Path $PSScriptRoot 'Diagnostics/HarborCityDemolitionWindowProbe.cs') (Join-Path $project 'Assets/Scripts/Diagnostics/Runtime/HarborCityDemolitionWindowProbe.cs')
 }

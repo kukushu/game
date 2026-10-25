@@ -29,15 +29,15 @@ namespace HarborCity
             var frames=new List<string>{"frame_ms,gc_bytes"};double deleteMs,bindingMs,viewMs;var history=new RoadEditHistory(w);
             using(var gc=ProfilerRecorder.StartNew(ProfilerCategory.Memory,"GC Allocated In Frame"))
             {
-                yield return null;double last=Time.realtimeSinceStartupAsDouble;var timer=Stopwatch.StartNew();history.Execute(()=>s.Construction.RemoveRoad(road));timer.Stop();deleteMs=timer.Elapsed.TotalMilliseconds;
-                pending=w.Vehicles.Where(v=>v.status==VehicleStatus.AwaitingRestart).ToArray();timer.Restart();new CityCoreRoadBindings(s.City,w).RefreshIfChanged();timer.Stop();bindingMs=timer.Elapsed.TotalMilliseconds;timer.Restart();host.ScenarioRefreshRoads();timer.Stop();viewMs=timer.Elapsed.TotalMilliseconds;
+                yield return null;double last=Time.realtimeSinceStartupAsDouble;RecoveryCounters.Enabled=scenario=="access-rebind";var timer=Stopwatch.StartNew();history.Execute(()=>s.Construction.RemoveRoad(road));timer.Stop();deleteMs=timer.Elapsed.TotalMilliseconds;
+                pending=w.Vehicles.Where(v=>v.status==VehicleStatus.AwaitingRestart).ToArray();timer.Restart();new CityCoreRoadBindings(s.City,w).RefreshIfChanged();timer.Stop();bindingMs=timer.Elapsed.TotalMilliseconds;timer.Restart();host.ScenarioRefreshRoads();timer.Stop();viewMs=timer.Elapsed.TotalMilliseconds;RecoveryCounters.Enabled=false;
                 for(int i=0;i<12;i++){yield return null;double now=Time.realtimeSinceStartupAsDouble;frames.Add(N((now-last)*1000)+","+(gc.Valid?gc.LastValue:-1));last=now;}
             }
-            File.WriteAllLines(Path.Combine(output,"frames.csv"),frames);if(scenario=="demolition-repair"&&!history.Undo())throw new Exception("Failed to restore original road for restart acceptance");s.Validate();var checkpoint=CityCoreSave.Write(s);File.WriteAllBytes(Path.Combine(output,"pending.hcity"),checkpoint);
+            File.WriteAllLines(Path.Combine(output,"frames.csv"),frames);if(scenario=="access-rebind")RecoveryCounters.Write(Path.Combine(output,"scopes.csv"));if(scenario=="demolition-repair"&&!history.Undo())throw new Exception("Failed to restore original road for restart acceptance");s.Validate();var checkpoint=CityCoreSave.Write(s);File.WriteAllBytes(Path.Combine(output,"pending.hcity"),checkpoint);
             var cold=CityCoreSave.Read(checkpoint);cold.Simulation.Growth.Zoning.SetSurface(host.ScenarioSurface);cold.Transport.DepotLaneRoutingEnabled=true;
             int restarted=0,settled=0;var rows=new List<string>{"vehicle,purpose,phase,task,cargo,final_status,final_task"};var seen=new HashSet<int>();
-            var timer2=Stopwatch.StartNew();
-            for(int i=0;i<200;i++)
+            int continuationSteps=scenario=="access-rebind"?80:200;var timer2=Stopwatch.StartNew();
+            for(int i=0;i<continuationSteps;i++)
             {
                 s.Simulation.Advance(.05,1,double.PositiveInfinity);cold.Simulation.Advance(.05,1,double.PositiveInfinity);
                 foreach(var v in pending)
@@ -50,8 +50,8 @@ namespace HarborCity
             foreach(var v in pending){var current=w.FindVehicle(v.id);if(v.Task.purpose==TransportPurpose.Service){if(current!=null)throw new Exception("Displaced service mission was not returned to fleet");settled++;}rows.Add(string.Join(",",v.id,v.Task.purpose,phases.TryGetValue(v.id,out var phase)?phase.ToString():"",taskIds[v.id],cargo[v.id],current==null?"retired":current.status.ToString(),current?.Task.id??0));}
             s.Validate();cold.Validate();if(!CityCoreSave.Write(s).SequenceEqual(CityCoreSave.Write(cold))||s.Simulation.Waste.BalanceError!=0)throw new Exception("Native final state/conservation differs");
             File.WriteAllBytes(Path.Combine(output,"final.hcity"),CityCoreSave.Write(s));File.WriteAllLines(Path.Combine(output,"vehicles.csv"),rows);
-            File.WriteAllText(Path.Combine(output,"summary.csv"),"scenario,road,pending,restarted,settled_services,remaining_pending,delete_ms,bindings_ms,views_ms,paired_200_steps_with_assertions_ms\n"+string.Join(",",scenario,road,pending.Length,restarted,settled,w.Vehicles.Count(v=>v.status==VehicleStatus.AwaitingRestart),N(deleteMs),N(bindingMs),N(viewMs),N(timer2.Elapsed.TotalMilliseconds)));
-            File.WriteAllText(Path.Combine(output,"Result.txt"),"PASS native production demolition, same-task restarts, service fleet release, full validation, conservation and 200 hot/cold fixed steps. Scripted paused edit; assertion-heavy continuation is not a performance measurement.\n");Application.Quit(0);
+            File.WriteAllText(Path.Combine(output,"summary.csv"),"scenario,road,pending,restarted,settled_services,remaining_pending,delete_ms,bindings_ms,views_ms,continuation_steps,paired_steps_with_assertions_ms\n"+string.Join(",",scenario,road,pending.Length,restarted,settled,w.Vehicles.Count(v=>v.status==VehicleStatus.AwaitingRestart),N(deleteMs),N(bindingMs),N(viewMs),continuationSteps,N(timer2.Elapsed.TotalMilliseconds)));
+            File.WriteAllText(Path.Combine(output,"Result.txt"),"PASS native production demolition, same-task restarts, service fleet release, full validation, conservation and "+continuationSteps+" hot/cold fixed steps. Scripted paused edit; assertion-heavy continuation is not a performance measurement.\n");Application.Quit(0);
         }
         IEnumerator RunLoss(CityCoreIndustrySession s)
         {
