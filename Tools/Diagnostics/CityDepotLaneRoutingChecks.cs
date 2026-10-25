@@ -150,6 +150,13 @@ static class CityDepotLaneRoutingChecks
         w.RegisterAccess(5000,home.lane,home.distance);w.DepotRoutes.RetainDepots(101,new[]{home.endpoint,5000});
         Check(w.DepotRoutes.TryFind(w,5000,w.GetAccess(5000),home,false,out _,out _,out _),"New depot not admitted");
         w.DepotRoutes.RetainDepots(102,new[]{home.endpoint});Check(w.DepotRoutes.Count<=1,"Removed new depot not pruned");
+        // Oversized declared live sets use the common point router. This is a
+        // world-derived policy, not a cache-heat dependent change of algorithm.
+        var beforePolicy=SaveCodec.Write(w);w.DepotRoutes.RetainDepots(103,Enumerable.Range(1,129).Concat(new[]{home.endpoint}));
+        Check(!w.DepotRoutes.CanServeLiveSet&&w.DepotRoutes.Count==0,"Oversized tree set not released");long builds=w.DepotRoutes.TreeBuilds;var common=w.ReplayDepotQuery(home.endpoint,home,w.GetAccess(5000),false);
+        Check(w.DepotRoutes.TreeBuilds==builds&&common.route!=null,"Oversized set rebuilt full trees instead of common routing");w.Network.ValidateRoute(common.route.ToList());
+        Check(beforePolicy.SequenceEqual(SaveCodec.Write(w)),"Routing policy changed authoritative facts");w.DepotRoutes.RetainDepots(104,new[]{home.endpoint});
+        Check(w.DepotRoutes.CanServeLiveSet,"Shrinking live set did not restore bounded tree eligibility");
         Console.WriteLine("PASS " + checks + " lane-tree checks; equal-cost different route choices=" + different + "; trees=" + w.DepotRoutes.Count + " bytes=" + w.DepotRoutes.ReservedTreeBytes);
     }
 }

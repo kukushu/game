@@ -95,9 +95,9 @@ namespace HarborCity.RoadCore
         {
             int prior=DepotRoutingTrace.Depot;string direction=DepotRoutingTrace.Direction;DepotRoutingTrace.Depot=depot;DepotRoutingTrace.Direction="outbound";
             try{DepotRoutingTrace.QueryObserver?.Invoke(depot,source,target,false);using var sample=DepotRoutingTrace.Start("service-query");
-                if(DepotLaneRoutingEnabled&&DepotRoutes.TryFind(this,depot,source,target,false,out var path,out double start,out double end))return new DispatchBlueprint(Network,path,start,end);
+                if(DepotLaneRoutingEnabled&&DepotRoutes.CanServeLiveSet&&DepotRoutes.TryFind(this,depot,source,target,false,out var path,out double start,out double end))return new DispatchBlueprint(Network,path,start,end);
                 if(DepotJunctionRoutingEnabled&&JunctionRoutes.Outbound(Network,depot,source,target,out var junctionPath,out double junctionStart,out double junctionEnd))return new DispatchBlueprint(Network,junctionPath,junctionStart,junctionEnd);
-                long began=DepotJunctionRoutingEnabled?System.Diagnostics.Stopwatch.GetTimestamp():0;var result=dispatchRoutes.Get(Network,depot,destination,source,target,true,business as IJunctionEndpointProvider);if(began!=0)JunctionRoutes.FallbackCost(began);return result;
+                Network.ServicePointQueries++;long began=DepotJunctionRoutingEnabled?System.Diagnostics.Stopwatch.GetTimestamp():0;var result=dispatchRoutes.Get(Network,depot,destination,source,target,true,business as IJunctionEndpointProvider);if(began!=0)JunctionRoutes.FallbackCost(began);return result;
             }finally{DepotRoutingTrace.Depot=prior;DepotRoutingTrace.Direction=direction;}
         }
         internal DispatchBlueprint ReplayDepotQuery(int depot,RoadAccess anchor,RoadAccess point,bool returning)
@@ -110,9 +110,9 @@ namespace HarborCity.RoadCore
         {
             int prior=DepotRoutingTrace.Depot;string direction=DepotRoutingTrace.Direction;DepotRoutingTrace.Depot=depot;DepotRoutingTrace.Direction="return";
             try{DepotRoutingTrace.QueryObserver?.Invoke(depot,target,new RoadAccess{lane=lane,distance=distance},true);using var sample=DepotRoutingTrace.Start("service-query");
-                if(DepotLaneRoutingEnabled&&DepotRoutes.TryFind(this,depot,target,new RoadAccess{lane=lane,distance=distance},true,out var path,out _,out end))return path;
+                if(DepotLaneRoutingEnabled&&DepotRoutes.CanServeLiveSet&&DepotRoutes.TryFind(this,depot,target,new RoadAccess{lane=lane,distance=distance},true,out var path,out _,out end))return path;
                 if(DepotJunctionRoutingEnabled&&JunctionRoutes.Return(Network,depot,target,lane,distance,out var junctionPath,out end))return junctionPath;
-                long began=DepotJunctionRoutingEnabled?System.Diagnostics.Stopwatch.GetTimestamp():0;var result=AccessRouting.FromLane(Network,lane,distance,target,true,out end);if(began!=0)JunctionRoutes.FallbackCost(began);return result;
+                Network.ServicePointQueries++;long began=DepotJunctionRoutingEnabled?System.Diagnostics.Stopwatch.GetTimestamp():0;var result=AccessRouting.FromLane(Network,lane,distance,target,true,out end);if(began!=0)JunctionRoutes.FallbackCost(began);return result;
             }finally{DepotRoutingTrace.Depot=prior;DepotRoutingTrace.Direction=direction;}
         }
         readonly LostOccupancy lostOccupancy=new LostOccupancy();

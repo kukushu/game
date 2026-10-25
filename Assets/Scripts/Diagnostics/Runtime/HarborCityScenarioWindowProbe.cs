@@ -17,7 +17,7 @@ namespace HarborCity
         static Dictionary<string,long> RouteStats(object network)
         {
             var result=new Dictionary<string,long>();var type=network.GetType();var flags=System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.Public|System.Reflection.BindingFlags.NonPublic;
-            foreach(string name in new[]{"SharedRouteHits","SharedRouteMisses","SharedRouteEvictions","PointSearches","PointExpanded","SharedRouteCount","SharedRouteBytes"})
+            foreach(string name in new[]{"SharedRouteHits","SharedRouteMisses","SharedRouteEvictions","PointSearches","PointExpanded","SharedRouteCount","SharedRouteBytes","ServicePointQueries"})
             {var field=type.GetField(name,flags);var property=type.GetProperty(name,flags);result[name]=field!=null?Convert.ToInt64(field.GetValue(network)):property!=null?Convert.ToInt64(property.GetValue(network)):-1;}return result;
         }
         HarborCityRoadCoreGame host;string savePath,output;float rate;
@@ -51,7 +51,8 @@ namespace HarborCity
             {
                 if(!sharedWarmup||!warmSession.Transport.DepotLaneRoutingEnabled)throw new InvalidOperationException("Lane prewarm requires shared warmup and lane routing");
                 byte[] before=CityCoreSave.Write(warmSession);var cache=warmSession.Transport.DepotRoutes;long builds=cache.TreeBuilds;var watch=System.Diagnostics.Stopwatch.StartNew();int depots=0;
-                foreach(var plant in warmSession.City.buildings.OfType<LandfillBuilding>().OrderBy(p=>p.id))
+                var fitProperty=cache.GetType().GetProperty("CanServeLiveSet",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic);bool fits=fitProperty==null||(bool)fitProperty.GetValue(cache);
+                foreach(var plant in warmSession.City.buildings.OfType<LandfillBuilding>().Where(p=>fits).OrderBy(p=>p.id))
                 {var access=warmSession.Transport.GetAccess(plant.id);if(access==null||!access.valid)continue;warmSession.Transport.ReplayDepotQuery(plant.id,access,access,false);warmSession.Transport.ReplayDepotQuery(plant.id,access,access,true);depots++;if(depots%8==0)yield return null;}
                 watch.Stop();if(!before.SequenceEqual(CityCoreSave.Write(warmSession)))throw new InvalidOperationException("Lane tree warmup modified authoritative city");
                 File.WriteAllText(Path.Combine(output,"lane-prewarm.csv"),"depots,new_trees,resident_depots,logical_tree_bytes,wall_ms\n"+string.Join(",",depots,cache.TreeBuilds-builds,cache.Count,cache.ReservedTreeBytes,watch.Elapsed.TotalMilliseconds.ToString("R",CultureInfo.InvariantCulture)));

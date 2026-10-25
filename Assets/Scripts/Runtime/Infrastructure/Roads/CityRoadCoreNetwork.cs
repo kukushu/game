@@ -278,7 +278,7 @@ namespace HarborCity.RoadCore
         // Point-to-point routing uses one guided lane-end search. Depot all-target
         // trees intentionally keep Dijkstra: they have no single spatial goal.
         internal bool RouteHeuristicEnabled=true,RouteSharingEnabled=true;
-        internal long SharedRouteHits,SharedRouteMisses,SharedRouteEvictions,PointSearches,PointExpanded;
+        internal long SharedRouteHits,SharedRouteMisses,SharedRouteEvictions,PointSearches,PointExpanded,ServicePointQueries;
         const int SharedRouteCapacity=4096;
         const long SharedRouteByteBudget=8*1024*1024;
         readonly struct LanePair:IEquatable<LanePair>

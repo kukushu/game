@@ -209,11 +209,16 @@ namespace HarborCity.RoadCore
         readonly Dictionary<int, Entry> entries = new Dictionary<int, Entry>(); Network network; Network.DepotGraph graph; long clock; public const int Capacity = 128;
         public long Hits, Misses, Evictions, Invalidations, Queries, TreeBuilds, TreeReuses;
         HashSet<int> liveDepots;
+        // A full-network tree per depot is useful only while the declared live
+        // set fits. Selection must depend on authoritative facilities, never LRU
+        // warmth/eviction history, so cold restores make the same routing choice.
+        internal bool CanServeLiveSet=>liveDepots==null||liveDepots.Count<=Capacity;
         public long DepotSetRevision {get;private set;}=long.MinValue;
         // The waste system supplies its existing live facility IDs, never new routing authority.
         internal void RetainDepots(long revision,IEnumerable<int> ids)
         {
             liveDepots=liveDepots??new HashSet<int>();liveDepots.Clear();liveDepots.UnionWith(ids);DepotSetRevision=revision;
+            if(!CanServeLiveSet){Clear();return;}
             foreach(int id in entries.Keys.ToArray())if(!liveDepots.Contains(id)){entries.Remove(id);Invalidations++;}
         }
         // At most four trees, each with double distance + int hop + int rank.
@@ -243,6 +248,7 @@ namespace HarborCity.RoadCore
             result = null;
             start = end = 0;
             Queries++;
+            if(!CanServeLiveSet)return false;
             if (!ReferenceEquals(network, owner.Network))
             {
                 Clear();

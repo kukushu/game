@@ -59,7 +59,7 @@ namespace HarborCity
                 plants.Clear();foreach(var b in entities.Buildings)if(b is LandfillBuilding p)plants.Add(p);buildingRevision=entities.BuildingRevision;
                 var ids=new List<int>(plants.Count);foreach(var plant in plants)ids.Add(plant.id);world.JunctionRoutes.SetDepots(ids,world.GetAccess,()=>world.AccessRevision);
             }
-            if(world.DepotLaneRoutingEnabled&&world.DepotRoutes.DepotSetRevision!=buildingRevision)world.DepotRoutes.RetainDepots(buildingRevision,plants.Select(p=>p.id));
+            if(world.DepotRoutes.DepotSetRevision!=buildingRevision)world.DepotRoutes.RetainDepots(buildingRevision,plants.Select(p=>p.id));
         }
         bool Running(LandfillBuilding b)=>!b.abandoned&&!b.burning&&!b.burned&&!b.emptying&&entities.RoadAccess(b.id)&&city.Supply(b.id).Complete;
         internal void GenerateDay()
