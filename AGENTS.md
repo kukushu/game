@@ -328,6 +328,13 @@ codex/experiment-access-rebind-network-reuse-20261025从最新垃圾损失实验
 
 ## 删路固定车道双目标寻路（2026-10-25，仅实验分支）
 
+后续诊断已修正本节历史“最长帧”口径：旧RunRecoveryWindow协程间隔跨两帧，并非单帧CPU；原数据不删除。见下方新增诊断说明及DemolitionFrameDiagnosis报告，不沿用错误帧名称比较。
+
 codex/experiment-demolition-recovery-search-20261025从最新a8ee29c创建，运行时069b37c仅改AccessRouting.FromLane：固定物理出发车道/精确位置，对合法目标两侧复用已有RouteToEither共享一次前沿，单目标/货运保持原Route；未改Dijkstra内核、Network/空间索引、任务、安全、调度或保存。真实0110347D同tick删87基线：132尝试仅17进入FromLane，却30次Dijkstra/51766节点；Project11次26ms几乎全为一次SpatialBuild，真正点查询合计0.027ms。索引已有桶/Segment复用但仍全局Shape/旧桶扫描，建筑遍历不是26ms主体；未测定车辆路线扫描单项，不凭猜测加反向索引。不改跨帧事务，避免改变原子提交和下一固定步恢复顺序。
 
 三组原生Development受控暂停脚本施工（非鼠标/50倍实点），FromLane中位57.11→35.47ms、30→17搜索、51766→30942节点；最长帧211.39–217.97→196.76–206.41ms，中位216.50→198.95（约8.1%）。GC55.984→55.964MB基本不变；Snapshot3/World3/Validate4/Safety4/Reindex7/Rebuild1全保留。六次初始/边界/80步全保存完全相同，冷热恢复同；47950组冻结旧FromLane查询/156306检查路线与终点/成本位模式严格同；150937核心、23614综合等及597重绑/840批量/517任务/787垃圾/101预算通过。真实正常城6200步全检查点终态与a8ee29c同及80冷步通过。精确.NET归因预热原索引，不预建编辑后索引；早期未预热模型记录保留不作为成绩。报告Docs/Performance/RecoverySearch-20261025/Report.md及CSV，本地Temp同名目录。仍有Network约30ms/Spatial约26–33ms/恢复35ms及其他帧开销，未达流畅/50倍，不继续其他优化，不合并任何分支。
+
+
+## 删路帧边界诊断（2026-10-25，仅诊断分支）
+
+codex/diagnose-demolition-frame-20261025基于恢复寻路最新0afa420，工具b24c60c仅注入Temp源码；正式Assets零改动。旧最长帧是协程跨帧间隔，不能当真实帧或用新口径声称提速。同0110347D/tick642633/536车删87，8秒显示预热、暂停脚本施工：最终3次施工148.45–156.97ms，完整Main帧152.86–162.00ms，下一帧56.45–58.75ms；原始Profiler独立复核，约55ms来自Update分区刷新。分区只重算6道路/593块只重建2块（0.53ms），但格数256787→256700触发全量Regroup/Compare/Visual记忆约32ms；Geometry约21ms含全网Drivable变化比较11ms。施工Network30.45ms（连接12.07/冲突8.53/车道7.52）、空间索引28.44ms（旧桶扫描16.72/Shape比较5.25/Shape表3.66/新段1.35）、17搜索38.82ms、Utilities12.53ms；536车13603剩余路线段扫描仅1.77ms，不优先反向路线索引。两帧分配56.02/22.58MB，GC.Collect未观测到；raw函数归因与非raw时钟分开。四次边界/80步冷热及12完整存档全等冻结基线；原大回归未本轮重跑，不写新PASS。中途raw插桩嵌套失败已修复工具并重测；退出ZoneBoxTool.Dispose空引用未解决，发生采样和保存之后。建议后续独立处理格子增删显示整理，再定位脏空间桶；本轮不优化、不改调度、不合并。详见Docs/Performance/DemolitionFrameDiagnosis-20261025/Report.md和必要CSV，原始本地Temp同名目录；没有正常1×/50×新成绩。

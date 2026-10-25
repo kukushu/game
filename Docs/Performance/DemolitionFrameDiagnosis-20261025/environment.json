@@ -1,0 +1,22 @@
+{
+  "assemblyHash": "E3B1BBA7C76B8777B6A2C9332E6C5E69A455F4EA75120F381F1C7CD9BCAA4308",
+  "input": "C:\\Users\\16934\\Documents\\unity_game\\road-core-integration-20261024\\Temp\\BatchRecovery-20261025\\case-old-live\\before.hcity",
+  "inputHash": "0110347D2BC4E40E8CD98E841EE92F62D675935D076A21AE58D7F7A5A9ADB6CD",
+  "road": 87,
+  "note": "Development diagnostic Player; no raw capture for final1/2/3; raw timings separate; no production runtime source changes",
+  "dirty": [
+    " M Tools/RunRecoveryWindow.ps1",
+    "?? Tools/AddDemolitionFrameInstrumentation.ps1",
+    "?? Tools/Diagnostics/HarborCityDemolitionFrameProbe.cs"
+  ],
+  "source": "0afa420759f833b4cb97966e624dd9f4917aef89",
+  "selected_runs": [
+    "final1",
+    "final2",
+    "final3",
+    "final-raw"
+  ],
+  "raw_capture": "C:\\Users\\16934\\Documents\\unity_game\\road-core-integration-20261024\\Temp\\DemolitionFrame-20261025\\final-raw\\window\\window.raw",
+  "binary_profiler_sha256": "F180C6CF99751B4FE90AB0918E891FDB97B3A0A40F264A017047770B9FEA59F3",
+  "diagnosticToolsCommit": "b24c60ca526498b308bd3db416894e19f705fe56"
+}
