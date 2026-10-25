@@ -100,7 +100,7 @@ namespace HarborCity
         public ResidentActivity Observe(int citizen)
         {
             var member=entities.Member(citizen);if(member==null)throw new ArgumentException("Unknown citizen");var p=member.Person;var a=new ResidentActivity();
-            if(p.tripId!=0){var task=transport.FindTaskVehicle(p.tripId);if(task==null)throw new InvalidOperationException("Resident transport reference missing");var point=transport.Position(task);a.located=true;a.travelling=true;a.x=(float)point.x;a.z=(float)point.z;a.destination=task.Task.destination;a.state=task.status==VehicleStatus.Stranded?"道路中断，仍在车辆中":task.Task.purpose==TransportPurpose.Home?"回家途中":"上班途中";a.reason="实际车辆 #"+task.id;return a;}
+            if(p.tripId!=0){var task=transport.FindTaskVehicle(p.tripId);if(task==null)throw new InvalidOperationException("Resident transport reference missing");var point=transport.Position(task);a.located=task.status!=VehicleStatus.AwaitingRestart;a.travelling=true;a.x=(float)point.x;a.z=(float)point.z;a.destination=task.Task.destination;a.state=task.status==VehicleStatus.AwaitingRestart?"道路拆除，等待从原出发点重新出发":task.status==VehicleStatus.Stranded?"道路中断，仍在车辆中":task.Task.purpose==TransportPurpose.Home?"回家途中":"上班途中";a.reason="实际车辆 #"+task.id;return a;}
             var building=city.GetBuilding(p.location);a.building=p.location;a.located=building!=null;a.state=p.atWork?"实际在岗":"在家 / 等待出发";if(building!=null){a.x=building.x;a.z=building.z;}return a;
         }
         public void Validate()

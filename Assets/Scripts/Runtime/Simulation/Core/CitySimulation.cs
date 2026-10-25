@@ -61,7 +61,7 @@ namespace HarborCity
 #if UNITY_5_3_OR_NEWER
                 using(stepSample.Auto())
 #endif
-                {try{IsApplyingBoundary=true;SyncCalendar(clock.Seconds);bindings.RefreshIfChanged();
+                {try{IsApplyingBoundary=true;SyncCalendar(clock.Seconds);bindings.RefreshIfChanged();Waste.RecoverDemolishedVehicles();transport.RestartDemolishedDepartures();
 #if UNITY_5_3_OR_NEWER
                     using(growthSample.Auto())
 #endif

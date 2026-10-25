@@ -137,6 +137,28 @@ namespace HarborCity
                 Diagnostics?.Complete(m.station,oldTask,arrival.arrivedAt,arrival.cargo,true);
             }
         }
+        // Explicit demolition exception: settle once against the original mission,
+        // never manufacture a physical arrival or search a return route. Capacity
+        // and the same authoritative building/shipment ledgers still apply.
+        internal int RecoverDemolishedVehicles()
+        {
+            if(!world.HasDemolishedVehicles)return 0;int recovered=0;
+            for(int i=0;i<state.missions.Count;)
+            {
+                var m=state.missions[i];var vehicle=world.FindVehicle(m.vehicle);
+                if(vehicle==null||vehicle.status!=VehicleStatus.AwaitingRestart){i++;continue;}
+                world.CheckDemolishedService(m.vehicle,m.task);
+                var plant=entities.Building(m.station) as LandfillBuilding;var pickup=entities.Building(m.pickup);
+                if(plant==null||pickup==null)throw new InvalidOperationException("Missing displaced waste mission endpoint");
+                int amount=m.phase==WastePhase.Pickup?Math.Min(rules.Payload,pickup.garbage):vehicle.Task.Cargo;
+                if(plant.stored+amount>rules.Capacity){i++;continue;}
+                if(m.phase==WastePhase.Pickup){pickup.garbage-=amount;state.totals.collected+=amount;}
+                plant.stored+=amount;world.CompleteDemolishedService(m.vehicle,m.task,amount);
+                Diagnostics?.Complete(m.station,vehicle.Task,world.Clock,amount,true);
+                state.missions.RemoveAt(i);byVehicle.Remove(m.vehicle);recovered++;
+            }
+            if(recovered>0)world.RetireCompleted();return recovered;
+        }
         public void Validate()
         {
             RefreshPlants();var t=state.totals;if(!ReferenceEquals(city.waste,t)||t==null||!t.Valid()||t.lost!=0||t.transferred!=0||state.lastGenerationDay<1||state.lastGenerationDay>city.day||state.nextDispatchTick<0||t.collected>t.generated||t.collected!=Stored+InTransit+Processed||BalanceError!=0)throw new InvalidOperationException("Waste conservation/schedule failed");

@@ -6,7 +6,7 @@ using Unity.Profiling;
 
 namespace HarborCity.RoadCore
 {
-    public enum VehicleStatus { Active,Delivered,Stranded }
+    public enum VehicleStatus { Active,Delivered,Stranded,AwaitingRestart }
     public enum TransportPurpose { Freight,Work,Home,Shopping,Service }
     [Serializable] public sealed class Depot
     {
@@ -35,7 +35,7 @@ namespace HarborCity.RoadCore
         internal void CommitPosition(long drivable,double distance,int navigationCursor)
         {
             if(Plan==null||navigationCursor<0||navigationCursor>=Plan.segments.Count||Plan.segments[navigationCursor]!=drivable)throw new ArgumentException("Navigation does not match physical drivable");
-            Position.Commit(drivable,distance,status==VehicleStatus.Stranded);cursor=navigationCursor;
+            Position.Commit(drivable,distance,status==VehicleStatus.Stranded||status==VehicleStatus.AwaitingRestart);cursor=navigationCursor;
         }
         internal void Freeze(Point point){Position.Freeze(point);status=VehicleStatus.Stranded;}
     }
@@ -127,6 +127,8 @@ namespace HarborCity.RoadCore
             return dispatchRoutes.Get(Network,origin,destination,source,target,false,business as IJunctionEndpointProvider).seconds;
         }
         bool indexDirty=true;
+        int awaitingRestarts;
+        internal bool HasDemolishedVehicles=>awaitingRestarts>0;
         readonly bool constructionDraft;
         readonly Dictionary<long,double> entries=new Dictionary<long,double>(CityRoadKeyComparer.Instance);
         readonly List<Intent> intents=new List<Intent>();
@@ -214,7 +216,7 @@ namespace HarborCity.RoadCore
         public RoadEditPlan PlanUpgradeRoad(int id,int lanes,double speed,RoadDirection direction)
         {
             var n=CopyNetwork();var road=n.roads.Find(r=>r.id==id);if(road==null)throw new ArgumentException("Missing road");road.lanes=lanes;road.speed=speed;road.direction=direction;var candidate=new Network(n,Network);
-            foreach(var v in data.vehicles)if(Network.Contains(v.Current)&&!candidate.Contains(v.Current)||v.changeTarget!=0&&!candidate.Contains(v.changeTarget))throw new InvalidOperationException("待撤方向/车道仍有车辆，等待驶离后再升级；城市未修改。");
+            foreach(var v in data.vehicles)if(v.status!=VehicleStatus.AwaitingRestart&&(Network.Contains(v.Current)&&!candidate.Contains(v.Current)||v.changeTarget!=0&&!candidate.Contains(v.changeTarget)))throw new InvalidOperationException("待撤方向/车道仍有车辆，等待驶离后再升级；城市未修改。");
             var proposed=new List<RoadAccess>();foreach(var original in data.accesses)
             {
                 var access=original.Copy();if(access.valid&&!candidate.Contains(access.lane))
@@ -249,6 +251,7 @@ namespace HarborCity.RoadCore
             var remaps=new List<Remap>();var interrupted=new List<KeyValuePair<Vehicle,Point>>();
             foreach(var v in data.vehicles)
             {
+                if(v.status==VehicleStatus.AwaitingRestart)continue;
                 var next=mapped[v.id];if(v.status==VehicleStatus.Active&&next.status==VehicleStatus.Stranded)interrupted.Add(new KeyValuePair<Vehicle,Point>(v,next.strandedPosition));
                 else if(draft.Network.Contains(next.Current))remaps.Add(new Remap{vehicle=v,route=next.Plan.segments,cursor=next.cursor,distance=next.distance,arrival=next.Plan.EndDistance});
             }
@@ -272,7 +275,7 @@ namespace HarborCity.RoadCore
             var staged=Snapshot();staged.network=plan.data;if(plan.accesses!=null)staged.accesses=plan.accesses;
             var stagedVehicles=new Dictionary<int,Vehicle>();foreach(var vehicle in staged.vehicles)stagedVehicles.Add(vehicle.id,vehicle);
             foreach(var remap in plan.remaps){var vehicle=stagedVehicles[remap.vehicle.id];vehicle.Plan.segments=remap.route;vehicle.CommitPosition(remap.route[remap.cursor],remap.distance,remap.cursor);vehicle.changeTarget=RemappedChangeTarget(remap.vehicle,plan.network,vehicle.Current);if(vehicle.status!=VehicleStatus.Stranded)vehicle.Plan.EndDistance=remap.arrival;}
-            foreach(var item in plan.interruptions){var vehicle=stagedVehicles[item.Key.id];vehicle.Freeze(item.Value);}
+            foreach(var item in plan.interruptions){var vehicle=stagedVehicles[item.Key.id];FreezeForEdit(vehicle,item.Value,plan);}
             // Cold transaction validation proves references, endpoint bounds and occupancy
             // together before the first live write. No business callback mutates inventory.
             new World(staged,data.externalBusiness?timeline.Copy():null,null,true,plan.network);
@@ -283,9 +286,17 @@ namespace HarborCity.RoadCore
         void ApplyRoadFacts(RoadEditPlan plan)
         {
             foreach(var remap in plan.remaps){long target=RemappedChangeTarget(remap.vehicle,plan.network,remap.route[remap.cursor]);remap.vehicle.Plan.segments=remap.route;remap.vehicle.CommitPosition(remap.route[remap.cursor],remap.distance,remap.cursor);remap.vehicle.changeTarget=target;if(remap.vehicle.status!=VehicleStatus.Stranded)remap.vehicle.Plan.EndDistance=remap.arrival;}
-            foreach(var item in plan.interruptions){item.Key.Freeze(item.Value);}
+            foreach(var item in plan.interruptions){FreezeForEdit(item.Key,item.Value,plan);}
             if(plan.accesses!=null){data.accesses=plan.accesses;accesses.Clear();foreach(var access in plan.accesses)accesses.Add(access.endpoint,access);}
             data.network=plan.data;Network=plan.network;
+        }
+        void FreezeForEdit(Vehicle vehicle,Point point,RoadEditPlan plan)
+        {
+            bool displaced=plan.demolition&&Network.Contains(vehicle.Current)&&!plan.network.Contains(vehicle.Current);
+            vehicle.Freeze(point);
+            // This is an explicit off-road queue, not a generic stranded reason.
+            // Only a committed demolition may put a task into this state.
+            if(displaced){vehicle.status=VehicleStatus.AwaitingRestart;vehicle.changeTarget=0;vehicle.changeElapsed=0;}
         }
         public int AddDepot(int junction,int stock=100)
         {if(data.externalBusiness)throw new InvalidOperationException("City owns its inventories; synthetic depots are disabled");JunctionPosition(junction);if(stock<0||stock>100000)throw new ArgumentOutOfRangeException(nameof(stock));int id=data.nextDepot++;var depot=new Depot{id=id,junction=junction,stock=stock};data.depots.Add(depot);depotsById.Add(id,depot);return id;}
@@ -428,37 +439,85 @@ namespace HarborCity.RoadCore
 
             if(data.nextVehicle>=int.MaxValue||data.nextTask>=int.MaxValue)throw new InvalidOperationException("Vehicle IDs exhausted");
             if(purpose<TransportPurpose.Freight||purpose>TransportPurpose.Service||amount<0||purpose==TransportPurpose.Freight&&amount==0||purpose==TransportPurpose.Service&&(citizen!=0||price!=0||amount!=0)||IsResident(purpose)&&(price!=0||citizen<=0||purpose!=TransportPurpose.Home&&amount!=0)||price<0||double.IsNaN(price)||double.IsInfinity(price))throw new ArgumentOutOfRangeException("Cargo/price");
-            if(origin==destination||!EndpointExists(origin)||!EndpointExists(destination)){rejection=TransportRejection.EndpointUnavailable;return null;}
-            RoadAccess source=GetAccess(origin),target=GetAccess(destination);if(source!=null&&target!=null){var use=IsResident(purpose)?AccessUse.Resident:AccessUse.Freight;if(!source.valid||!target.valid||(source.use&use)==0||(target.use&use)==0){rejection=TransportRejection.AccessUnavailable;return null;}}
-            // Freight has exactly one saved source lane/station. Physical source
-            // blockage is independent of its destination; reject before path search.
-            if(purpose==TransportPurpose.Freight&&FreightSourceBlocked(origin)){rejection=TransportRejection.SourceBlocked;return null;}
-            if(purpose==TransportPurpose.Freight&&source!=null&&target!=null&&!Network.CanReach(source,target))
-            {
-#if CITY_CORE_ATTRIBUTION
-                CityCoreProfile.Unreachable++;
-#endif
-                rejection=TransportRejection.Unreachable;return null;
-            }
-            // Service routes may depart on either curb. Only reject when EVERY
-            // reachable source used by AccessRouting.Find is blocked; never pick
-            // a different route just because its departure lane happens to be free.
-            if(purpose==TransportPurpose.Service&&source!=null&&target!=null&&ServiceSourceBlocked(source,target)){rejection=TransportRejection.SourceOccupied;return null;}
-            var blueprint=purpose==TransportPurpose.Service&&source!=null&&target!=null?ServiceBlueprint(origin,destination,source,target):dispatchRoutes.Get(Network,origin,destination,source,target,purpose!=TransportPurpose.Freight,business as IJunctionEndpointProvider);var route=blueprint.route;double start=blueprint.start,end=blueprint.end;if(route==null||route.Length==0){rejection=TransportRejection.NoRoute;return null;}
-            if(indexDirty)Reindex();List<LaneOccupant> bucket;
-            if(occupancy.TryGetValue(route[0],out bucket)){int slot=InsertionSlot(bucket,start);if(slot>0&&bucket[slot-1].distance-start<MinimumSpacing||slot<bucket.Count&&start-bucket[slot].distance<MinimumSpacing){rejection=TransportRejection.SourceOccupied;return null;}}
-            var entry=Network.Get(route[0]);int reservation=start<EntryReservationEnd(entry)-1e-9?entry.From:start>StopDistance(entry)+1e-9?entry.To:0;
-            long spawnMovement=reservation==entry.To&&route.Length>1?route[1]:0;
-            if(Network.IsConflictJunction(reservation)&&!reservations.CanReserve(reservation,spawnMovement,data.nextVehicle)){rejection=TransportRejection.JunctionReserved;return null;}
+            if(!PrepareDeparture(origin,destination,purpose,data.nextVehicle,out var blueprint,out rejection))return null;
+            var route=blueprint.route;double start=blueprint.start,end=blueprint.end;
             var task=new TripTask{id=data.nextTask,origin=origin,destination=destination,purpose=purpose,citizenId=citizen,departedAt=Clock,Shipment=purpose==TransportPurpose.Freight||amount>0?new Shipment{remaining=amount,unitPrice=price}:null};
             var v=new Vehicle{id=data.nextVehicle,Task=task,Plan=new RoutePlan{segments=new List<long>(route),EndDistance=end},Position=new VehiclePosition(route[0],start)};
             if(data.vehicles.Count==data.vehicles.Capacity)data.vehicles.Capacity=Math.Max(4,data.vehicles.Capacity*2);
             return new TransportAdmission(this,EditEpoch,v);
         }
+        // Used by both new dispatch and the same-task demolition restart. No
+        // inventory/payment/citizen departure callback belongs in this function.
+        bool PrepareDeparture(int origin,int destination,TransportPurpose purpose,int actor,out DispatchBlueprint blueprint,out TransportRejection rejection)
+        {
+            blueprint=null;rejection=TransportRejection.None;
+            if(origin==destination||!EndpointExists(origin)||!EndpointExists(destination)){rejection=TransportRejection.EndpointUnavailable;return false;}
+            RoadAccess source=GetAccess(origin),target=GetAccess(destination);if(source!=null&&target!=null){var use=IsResident(purpose)?AccessUse.Resident:AccessUse.Freight;if(!source.valid||!target.valid||(source.use&use)==0||(target.use&use)==0){rejection=TransportRejection.AccessUnavailable;return false;}}
+            // Freight has exactly one saved source lane/station. Physical source
+            // blockage is independent of its destination; reject before path search.
+            if(purpose==TransportPurpose.Freight&&FreightSourceBlocked(origin)){rejection=TransportRejection.SourceBlocked;return false;}
+            if(purpose==TransportPurpose.Freight&&source!=null&&target!=null&&!Network.CanReach(source,target))
+            {
+#if CITY_CORE_ATTRIBUTION
+                CityCoreProfile.Unreachable++;
+#endif
+                rejection=TransportRejection.Unreachable;return false;
+            }
+            // Service routes may depart on either curb. Only reject when EVERY
+            // reachable source used by AccessRouting.Find is blocked; never pick
+            // a different route just because its departure lane happens to be free.
+            if(purpose==TransportPurpose.Service&&source!=null&&target!=null&&ServiceSourceBlocked(source,target)){rejection=TransportRejection.SourceOccupied;return false;}
+            blueprint=purpose==TransportPurpose.Service&&source!=null&&target!=null?ServiceBlueprint(origin,destination,source,target):dispatchRoutes.Get(Network,origin,destination,source,target,purpose!=TransportPurpose.Freight,business as IJunctionEndpointProvider);var route=blueprint.route;double start=blueprint.start,end=blueprint.end;if(route==null||route.Length==0){rejection=TransportRejection.NoRoute;return false;}
+            if(indexDirty)Reindex();List<LaneOccupant> bucket;
+            if(occupancy.TryGetValue(route[0],out bucket)){int slot=InsertionSlot(bucket,start);if(slot>0&&bucket[slot-1].distance-start<MinimumSpacing||slot<bucket.Count&&start-bucket[slot].distance<MinimumSpacing){rejection=TransportRejection.SourceOccupied;return false;}}
+            var entry=Network.Get(route[0]);int reservation=start<EntryReservationEnd(entry)-1e-9?entry.From:start>StopDistance(entry)+1e-9?entry.To:0;
+            long spawnMovement=reservation==entry.To&&route.Length>1?route[1]:0;
+            if(Network.IsConflictJunction(reservation)&&!reservations.CanReserve(reservation,spawnMovement,actor)){rejection=TransportRejection.JunctionReserved;return false;}
+            return true;
+        }
         internal Vehicle CommitAdmission(TransportAdmission admission)
         {
-            CheckAdmission(admission);var v=admission.vehicle;var entry=Network.Get(v.Current);double start=v.distance;List<LaneOccupant> bucket;int reservation=start<EntryReservationEnd(entry)-1e-9?entry.From:start>StopDistance(entry)+1e-9?entry.To:0;long spawnMovement=reservation==entry.To&&v.Plan.segments.Count>1?v.Plan.segments[1]:0;data.nextVehicle++;data.nextTask++;data.tasks.Add(v.Task);tasksById.Add(v.Task.id,v.Task);vehiclesByTask.Add(v.Task.id,v);data.vehicles.Add(v);vehiclesById.Add(v.id,v);ActiveCount++;EditEpoch++;
-            if(!occupancy.TryGetValue(v.Current,out bucket))occupancy.Add(v.Current,bucket=new List<LaneOccupant>());v.sourceOccupant.distance=start;bucket.Insert(InsertionSlot(bucket,start),v.sourceOccupant);if(Network.IsConflictJunction(reservation))reservations.Reserve(reservation,spawnMovement,v.id);return v;
+            CheckAdmission(admission);var v=admission.vehicle;data.nextVehicle++;data.nextTask++;data.tasks.Add(v.Task);tasksById.Add(v.Task.id,v.Task);vehiclesByTask.Add(v.Task.id,v);data.vehicles.Add(v);vehiclesById.Add(v.id,v);ActiveCount++;EditEpoch++;IndexDeparture(v);return v;
+        }
+        void IndexDeparture(Vehicle v)
+        {
+            var entry=Network.Get(v.Current);double start=v.distance;
+            int reservation=start<EntryReservationEnd(entry)-1e-9?entry.From:start>StopDistance(entry)+1e-9?entry.To:0;
+            long movement=reservation==entry.To&&v.Plan.segments.Count>1?v.Plan.segments[1]:0;
+            if(!occupancy.TryGetValue(v.Current,out var bucket))occupancy.Add(v.Current,bucket=new List<LaneOccupant>());
+            v.sourceOccupant.distance=start;bucket.Insert(InsertionSlot(bucket,start),v.sourceOccupant);
+            if(Network.IsConflictJunction(reservation))reservations.Reserve(reservation,movement,v.id);
+        }
+        // Pending actors are off-road tasks, never obstacles on deleted pavement.
+        // Stable saved vehicle order plus normal admission serializes shared exits.
+        internal int RestartDemolishedDepartures()
+        {
+            if(awaitingRestarts==0||timeline.Tick%20!=0)return 0;
+            if(indexDirty)Reindex();int resumed=0;
+            foreach(var v in data.vehicles)
+            {
+                if(v.status!=VehicleStatus.AwaitingRestart||v.Task.purpose==TransportPurpose.Service)continue;
+                if(!PrepareDeparture(v.Task.origin,v.Task.destination,v.Task.purpose,v.id,out var blueprint,out _))continue;
+                var route=new List<long>(blueprint.route);Network.ValidateRoute(route);
+                // All route/access/occupancy/reservation checks precede the first
+                // write. Preserve the exact task, shipment, ID and departure time.
+                v.Plan=new RoutePlan{segments=route,EndDistance=blueprint.end};v.status=VehicleStatus.Active;
+                v.CommitPosition(route[0],blueprint.start,0);v.changeTarget=0;v.changeElapsed=0;
+                lostOccupancy.Forget(v.id);awaitingRestarts--;ActiveCount++;EditEpoch++;IndexDeparture(v);resumed++;
+            }
+            return resumed;
+        }
+        internal void CheckDemolishedService(int vehicle,int task)
+        {
+            var v=FindVehicle(vehicle);
+            if(v==null||v.status!=VehicleStatus.AwaitingRestart||v.Task.id!=task||v.Task.purpose!=TransportPurpose.Service||v.Task.state!=TripState.InTransit)throw new InvalidOperationException("Not a demolition-displaced service task");
+        }
+        internal void CompleteDemolishedService(int vehicle,int task,int delivered)
+        {
+            CheckDemolishedService(vehicle,task);if(delivered<0)throw new ArgumentOutOfRangeException(nameof(delivered));var v=FindVehicle(vehicle);
+            data.delivered+=delivered;if(v.Task.Shipment!=null)v.Task.Shipment.remaining=0;
+            v.Task.state=TripState.Completed;v.status=VehicleStatus.Delivered;
+            awaitingRestarts--;lostOccupancy.Forget(v.id);EditEpoch++;indexDirty=true;
         }
         internal void CheckAdmission(TransportAdmission admission)
         {if(admission==null||admission.owner!=this||admission.epoch!=EditEpoch||admission.vehicle.id!=data.nextVehicle||admission.vehicle.Task.id!=data.nextTask)throw new InvalidOperationException("Stale transport admission");}
@@ -528,7 +587,7 @@ namespace HarborCity.RoadCore
             foreach(var vehicle in data.vehicles)
             {
                 Remap remap;bool changed=mapped.TryGetValue(vehicle.id,out remap);var route=changed?remap.route:vehicle.Plan.segments;int cursor=changed?remap.cursor:vehicle.cursor;double distance=changed?remap.distance:vehicle.distance;
-                if(vehicle.status==VehicleStatus.Delivered||!candidate.Contains(route[cursor]))continue;var lane=candidate.Get(route[cursor]);int junction=lane.JunctionId;
+                if(vehicle.status==VehicleStatus.Delivered||vehicle.status==VehicleStatus.AwaitingRestart||!candidate.Contains(route[cursor]))continue;var lane=candidate.Get(route[cursor]);int junction=lane.JunctionId;
                 if(junction==0&&distance<lane.StartDistance+Math.Min(candidate.Clearance(lane),MinimumSpacing)-1e-9)junction=lane.From;
                 if(!lane.IsConnection&&distance>Math.Max(lane.StartDistance,lane.EndDistance-Math.Min(candidate.Clearance(lane),MinimumSpacing))+1e-9)junction=lane.To;
                 if(!candidate.IsConflictJunction(junction))continue;
@@ -555,7 +614,7 @@ namespace HarborCity.RoadCore
             using(CityCoreProfile.Measure(CityCoreProfile.Part.OccupancyClear))
 #endif
             {
-                foreach(var b in occupancy.Values)b.Clear();ActiveCount=0;reservations.Reset(Network);
+                foreach(var b in occupancy.Values)b.Clear();ActiveCount=0;awaitingRestarts=0;reservations.Reset(Network);
             }
 #if UNITY_5_3_OR_NEWER
             using(actorsIndexSample.Auto())
@@ -567,6 +626,7 @@ namespace HarborCity.RoadCore
                 foreach(var v in data.vehicles)
                 {
                     if(v.status==VehicleStatus.Active&&(!EndpointExists(v.Task.origin)||!EndpointExists(v.Task.destination))){v.Freeze(Position(v));}
+                    if(v.status==VehicleStatus.AwaitingRestart){awaitingRestarts++;continue;}
                     if(v.status==VehicleStatus.Delivered)continue;
                     if(!Network.Contains(v.Current))
                     {
@@ -599,7 +659,7 @@ namespace HarborCity.RoadCore
         }
         public void Step()
         {
-            if(data.externalBusiness)throw new InvalidOperationException("CitySimulation owns city steps");MoveStep(timeline.Context);foreach(var arrival in arrivals)if(business.Deliver(arrival))AcknowledgeArrival(arrival.id);RetireCompleted();timeline.Commit(false);
+            if(data.externalBusiness)throw new InvalidOperationException("CitySimulation owns city steps");RestartDemolishedDepartures();MoveStep(timeline.Context);foreach(var arrival in arrivals)if(business.Deliver(arrival))AcknowledgeArrival(arrival.id);RetireCompleted();timeline.Commit(false);
         }
         internal void MoveStep(TimeContext context)
         {
@@ -741,6 +801,7 @@ namespace HarborCity.RoadCore
             var migratedAccesses=new Dictionary<int,RoadAccess>();foreach(var access in accessPlan)migratedAccesses.Add(access.endpoint,access);
             foreach(var v in data.vehicles)
             {
+                if(v.status==VehicleStatus.AwaitingRestart)continue;
                 if(v.status==VehicleStatus.Stranded)
                 {
                     if(!Network.Contains(v.Current))continue; // Its surface was already removed.
@@ -791,7 +852,11 @@ namespace HarborCity.RoadCore
             var remaps=new List<Remap>();var interrupted=new List<KeyValuePair<Vehicle,Point>>();
             foreach(var v in data.vehicles)
             {
-                if(v.status!=VehicleStatus.Active)continue;
+                if(v.status!=VehicleStatus.Active)
+                {
+                    if(v.status==VehicleStatus.Stranded&&Network.Contains(v.Current)&&!replacement.Contains(v.Current))interrupted.Add(new KeyValuePair<Vehicle,Point>(v,Position(v)));
+                    continue;
+                }
                 bool invalid=false;for(int i=v.cursor;i<v.Plan.segments.Count;i++)if(!replacement.Contains(v.Plan.segments[i])){invalid=true;break;}
                 if(invalid)interrupted.Add(new KeyValuePair<Vehicle,Point>(v,Position(v)));
                 else
@@ -805,7 +870,7 @@ namespace HarborCity.RoadCore
             }
             ValidateEditReservations(replacement,remaps);
             var accessPlan=data.accesses.ConvertAll(a=>a.Copy());foreach(var access in accessPlan)if(access.valid&&!replacement.Contains(access.lane)){access.valid=false;access.lane=0;access.distance=0;}
-            new RoadEditPlan(this,n,replacement,remaps,interrupted,accessPlan).TryCommit();
+            new RoadEditPlan(this,n,replacement,remaps,interrupted,accessPlan,demolition:true).TryCommit();
         }
         public void Validate()
         {
@@ -824,9 +889,13 @@ namespace HarborCity.RoadCore
                 if(v.Task==null||!assigned.Add(v.Task.id)||!tasksById.TryGetValue(v.Task.id,out var stored)||!ReferenceEquals(stored,v.Task)||(v.Task.state==TripState.Completed)!=(v.status==VehicleStatus.Delivered))throw new ArgumentException("Invalid task assignment/lifecycle");
                 if(v.Task.purpose<TransportPurpose.Freight||v.Task.purpose>TransportPurpose.Service||v.Task.purpose==TransportPurpose.Freight&&v.Task.citizenId!=0||v.Task.purpose==TransportPurpose.Service&&(v.Task.citizenId!=0||v.Task.Price!=0)||IsResident(v.Task.purpose)&&(v.Task.citizenId<=0||v.Task.purpose!=TransportPurpose.Home&&v.Task.Cargo!=0||v.Task.Price!=0)||v.Task.departedAt<0||v.Task.departedAt>Clock||double.IsNaN(v.Task.departedAt)||double.IsInfinity(v.Task.departedAt))throw new ArgumentException("Invalid transport purpose/owner/time");
                 if(!data.externalBusiness&&v.Task.purpose!=TransportPurpose.Freight)throw new ArgumentException("Synthetic depots cannot own residents");
-                if(v.id<=0||!ids.Add(v.id)||v.status!=VehicleStatus.Stranded&&(!EndpointExists(v.Task.origin)||!EndpointExists(v.Task.destination))||v.Task.Cargo<0||v.Task.Price<0||double.IsNaN(v.Task.Price)||double.IsInfinity(v.Task.Price)||v.status<VehicleStatus.Active||v.status>VehicleStatus.Stranded)throw new ArgumentException("Invalid vehicle");maxV=Math.Max(maxV,v.id);
+                if(v.id<=0||!ids.Add(v.id)||v.status!=VehicleStatus.Stranded&&v.status!=VehicleStatus.AwaitingRestart&&(!EndpointExists(v.Task.origin)||!EndpointExists(v.Task.destination))||v.Task.Cargo<0||v.Task.Price<0||double.IsNaN(v.Task.Price)||double.IsInfinity(v.Task.Price)||v.status<VehicleStatus.Active||v.status>VehicleStatus.AwaitingRestart)throw new ArgumentException("Invalid vehicle");maxV=Math.Max(maxV,v.id);
                 if(v.Plan.segments==null||v.Plan.segments.Count==0||v.cursor<0||v.cursor>=v.Plan.segments.Count||v.distance<0||double.IsNaN(v.distance)||double.IsInfinity(v.distance))throw new ArgumentException("Invalid vehicle cursor");
-                if(v.Position.IsFrozen!=(v.status==VehicleStatus.Stranded)||v.Current==0||v.Plan.segments[v.cursor]!=v.Current)throw new ArgumentException("Physical position and navigation disagree");
+                if(v.Position.IsFrozen!=(v.status==VehicleStatus.Stranded||v.status==VehicleStatus.AwaitingRestart)||v.Current==0||v.Plan.segments[v.cursor]!=v.Current)throw new ArgumentException("Physical position and navigation disagree");
+                if(v.status==VehicleStatus.AwaitingRestart)
+                {
+                    double last=Point.Distance(v.strandedPosition,new Point());if(double.IsNaN(last)||double.IsInfinity(last)||v.changeTarget!=0||v.changeElapsed!=0)throw new ArgumentException("Invalid off-road restart state");continue;
+                }
                 if(v.status==VehicleStatus.Stranded)
                 {
                     double length=Point.Distance(v.strandedPosition,new Point());if(double.IsNaN(length)||double.IsInfinity(length))throw new ArgumentException("Invalid stranded position");

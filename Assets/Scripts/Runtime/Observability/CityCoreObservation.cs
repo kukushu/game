@@ -55,7 +55,7 @@ namespace HarborCity
                     var person=new ResidentInspection{id=p.id,family=h.id,age=p.age,name=p.name,job=job?.id??-1,workplace=job?.buildingId??-1,wage=job?.wage??0,workforce=p.canWork,atWork=p.atWork,location=p.location,carriedGoods=p.carriedGoods,actualCommute=-1,task=p.tripId};
                     if(p.canWork){family.workforce++;if(job!=null)family.employed++;}
                     if(job!=null&&p.lastCommute>=0&&p.observedHome==h.home&&p.observedWork==job.buildingId){person.actualCommute=p.lastCommute;sum+=p.lastCommute;family.longestCommute=Math.Max(family.longestCommute,p.lastCommute);family.commuteSamples++;}
-                    if(car!=null){person.vehicle=car.id;person.origin=car.Task.origin;person.destination=car.Task.destination;person.purpose=car.Task.purpose;person.stranded=car.status==VehicleStatus.Stranded;}
+                    if(car!=null){person.vehicle=car.id;person.origin=car.Task.origin;person.destination=car.Task.destination;person.purpose=car.Task.purpose;person.stranded=car.status==VehicleStatus.Stranded||car.status==VehicleStatus.AwaitingRestart;}
                     members.Add(person);
                 }
                 family.averageCommute=family.commuteSamples==0?0:sum/family.commuteSamples;family.members=members.AsReadOnly();families.Add(family);result.residents+=members.Count;result.workforce+=family.workforce;result.employed+=family.employed;
@@ -63,7 +63,7 @@ namespace HarborCity
             result.families=families.AsReadOnly();result.occupied=families.Count;if(b is ResidentialBuilding home)result.units=home.housingUnits;
             foreach(var job in session.City.society.jobEntities)if(job.buildingId==id){result.jobs++;if(job.occupiedCitizenId>=0)result.filledJobs++;}
             foreach(var m in session.Entities.Members){var p=m.Person;if(!p.dead&&p.atWork&&p.location==id&&p.tripId==0){result.attending++;result.workedMinutes+=p.workedMinutes;}}
-            foreach(var task in session.Transport.Tasks)if(task.origin==id||task.destination==id){result.transportCount++;var v=session.Transport.FindTaskVehicle(task.id);if(v?.status==VehicleStatus.Stranded)result.strandedCount++;}
+            foreach(var task in session.Transport.Tasks)if(task.origin==id||task.destination==id){result.transportCount++;var v=session.Transport.FindTaskVehicle(task.id);if(v?.status==VehicleStatus.Stranded||v?.status==VehicleStatus.AwaitingRestart)result.strandedCount++;}
             if(b is IndustrialBuilding factory){result.raw=factory.factory.raw;result.goods=factory.Stock;result.cash=factory.factory.cash;}
             if(b is CommercialBuilding shop){result.goods=shop.Stock;result.cash=shop.Account.Cash;}
             if(b is LandfillBuilding plant)result.stored=plant.stored;

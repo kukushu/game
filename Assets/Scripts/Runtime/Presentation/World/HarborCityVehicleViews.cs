@@ -54,7 +54,9 @@ namespace HarborCity
                         car.GetComponent<Renderer>().sharedMaterial=ForPurpose(v.Task.purpose);
                         car.gameObject.name="Freight "+v.id;cars.Add(v.id,car);
                     }
-                    car.gameObject.SetActive(v.status!=VehicleStatus.Delivered);car.position=V(world.Position(v))+Vector3.up*.4f;
+                    // A demolition-displaced task waiting for a legal departure is
+                    // off-road; its last-known point is not a physical parked car.
+                    car.gameObject.SetActive(v.status!=VehicleStatus.Delivered&&v.status!=VehicleStatus.AwaitingRestart);car.position=V(world.Position(v))+Vector3.up*.4f;
                     if(v.status==VehicleStatus.Active){var d=world.Network.Get(v.Current);var direction=V(d.Geometry.Sample(v.distance+.1))-V(d.Geometry.Sample(Math.Max(0,v.distance-.1)));if(direction.sqrMagnitude>1e-8)car.rotation=Quaternion.LookRotation(direction);}
                 }
             }
