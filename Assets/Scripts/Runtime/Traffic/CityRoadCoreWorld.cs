@@ -318,9 +318,11 @@ namespace HarborCity.RoadCore
             if(bindings==null||bindings.Count==0)return false;var replacements=new Dictionary<int,RoadAccess>();foreach(var binding in bindings){var old=GetAccess(binding.endpoint);var road=Network.Get(binding.lane);if(old==null||old.valid)return false;if(road.IsConnection||binding.distance<road.StartDistance||binding.distance>road.EndDistance||double.IsNaN(binding.distance)||double.IsInfinity(binding.distance))throw new ArgumentException("Invalid replacement access");replacements.Add(binding.endpoint,new RoadAccess{endpoint=binding.endpoint,preferredIndex=road.LaneIndex,lane=binding.lane,distance=binding.distance,use=old.use});}
             var proposed=new List<RoadAccess>();foreach(var access in data.accesses){RoadAccess replacement;proposed.Add(replacements.TryGetValue(access.endpoint,out replacement)?replacement:access.Copy());}var networkData=CopyNetwork();return new RoadEditPlan(this,networkData,new Network(networkData,Network),accesses:proposed).TryCommit();
         }
-        public bool TryResumeStranded(int id)
+        bool PlanStrandedResume(Vehicle v,out Remap remap)
         {
-            Vehicle v;if(!vehiclesById.TryGetValue(id,out v)||v.status!=VehicleStatus.Stranded||!EndpointExists(v.Task.origin)||!EndpointExists(v.Task.destination))return false;long current=v.Current;double distance=v.distance;
+            remap=default;
+            if(v.status!=VehicleStatus.Stranded||!EndpointExists(v.Task.origin)||!EndpointExists(v.Task.destination))return false;
+            long current=v.Current;double distance=v.distance;
             if(!Network.Contains(current))
             {
                 if(v.changeTarget!=0)return false;var hits=new List<SpatialHit>();Network.Project(v.strandedPosition,1e-6,false,hits);if(hits.Count==0)return false;current=hits[0].drivable;distance=hits[0].distance;
@@ -331,8 +333,57 @@ namespace HarborCity.RoadCore
             else if(target==null){var provider=business as IJunctionEndpointProvider;if(provider==null)return false;var remainder=Network.Route(Network.Get(source).To,provider.Junction(v.Task.destination));if(remainder!=null){route=new List<long>{source};if(remainder.Count>0){long link=Network.ConnectionId(source,remainder[0]);if(!Network.Contains(link))return false;route.Add(link);route.AddRange(remainder);}end=Network.Get(route[route.Count-1]).EndDistance;}}
             if(route==null||route.Count==0)return false;int cursor=0;if(surface.IsConnection){long packed=-current-1;route.Insert(0,current);route.Insert(0,packed>>32);cursor=1;}
             if(Point.Distance(v.strandedPosition,LaneChanges.Position(Network,current,distance,v.changeTarget,v.changeElapsed))>1e-7)return false;
-            var snapshot=Snapshot();var copied=snapshot.vehicles.Find(actor=>actor.id==id);copied.Plan.segments=route;copied.status=VehicleStatus.Active;copied.CommitPosition(route[cursor],distance,cursor);copied.Plan.EndDistance=end;copied.status=VehicleStatus.Active;new World(snapshot,data.externalBusiness?timeline.Copy():null);
-            v.Plan.segments=route;v.status=VehicleStatus.Active;v.CommitPosition(route[cursor],distance,cursor);v.Plan.EndDistance=end;v.status=VehicleStatus.Active;lostOccupancy.Forget(id);EditEpoch++;Reindex();return true;
+            remap=new Remap{vehicle=v,route=route,cursor=cursor,distance=distance,arrival=end};return true;
+        }
+        static void ApplyStrandedResume(Vehicle vehicle,Remap remap)
+        {
+            vehicle.Plan.segments=remap.route;vehicle.status=VehicleStatus.Active;
+            vehicle.CommitPosition(remap.route[remap.cursor],remap.distance,remap.cursor);vehicle.Plan.EndDistance=remap.arrival;
+        }
+        public bool TryResumeStranded(int id)
+        {
+            if(!vehiclesById.TryGetValue(id,out var v)||!PlanStrandedResume(v,out var remap))return false;
+            var snapshot=Snapshot();ApplyStrandedResume(snapshot.vehicles.Find(actor=>actor.id==id),remap);
+            new World(snapshot,data.externalBusiness?timeline.Copy():null);
+            ApplyStrandedResume(v,remap);lostOccupancy.Forget(id);EditEpoch++;Reindex();return true;
+        }
+        // A route-only change away from a junction cannot change any reservation
+        // or physical occupancy. At a junction (or a recovered lost surface), keep
+        // the old prefix validation order: a later recovery must not repair an
+        // earlier conflict that the single-vehicle operation would have rejected.
+        bool RecoveryNeedsCheckpoint(Vehicle v)
+        {
+            if(!Network.Contains(v.Current)||v.changeTarget!=0)return true;
+            var d=Network.Get(v.Current);if(d.IsConnection)return true;
+            return v.distance<EntryReservationEnd(d)-1e-9&&Network.IsConflictJunction(d.From)
+                ||v.distance>StopDistance(d)+1e-9&&Network.IsConflictJunction(d.To);
+        }
+        public int ResumeStrandedVehicles()
+        {
+            List<Remap> plans=null;
+            // Route queries read only the static Network/anchors. Keep the exact
+            // original vehicle order; no live status, route or task changes here.
+            foreach(var v in data.vehicles)if(v.status==VehicleStatus.Stranded&&PlanStrandedResume(v,out var remap))
+            {if(plans==null)plans=new List<Remap>();plans.Add(remap);}
+            if(plans==null)return 0;
+            var staged=Snapshot();var actors=new Dictionary<int,Vehicle>();foreach(var v in staged.vehicles)actors.Add(v.id,v);
+            World validation=null;
+            for(int i=0;i<plans.Count;i++)
+            {
+                var plan=plans[i];ApplyStrandedResume(actors[plan.vehicle.id],plan);
+                if(validation!=null)validation.lostOccupancy.Forget(plan.vehicle.id);
+                if(i==plans.Count-1||RecoveryNeedsCheckpoint(plan.vehicle))
+                {
+                    // Snapshot is already an owned private copy. Road facts are
+                    // unchanged, so reuse the same authoritative immutable graph.
+                    // These are the original full validators, never weaker checks.
+                    if(validation==null)validation=new World(staged,data.externalBusiness?timeline.Copy():null,null,true,Network);
+                    else{validation.Validate();validation.AssertSafety();}
+                }
+            }
+            // All potentially failing validation precedes the first live write.
+            foreach(var plan in plans){ApplyStrandedResume(plan.vehicle,plan);lostOccupancy.Forget(plan.vehicle.id);EditEpoch++;}
+            Reindex();return plans.Count;
         }
         public Vehicle Dispatch(int origin,int destination,int amount=1,double price=5)
         =>DispatchTask(origin,destination,amount,price,TransportPurpose.Freight,0);

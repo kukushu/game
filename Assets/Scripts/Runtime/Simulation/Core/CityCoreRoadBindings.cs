@@ -33,7 +33,7 @@ namespace HarborCity
                 }
             }
             if(bindings.Count>0)world.RebindAccesses(bindings);
-            foreach(var vehicle in world.Vehicles)if(vehicle.status==VehicleStatus.Stranded)world.TryResumeStranded(vehicle.id);revision=world.NetworkGeneration;
+            world.ResumeStrandedVehicles();revision=world.NetworkGeneration;
         }
     }
 }
