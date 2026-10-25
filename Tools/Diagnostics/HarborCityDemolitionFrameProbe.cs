@@ -59,6 +59,14 @@ namespace HarborCity
                 File.WriteAllText(Path.Combine(output,"summary.csv"),"edit_unity_frame,operation_ms,first_coroutine_interval_ms,raw\n"+string.Join(",",editFrame,N(operation),N(rows[0].interval),raw));
             }
             File.WriteAllLines(Path.Combine(output,"frames.csv"),new[]{"observed_unity_frame,completed_unity_frame,coroutine_interval_ms,unscaled_delta_ms,previous_main_ms,previous_render_ms,previous_gc_collect_ms,previous_gc_bytes"}.Concat(rows.Select(r=>string.Join(",",r.frame,r.frame-1,N(r.interval),N(r.delta),N(r.main),N(r.render),N(r.gcMs),r.bytes))));DemolitionFrameCounters.Write(output);
+            yield return new WaitForEndOfFrame();var screenshot=ScreenCapture.CaptureScreenshotAsTexture();File.WriteAllBytes(Path.Combine(output,"after.png"),screenshot.EncodeToPNG());Destroy(screenshot);
+            if(Environment.GetCommandLineArgs().Contains("-harbor-demolition-view-check"))
+            {
+                var type=typeof(HarborCityRoadCoreGame).Assembly.GetType("HarborCityZoningViewDeltaChecks",true);
+                var field=typeof(HarborCityRoadCoreGame).GetField("zoningViews",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance);var view=field.GetValue(host);
+                var palette=(Material[])view.GetType().GetField("materials",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance).GetValue(view);
+                yield return (IEnumerator)type.GetMethod("CompareCity").Invoke(null,new object[]{view,s.Simulation.Growth.Zoning.Cells(),(Func<float,float,float>)host.ScenarioSurface,palette,output});
+            }
             s.Validate();var boundary=CityCoreSave.Write(s);File.WriteAllBytes(Path.Combine(output,"pending.hcity"),boundary);var cold=CityCoreSave.Read(boundary);cold.Transport.DepotLaneRoutingEnabled=true;cold.Simulation.Growth.Zoning.SetSurface(host.ScenarioSurface);
             for(int i=0;i<80;i++){s.Simulation.Advance(.05,1,double.PositiveInfinity);cold.Simulation.Advance(.05,1,double.PositiveInfinity);}s.Validate();cold.Validate();if(!CityCoreSave.Write(s).SequenceEqual(CityCoreSave.Write(cold)))throw new Exception("Diagnostic instrumentation changed cold continuation");File.WriteAllBytes(Path.Combine(output,"final.hcity"),CityCoreSave.Write(s));File.WriteAllText(Path.Combine(output,"Result.txt"),"PASS diagnostic-only, exact saved edit, full validation, 80 fixed-step hot/cold state identical; CPU and coroutine clocks recorded separately.\n");Application.Quit(0);
         }

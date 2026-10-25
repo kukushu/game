@@ -73,7 +73,9 @@ public sealed class HarborCityZoningBatchValidation:MonoBehaviour
             var dense=Enumerable.Range(0,1400).Select(i=>new ZoneCell{key="dense:"+i,use=LandUse.Residential,occupiedBuilding=-1,pose=new ResidentialBuilding{width=2.96f,depth=2.96f,groundY=2}}).ToList();
             view.Sync(dense,null);Validate(view,dense,null,palette);Check(Objects(view).Single().GetComponent<MeshFilter>().sharedMesh.indexFormat==UnityEngine.Rendering.IndexFormat.UInt32,"Large batch truncated 16-bit indices");
             view.Sync(new List<ZoneCell>(),null);Check(view.PlotCount==0&&view.RendererCount==0,"Cleared city retained zoning");view.Dispose();foreach(var material in palette)Check(material!=null,"View destroyed borrowed material");
-            File.WriteAllText(Path.Combine(output,"Result.txt"),"PASS "+checks+" frozen-source triangle checks: flat/slope/rotated/unassigned/occupied/reserved/paint/move/clear/failure and >65535 vertices. No simulation or pixel/FPS claim.\n");
+            HarborCityZoningViewDeltaChecks.Run(palette,Check);
+            File.WriteAllText(Path.Combine(output,"stable-updates.csv"),HarborCityZoningViewDeltaChecks.StableBenchmark);
+            File.WriteAllText(Path.Combine(output,"Result.txt"),"PASS "+checks+" frozen-source triangle and ordered old-view delta checks: flat/slope/rotated/unassigned/occupied/reserved/paint/move/insert/delete/reorder/clear/failure and >65535 vertices. No simulation or pixel/FPS claim.\n");
         }
         catch(Exception error){File.WriteAllText(Path.Combine(output,"Result.txt"),error.ToString());Application.Quit(1);yield break;}
         finally{view?.Dispose();if(palette!=null)foreach(var m in palette)Destroy(m);}

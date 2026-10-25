@@ -14,7 +14,10 @@ Methods 'Infrastructure/Utilities/CityUtilityLayout.cs' @{'UtilityLayout SupplyL
 Methods 'Infrastructure/Utilities/CityRoadUtilityConduits.cs' @{'internal CityRoadUtilityConduits(Network roads,CityUtilityNetwork manual)'='Utilities.RoadConduits'}
 Methods 'Infrastructure/Zoning/CityCoreZoning.cs' @{'public IReadOnlyList<ZoneCell> Cells()'='Zoning.Cells';'void RefreshLandUse(IEnumerable<ZoneCell> targets,bool rebuildStamps)'='Zoning.LandUse';'void RefreshOccupancy(IEnumerable<ZoneCell> targets,bool rebuildIndex,bool geometry)'='Zoning.Occupancy'}
 Methods 'Infrastructure/Zoning/CityCoreZoningGeometry.cs' @{'void RebuildGeometry()'='Zoning.Geometry'}
-Methods 'Presentation/World/HarborCityZoningViews.cs' @{'public void Sync(IReadOnlyList<ZoneCell> cells,Func<float,float,float> height)'='Views.Zoning';'void SyncChanges(IReadOnlyList<ZoneCell> cells,Func<float,float,float> height)'='Views.ZoningChanges'}
+$streamingView=(ReadSource 'Presentation/World/HarborCityZoningViews.cs').Contains('sealed class Scan')
+$viewMethods=@{'public void Sync(IReadOnlyList<ZoneCell> cells,Func<float,float,float> height)'='Views.Zoning'}
+if(-not $streamingView){$viewMethods['void SyncChanges(IReadOnlyList<ZoneCell> cells,Func<float,float,float> height)']='Views.ZoningChanges'}
+Methods 'Presentation/World/HarborCityZoningViews.cs' $viewMethods
 Methods 'Presentation/World/HarborCityRoadViews.cs' @{'public void Sync(World world,Func<float,float,float> height)'='Views.Roads'}
 Methods 'Presentation/World/HarborCityVehicleViews.cs' @{'public void Sync(World world)'='Views.Vehicles'}
 function Phases([string]$file,[string]$start,[string]$end,[object[]]$anchors){
@@ -39,6 +42,7 @@ $old='for(int i=v.cursor;i<v.Plan.segments.Count;i++)if(!replacement.Contains(v.
 $part=ReplaceOne $part $old 'for(int i=v.cursor;i<v.Plan.segments.Count;i++){diagRouteSegments++;if(!replacement.Contains(v.Plan.segments[i])){invalid=true;break;}}'
 $part=ReplaceOne $part 'ValidateEditReservations(replacement,remaps);' 'global::HarborCity.DemolitionFrameCounters.Count("Remove.ActorVisits",diagActors);global::HarborCity.DemolitionFrameCounters.Count("Remove.RouteSegments",diagRouteSegments);global::HarborCity.DemolitionFrameCounters.Count("Remove.Remaps",remaps.Count);global::HarborCity.DemolitionFrameCounters.Count("Remove.Interruptions",interrupted.Count);ValidateEditReservations(replacement,remaps);'
 WriteSource $file ($s.Substring(0,$a)+$part+$s.Substring($b))
+if(-not $streamingView){
 Phases 'Presentation/World/HarborCityZoningViews.cs' 'public void Sync(IReadOnlyList<ZoneCell> cells' 'void SyncChanges(' @(
  @('var groups=new Dictionary<(int x,int z,int use),List<Plot>>();','ZoningView.Regroup'),@('var replacements=new Dictionary<(int x,int z,int use),Chunk>();','ZoningView.CompareAndBuild'),@('foreach(var pair in chunks)if(!groups.ContainsKey(pair.Key)','ZoningView.CommitAndRemember'))
 Methods 'Presentation/World/HarborCityZoningViews.cs' @{'Chunk BuildChunk((int x,int z,int use) key,List<Plot> plots,Func<float,float,float> height)'='ZoningView.BuildChunk'}
@@ -52,6 +56,19 @@ $s=ReplaceOne $s $anchor ($anchor+$decl)
 $s=ReplaceOne $s 'bool invalidate=surfaceDirty||!Equals(surface,height);' 'global::HarborCity.DemolitionFrameCounters.Count("ZoningView.CellsBefore",previous.Count);global::HarborCity.DemolitionFrameCounters.Count("ZoningView.CellsAfter",cells?.Count??0);bool invalidate=surfaceDirty||!Equals(surface,height);global::HarborCity.DemolitionFrameCounters.Count("ZoningView.SurfaceInvalid",invalidate?1:0);'
 $s=ReplaceOne $s 'surface=height;surfaceDirty=false;RebuiltChunks=replacements.Count;PlotCount=count;' 'global::HarborCity.DemolitionFrameCounters.Count("ZoningView.TotalChunks",next.Count);global::HarborCity.DemolitionFrameCounters.Count("ZoningView.RebuiltChunks",replacements.Count);surface=height;surfaceDirty=false;RebuiltChunks=replacements.Count;PlotCount=count;'
 WriteSource $file $s
+}
+if($streamingView){
+ Phases 'Presentation/World/HarborCityZoningViews.cs' 'public void Sync(IReadOnlyList<ZoneCell> cells' '        Chunk BuildChunk(' @(
+  @('var scans=new Dictionary','ZoningView.StreamCompare'),@('int rebuilt=0;','ZoningView.BuildChanged'),@('foreach(var pair in chunks)if(!scans.TryGetValue','ZoningView.Commit'))
+ Methods 'Presentation/World/HarborCityZoningViews.cs' @{'Chunk BuildChunk((int x,int z,int use) key,List<Plot> plots,Func<float,float,float> height)'='ZoningView.BuildChunk'}
+ $file='Presentation/World/HarborCityZoningViews.cs';$s=ReadSource $file
+ $decl='using var diagPhases=new global::HarborCity.DemolitionFrameCounters.Phases();';$s=ReplaceOne $s $decl ''
+ $anchor="using(buildSample.Auto())`n            {";$s=ReplaceOne $s $anchor ($anchor+$decl)
+ $s=ReplaceOne $s 'public int PlotCount' 'int diagPreviousCells;public int PlotCount'
+ $s=ReplaceOne $s 'bool invalidate=surfaceDirty||!Equals(surface,height);' 'global::HarborCity.DemolitionFrameCounters.Count("ZoningView.CellsBefore",diagPreviousCells);global::HarborCity.DemolitionFrameCounters.Count("ZoningView.CellsAfter",cells?.Count??0);bool invalidate=surfaceDirty||!Equals(surface,height);global::HarborCity.DemolitionFrameCounters.Count("ZoningView.SurfaceInvalid",invalidate?1:0);'
+ $s=ReplaceOne $s 'surface=height;surfaceDirty=false;RebuiltChunks=rebuilt;PlotCount=count;' 'global::HarborCity.DemolitionFrameCounters.Count("ZoningView.TotalChunks",chunks.Count);global::HarborCity.DemolitionFrameCounters.Count("ZoningView.RebuiltChunks",rebuilt);diagPreviousCells=cells?.Count??0;surface=height;surfaceDirty=false;RebuiltChunks=rebuilt;PlotCount=count;'
+ WriteSource $file $s
+}
 Phases 'Infrastructure/Zoning/CityCoreZoningGeometry.cs' 'void RebuildGeometry()' "`n    }`n}" @(
  @('var pending=new SortedSet<int>();','ZoningGeometry.RoadChanges'),@('var now=new Dictionary<long,Drivable>','ZoningGeometry.DrivableChanges'),@('foreach(var run in removed){var old=run.accepted.ToArray();','ZoningGeometry.RemovedClaims'),@('foreach(int id in staticDirty)if(runs.TryGetValue','ZoningGeometry.LocalPlacement'),@('while(pending.Count>0)','ZoningGeometry.Resolve'),@('cells.Clear();foreach(int id in runs.Keys.OrderBy','ZoningGeometry.Flatten'))
 $file='Infrastructure/Zoning/CityCoreZoningGeometry.cs';$s=ReadSource $file

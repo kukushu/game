@@ -1,6 +1,7 @@
-param([Parameter(Mandatory)][string]$Save,[Parameter(Mandatory)][string]$Results,[string]$Reference='',[int]$Road=87,[ValidateSet('in-place','demolition','demolition-repair','service-pickup','service-return','waste-loss','access-rebind','frame-breakdown')][string]$Scenario='in-place',[switch]$FrameRaw)
+param([Parameter(Mandatory)][string]$Save,[Parameter(Mandatory)][string]$Results,[string]$Reference='',[int]$Road=87,[ValidateSet('in-place','demolition','demolition-repair','service-pickup','service-return','waste-loss','access-rebind','frame-breakdown')][string]$Scenario='in-place',[switch]$FrameRaw,[string]$ViewReference='',[switch]$CheckZoningViews)
 if($Scenario -eq 'frame-breakdown' -and $Road -ne 87){throw 'The frame-breakdown probe is the frozen road-87 comparison case'}
 if($FrameRaw -and $Scenario -ne 'frame-breakdown'){throw 'FrameRaw requires the frame-breakdown scenario'}
+if(($ViewReference -or $CheckZoningViews) -and $Scenario -ne 'frame-breakdown'){throw 'View comparison requires the frame-breakdown scenario'}
 $ErrorActionPreference='Stop';. (Join-Path $PSScriptRoot 'ProjectLayout.ps1');$root=Split-Path $PSScriptRoot -Parent
 if(Test-Path $Results){throw 'Fresh result path required'};$result=[IO.Path]::GetFullPath((Join-Path $root $Results));New-Item -ItemType Directory $result|Out-Null
 $project=Join-Path $root 'Temp/RoadCoreUnity';Sync-CityWorkspaceProject $root $project
@@ -31,16 +32,23 @@ if($Scenario -ne 'in-place'){
  Copy-Item (Join-Path $PSScriptRoot 'Diagnostics/HarborCityDemolitionWindowProbe.cs') (Join-Path $project 'Assets/Scripts/Diagnostics/Runtime/HarborCityDemolitionWindowProbe.cs')
 }
 if($Scenario -eq 'frame-breakdown'){
+ if($ViewReference){$viewFile=Join-Path $project 'Assets/Scripts/Runtime/Presentation/World/HarborCityZoningViews.cs';$viewSource=(& git show ($ViewReference+':Assets/Scripts/Runtime/Presentation/World/HarborCityZoningViews.cs')) -join "`n";if($LASTEXITCODE -ne 0){throw 'Missing frozen zoning view'};[IO.File]::WriteAllText($viewFile,$viewSource)}
  & (Join-Path $PSScriptRoot 'AddDemolitionFrameInstrumentation.ps1') -Project $project
  [IO.File]::WriteAllText($hostPath,([IO.File]::ReadAllText($hostPath).Replace('AddComponent<HarborCityDemolitionWindowProbe>()','AddComponent<HarborCityDemolitionFrameProbe>()')))
  Copy-Item (Join-Path $PSScriptRoot 'Diagnostics/HarborCityDemolitionFrameProbe.cs') (Join-Path $project 'Assets/Scripts/Diagnostics/Runtime/HarborCityDemolitionFrameProbe.cs')
+ if($CheckZoningViews){
+  $frozen=(& git show '7b285b7:Assets/Scripts/Runtime/Presentation/World/HarborCityZoningViews.cs') -join "`n";if($LASTEXITCODE -ne 0){throw 'Missing frozen view oracle'}
+  [IO.File]::WriteAllText((Join-Path $project 'Assets/Scripts/Diagnostics/Runtime/HarborCityZoningViewsReference.cs'),$frozen.Replace('HarborCityZoningViews','HarborCityZoningViewsReference'))
+  Copy-Item (Join-Path $PSScriptRoot 'Diagnostics/HarborCityZoningViewDeltaChecks.cs') (Join-Path $project 'Assets/Scripts/Diagnostics/Runtime/HarborCityZoningViewDeltaChecks.cs')
+ }
 }
 $player=Join-Path $result 'Player/HarborCity.exe';$env:HARBOR_PLAYER_RELEASE='0';$env:HARBOR_CORE_ATTRIBUTION='0';$env:HARBOR_TRAFFIC_VALIDATION_PLAYER=$player
 $p=Start-Process 'C:/Program Files/Unity/Hub/Editor/6000.6.3f1/Editor/Unity.exe' -ArgumentList '-batchmode','-quit','-projectPath',('"'+$project+'"'),'-executeMethod','HarborCity.CityPlayerBuild.BuildResearchValidation','-logFile',('"'+(Join-Path $result 'build.log')+'"') -WindowStyle Hidden -PassThru
 if(-not $p.WaitForExit(600000)){$p.Kill($true);throw 'Build timeout'};if($p.ExitCode -ne 0){throw 'Build failed'}
 $inputPath=(Resolve-Path $Save).Path
-@{source=$(if($Reference){git rev-parse $Reference}else{git rev-parse HEAD});dirty=@(git status --porcelain);input=$inputPath;inputHash=(Get-FileHash $inputPath).Hash;assemblyHash=(Get-FileHash (Join-Path $result 'Player/HarborCity_Data/Managed/Assembly-CSharp.dll')).Hash;road=$Road;note='Development instrumented scripted paused edit at exact saved tick; 8s display warmup; not ordinary-game FPS'}|ConvertTo-Json|Set-Content (Join-Path $result 'environment.json')
+@{source=$(if($Reference){git rev-parse $Reference}else{git rev-parse HEAD});viewReference=$ViewReference;dirty=@(git status --porcelain);input=$inputPath;inputHash=(Get-FileHash $inputPath).Hash;assemblyHash=(Get-FileHash (Join-Path $result 'Player/HarborCity_Data/Managed/Assembly-CSharp.dll')).Hash;road=$Road;note='Development instrumented scripted paused edit at exact saved tick; 8s display warmup; not ordinary-game FPS'}|ConvertTo-Json|Set-Content (Join-Path $result 'environment.json')
 $frameExtra=if($FrameRaw){'-harbor-demolition-raw'}else{'-harbor-demolition-no-raw'}
-$p=Start-Process $player -ArgumentList $frameExtra,'-harbor-city-scenario-window',('"'+$inputPath+'"'),('"'+(Join-Path $result 'window')+'"'),'0','-harbor-window-saved-map','-harbor-recovery-road',$Road,'-harbor-recovery-scenario',$Scenario,'-screen-width','1440','-screen-height','900','-logFile',('"'+(Join-Path $result 'player.log')+'"') -WindowStyle Normal -PassThru
+$viewCheckFlag=if($CheckZoningViews){'-harbor-demolition-view-check'}else{'-harbor-demolition-no-view-check'}
+$p=Start-Process $player -ArgumentList $frameExtra,$viewCheckFlag,'-harbor-city-scenario-window',('"'+$inputPath+'"'),('"'+(Join-Path $result 'window')+'"'),'0','-harbor-window-saved-map','-harbor-recovery-road',$Road,'-harbor-recovery-scenario',$Scenario,'-screen-width','1440','-screen-height','900','-logFile',('"'+(Join-Path $result 'player.log')+'"') -WindowStyle Normal -PassThru
 if(-not $p.WaitForExit(240000)){$p.Kill($true);throw 'Player timeout'};if($p.ExitCode -ne 0){throw 'Player failed'}
 Get-Content (Join-Path $result 'window/summary.csv');Get-Content (Join-Path $result 'window/Result.txt')
