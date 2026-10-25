@@ -14,11 +14,11 @@ namespace HarborCity
     {
         struct Sample {public double seconds,ms,advance,vehicles,structure,pending,gpu,requested,rate;public long bytes,tick,mainNs,renderNs,gcNs,uiNs,batches,drawCalls,setPass,triangles;public int steps,active,views;}
         readonly FrameTiming[] timing=new FrameTiming[1];
-        static Dictionary<string,long> RouteStats(object network)
+        static Dictionary<string,long> RouteStats(object network,object world)
         {
             var result=new Dictionary<string,long>();var type=network.GetType();var flags=System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.Public|System.Reflection.BindingFlags.NonPublic;
             foreach(string name in new[]{"SharedRouteHits","SharedRouteMisses","SharedRouteEvictions","PointSearches","PointExpanded","SharedRouteCount","SharedRouteBytes","ServicePointQueries"})
-            {var field=type.GetField(name,flags);var property=type.GetProperty(name,flags);result[name]=field!=null?Convert.ToInt64(field.GetValue(network)):property!=null?Convert.ToInt64(property.GetValue(network)):-1;}return result;
+            {var owner=name=="ServicePointQueries"?world:network;type=owner.GetType();var field=type.GetField(name,flags);var property=type.GetProperty(name,flags);result[name]=field!=null?Convert.ToInt64(field.GetValue(owner)):property!=null?Convert.ToInt64(property.GetValue(owner)):-1;}return result;
         }
         HarborCityRoadCoreGame host;string savePath,output;float rate;
         public void Configure(HarborCityRoadCoreGame game,string input,string result,float speed)
@@ -110,7 +110,7 @@ namespace HarborCity
             var roadMemory=new List<string>{"phase,drivables,renderers,vertices,triangles,mesh_runtime_bytes,managed_gc_bytes,unity_allocated_bytes"};
             RoadMemory(roadMemory,"start");
             long startTick=city.Simulation.Tick;
-            var initialPointNetwork=city.Transport.Network;var pointStats=RouteStats(initialPointNetwork);
+            var initialPointNetwork=city.Transport.Network;var pointStats=RouteStats(initialPointNetwork,city.Transport);
             double startPending=city.Simulation.PendingSeconds;
             var frames=new List<double>(5000);var rows=new List<Sample>(5000);
             var gc=ProfilerRecorder.StartNew(ProfilerCategory.Memory,"GC Allocated In Frame",1);
@@ -209,7 +209,7 @@ namespace HarborCity
             File.WriteAllText(Path.Combine(output,"attribution.json"),"{\"advance_mean_ms\":"+rows.Average(r=>r.advance).ToString("R",CultureInfo.InvariantCulture)+",\"vehicle_sync_mean_ms\":"+rows.Average(r=>r.vehicles).ToString("R",CultureInfo.InvariantCulture)+",\"structure_sync_mean_ms\":"+rows.Average(r=>r.structure).ToString("R",CultureInfo.InvariantCulture)+",\"max_pending_seconds\":"+rows.Max(r=>r.pending).ToString("R",CultureInfo.InvariantCulture)+",\"note\":\"Stopwatch host scopes are current Update. ProfilerRecorder and GPU timings may lag; unavailable is -1. Main Thread can include waits; GC.Collect marker is not a proven complete pause total. This probe does not budget or discard steps.\"}");
             File.WriteAllText(Path.Combine(output,"summary.csv"),"input_sha256,rate,real_seconds,start_tick,end_tick,sim_ratio,fps,p95_ms,p99_ms,max_ms,gc_bytes_per_frame,gc_samples,gen0,gen1,gen2,peak_vehicles,max_steps_frame,building_views,population,zone_plots,zone_renderers,road_views,utility_views,created_vehicle_views,reused_vehicle_views,inactive_vehicle_views,road_renderers,road_chunk_size\n"+string.Join(",",hash,rate,elapsed,startTick,endTick,(endTick-startTick)*.05/elapsed,frames.Count/elapsed,p95,p99,frames.Last(),gcSamples==frames.Count?(double)allocated/gcSamples:-1,gcSamples,endGen0-gen0,endGen1-gen1,endGen2-gen2,peak,maxSteps,host.ScenarioBuildingViews,city.City.population,host.ScenarioZonePlots,host.ScenarioZoneRenderers,host.ScenarioRoadViews,host.ScenarioUtilityViews,host.ScenarioCreatedVehicleViews,host.ScenarioReusedVehicleViews,host.ScenarioPooledVehicles,host.ScenarioRoadRenderers,host.ScenarioRoadChunkSize));
             RoadMemory(roadMemory,"end");File.WriteAllLines(Path.Combine(output,"road-memory.csv"),roadMemory);
-            var endPointStats=RouteStats(city.Transport.Network);bool samePointNetwork=ReferenceEquals(initialPointNetwork,city.Transport.Network);
+            var endPointStats=RouteStats(city.Transport.Network,city.Transport);bool samePointNetwork=ReferenceEquals(initialPointNetwork,city.Transport.Network);
             File.WriteAllLines(Path.Combine(output,"point-routing.csv"),new[]{"metric,start,end,delta,same_network"}.Concat(pointStats.Select(p=>p.Key+","+p.Value+","+endPointStats[p.Key]+","+(samePointNetwork&&p.Value>=0?endPointStats[p.Key]-p.Value:-1)+","+samePointNetwork)));
             // Validation and disk output are outside the measured window.
             yield return null;
