@@ -33,13 +33,14 @@ namespace HarborCity
         readonly Dictionary<int,int> counts=new Dictionary<int,int>();
         static readonly Comparison<CityBuilding> Priority=(a,b)=>{int order=b.garbage.CompareTo(a.garbage);return order!=0?order:a.id.CompareTo(b.id);};
         public long Generated=>state.totals.generated;public long Collected=>state.totals.collected;public long Processed=>state.totals.processed;
+        public long Lost=>state.totals.lost;
         public int Vehicles=>byVehicle.Count;
         public CityWasteDiagnostics Diagnostics {get;set;}
         public long Waiting=>Generated-Collected; // Derived from the conserved transfer ledger, not a second editable stock.
         long WaitingInBuildings {get{long sum=0;foreach(var b in entities.Buildings)sum+=b.garbage;foreach(var b in entities.RetiredBuildings)sum+=b.garbage;return sum;}}
         public long Stored {get{RefreshPlants();long sum=0;foreach(var b in plants)sum+=b.stored;foreach(var b in entities.RetiredBuildings)if(b is LandfillBuilding p)sum+=p.stored;return sum;}}
         public long InTransit {get{long sum=0;foreach(var mission in state.missions)sum+=world.FindTask(mission.task)?.Cargo??0;return sum;}}
-        public long BalanceError=>Generated-WaitingInBuildings-Stored-InTransit-Processed;
+        public long BalanceError=>Generated-WaitingInBuildings-Stored-InTransit-Processed-Lost;
         internal CityCoreWaste(CityModel city,CityEntities entities,World world,WasteRules rules,WasteServiceData saved=null)
         {
             this.city=city;this.entities=entities;this.world=world;this.rules=rules;
@@ -138,36 +139,58 @@ namespace HarborCity
             }
         }
         // Explicit demolition exception: settle once against the original mission,
-        // never manufacture a physical arrival or search a return route. Capacity
-        // and the same authoritative building/shipment ledgers still apply.
+        // never manufacture a physical arrival or search a return route. Cancel
+        // pickups that cannot fit; book excess return cargo to the loss ledger.
         internal int RecoverDemolishedVehicles()
         {
             if(!world.HasDemolishedVehicles)return 0;int recovered=0;
+            if(state.missions.Count!=byVehicle.Count)throw new InvalidOperationException("Waste mission index/count mismatch");
             for(int i=0;i<state.missions.Count;)
             {
                 var m=state.missions[i];var vehicle=world.FindVehicle(m.vehicle);
-                if(vehicle==null||vehicle.status!=VehicleStatus.AwaitingRestart){i++;continue;}
+                if(vehicle==null)throw new InvalidOperationException("Missing waste mission vehicle");
+                CheckMission(m,vehicle);
+                if(vehicle.status!=VehicleStatus.AwaitingRestart){i++;continue;}
                 world.CheckDemolishedService(m.vehicle,m.task);
                 var plant=entities.Building(m.station) as LandfillBuilding;var pickup=entities.Building(m.pickup);
                 if(plant==null||pickup==null)throw new InvalidOperationException("Missing displaced waste mission endpoint");
+                if(plant.stored<0||plant.stored>rules.Capacity||pickup.garbage<0||pickup.garbage>100000)throw new InvalidOperationException("Invalid displaced waste inventory");
                 int amount=m.phase==WastePhase.Pickup?Math.Min(rules.Payload,pickup.garbage):vehicle.Task.Cargo;
-                if(plant.stored+amount>rules.Capacity){i++;continue;}
-                if(m.phase==WastePhase.Pickup){pickup.garbage-=amount;state.totals.collected+=amount;}
-                plant.stored+=amount;world.CompleteDemolishedService(m.vehicle,m.task,amount);
-                Diagnostics?.Complete(m.station,vehicle.Task,world.Clock,amount,true);
+                int free=rules.Capacity-plant.stored,accepted;
+                if(m.phase==WastePhase.Pickup)
+                {
+                    // Cancellation leaves every unit at the building. No pickup
+                    // or loss is booked unless the complete collection fits.
+                    accepted=amount<=free?amount:0;
+                    pickup.garbage-=accepted;state.totals.collected+=accepted;
+                }
+                else
+                {
+                    accepted=Math.Min(amount,free);state.totals.lost+=amount-accepted;
+                }
+                plant.stored+=accepted;world.CompleteDemolishedService(m.vehicle,m.task,accepted);
+                Diagnostics?.Complete(m.station,vehicle.Task,world.Clock,accepted,true);
                 state.missions.RemoveAt(i);byVehicle.Remove(m.vehicle);recovered++;
             }
             if(recovered>0)world.RetireCompleted();return recovered;
         }
+        void CheckMission(WasteMission m,Vehicle v)
+        {
+            var task=world.FindTask(m.task);
+            if(m.station==m.pickup||v==null||task==null||v.Task!=task||world.FindTaskVehicle(task.id)!=v||!byVehicle.TryGetValue(m.vehicle,out var owned)||!ReferenceEquals(owned,m)||task.state!=TripState.InTransit||v.status==VehicleStatus.Delivered||task.purpose!=TransportPurpose.Service||!(entities.Building(m.station) is LandfillBuilding)||entities.Building(m.pickup)==null||m.phase<WastePhase.Pickup||m.phase>WastePhase.Return||task.origin!=(m.phase==WastePhase.Pickup?m.station:m.pickup)||task.destination!=(m.phase==WastePhase.Pickup?m.pickup:m.station)||m.phase==WastePhase.Pickup&&task.Shipment!=null||m.phase==WastePhase.Return&&(task.Shipment==null||task.Shipment.kind!=CargoKind.Waste||task.Cargo<1||task.Cargo>rules.Payload))throw new InvalidOperationException("Waste mission/task mismatch");
+        }
         public void Validate()
         {
-            RefreshPlants();var t=state.totals;if(!ReferenceEquals(city.waste,t)||t==null||!t.Valid()||t.lost!=0||t.transferred!=0||state.lastGenerationDay<1||state.lastGenerationDay>city.day||state.nextDispatchTick<0||t.collected>t.generated||t.collected!=Stored+InTransit+Processed||BalanceError!=0)throw new InvalidOperationException("Waste conservation/schedule failed");
+            RefreshPlants();var t=state.totals;if(!ReferenceEquals(city.waste,t)||t==null||!t.Valid()||t.lost>t.collected||t.transferred!=0||state.lastGenerationDay<1||state.lastGenerationDay>city.day||state.nextDispatchTick<0||t.collected>t.generated||t.collected!=Stored+InTransit+Processed+Lost||BalanceError!=0)throw new InvalidOperationException("Waste conservation/schedule failed");
             var ids=new HashSet<int>();var tasks=new HashSet<int>();var targets=new HashSet<int>();var fleetCounts=new Dictionary<int,int>();var reservations=new Dictionary<int,int>();
             foreach(var m in state.missions)
             {
                 var v=world.FindVehicle(m.vehicle);var task=world.FindTask(m.task);
-                fleetCounts.TryGetValue(m.station,out int fleet);fleetCounts[m.station]=fleet+1;reservations.TryGetValue(m.station,out int incoming);reservations[m.station]=incoming+(m.phase==WastePhase.Pickup?rules.Payload:task?.Cargo??0);
-                if(m.station==m.pickup||!ids.Add(m.vehicle)||!tasks.Add(m.task)||!targets.Add(m.pickup)||v==null||v.Task!=task||task.purpose!=TransportPurpose.Service||!(entities.Building(m.station) is LandfillBuilding)||entities.Building(m.pickup)==null||m.phase<WastePhase.Pickup||m.phase>WastePhase.Return||task.origin!=(m.phase==WastePhase.Pickup?m.station:m.pickup)||task.destination!=(m.phase==WastePhase.Pickup?m.pickup:m.station)||m.phase==WastePhase.Pickup&&task.Shipment!=null||m.phase==WastePhase.Return&&(task.Shipment==null||task.Shipment.kind!=CargoKind.Waste||task.Cargo<1||task.Cargo>rules.Payload))throw new InvalidOperationException("Waste mission/task mismatch");
+                CheckMission(m,v);if(!ids.Add(m.vehicle)||!tasks.Add(m.task)||!targets.Add(m.pickup))throw new InvalidOperationException("Duplicate waste mission");
+                fleetCounts.TryGetValue(m.station,out int fleet);fleetCounts[m.station]=fleet+1;
+                // Only demolition-displaced missions can settle without a full
+                // unload. Ordinary driving missions keep their full reservation.
+                if(v.status!=VehicleStatus.AwaitingRestart){reservations.TryGetValue(m.station,out int incoming);reservations[m.station]=incoming+(m.phase==WastePhase.Pickup?rules.Payload:task.Cargo);}
             }
             foreach(var p in plants){fleetCounts.TryGetValue(p.id,out int n);reservations.TryGetValue(p.id,out int incoming);if(n>rules.Trucks||p.stored+incoming>rules.Capacity)throw new InvalidOperationException("Waste fleet/incoming capacity overbooked");}
             foreach(var v in world.Vehicles)if(v.Task.purpose==TransportPurpose.Service&&!ids.Contains(v.id))throw new InvalidOperationException("Unowned service vehicle");
