@@ -1,4 +1,5 @@
-param([Parameter(Mandatory)][string]$Save,[Parameter(Mandatory)][string]$Results,[string]$Reference='',[int]$Road=87,[ValidateSet('in-place','demolition','demolition-repair','service-pickup','service-return','waste-loss','access-rebind','frame-breakdown')][string]$Scenario='in-place',[switch]$FrameRaw,[string]$ViewReference='',[switch]$CheckZoningViews,[string]$SpatialReference='',[switch]$TraceRecoveryRoutes,[string]$RoutingReference='')
+param([Parameter(Mandatory)][string]$Save,[Parameter(Mandatory)][string]$Results,[string]$Reference='',[int]$Road=87,[ValidateSet('in-place','demolition','demolition-repair','service-pickup','service-return','waste-loss','access-rebind','frame-breakdown')][string]$Scenario='in-place',[switch]$FrameRaw,[string]$ViewReference='',[switch]$CheckZoningViews,[string]$SpatialReference='',[switch]$TraceRecoveryRoutes,[string]$RoutingReference='',[switch]$AStarReplay)
+if($AStarReplay -and ($Scenario -ne 'frame-breakdown' -or $RoutingReference -or $Reference -or $FrameRaw -or $TraceRecoveryRoutes)){throw 'AStar shadow replay requires the current frame-breakdown source without intrusive trace/raw or frozen overrides'}
 if($Scenario -eq 'frame-breakdown' -and $Road -ne 87){throw 'The frame-breakdown probe is the frozen road-87 comparison case'}
 if($FrameRaw -and $Scenario -ne 'frame-breakdown'){throw 'FrameRaw requires the frame-breakdown scenario'}
 if(($ViewReference -or $CheckZoningViews) -and $Scenario -ne 'frame-breakdown'){throw 'View comparison requires the frame-breakdown scenario'}
@@ -59,6 +60,13 @@ if($Scenario -eq 'frame-breakdown'){
   [IO.File]::WriteAllText((Join-Path $project 'Assets/Scripts/Diagnostics/Runtime/HarborCityZoningViewsReference.cs'),$frozen.Replace('HarborCityZoningViews','HarborCityZoningViewsReference'))
   Copy-Item (Join-Path $PSScriptRoot 'Diagnostics/HarborCityZoningViewDeltaChecks.cs') (Join-Path $project 'Assets/Scripts/Diagnostics/Runtime/HarborCityZoningViewDeltaChecks.cs')
  }
+}
+if($AStarReplay){
+ foreach($name in @('RecoveryAStar.cs','RecoveryAStarReplay.cs')){Copy-Item (Join-Path $PSScriptRoot ('Diagnostics/'+$name)) (Join-Path $project ('Assets/Scripts/Diagnostics/Runtime/'+$name))}
+ Copy-Item (Join-Path $root 'Docs/Performance/RecoveryRouteSharing-20261025/queries-new.csv') (Join-Path $result 'replay-input.csv')
+ $probe=Join-Path $project 'Assets/Scripts/Diagnostics/Runtime/HarborCityDemolitionFrameProbe.cs';$text=[IO.File]::ReadAllText($probe);$anchor='s.Validate();var boundary=CityCoreSave.Write(s);'
+ if(-not $text.Contains($anchor)){throw 'AStar replay probe hook missing'}
+ $text=$text.Replace($anchor,'RecoveryAStarReplay.Run(w.Network,Path.Combine(output,"..","replay-input.csv"),Path.Combine(output,"astar-replay"));'+$anchor);[IO.File]::WriteAllText($probe,$text)
 }
 $player=Join-Path $result 'Player/HarborCity.exe';$env:HARBOR_PLAYER_RELEASE='0';$env:HARBOR_CORE_ATTRIBUTION='0';$env:HARBOR_TRAFFIC_VALIDATION_PLAYER=$player
 $p=Start-Process 'C:/Program Files/Unity/Hub/Editor/6000.6.3f1/Editor/Unity.exe' -ArgumentList '-batchmode','-quit','-projectPath',('"'+$project+'"'),'-executeMethod','HarborCity.CityPlayerBuild.BuildResearchValidation','-logFile',('"'+(Join-Path $result 'build.log')+'"') -WindowStyle Hidden -PassThru
