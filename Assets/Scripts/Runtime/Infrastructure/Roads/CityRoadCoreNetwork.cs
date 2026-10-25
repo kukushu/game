@@ -225,14 +225,14 @@ namespace HarborCity.RoadCore
         }
         internal sealed class RouteQueue
         {
-            internal struct Entry { public long id;public double cost; }
+            internal struct Entry { public long id;public double cost,priority; }
             readonly List<Entry> entries=new List<Entry>();
             public int Count=>entries.Count;
             internal void Clear()=>entries.Clear();
-            static bool Before(Entry a,Entry b)=>a.cost<b.cost||(a.cost==b.cost&&a.id<b.id);
-            public void Push(long id,double cost)
+            static bool Before(Entry a,Entry b)=>a.priority<b.priority||(a.priority==b.priority&&a.id<b.id);
+            public void Push(long id,double cost,double h=0)
             {
-                var item=new Entry{id=id,cost=cost};int i=entries.Count;entries.Add(item);
+                var item=new Entry{id=id,cost=cost,priority=cost+h};int i=entries.Count;entries.Add(item);
                 while(i>0){int parent=(i-1)/2;if(!Before(item,entries[parent]))break;entries[i]=entries[parent];i=parent;}entries[i]=item;
             }
             public Entry Pop()
@@ -322,25 +322,6 @@ namespace HarborCity.RoadCore
             }
             sharedRoutes.Add(key,added);SharedRouteBytes+=added.Bytes;TouchRoute(added);return path;
         }
-        sealed class GuidedQueue
-        {
-            internal struct Entry {internal long id;internal double cost,priority;}
-            readonly List<Entry> entries=new List<Entry>();
-            internal int Count=>entries.Count;
-            internal void Clear()=>entries.Clear();
-            static bool Before(Entry a,Entry b)=>a.priority<b.priority||a.priority==b.priority&&a.id<b.id;
-            internal void Push(long id,double cost,double h)
-            {
-                var item=new Entry{id=id,cost=cost,priority=cost+h};int i=entries.Count;entries.Add(item);
-                while(i>0){int p=(i-1)/2;if(!Before(item,entries[p]))break;entries[i]=entries[p];i=p;}entries[i]=item;
-            }
-            internal Entry Pop()
-            {
-                var result=entries[0];var item=entries[entries.Count-1];entries.RemoveAt(entries.Count-1);if(entries.Count==0)return result;
-                int i=0;while(i*2+1<entries.Count){int c=i*2+1;if(c+1<entries.Count&&Before(entries[c+1],entries[c]))c++;if(!Before(entries[c],item))break;entries[i]=entries[c];i=c;}entries[i]=item;return result;
-            }
-        }
-        GuidedQueue guidedQueue;
         double routeMaxSpeed,routeSeams;
         Dictionary<int,Point> routeJunctions;
         Dictionary<int,double> routeTerminalRadii;
@@ -376,7 +357,7 @@ namespace HarborCity.RoadCore
             if(RouteHeuristicEnabled)PrepareRouteMetric();var goal=target.Entry.Position;
             var scratch=accessSearch??(accessSearch=new RouteScratch());using(scratch.Acquire())
             {
-                var queue=guidedQueue??(guidedQueue=new GuidedQueue());queue.Clear();var costs=scratch.costs;var parents=scratch.parents;var settled=scratch.settled;
+                var queue=scratch.queue;var costs=scratch.costs;var parents=scratch.parents;var settled=scratch.settled;
                 costs[source.Id]=0;parents[source.Id]=0;queue.Push(source.Id,0,RouteLowerBound(source,goal));double best=double.PositiveInfinity;long before=0;
                 while(queue.Count>0)
                 {
@@ -442,7 +423,7 @@ namespace HarborCity.RoadCore
             if(!routeJunctions.TryGetValue(to,out var goal))return null;double radius=routeTerminalRadii[to];PointSearches++;
             var scratch=accessSearch??(accessSearch=new RouteScratch());using(scratch.Acquire())
             {
-                var queue=guidedQueue??(guidedQueue=new GuidedQueue());queue.Clear();var costs=scratch.costs;var parents=scratch.parents;var settled=scratch.settled;
+                var queue=scratch.queue;var costs=scratch.costs;var parents=scratch.parents;var settled=scratch.settled;
                 foreach(Lane lane in starts){double cost=lane.TravelLength/lane.Speed;costs[lane.Id]=cost;parents[lane.Id]=0;queue.Push(lane.Id,cost,RouteLowerBound(lane,goal,radius));}
                 while(queue.Count>0)
                 {
