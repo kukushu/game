@@ -1,0 +1,16 @@
+run,routing_source,host,metric,ms,calls,gc_bytes
+delete-reference,a703b0b,Unity_Development_instrumented_no_raw,whole_operation,119.83980000000001,1,-1
+delete-reference,a703b0b,Unity_Development_instrumented_no_raw,actual_edit_frame,124.49479848146439,1,58222868
+delete-reference,a703b0b,Unity_Development_instrumented_no_raw,Operation/HistoryAndConstruction/World.Remove/Remove.CopyAndBuild/Network.Rebuild,30.3078,1,-1
+delete-reference,a703b0b,Unity_Development_instrumented_no_raw,Operation/Bindings/Network.Project/Spatial.Build,10.9967,1,-1
+delete-reference,a703b0b,Unity_Development_instrumented_no_raw,Operation/Bindings/World.ResumeBatch/World.ResumePlan,28.944099999999949,132,-1
+delete-reference,a703b0b,Unity_Development_instrumented_no_raw,Operation/Bindings/World.ResumeBatch/World.ResumePlan/Network.Dijkstra,27.817099999999996,17,-1
+delete-reference,a703b0b,Unity_Development_instrumented_no_raw,Operation/Bindings/World.ResumeBatch,33.9619,1,-1
+delete-new,d274a9a,Unity_Development_instrumented_no_raw,whole_operation,105.61540000000001,1,-1
+delete-new,d274a9a,Unity_Development_instrumented_no_raw,actual_edit_frame,110.51220446825027,1,55134722
+delete-new,d274a9a,Unity_Development_instrumented_no_raw,Operation/HistoryAndConstruction/World.Remove/Remove.CopyAndBuild/Network.Rebuild,29.6955,1,-1
+delete-new,d274a9a,Unity_Development_instrumented_no_raw,Operation/Bindings/Network.Project/Spatial.Build,11.0711,1,-1
+delete-new,d274a9a,Unity_Development_instrumented_no_raw,Operation/Bindings/World.ResumeBatch/World.ResumePlan,14.560799999999967,132,-1
+delete-new,d274a9a,Unity_Development_instrumented_no_raw,Operation/Bindings/World.ResumeBatch/World.ResumePlan/Network.PointRouting/Network.AStar,11.2852,28,-1
+delete-new,d274a9a,Unity_Development_instrumented_no_raw,Operation/Bindings/World.ResumeBatch/World.ResumePlan/Network.PointRouting,13.947099999999997,17,-1
+delete-new,d274a9a,Unity_Development_instrumented_no_raw,Operation/Bindings/World.ResumeBatch,19.3938,1,-1

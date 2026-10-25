@@ -88,7 +88,8 @@ namespace HarborCity.RoadCore
         bool depotLaneRouting,depotJunctionRouting;
         public bool DepotJunctionRoutingEnabled {get=>depotJunctionRouting;set{if(value&&depotLaneRouting)throw new InvalidOperationException("Choose one depot routing algorithm");depotJunctionRouting=value;}} // Alternative diagnostic algorithm, never persisted.
         public readonly DepotJunctionRouting JunctionRoutes=new DepotJunctionRouting();
-        // Runtime selection, never serialized. The normal player host selects lane trees.
+        // Runtime selection, never serialized. Normal play permits lane trees;
+        // oversized declared depot sets use the common point router instead.
         public bool DepotLaneRoutingEnabled {get=>depotLaneRouting;set{if(value&&depotJunctionRouting)throw new InvalidOperationException("Choose one depot routing algorithm");depotLaneRouting=value;}}
         public readonly DepotLaneRouting DepotRoutes=new DepotLaneRouting();
         internal long ServicePointQueries;

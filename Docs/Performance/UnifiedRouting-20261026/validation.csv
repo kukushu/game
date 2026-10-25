@@ -1,0 +1,30 @@
+test,result,host,count,note
+routing-oracle,PASS,net10.0-x64,237577,61185 queries; 1090 changed legal routes; 267 cost-bit differences max7.11e-15; cache paths exact
+road-core,PASS,Mono,150937,final shared heap runtime
+city-core,PASS,Mono,23614,original assertions retained
+jobs,PASS,Mono,10000,indexed calls
+grid,PASS,Mono,1522,geometry/rollback/save
+zone-brush,PASS,Mono,83,selection/save
+utilities,PASS,Mono,460474,normal template and network
+batch-recovery,PASS,Mono,840,all-or-none candidate safety
+demolition,PASS,Mono,517,task lifecycle
+demolition-waste,PASS,Mono,787,recorded loss and corruption detection
+access-rebind,PASS,Mono,597,full validation retained
+building-route-cache,PASS,Mono,19207,bounded mixed keys
+depot-and-policy,PASS,Mono,9713,old 9709 plus oversized policy
+simulation-budget,PASS,Mono,101,no dropped fixed steps
+quotes,PASS,Mono,11227,11180 bit exact quotes vs materialized new routes
+current-city-cache-on-off,PASS,net10.0-x64,4000,complete state equality every40; then80 hot/cold steps
+30000-cache-on-off,PASS,net10.0-x64,400,200-depot common-routing mode; then80 hot/cold steps
+demolition-boundary,PASS,net10.0-x64,536,business facts exact; every vehicle pose/task/cargo/status exact;16 future plans changed
+dual-city-long-test,FAIL_ENVIRONMENT,Mono32,4000,OutOfMemory in full save; not PASS; replaced by successful 64-bit paired run
+formal-player-cold-restore,PASS,Unity64,20,"PASS native Unity warm/cold 20 complete steps with saved pending debt, all city/transport/money/goods/waste state byte-identical. Outside timed window; final.hcity is original measured endpoint."
+steady-formal-cold-restore,PASS,Unity64,20,"PASS native Unity warm/cold 20 complete steps with saved pending debt, all city/transport/money/goods/waste state byte-identical. Outside timed window; final.hcity is original measured endpoint."
+scale-formal-cold-restore,PASS,Unity64,20,"PASS native Unity warm/cold 20 complete steps with saved pending debt, all city/transport/money/goods/waste state byte-identical. Outside timed window; final.hcity is original measured endpoint."
+final-player-cold-restore,PASS,Unity64,20,"PASS native Unity warm/cold 20 complete steps with saved pending debt, all city/transport/money/goods/waste state byte-identical. Outside timed window; final.hcity is original measured endpoint."
+final-scale-cold-restore,PASS,Unity64,20,"PASS native Unity warm/cold 20 complete steps with saved pending debt, all city/transport/money/goods/waste state byte-identical. Outside timed window; final.hcity is original measured endpoint."
+final-1x-cold-restore,PASS,Unity64,20,"PASS native Unity warm/cold 20 complete steps with saved pending debt, all city/transport/money/goods/waste state byte-identical. Outside timed window; final.hcity is original measured endpoint."
+final-reference-1x-cold-restore,PASS,Unity64,20,"PASS native Unity warm/cold 20 complete steps with saved pending debt, all city/transport/money/goods/waste state byte-identical. Outside timed window; final.hcity is original measured endpoint."
+delete-reference,PASS,Unity64,80,"PASS diagnostic-only, exact saved edit, full validation, 80 fixed-step hot/cold state identical; CPU and coroutine clocks recorded separately."
+delete-new,PASS,Unity64,80,"PASS diagnostic-only, exact saved edit, full validation, 80 fixed-step hot/cold state identical; CPU and coroutine clocks recorded separately."
+trace-validated,PASS,Unity64,80,"PASS diagnostic-only, exact saved edit, full validation, 80 fixed-step hot/cold state identical; CPU and coroutine clocks recorded separately."

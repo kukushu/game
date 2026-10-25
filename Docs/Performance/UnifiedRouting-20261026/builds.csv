@@ -1,0 +1,4 @@
+variant,runtime_source,assembly_sha256,local_file
+formal,48eeb325,4224564d24b834f1bf0fa3ae92821b15dae41f21722205fb6bf666df58522992,C:\Users\16934\Documents\unity_game\road-core-integration-20261024\Temp\UnifiedRouting\steady-formal-build\Player\HarborCity_Data\Managed\Assembly-CSharp.dll
+final,c4b9fc6,6b212f763b287b78fea05a70557b9c7a244b73e52ba5a45022c8dd0f2da9e9bf,C:\Users\16934\Documents\unity_game\road-core-integration-20261024\Temp\UnifiedRouting\final-release\HarborCity_Data\Managed\Assembly-CSharp.dll
+attribution,d274a9a,9e2b38c9c458fcdb92a912f443a7c8c3b48249fc07c936ef5b0e227021caa221,C:\Users\16934\Documents\unity_game\road-core-integration-20261024\Temp\UnifiedRouting\profile-scale\Player\HarborCity_Data\Managed\Assembly-CSharp.dll
