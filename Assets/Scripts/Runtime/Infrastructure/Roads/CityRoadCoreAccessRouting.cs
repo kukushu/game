@@ -47,8 +47,8 @@ namespace HarborCity.RoadCore
                 var opposite=Opposite(network,target);
                 if(opposite!=null)
                 {
-                    // The physical source is fixed. Share one canonical frontier
-                    // for the two legal destination curbs, preferring the first on ties.
+                    // The physical source is fixed. Both legal destination curbs
+                    // reuse normalized lane-pair paths; exact stop costs choose a side.
                     var route=network.RouteToEither(source,target,opposite,out int selected);
                     if(selected==1)end=opposite.distance;return route;
                 }

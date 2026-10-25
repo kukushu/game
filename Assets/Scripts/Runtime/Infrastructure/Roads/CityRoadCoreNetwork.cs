@@ -275,127 +275,179 @@ namespace HarborCity.RoadCore
             }
             accessConnections.Add(lane,result);return result;
         }
-        // Dijkstra over lane ends with a heap: O((L+C) log L), independent of sample count.
-        // No route scans or per-vehicle searches in Step; road edits validate references once.
-        public List<long> Route(int from,int to)
+        // Point-to-point routing uses one guided lane-end search. Depot all-target
+        // trees intentionally keep Dijkstra: they have no single spatial goal.
+        internal bool RouteHeuristicEnabled=true,RouteSharingEnabled=true;
+        internal long SharedRouteHits,SharedRouteMisses,SharedRouteEvictions,PointSearches,PointExpanded;
+        const int SharedRouteCapacity=4096;
+        const long SharedRouteByteBudget=8*1024*1024;
+        readonly struct LanePair:IEquatable<LanePair>
         {
-            if(from==to)return new List<long>();
-            var cost=new Dictionary<long,double>(CityRoadKeyComparer.Instance);
-            var parent=new Dictionary<long,long>(CityRoadKeyComparer.Instance);
-            var open=new RouteQueue();var closed=new HashSet<long>(CityRoadKeyComparer.Instance);
-            List<Drivable> starts;if(!outgoing.TryGetValue(from,out starts))return null;
-            foreach(var d in starts){cost[d.Id]=d.TravelLength/d.Speed;parent[d.Id]=0;open.Push(d.Id,cost[d.Id]);}
-            while(open.Count>0)
-            {
-                var entry=open.Pop();long id=entry.id;if(entry.cost!=cost[id]||!closed.Add(id))continue;var a=Get(id);
-                if(a.To==to)
-                {
-                    var lanes=new List<long>();for(long v=id;v!=0;v=parent[v])lanes.Add(v);lanes.Reverse();
-                    var route=new List<long>(lanes.Count*2-1);for(int i=0;i<lanes.Count;i++){if(i>0)route.Add(ConnectionId(lanes[i-1],lanes[i]));route.Add(lanes[i]);}return route;
-                }
-                List<Drivable> next;if(!outgoing.TryGetValue(a.To,out next))continue;
-                foreach(var b in next){long link=ConnectionId(id,b.Id);if(!Contains(link)||closed.Contains(b.Id))continue;double c=cost[id]+Get(link).Geometry.Length/Get(link).Speed+b.TravelLength/b.Speed;double old;if(!cost.TryGetValue(b.Id,out old)||c<old){cost[b.Id]=c;parent[b.Id]=id;open.Push(b.Id,c);}}
-            }
-            return null;
+            internal readonly long from,to;
+            internal LanePair(long from,long to){this.from=from;this.to=to;}
+            public bool Equals(LanePair other)=>from==other.from&&to==other.to;
+            public override bool Equals(object other)=>other is LanePair pair&&Equals(pair);
+            public override int GetHashCode()=>unchecked((int)(from^(from>>32))*397^(int)(to^(to>>32)));
         }
-        public List<long> Route(RoadAccess start,RoadAccess goal)
-        {int selected;return RouteToEither(start,goal,null,out selected);}
-        // A single source, two terminal access directions. Keep canonical queue
-        // and parent ordering; ties prefer the original first goal.
-        internal List<long> RouteToEither(RoadAccess start,RoadAccess goal,RoadAccess other,out int selected)
+        sealed class SharedRoute
+        {
+            internal LanePair key;internal long[] path;internal SharedRoute newer,older;
+            // Payload plus a conservative logical entry allowance; not a heap measurement.
+            internal long Bytes=>128+(path==null?0:24+path.LongLength*8);
+        }
+        Dictionary<LanePair,SharedRoute> sharedRoutes;
+        SharedRoute newestRoute,oldestRoute;
+        internal long SharedRouteBytes {get;private set;}
+        internal int SharedRouteCount=>sharedRoutes?.Count??0;
+        void TouchRoute(SharedRoute entry)
+        {
+            if(ReferenceEquals(entry,newestRoute))return;
+            if(entry.newer!=null)entry.newer.older=entry.older;
+            if(entry.older!=null)entry.older.newer=entry.newer;
+            if(ReferenceEquals(entry,oldestRoute))oldestRoute=entry.newer;
+            entry.newer=null;entry.older=newestRoute;if(newestRoute!=null)newestRoute.newer=entry;newestRoute=entry;if(oldestRoute==null)oldestRoute=entry;
+        }
+        long[] SharedLanePath(Lane source,Lane target)
+        {
+            var key=new LanePair(source.Id,target.Id);
+            if(RouteSharingEnabled&&sharedRoutes!=null&&sharedRoutes.TryGetValue(key,out var entry)){SharedRouteHits++;TouchRoute(entry);return entry.path;}
+            SharedRouteMisses++;var result=SearchLanePath(source,target);var path=result?.ToArray();
+            if(!RouteSharingEnabled)return path;
+            var added=new SharedRoute{key=key,path=path};if(added.Bytes>SharedRouteByteBudget)return path;
+            if(sharedRoutes==null)sharedRoutes=new Dictionary<LanePair,SharedRoute>();
+            while(sharedRoutes.Count>=SharedRouteCapacity||SharedRouteBytes+added.Bytes>SharedRouteByteBudget)
+            {
+                var removed=oldestRoute;sharedRoutes.Remove(removed.key);oldestRoute=removed.newer;if(oldestRoute!=null)oldestRoute.older=null;else newestRoute=null;
+                SharedRouteBytes-=removed.Bytes;SharedRouteEvictions++;
+            }
+            sharedRoutes.Add(key,added);SharedRouteBytes+=added.Bytes;TouchRoute(added);return path;
+        }
+        sealed class GuidedQueue
+        {
+            internal struct Entry {internal long id;internal double cost,priority;}
+            readonly List<Entry> entries=new List<Entry>();
+            internal int Count=>entries.Count;
+            internal void Clear()=>entries.Clear();
+            static bool Before(Entry a,Entry b)=>a.priority<b.priority||a.priority==b.priority&&a.id<b.id;
+            internal void Push(long id,double cost,double h)
+            {
+                var item=new Entry{id=id,cost=cost,priority=cost+h};int i=entries.Count;entries.Add(item);
+                while(i>0){int p=(i-1)/2;if(!Before(item,entries[p]))break;entries[i]=entries[p];i=p;}entries[i]=item;
+            }
+            internal Entry Pop()
+            {
+                var result=entries[0];var item=entries[entries.Count-1];entries.RemoveAt(entries.Count-1);if(entries.Count==0)return result;
+                int i=0;while(i*2+1<entries.Count){int c=i*2+1;if(c+1<entries.Count&&Before(entries[c+1],entries[c]))c++;if(!Before(entries[c],item))break;entries[i]=entries[c];i=c;}entries[i]=item;return result;
+            }
+        }
+        GuidedQueue guidedQueue;
+        double routeMaxSpeed,routeSeams;
+        Dictionary<int,Point> routeJunctions;
+        Dictionary<int,double> routeTerminalRadii;
+        void PrepareRouteMetric()
+        {
+            if(routeMaxSpeed>0)return;
+            foreach(var d in drivables.Values)
+            {
+                routeMaxSpeed=Math.Max(routeMaxSpeed,d.Speed);
+                if(d is LaneConnection c)routeSeams+=Point.Distance(c.Incoming.Exit.Position,c.Geometry.Sample(0))+Point.Distance(c.Geometry.Sample(c.Geometry.Length),c.Outgoing.Entry.Position);
+            }
+        }
+        double RouteLowerBound(Lane lane,Point goal,double radius=0)
+        {
+            if(!RouteHeuristicEnabled)return 0;
+            return Math.Max(0,Point.Distance(lane.Exit.Position,goal)-routeSeams-radius)/routeMaxSpeed*(1-1e-12);
+        }
+        List<long> ExpandRoute(Dictionary<long,long> parents,long last,long terminal=0)
+        {
+            var lanes=new List<long>();for(long id=last;id!=0;id=parents[id])lanes.Add(id);lanes.Reverse();if(terminal!=0)lanes.Add(terminal);
+            var result=new List<long>(lanes.Count*2-1);for(int i=0;i<lanes.Count;i++){if(i>0)result.Add(ConnectionId(lanes[i-1],lanes[i]));result.Add(lanes[i]);}return result;
+        }
+        List<long> SearchLanePath(Lane source,Lane target)
         {
 #if CITY_CORE_ATTRIBUTION
             using var observation=CityCoreProfile.Measure(CityCoreProfile.Part.RouteSearch);
 #endif
-            using var routeObservation=DepotRoutingTrace.Start("original-dijkstra");
-            if(DepotJunctionRouting.CountSearches)DepotJunctionRouting.SearchCalls++;
-            selected=-1;var first=Get(start.lane);Get(goal.lane);
-            if(!start.valid||first.IsConnection||start.distance<first.StartDistance||start.distance>first.EndDistance)return null;
-            RoadAccess a=ValidCostAccess(goal)?goal:null,b=other!=null&&ValidCostAccess(other)?other:null;
-            if(a==null&&b==null)return null;
-            // Any other path must first reach the end of this source lane,
-            // which cannot beat a legal forward arrival on that same lane.
-            double directCost=double.PositiveInfinity;
-            if(a!=null&&first.Id==a.lane&&a.distance>=start.distance){directCost=0.0+(a.distance-start.distance)/first.Speed;selected=0;}
-            if(b!=null&&first.Id==b.lane&&b.distance>=start.distance){double cost=0.0+(b.distance-start.distance)/first.Speed;if(cost<directCost){directCost=cost;selected=1;}}
-            if(selected>=0)return new List<long>{first.Id};
-            var scratch=accessSearch??(accessSearch=new RouteScratch());
-            using(scratch.Acquire())
+            using var trace=DepotRoutingTrace.Start("lane-astar");PointSearches++;if(DepotJunctionRouting.CountSearches)DepotJunctionRouting.SearchCalls++;
+            if(RouteHeuristicEnabled)PrepareRouteMetric();var goal=target.Entry.Position;
+            var scratch=accessSearch??(accessSearch=new RouteScratch());using(scratch.Acquire())
             {
-                var queue=scratch.queue;var costs=scratch.costs;var parents=scratch.parents;var settled=scratch.settled;
-                double best=double.PositiveInfinity;long beforeGoal=0;
-                double initial=(first.EndDistance-start.distance)/first.Speed;costs[first.Id]=initial;parents[first.Id]=0;queue.Push(first.Id,initial);
+                var queue=guidedQueue??(guidedQueue=new GuidedQueue());queue.Clear();var costs=scratch.costs;var parents=scratch.parents;var settled=scratch.settled;
+                costs[source.Id]=0;parents[source.Id]=0;queue.Push(source.Id,0,RouteLowerBound(source,goal));double best=double.PositiveInfinity;long before=0;
                 while(queue.Count>0)
                 {
-                    var item=queue.Pop();if(item.cost>best)break;if(item.cost!=costs[item.id]||!settled.Add(item.id))continue;
-                    if(routeObservation!=null)routeObservation.expanded++;
-                    if(DepotJunctionRouting.CountSearches)DepotJunctionRouting.SearchExpanded++;
+                    var item=queue.Pop();if(item.priority>best)break;if(item.cost!=costs[item.id]||!settled.Add(item.id))continue;
+                    PointExpanded++;if(trace!=null)trace.expanded++;if(DepotJunctionRouting.CountSearches)DepotJunctionRouting.SearchExpanded++;
                     var next=AccessConnections(item.id);if(next==null)continue;
-                    foreach(var connection in next)
+                    foreach(var link in next)
                     {
-                        var lane=connection.Outgoing;double prefix=item.cost+connection.Geometry.Length/connection.Speed;bool terminal=false;
-                        if(a!=null&&lane.Id==a.lane){double cost=prefix+(a.distance-lane.StartDistance)/lane.Speed;if(cost<best||cost==best&&selected>0){best=cost;selected=0;beforeGoal=item.id;}terminal=true;}
-                        if(b!=null&&lane.Id==b.lane){double cost=prefix+(b.distance-lane.StartDistance)/lane.Speed;if(cost<best){best=cost;selected=1;beforeGoal=item.id;}terminal=true;}
-                        // With one goal this is exactly the original terminal rule.
-                        // With two goals, allow traversal at the same cost so a
-                        // zero-length boundary cannot hide the earlier-ranked goal.
-                        if(terminal&&(a==null||b==null))continue;
-                        if(settled.Contains(lane.Id))continue;double candidate=prefix+lane.TravelLength/lane.Speed,old;
-                        if(!costs.TryGetValue(lane.Id,out old)||candidate<old){costs[lane.Id]=candidate;parents[lane.Id]=item.id;queue.Push(lane.Id,candidate);}
+                        var lane=link.Outgoing;double prefix=item.cost+link.Geometry.Length/link.Speed;
+                        if(lane.Id==target.Id){if(prefix<best){best=prefix;before=item.id;}continue;}
+                        double candidate=prefix+lane.TravelLength/lane.Speed,old;
+                        if(!costs.TryGetValue(lane.Id,out old)||candidate<old){costs[lane.Id]=candidate;parents[lane.Id]=item.id;settled.Remove(lane.Id);queue.Push(lane.Id,candidate,RouteLowerBound(lane,goal));}
                     }
                 }
-                if(selected<0)return null;
-                var lanes=new List<long>();for(long id=beforeGoal;id!=0;id=parents[id])lanes.Add(id);lanes.Reverse();lanes.Add((selected==0?a:b).lane);
-                var result=new List<long>();for(int i=0;i<lanes.Count;i++){if(i>0)result.Add(ConnectionId(lanes[i-1],lanes[i]));result.Add(lanes[i]);}return result;
+                return before==0?null:ExpandRoute(parents,before,target.Id);
             }
         }
-        // Static free-flow scalar only. Two legal source/goal directions share one
-        // frontier; no vehicle plan or route reconstruction is needed for a quote.
+        // Start/goal offsets cannot alter the interior path between two fixed
+        // directed lanes. Same-lane forward trips bypass the cycle-path cache.
+        // Entries own immutable arrays; every returned actor route is a copy.
+        double AccessCost(RoadAccess start,RoadAccess goal,out long[] path,out bool direct)
+        {
+            path=null;direct=false;if(!ValidCostAccess(start)||!ValidCostAccess(goal))return double.PositiveInfinity;
+            var source=(Lane)Get(start.lane);var target=(Lane)Get(goal.lane);
+            if(source.Id==target.Id&&goal.distance>=start.distance){direct=true;return 0.0+(goal.distance-start.distance)/source.Speed;}
+            path=SharedLanePath(source,target);if(path==null)return double.PositiveInfinity;
+            double cost=0;for(int i=0;i<path.Length;i++){var d=Get(path[i]);cost+=((i==path.Length-1?goal.distance:d.EndDistance)-(i==0?start.distance:d.StartDistance))/d.Speed;}return cost;
+        }
+        public List<long> Route(RoadAccess start,RoadAccess goal)
+        {int selected;return RouteToEither(start,goal,null,out selected);}
+        internal List<long> RouteToEither(RoadAccess start,RoadAccess goal,RoadAccess other,out int selected)
+        {
+            selected=-1;double best=AccessCost(start,goal,out var path,out bool direct);
+            if(!double.IsPositiveInfinity(best))selected=0;
+            if(other!=null){double next=AccessCost(start,other,out var alternative,out bool ad);if(next<best){selected=1;best=next;path=alternative;direct=ad;}}
+            if(selected<0)return null;return direct?new List<long>{start.lane}:new List<long>(path);
+        }
         internal double MinimumTravelSeconds(RoadAccess source,RoadAccess goal,RoadAccess alternateSource=null,RoadAccess alternateGoal=null)
         {
 #if CITY_CORE_ATTRIBUTION
             using var observation=CityCoreProfile.Measure(CityCoreProfile.Part.CostSearch);
 #endif
-            if(!ValidCostAccess(source))source=null;if(!ValidCostAccess(goal))goal=null;
-            if(!ValidCostAccess(alternateSource))alternateSource=null;if(!ValidCostAccess(alternateGoal))alternateGoal=null;
-            if(source==null&&alternateSource==null||goal==null&&alternateGoal==null)return double.PositiveInfinity;
-            var scratch=accessSearch??(accessSearch=new RouteScratch());
-            using(scratch.Acquire())
-            {
-                double best=double.PositiveInfinity;SeedCost(scratch,source,goal,alternateGoal,ref best);SeedCost(scratch,alternateSource,goal,alternateGoal,ref best);
-                while(scratch.queue.Count>0)
-                {
-                    var item=scratch.queue.Pop();if(item.cost>best)break;if(item.cost!=scratch.costs[item.id]||!scratch.settled.Add(item.id))continue;
-                    if(DepotJunctionRouting.CountSearches)DepotJunctionRouting.SearchExpanded++;
-                    var current=Get(item.id);List<Drivable> next;if(!outgoing.TryGetValue(current.To,out next))continue;
-                    foreach(var lane in next)
-                    {
-                        long link=ConnectionId(current.Id,lane.Id);if(!Contains(link))continue;
-                        double prefix=item.cost+Get(link).Geometry.Length/Get(link).Speed;bool terminal=false;
-                        if(goal!=null&&lane.Id==goal.lane){double candidate=prefix+(goal.distance-lane.StartDistance)/lane.Speed;if(candidate<best)best=candidate;terminal=true;}
-                        if(alternateGoal!=null&&lane.Id==alternateGoal.lane){double candidate=prefix+(alternateGoal.distance-lane.StartDistance)/lane.Speed;if(candidate<best)best=candidate;terminal=true;}
-                        // Any continuation through a goal costs at least its valid
-                        // partial-lane arrival. It cannot improve the minimum quote.
-                        if(terminal||scratch.settled.Contains(lane.Id))continue;
-                        double cost=prefix+lane.TravelLength/lane.Speed,old;
-                        if(!scratch.costs.TryGetValue(lane.Id,out old)||cost<old){scratch.costs[lane.Id]=cost;scratch.queue.Push(lane.Id,cost);}
-                    }
-                }
-                return best;
-            }
+            double best=AccessCost(source,goal,out _,out _);
+            if(alternateGoal!=null)best=Math.Min(best,AccessCost(source,alternateGoal,out _,out _));
+            if(alternateSource!=null){best=Math.Min(best,AccessCost(alternateSource,goal,out _,out _));if(alternateGoal!=null)best=Math.Min(best,AccessCost(alternateSource,alternateGoal,out _,out _));}return best;
         }
         bool ValidCostAccess(RoadAccess access)
         {
-            if(access==null||!access.valid)return false;var d=Get(access.lane);
-            return !d.IsConnection&&access.distance>=d.StartDistance&&access.distance<=d.EndDistance;
+            if(access==null||!access.valid)return false;var d=Get(access.lane);return !d.IsConnection&&access.distance>=d.StartDistance&&access.distance<=d.EndDistance;
         }
-        void SeedCost(RouteScratch scratch,RoadAccess start,RoadAccess goal,RoadAccess otherGoal,ref double best)
+        // Legacy junction endpoints use the same A* queue, topology and metric.
+        // Terminal radius covers trimmed lane exits: reaching a junction does not
+        // charge the missing distance from an exit port to its geometric centre.
+        public List<long> Route(int from,int to)
         {
-            if(start==null)return;var lane=Get(start.lane);
-            if(goal!=null&&start.lane==goal.lane&&goal.distance>=start.distance){double direct=0.0+(goal.distance-start.distance)/lane.Speed;if(direct<best)best=direct;}
-            if(otherGoal!=null&&start.lane==otherGoal.lane&&otherGoal.distance>=start.distance){double direct=0.0+(otherGoal.distance-start.distance)/lane.Speed;if(direct<best)best=direct;}
-            double initial=(lane.EndDistance-start.distance)/lane.Speed,prior;
-            if(!scratch.costs.TryGetValue(lane.Id,out prior)||initial<prior){scratch.costs[lane.Id]=initial;scratch.queue.Push(lane.Id,initial);}
+            if(from==to)return new List<long>();if(!outgoing.TryGetValue(from,out var starts))return null;
+            if(RouteHeuristicEnabled)PrepareRouteMetric();
+            if(routeJunctions==null)
+            {
+                routeJunctions=new Dictionary<int,Point>();routeTerminalRadii=new Dictionary<int,double>();foreach(var j in data.junctions){routeJunctions.Add(j.id,j.position);routeTerminalRadii.Add(j.id,0);}
+                foreach(var d in drivables.Values)if(d is Lane lane)routeTerminalRadii[lane.To]=Math.Max(routeTerminalRadii[lane.To],Point.Distance(lane.Exit.Position,routeJunctions[lane.To]));
+            }
+            if(!routeJunctions.TryGetValue(to,out var goal))return null;double radius=routeTerminalRadii[to];PointSearches++;
+            var scratch=accessSearch??(accessSearch=new RouteScratch());using(scratch.Acquire())
+            {
+                var queue=guidedQueue??(guidedQueue=new GuidedQueue());queue.Clear();var costs=scratch.costs;var parents=scratch.parents;var settled=scratch.settled;
+                foreach(Lane lane in starts){double cost=lane.TravelLength/lane.Speed;costs[lane.Id]=cost;parents[lane.Id]=0;queue.Push(lane.Id,cost,RouteLowerBound(lane,goal,radius));}
+                while(queue.Count>0)
+                {
+                    var item=queue.Pop();if(item.cost!=costs[item.id]||!settled.Add(item.id))continue;PointExpanded++;var lane=(Lane)Get(item.id);if(lane.To==to)return ExpandRoute(parents,item.id);
+                    var next=AccessConnections(item.id);if(next==null)continue;
+                    foreach(var link in next){var target=link.Outgoing;double cost=item.cost+link.Geometry.Length/link.Speed+target.TravelLength/target.Speed,old;if(!costs.TryGetValue(target.Id,out old)||cost<old){costs[target.Id]=cost;parents[target.Id]=item.id;settled.Remove(target.Id);queue.Push(target.Id,cost,RouteLowerBound(target,goal,radius));}}
+                }
+                return null;
+            }
         }
         public void ValidateRoute(List<long> route)
         {
