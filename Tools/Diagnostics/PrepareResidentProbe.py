@@ -3,7 +3,7 @@ from pathlib import Path
 import sys, subprocess
 root, project, variant = Path(sys.argv[1]).resolve(), Path(sys.argv[2]).resolve(), sys.argv[3]
 assert project.is_relative_to(root / 'Temp')
-assert variant in ('stock', 'detail', 'memo', 'legacy', 'retry', 'occupancy', 'occupancy-census', 'occupancy-trim', 'occupancy-active')
+assert variant in ('stock', 'detail', 'memo', 'legacy', 'retry', 'occupancy', 'occupancy-census', 'occupancy-trim', 'occupancy-active', 'latest', 'growth')
 for name in ('ResidentRequestProbe.cs', 'HarborCityResidentWindowProbe.cs', 'ResidentDispatchTrace.cs', 'OccupancyMovementProbe.cs'):
     (project/'Assets/Scripts/Diagnostics/Runtime'/name).write_text((root/'Tools/Diagnostics'/name).read_text(encoding='utf-8-sig'), encoding='utf-8')
 host=project/'Assets/Scripts/Runtime/Presentation/Game/HarborCityRoadCoreGame.cs'
@@ -37,6 +37,17 @@ if variant=='detail':
         body=body.replace(old,new)
     jobs=project/'Assets/Scripts/Runtime/Simulation/Residents/CityJobs.cs'
     j=jobs.read_text(encoding='utf-8-sig');needle='public CityJob Job(int id)';i=j.index('{',j.index(needle))+1;j=j[:i]+'\n            ResidentRequestProbe.Lookup(id);'+j[i:];jobs.write_text(j,encoding='utf-8')
+if variant=='latest':
+    assert 'int workplace=job?.buildingId??-1;' in body
+    body=body.replace('var p=member.Person;', 'using var personDiagnostic=ResidentRequestProbe.Person();var p=member.Person;')
+    gate='if(!h.resident||p.dead||p.tripId!=0||transport.Clock<p.retryAt||transport.Clock<p.visitUntil)continue;'
+    assert gate in body;body=body.replace(gate,'if(!ResidentRequestProbe.Gate(h,p,transport))continue;ResidentRequestProbe.Next(ResidentRequestProbe.Phase.Eligible);')
+    for token,phase_name in [('float shift=','Shift'),('bool returning=','Return'),('double estimate=','Estimate'),('if(p.observedHome','Observed'),('bool leaving=','Leaving')]:
+        body=body.replace(token,'ResidentRequestProbe.Next(ResidentRequestProbe.Phase.'+phase_name+');'+token)
+    body=body.replace('if(!returning&&!leaving)continue;', 'ResidentRequestProbe.Results(returning,eligible,leaving);ResidentDispatchTrace.Qualification(city,transport,p,h,workplace,minute,shift,end,estimate,eligible,returning,leaving);if(!returning&&!leaving)continue;')
+    body=body.replace('p.retryAt=(float)', 'ResidentRequestProbe.Next(ResidentRequestProbe.Phase.Dispatch);p.retryAt=(float)')
+    for old_read,new_read in [('city.ResidentJob(p)','ResidentRequestProbe.Job(city,p)'),('city.GetBuilding(','ResidentRequestProbe.Building(city,'),('entities.Employment.ShiftStart(','ResidentRequestProbe.Shift(entities.Employment,'),('entities.Employment.ShiftMinutes','ResidentRequestProbe.Minutes(entities.Employment)'),('city.CanAttendWork(p)','ResidentRequestProbe.Attend(city,p)'),('city.JobFunded(','ResidentRequestProbe.Funded(city,')]:body=body.replace(old_read,new_read)
+    jobs=project/'Assets/Scripts/Runtime/Simulation/Residents/CityJobs.cs';j=jobs.read_text(encoding='utf-8-sig');i=j.index('{',j.index('public CityJob Job(int id)'))+1;j=j[:i]+'\n            ResidentRequestProbe.Lookup(id);'+j[i:];jobs.write_text(j,encoding='utf-8')
 if variant=='retry':
     assert 'int workplace=job?.buildingId??-1;' in body
     body=body.replace('if(!returning&&!leaving)continue;', 'ResidentDispatchTrace.Qualification(city,transport,p,h,workplace,minute,shift,end,estimate,eligible,returning,leaving);if(!returning&&!leaving)continue;')
@@ -54,3 +65,24 @@ if variant in ('occupancy','occupancy-census','occupancy-trim','occupancy-active
     from PrepareOccupancyProbe import instrument
     instrument(project, counting=variant=='occupancy-census', trim=variant in ('occupancy-trim','occupancy-active'), active_sort=variant=='occupancy-active')
 print('Prepared Temp-only',variant,project)
+
+if variant=='legacy':
+    partial=project/'Assets/Scripts/Runtime/Traffic/CityRoadCoreOccupancy.cs'
+    w=partial.read_text(encoding='utf-8-sig');needle='            IncrementalIndexUpdates++;'
+    assert needle in w
+    partial.write_text(w.replace(needle,'using var deltaAttribution=CityCoreProfile.Measure(CityCoreProfile.Part.Occupancy);'+needle),encoding='utf-8')
+
+if variant=='growth':
+    (project/'Assets/Scripts/Diagnostics/Runtime/GrowthBoundaryProbe.cs').write_text((root/'Tools/Diagnostics/GrowthBoundaryProbe.cs').read_text(encoding='utf-8'),encoding='utf-8')
+    g=project/'Assets/Scripts/Runtime/Simulation/Growth/CityCoreGrowth.cs';v=g.read_text(encoding='utf-8-sig')
+    needle='void AdvanceGrowth(TimeContext time)\n        {';assert needle in v;v=v.replace(needle,needle+'using var growthDetail=GrowthBoundaryProbe.Begin(time.Tick);')
+    v=v.replace('            RefreshStatistics();','            using(GrowthBoundaryProbe.Measure(GrowthBoundaryProbe.Part.Statistics)){RefreshStatistics();}')
+    v=v.replace('city.DevelopmentDemand();var candidates=Zoning.Cells();','using(GrowthBoundaryProbe.Measure(GrowthBoundaryProbe.Part.Demand)){city.DevelopmentDemand();}var cellDetail=GrowthBoundaryProbe.Measure(GrowthBoundaryProbe.Part.Cells);var candidates=Zoning.Cells();cellDetail.Dispose();using var searchDetail=GrowthBoundaryProbe.Measure(GrowthBoundaryProbe.Part.Search);')
+    v=v.replace('var size=CityModel.GrowthFootprints[','GrowthBoundaryProbe.Size();var size=CityModel.GrowthFootprints[').replace('candidates.Where(c=>c.row==0&&c.available&&c.use==use)','candidates.Where(c=>GrowthBoundaryProbe.Candidate(c,use))')
+    g.write_text(v,encoding='utf-8')
+    for file,methods in [('CityCoreZoningGeometry.cs', [('internal ZoneCell[] GrowthFootprint(', 'Footprint'),('internal bool OverlapsOtherPlot(', 'Overlap')]),('CityCoreZoning.cs',[('internal bool CanPlace(', 'CanPlace'),('internal SpatialHit? Entrance(', 'Entrance')])]:
+        g=project/'Assets/Scripts/Runtime/Infrastructure/Zoning'/file;v=g.read_text(encoding='utf-8-sig')
+        for signature,part in methods:
+            a=v.index('{',v.index(signature))+1;v=v[:a]+'using var growthDetail=GrowthBoundaryProbe.Measure(GrowthBoundaryProbe.Part.'+part+');'+v[a:]
+        g.write_text(v,encoding='utf-8')
+    driver=project/'Assets/Scripts/Diagnostics/Runtime/HarborCityResidentWindowProbe.cs';v=driver.read_text(encoding='utf-8');v=v.replace('var boundary=new double[measuredSteps,8];','GrowthBoundaryProbe.Reset(s.Simulation.Tick,measuredSteps);var boundary=new double[measuredSteps,8];').replace('   File.WriteAllText(Path.Combine(output,"index-work.csv")','   GrowthBoundaryProbe.Write(output);File.WriteAllText(Path.Combine(output,"index-work.csv")');driver.write_text(v,encoding='utf-8')

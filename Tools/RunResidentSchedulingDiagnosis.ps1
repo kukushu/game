@@ -1,4 +1,4 @@
-param([ValidateSet('stock','detail','memo','legacy','retry','occupancy','occupancy-census','occupancy-trim','occupancy-active')][string]$Variant='stock',[switch]$PrepareOnly,[switch]$RunOnly,[ValidateSet('stock','counts','sampled','memo','legacy','retry','occupancy-timing','occupancy-counts','occupancy-trim','occupancy-active')][string]$Mode='stock',[string]$RunName='',[string]$SourceReference='',[string]$BuildTag='')
+param([ValidateSet('stock','detail','memo','legacy','retry','occupancy','occupancy-census','occupancy-trim','occupancy-active','latest','growth')][string]$Variant='stock',[switch]$PrepareOnly,[switch]$RunOnly,[ValidateSet('stock','counts','sampled','memo','legacy','retry','occupancy-timing','occupancy-counts','occupancy-trim','occupancy-active')][string]$Mode='stock',[string]$RunName='',[string]$SourceReference='',[string]$BuildTag='', [ValidateRange(600,4000)][int]$Steps=600)
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
 . (Join-Path $PSScriptRoot 'ProjectLayout.ps1')
@@ -13,7 +13,7 @@ if($RunOnly){
  New-Item -ItemType Directory -Path $result | Out-Null
  $save=Join-Path (Split-Path -Parent $root) 'test/Temp/CityScenarios/regenerated30000-20261017/city.hcity'
  $player=Join-Path $out 'Player/HarborCity.exe'
- $p=Start-Process -FilePath $player -ArgumentList @('-harbor-city-scenario-window',('"'+$save+'"'),('"'+$result+'"'),'0','-harbor-window-saved-map','-harbor-depot-lane-routing','-screen-width','1440','-screen-height','900','-resident-mode',$Mode,'-logFile',('"'+(Join-Path $result 'player.log')+'"')) -PassThru
+ $p=Start-Process -FilePath $player -ArgumentList @('-harbor-city-scenario-window',('"'+$save+'"'),('"'+$result+'"'),'0','-harbor-window-saved-map','-harbor-depot-lane-routing','-screen-width','1440','-screen-height','900','-resident-mode',$Mode,'-resident-steps',$Steps,'-logFile',('"'+(Join-Path $result 'player.log')+'"')) -PassThru
  if(-not $p.WaitForExit(240000)){
   [IO.File]::WriteAllText((Join-Path $result 'exit.txt'),'TIMEOUT; measurement Result.txt, if present, does not imply normal shutdown')
   # Own disposable child only; never stop the user's Editor or other Players.
