@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Collections.Generic;
 using HarborCity.RoadCore;
 namespace HarborCity
 {
@@ -37,13 +38,24 @@ namespace HarborCity
 #if CITY_CORE_ATTRIBUTION
             using var searchObservation=CityCoreProfile.Measure(CityCoreProfile.Part.GrowthSearch);
 #endif
+            // Query-local only: these references preserve Cells' order and remain
+            // valid throughout this synchronous search. Planning a project changes
+            // placement checks, not the cells' use/availability snapshot. Build
+            // lazily so a round with no eligible demand still does no cell scan.
+            Dictionary<LandUse,List<ZoneCell>> startsByUse=null;
             foreach(var use in new[]{LandUse.Residential,LandUse.Commercial,LandUse.Industrial})
             {
                 int demand=use==LandUse.Residential?city.residentialDemand:use==LandUse.Commercial?city.commercialDemand:city.industrialDemand;if(demand<=0||city.development.projects.Any(p=>p.building.type==use))continue;bool planned=false;
+                if(startsByUse==null)
+                {
+                    startsByUse=new Dictionary<LandUse,List<ZoneCell>>{{LandUse.Residential,new List<ZoneCell>()},{LandUse.Commercial,new List<ZoneCell>()},{LandUse.Industrial,new List<ZoneCell>()}};
+                    foreach(var cell in candidates)if(cell.row==0&&cell.available&&startsByUse.TryGetValue(cell.use,out var group))group.Add(cell);
+                }
+                var starts=startsByUse[use];if(starts.Count==0)continue;
                 for(int i=0;i<CityModel.GrowthFootprints.Length&&!planned;i++)
                 {
                     var size=CityModel.GrowthFootprints[(city.development.nextProjectId-1+i)%CityModel.GrowthFootprints.Length];
-                    foreach(var first in candidates.Where(c=>c.row==0&&c.available&&c.use==use))
+                    foreach(var first in starts)
                     {
                         var footprint=Zoning.GrowthFootprint(first,size.width,size.depth);if(footprint.Length!=size.width*size.depth||footprint.Any(c=>!c.available||c.use!=use))continue;
                         var lot=CityModel.NewBuilding(use);lot.x=footprint.Average(c=>c.pose.x);lot.z=footprint.Average(c=>c.pose.z);lot.yaw=first.pose.yaw;lot.width=CityZoningState.CellSize*size.width-.1f;lot.depth=CityZoningState.CellSize*size.depth-.1f;

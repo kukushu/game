@@ -1,0 +1,12 @@
+using System;using System.IO;using System.Linq;using System.Collections.Generic;using System.Security.Cryptography;using HarborCity;using HarborCity.RoadCore;
+static class CityGrowthCandidateChecks {
+ static readonly List<string> rows=new List<string>{"scenario,tick,buildings,projects,people,vehicles,sha256"};
+ static string Hash(CityCoreIndustrySession s)=>Convert.ToHexString(SHA256.HashData(CityCoreSave.Write(s)));
+ static void Mark(string name,CityCoreIndustrySession s){s.Validate();rows.Add(string.Join(",",name,s.Simulation.Tick,s.Entities.Buildings.Count(),s.City.development.projects.Count,s.Entities.Members.Count,s.Transport.ActiveCount,Hash(s)));}
+ static void Paint(CityCoreIndustrySession s,bool clear){var z=s.Simulation.Growth.Zoning;var cells=z.Cells().ToArray();foreach(var use in new[]{LandUse.Empty,LandUse.Residential,LandUse.Commercial,LandUse.Industrial}){var chosen=cells.Where(c=>(clear?LandUse.Empty:c.pose.z>3?LandUse.Residential:c.pose.z< -3?(c.pose.x< -95?LandUse.Commercial:LandUse.Industrial):LandUse.Empty)==use).ToArray();z.Paint(chosen,use);}}
+ static void Run(string name,CityCoreIndustrySession s,int steps,bool edits=false){s.Transport.DepotLaneRoutingEnabled=true;s.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);Mark(name,s);for(int i=0;i<steps;i++){
+  if(edits){if(i==100||i==1800)Paint(s,true);if(i==300||i==2000)Paint(s,false);if(i==800)s.Transport.SplitRoadAt(1,10);}
+  if(s.Simulation.Advance(.05,1,double.PositiveInfinity)!=1)throw new Exception("Missing simulation step");if(i%120==119)Mark(name,s);
+ }Mark(name+"-end",s);var cold=CityCoreSave.Read(CityCoreSave.Write(s));cold.Transport.DepotLaneRoutingEnabled=true;cold.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);for(int i=0;i<80;i++){s.Simulation.Advance(.05,1,double.PositiveInfinity);cold.Simulation.Advance(.05,1,double.PositiveInfinity);}s.Validate();cold.Validate();if(Hash(s)!=Hash(cold))throw new Exception("Cold continuation differs");Mark(name+"-cold80",s);}
+ static void Main(string[] args){Run("mixed-growth",CityGrowingGridFixture.Create(),6200);Run("repaint-and-split",CityGrowingGridFixture.Create(),4000,true);Run("unpainted-30000",CityCoreSave.Read(File.ReadAllBytes(args[0])),4000);File.WriteAllLines(Path.Combine(args[1],"states.csv"),rows);Console.WriteLine("PASS growth, occupied/pending lots, repaint, road split, 30k and cold80; checkpoints="+(rows.Count-1));}
+}
