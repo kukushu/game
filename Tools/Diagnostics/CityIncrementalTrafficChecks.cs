@@ -26,5 +26,21 @@ static class CityIncrementalTrafficChecks
   for(int i=0;i<80;i++){s.Simulation.Advance(.05,1,double.PositiveInfinity);cold.Simulation.Advance(.05,1,double.PositiveInfinity);if(i%10==9){Oracle(s);Oracle(cold);s.Validate();cold.Validate();if(!CityCoreSave.Write(s).SequenceEqual(CityCoreSave.Write(cold)))throw new Exception("Cold/hot state differs");}}
   Mark(name+"-cold80",s);
  }
- static void Main(string[] args){Directory.CreateDirectory(args[1]);Run("commute",CityCoreIndustrySession.Create(),6000,1);Run("edits",CityCoreIndustrySession.Create(),1200,1);Run("30000",CityCoreSave.Read(File.ReadAllBytes(args[0])),int.Parse(args[2]),127);File.WriteAllLines(Path.Combine(args[1],"states.csv"),rows);Console.WriteLine("PASS complete city, safety/ledgers, cold continuation; exact pre-rebuild index oracles="+oracles);}
+ static void UnorderedLoad()
+ {
+  var data=CityRoadCoreFixtures.Create(120,true).Snapshot();data.vehicles.Reverse();var w=new World(data);
+  for(int i=0;i<800;i++){
+   w.Step();
+#if INCREMENTAL_INDEX_TEST
+   if(i%13==12){w.AssertIncrementalIndex();oracles++;}
+#endif
+   if(i%100==99){
+#if INCREMENTAL_INDEX_TEST
+    w.AssertIncrementalIndex();oracles++;
+#endif
+    w.AssertSafety();rows.Add(string.Join(",","unordered-load",w.Clock, w.ActiveCount,Hash(SaveCodec.Write(w))));
+   }
+  }
+ }
+ static void Main(string[] args){Directory.CreateDirectory(args[1]);Run("commute",CityCoreIndustrySession.Create(),6000,1);Run("edits",CityCoreIndustrySession.Create(),1200,1);Run("30000",CityCoreSave.Read(File.ReadAllBytes(args[0])),int.Parse(args[2]),127);UnorderedLoad();File.WriteAllLines(Path.Combine(args[1],"states.csv"),rows);Console.WriteLine("PASS complete city, safety/ledgers, cold continuation and reversed vehicle order; exact pre-rebuild index oracles="+oracles);}
 }

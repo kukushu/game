@@ -12,6 +12,11 @@ namespace HarborCity.RoadCore
         readonly HashSet<List<LaneOccupant>> dirtyOccupancyBuckets=new HashSet<List<LaneOccupant>>();
 
         internal void InvalidateOccupantState(){indexDirty=true;fullIndexRequired=true;}
+        void PruneMotionOrder()
+        {
+            int retained=0;for(int i=0;i<motionOrder.Count;i++)if(motionOrder[i].status!=VehicleStatus.Delivered)motionOrder[retained++]=motionOrder[i];
+            if(retained<motionOrder.Count)motionOrder.RemoveRange(retained,motionOrder.Count-retained);
+        }
         void TrackMovedOccupant(Vehicle v)
         {
             if(v.indexedLane!=v.Current||v.sourceOccupant.distance!=v.distance||v.indexedShadow!=v.changeTarget)
@@ -101,7 +106,9 @@ namespace HarborCity.RoadCore
         // No hashing/tolerances; retain occupant identity, exact distance and claims.
         internal void AssertIncrementalIndex()
         {
-            EnsureIndex();var before=new Dictionary<long,List<(LaneOccupant occupant,double distance)>>();
+            EnsureIndex();if(motionOrder.Count!=data.vehicles.Count)throw new InvalidOperationException("Motion ordering membership differs");
+            int previous=0;foreach(var actor in motionOrder){if(actor.id<=previous||!vehiclesById.TryGetValue(actor.id,out var owned)||!ReferenceEquals(actor,owned))throw new InvalidOperationException("Motion ID ordering differs");previous=actor.id;}
+            var before=new Dictionary<long,List<(LaneOccupant occupant,double distance)>>();
             foreach(var pair in occupancy)if(pair.Value.Count>0)
             {
                 var list=new List<(LaneOccupant,double)>();foreach(var item in pair.Value)list.Add((item,item.distance));before.Add(pair.Key,list);

@@ -18,6 +18,8 @@ namespace HarborCity.RoadCore
     {
         internal readonly LaneOccupant sourceOccupant,shadowOccupant;
         [NonSerialized] internal World indexOwner;
+        [NonSerialized] internal double snapshotLimit;
+        [NonSerialized] internal long snapshotEpoch;
         [NonSerialized] internal long indexedLane,indexedShadow; // World-owned derived membership; never saved.
         public Vehicle(){sourceOccupant=new LaneOccupant(this,0);shadowOccupant=new LaneOccupant(this,0,true);}
         public int id {get;internal set;}
@@ -136,10 +138,11 @@ namespace HarborCity.RoadCore
         readonly bool constructionDraft;
         readonly Dictionary<long,double> entries=new Dictionary<long,double>(CityRoadKeyComparer.Instance);
         readonly List<Intent> intents=new List<Intent>();
+        readonly List<Vehicle> motionOrder=new List<Vehicle>();long motionEpoch;
         struct Intent { public Vehicle vehicle;public long drivable;public int cursor;public double distance,limit; }
         internal struct Remap { public Vehicle vehicle;public List<long> route;public int cursor;public double distance,arrival; }
-        sealed class IntentOrder:IComparer<Intent>
-        {public static readonly IntentOrder Instance=new IntentOrder();public int Compare(Intent a,Intent b)=>a.vehicle.id.CompareTo(b.vehicle.id);}
+        sealed class VehicleIdOrder:IComparer<Vehicle>
+        {public static readonly VehicleIdOrder Instance=new VehicleIdOrder();public int Compare(Vehicle a,Vehicle b)=>a.id.CompareTo(b.id);}
 #if UNITY_5_3_OR_NEWER
         static readonly ProfilerMarker stepSample=new ProfilerMarker("City.RoadCore.Step"),indexSample=new ProfilerMarker("City.RoadCore.Occupancy"),intentSample=new ProfilerMarker("City.RoadCore.IntentAndReservations"),commitSample=new ProfilerMarker("City.RoadCore.CommitAndSettlement");
         static readonly ProfilerMarker clearIndexSample=new ProfilerMarker("City.RoadCore.Occupancy.Clear"),actorsIndexSample=new ProfilerMarker("City.RoadCore.Occupancy.Actors"),sortIndexSample=new ProfilerMarker("City.RoadCore.Occupancy.Sort");
@@ -158,7 +161,7 @@ namespace HarborCity.RoadCore
             data=state; // Take ownership of a private copy, never the caller's mutable save DTO.
             timeline=clock??new SimulationClock(state.standaloneClock);data=owned?state:Snapshot();if(endpoints!=null)data.availableEndpoints=new List<int>(endpoints);arrivalsView=arrivals.AsReadOnly();foreach(int endpoint in data.availableEndpoints)if(endpoint<=0||!availableEndpoints.Add(endpoint))throw new ArgumentException("Duplicate/invalid endpoint");vehicleView=data.vehicles.AsReadOnly();taskView=data.tasks.AsReadOnly();foreach(var t in data.tasks)tasksById.Add(t.id,t);depotView=data.depots.AsReadOnly();foreach(var depot in data.depots)depotsById.Add(depot.id,depot);
             if(data.externalBusiness&&data.depots.Count!=0)throw new ArgumentException("External city cannot contain duplicate fixture inventories");foreach(var access in data.accesses)accesses.Add(access.endpoint,access);
-            foreach(var vehicle in data.vehicles){vehicle.indexOwner=this;vehiclesById.Add(vehicle.id,vehicle);vehiclesByTask.Add(vehicle.Task.id,vehicle);}business=data.externalBusiness?null:new DepotBusiness(depotsById);Network=prepared??new Network(data.network);Validate();AssertSafety();
+            foreach(var vehicle in data.vehicles){vehicle.indexOwner=this;vehiclesById.Add(vehicle.id,vehicle);vehiclesByTask.Add(vehicle.Task.id,vehicle);}business=data.externalBusiness?null:new DepotBusiness(depotsById);motionOrder.AddRange(data.vehicles);motionOrder.Sort(VehicleIdOrder.Instance);Network=prepared??new Network(data.network);Validate();AssertSafety();
         }
         // Only serializers may receive this copy; callers cannot mutate the live facts.
         public WorldData Snapshot()
@@ -487,7 +490,7 @@ namespace HarborCity.RoadCore
         }
         internal Vehicle CommitAdmission(TransportAdmission admission)
         {
-            CheckAdmission(admission);var v=admission.vehicle;v.indexOwner=this;data.nextVehicle++;data.nextTask++;data.tasks.Add(v.Task);tasksById.Add(v.Task.id,v.Task);vehiclesByTask.Add(v.Task.id,v);data.vehicles.Add(v);vehiclesById.Add(v.id,v);ActiveCount++;EditEpoch++;IndexDeparture(v);return v;
+            CheckAdmission(admission);var v=admission.vehicle;v.indexOwner=this;data.nextVehicle++;data.nextTask++;data.tasks.Add(v.Task);tasksById.Add(v.Task.id,v.Task);vehiclesByTask.Add(v.Task.id,v);data.vehicles.Add(v);motionOrder.Add(v);vehiclesById.Add(v.id,v);ActiveCount++;EditEpoch++;IndexDeparture(v);return v;
         }
         void IndexDeparture(Vehicle v)
         {
@@ -688,7 +691,7 @@ namespace HarborCity.RoadCore
                 // committed births maintain its sorted buckets and claims.
                 if(indexDirty)EnsureIndex();
                 if(Network.HasParallelLanes)EditEpoch+=LaneChanges.Choose(Network,data.vehicles,occupancy,(int)(timeline.Tick%int.MaxValue));
-                entries.Clear();intents.Clear();
+                entries.Clear();intents.Clear();motionEpoch++;
 #if UNITY_5_3_OR_NEWER
                 using(intentSample.Auto())
 #endif
@@ -702,10 +705,17 @@ namespace HarborCity.RoadCore
                             var occupant=bucket[i];var v=occupant.vehicle;if(occupant.shadow||v.status!=VehicleStatus.Active)continue;
                             double limit=i>0?bucket[i-1].distance-MinimumSpacing:double.PositiveInfinity;
                             if(v.changeTarget!=0){var lane=Network.Get(v.Current);var target=Network.Get(v.changeTarget);double projected=lane.Geometry.MapDistance(target.Geometry,v.distance);var shadows=occupancy[v.changeTarget];int slot=InsertionSlot(shadows,projected);if(slot>0)limit=Math.Min(limit,target.Geometry.MapDistance(lane.Geometry,Math.Max(0,shadows[slot-1].distance-MinimumSpacing)));limit=Math.Min(limit,lane.EndDistance);}
-                            intents.Add(new Intent{vehicle=v,drivable=v.Current,cursor=v.cursor,distance=v.distance,limit=limit});
+                            v.snapshotLimit=limit;v.snapshotEpoch=motionEpoch;
                         }
                     }
-                    intents.Sort(IntentOrder.Instance);
+                    // Stable ID order is derived once at load, appended on birth and
+                    // compacted on retirement. All following limits were captured
+                    // before any intent is advanced, as in the original algorithm.
+                    foreach(var v in motionOrder)if(v.status==VehicleStatus.Active)
+                    {
+                        if(v.snapshotEpoch!=motionEpoch)throw new InvalidOperationException("Active vehicle missing from occupancy snapshot");
+                        intents.Add(new Intent{vehicle=v,drivable=v.Current,cursor=v.cursor,distance=v.distance,limit=v.snapshotLimit});
+                    }
                     for(int index=0;index<intents.Count;index++)
                     {
                             var intent=intents[index];var v=intent.vehicle;long drivable=intent.drivable;int cursor=intent.cursor;double distance=intent.distance,time=StepSeconds,limit=intent.limit;
@@ -772,7 +782,7 @@ namespace HarborCity.RoadCore
         internal void AcknowledgeArrival(int id)
         {var v=FindVehicle(id);if(v==null||v.status!=VehicleStatus.Active||v.cursor!=v.Plan.segments.Count-1||v.distance<EndDistance(v,Network.Get(v.Current))-1e-9)throw new InvalidOperationException("Cannot acknowledge non-arrival");data.delivered+=v.Task.Cargo;if(v.Task.Shipment!=null)v.Task.Shipment.remaining=0;v.Task.state=TripState.Completed;v.status=VehicleStatus.Delivered;ActiveCount--;RemoveIndexedOccupant(v);indexDirty=true;}
         internal void RetireCompleted()
-        {int retained=0;for(int i=0;i<data.vehicles.Count;i++)if(data.vehicles[i].status!=VehicleStatus.Delivered)data.vehicles[retained++]=data.vehicles[i];else {var actor=data.vehicles[i];actor.indexOwner=null;vehiclesById.Remove(actor.id);tasksById.Remove(actor.Task.id);vehiclesByTask.Remove(actor.Task.id);}if(retained<data.vehicles.Count)data.vehicles.RemoveRange(retained,data.vehicles.Count-retained);data.tasks.RemoveAll(CompletedTask);arrivals.Clear();}
+        {int retained=0;for(int i=0;i<data.vehicles.Count;i++)if(data.vehicles[i].status!=VehicleStatus.Delivered)data.vehicles[retained++]=data.vehicles[i];else {var actor=data.vehicles[i];actor.indexOwner=null;vehiclesById.Remove(actor.id);tasksById.Remove(actor.Task.id);vehiclesByTask.Remove(actor.Task.id);}if(retained<data.vehicles.Count){data.vehicles.RemoveRange(retained,data.vehicles.Count-retained);PruneMotionOrder();}data.tasks.RemoveAll(CompletedTask);arrivals.Clear();}
         public int SplitRoad(int roadId,int sample)
         {
             return SplitCandidate(CopyNetwork(),roadId,sample);
