@@ -79,6 +79,10 @@ if variant=='growth':
     v=v.replace('            RefreshStatistics();','            using(GrowthBoundaryProbe.Measure(GrowthBoundaryProbe.Part.Statistics)){RefreshStatistics();}')
     v=v.replace('city.DevelopmentDemand();var candidates=Zoning.Cells();','using(GrowthBoundaryProbe.Measure(GrowthBoundaryProbe.Part.Demand)){city.DevelopmentDemand();}var cellDetail=GrowthBoundaryProbe.Measure(GrowthBoundaryProbe.Part.Cells);var candidates=Zoning.Cells();cellDetail.Dispose();using var searchDetail=GrowthBoundaryProbe.Measure(GrowthBoundaryProbe.Part.Search);')
     v=v.replace('var size=CityModel.GrowthFootprints[','GrowthBoundaryProbe.Size();var size=CityModel.GrowthFootprints[').replace('candidates.Where(c=>c.row==0&&c.available&&c.use==use)','candidates.Where(c=>GrowthBoundaryProbe.Candidate(c,use))')
+    if 'startsByUse' in v:
+        needle='if(cell.row==0&&cell.available&&startsByUse.TryGetValue(cell.use,out var group))group.Add(cell);'
+        assert needle in v
+        v=v.replace(needle,'if(GrowthBoundaryProbe.Frontage(cell)&&startsByUse.TryGetValue(cell.use,out var group)){GrowthBoundaryProbe.Matched();group.Add(cell);}')
     g.write_text(v,encoding='utf-8')
     for file,methods in [('CityCoreZoningGeometry.cs', [('internal ZoneCell[] GrowthFootprint(', 'Footprint'),('internal bool OverlapsOtherPlot(', 'Overlap')]),('CityCoreZoning.cs',[('internal bool CanPlace(', 'CanPlace'),('internal SpatialHit? Entrance(', 'Entrance')])]:
         g=project/'Assets/Scripts/Runtime/Infrastructure/Zoning'/file;v=g.read_text(encoding='utf-8-sig')

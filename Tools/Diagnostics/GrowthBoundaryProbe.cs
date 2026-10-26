@@ -9,6 +9,8 @@ namespace HarborCity {
   internal static Scope Begin(long tick){current=enabled?(int)(tick-startTick):-1;return new Scope(Part.Whole);}
   internal static Scope Measure(Part p)=>new Scope(p);
   internal static void Size(){if(enabled)counts[current,4]++;}
+  internal static bool Frontage(ZoneCell cell){if(enabled)counts[current,0]++;if(cell.row!=0)return false;if(enabled)counts[current,1]++;if(!cell.available)return false;if(enabled)counts[current,2]++;return true;}
+  internal static void Matched(){if(enabled)counts[current,3]++;}
   internal static bool Candidate(ZoneCell cell,LandUse use){if(enabled)counts[current,0]++;if(cell.row!=0)return false;if(enabled)counts[current,1]++;if(!cell.available)return false;if(enabled)counts[current,2]++;if(cell.use!=use)return false;if(enabled)counts[current,3]++;return true;}
   internal static void Write(string output){if(!enabled)return;enabled=false;var rows=new System.Collections.Generic.List<string>{"tick,phase,calls,diagnostic_ms,filter_checks,row0_checks,row0_available,matching_starts,size_attempts"};for(int i=0;i<calls.GetLength(0);i++)if(calls[i,0]>0)for(int j=0;j<9;j++)rows.Add(string.Join(",",startTick+i+1,(Part)j,calls[i,j],(ticks[i,j]*1000.0/Stopwatch.Frequency).ToString("R",CultureInfo.InvariantCulture),counts[i,0],counts[i,1],counts[i,2],counts[i,3],counts[i,4]));File.WriteAllLines(Path.Combine(output,"growth-counts.csv"),rows);}
  }
