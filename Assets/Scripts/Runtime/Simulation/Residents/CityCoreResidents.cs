@@ -89,12 +89,16 @@ namespace HarborCity
             float minute=city.ResidentMinute;
             foreach(var member in entities.Members)
             {
-                var p=member.Person;var h=member.Family;if(!h.resident||p.dead||p.tripId!=0||transport.Clock<p.retryAt||transport.Clock<p.visitUntil)continue;float shift=entities.Employment.ShiftStart(p.id,city.development.enabled&&city.GetBuilding(city.Workplace(p)) is CommercialBuilding),end=shift+entities.Employment.ShiftMinutes;
-                bool returning=p.location!=h.home&&(!p.atWork||p.sick||city.Workplace(p)!=p.location||p.arrivedDay<city.day||minute>=end||!city.JobFunded(city.ResidentJob(p)));
-                bool eligible=!p.atWork&&p.location==h.home&&p.departureDay!=city.day&&city.CanAttendWork(p)&&city.JobFunded(city.ResidentJob(p));double estimate=eligible?EstimateCommute(p.id,h.home,city.Workplace(p))*1440/city.society.settings.secondsPerDay:double.PositiveInfinity;
-                if(p.observedHome==h.home&&p.observedWork==city.Workplace(p)&&p.observedRevision==transport.NetworkGeneration)estimate=Math.Max(estimate,p.lastCommute);
+                var p=member.Person;var h=member.Family;if(!h.resident||p.dead||p.tripId!=0||transport.Clock<p.retryAt||transport.Clock<p.visitUntil)continue;
+                // Dispatch cannot change this resident's job or workplace. Keep the
+                // read scoped to this iteration; funds and admission stay live.
+                var job=city.ResidentJob(p);int workplace=job?.buildingId??-1;
+                float shift=entities.Employment.ShiftStart(p.id,city.development.enabled&&city.GetBuilding(workplace) is CommercialBuilding),end=shift+entities.Employment.ShiftMinutes;
+                bool returning=p.location!=h.home&&(!p.atWork||p.sick||workplace!=p.location||p.arrivedDay<city.day||minute>=end||!city.JobFunded(job));
+                bool eligible=!p.atWork&&p.location==h.home&&p.departureDay!=city.day&&city.CanAttendWork(p)&&city.JobFunded(job);double estimate=eligible?EstimateCommute(p.id,h.home,workplace)*1440/city.society.settings.secondsPerDay:double.PositiveInfinity;
+                if(p.observedHome==h.home&&p.observedWork==workplace&&p.observedRevision==transport.NetworkGeneration)estimate=Math.Max(estimate,p.lastCommute);
                 bool leaving=eligible&&!double.IsInfinity(estimate)&&minute>=Math.Max(0,shift-estimate)&&minute<end;
-                if(!returning&&!leaving)continue;p.retryAt=(float)(transport.Clock+.25);RequestCommute(p.id,returning?p.location:h.home,returning?h.home:city.Workplace(p),returning);
+                if(!returning&&!leaving)continue;p.retryAt=(float)(transport.Clock+.25);RequestCommute(p.id,returning?p.location:h.home,returning?h.home:workplace,returning);
             }
         }
         public ResidentActivity Observe(int citizen)

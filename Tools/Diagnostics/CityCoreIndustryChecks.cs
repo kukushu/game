@@ -39,7 +39,7 @@ public static class CityCoreIndustryChecks
         var busy=CityCoreIndustrySession.Create(startAtWork:true);busy.Advance(2);var busySave=CityCoreSave.Write(busy);bool refused=false;try{busy.CloseBuilding(2);}catch(CityRuleException){refused=true;}Check(refused&&busySave.SequenceEqual(CityCoreSave.Write(busy)),"Busy destination closure mutated cargo/business");refused=false;try{busy.CloseBuilding(1);}catch(CityRuleException){refused=true;}Check(refused&&busySave.SequenceEqual(CityCoreSave.Write(busy)),"Busy employer closure mutated attendance/payroll");
         var closed=CityCoreIndustrySession.Create();double companyCash=closed.City.Factory(1).cash;closed.CloseBuilding(1);var closedLoad=CityCoreSave.Read(CityCoreSave.Write(closed));closedLoad.Advance(.1);Check(closedLoad.SnapshotBusiness().retiredBuildings[0].industrial[0].cash==companyCash,"Closed idle business finance lost on load");closedLoad.Validate();
         var editing=CityCoreIndustrySession.Create(startAtWork:true);editing.Advance(2);var moving=editing.Transport.Vehicles.First();Point exact=editing.Transport.Position(moving);editing.Transport.SplitRoadAt(1,12.75);editing.Transport.SplitRoadAt(2,20.25);Check(Point.Distance(exact,editing.Transport.Position(moving))<1e-8,"Industrial access edits moved vehicle");var editingLoad=CityCoreSave.Read(CityCoreSave.Write(editing));for(int i=0;i<240;i++){editing.Advance(.05);editingLoad.Advance(.05);}editing.Validate();Check(editing.Transport.Delivered>0&&Convert.ToBase64String(CityCoreSave.Write(editing))==Convert.ToBase64String(CityCoreSave.Write(editingLoad)),"Industry split-access delivery/save failed");
-        ResidentTests();R1Tests();
+        ResidentTests();ResidentRequestReadTests();R1Tests();
         Console.WriteLine("PASS "+checks+" integrated industry/resident checks; original labour/inventory/finance, real RoadCore commuting, exact new city save, interruption and full unloading.");
         if(args.Length>0)
         {
@@ -58,6 +58,26 @@ public static class CityCoreIndustryChecks
         var blocked=CityCoreIndustrySession.Create();blocked.Transport.RemoveRoad(1);blocked.Advance(3);Check(blocked.Transport.ActiveCount==0&&blocked.City.Factory(1).produced==0&&blocked.City.Citizens.All(p=>p.location==3&&!p.atWork),"Broken commute still produced labour");
         var interrupted=CityCoreIndustrySession.Create();interrupted.Advance(.05);var rider=interrupted.City.Citizens.First(p=>p.tripId>0);var car=interrupted.Transport.FindTaskVehicle(rider.tripId);Point before=interrupted.Transport.Position(car);interrupted.Transport.RemoveRoad(1);interrupted.Advance(.05);interrupted.Validate();Check(car.status==VehicleStatus.AwaitingRestart&&rider.tripId==car.Task.id&&rider.location==-1&&!rider.atWork&&Point.Distance(before,interrupted.Transport.Position(car))<1e-7,"Cut road lost/teleported commuting citizen");CityCoreSave.Read(CityCoreSave.Write(interrupted)).Validate();
         interrupted.Transport.AddRoad(1,2,new[]{interrupted.Transport.JunctionPosition(1),new Point(-18,0,0),interrupted.Transport.JunctionPosition(2)},lanes:2);for(int k=0;k<21&&car.status!=VehicleStatus.Active;k++)interrupted.Advance(.05);Check(car.status==VehicleStatus.Active&&car.Task.citizenId==rider.id&&rider.tripId==car.Task.id&&car.distance<7,"Repaired road did not restart the same task at its legal source");interrupted.Advance(6);interrupted.Validate();Check(rider.atWork&&interrupted.City.Factory(1).produced>0,"Recovered commute did not resume actual labour");
+    }
+    static void ResidentRequestReadTests()
+    {
+        var s=CityCoreIndustrySession.Create();var city=s.City;var people=city.Citizens.ToArray();var p=people[0];var next=people[1];int firstJob=p.jobId,nextJob=next.jobId;double cash=city.Factory(1).cash;
+        var calls=new System.Collections.Generic.List<(int citizen,int origin,int destination,bool returning)>();
+        s.Residents.RequestCommute=(citizen,origin,destination,returning)=>{calls.Add((citizen,origin,destination,returning));return null;};
+        Action run=()=>{calls.Clear();foreach(var person in people)person.retryAt=0;s.Residents.AdvanceRequests();};
+        run();Check(calls.Any(c=>c.citizen==p.id&&!c.returning&&c.destination==1),"Initial funded job did not request work");
+        city.ReleaseJob(p);run();Check(!calls.Any(c=>c.citizen==p.id),"Removed job survived an iteration-local read");
+        Check(city.AssignJob(p,firstJob),"Fixture could not restore job");run();Check(calls.Any(c=>c.citizen==p.id),"New job was not visible next request pass");
+        city.Factory(1).cash=0;run();Check(!calls.Any(c=>c.citizen==p.id),"Unfunded employer used stale eligibility");city.Factory(1).cash=cash;
+        p.visitUntil=s.Transport.Clock+1;run();Check(!calls.Any(c=>c.citizen==p.id),"Visit delay was ignored");p.visitUntil=0;
+        p.canWork=false;run();Check(!calls.Any(c=>c.citizen==p.id),"Cannot-work resident departed");p.canWork=true;
+        p.dead=true;run();Check(!calls.Any(c=>c.citizen==p.id),"Dead resident departed");p.dead=false;
+        p.atWork=true;p.location=1;p.arrivedDay=city.day;p.sick=true;run();Check(calls.Any(c=>c.citizen==p.id&&c.returning&&c.origin==1&&c.destination==3),"Sick worker did not request home");p.sick=false;
+        city.ReleaseJob(p);run();Check(calls.Any(c=>c.citizen==p.id&&c.returning),"Lost workplace did not request home");p.atWork=false;p.location=3;Check(city.AssignJob(p,firstJob),"Fixture job restore after return failed");
+        // A dispatch callback may change a later resident's assignment. The next
+        // iteration must observe it; no pass-wide or cross-step job cache is valid.
+        s.Residents.RequestCommute=(citizen,origin,destination,returning)=>{calls.Add((citizen,origin,destination,returning));if(citizen==p.id)city.ReleaseJob(next);return null;};
+        run();Check(!calls.Any(c=>c.citizen==next.id),"Read reuse leaked across residents");Check(next.jobId==-1&&city.Job(nextJob).occupiedCitizenId==-1,"Later resident job release was lost");
     }
     static CommercialBuilding AsShop(this CityBuilding b)=>(CommercialBuilding)b;
     static void RoadPreviewTests()
