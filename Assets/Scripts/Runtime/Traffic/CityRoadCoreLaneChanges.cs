@@ -25,7 +25,7 @@ namespace HarborCity.RoadCore
             var other=network.Get(target);double d=lane.Geometry.MapDistance(other.Geometry,v.distance);List<LaneOccupant> bucket;
             if(occupancy.TryGetValue(target,out bucket)){int slot=Slot(bucket,d);double gap=World.MinimumSpacing+lane.Speed*World.StepSeconds;if(slot>0&&bucket[slot-1].distance-d<gap||slot<bucket.Count&&d-bucket[slot].distance<gap)return false;}
             else occupancy.Add(target,bucket=new List<LaneOccupant>());
-            v.changeTarget=target;v.changeElapsed=0;v.shadowOccupant.distance=d;bucket.Insert(Slot(bucket,d),v.shadowOccupant);return true;
+            v.changeTarget=target;v.changeElapsed=0;v.shadowOccupant.distance=d;bucket.Insert(Slot(bucket,d),v.shadowOccupant);v.indexedShadow=target;return true;
         }
         public static int Choose(Network network,IEnumerable<Vehicle> vehicles,Dictionary<long,List<LaneOccupant>> occupancy,int tick)
         {

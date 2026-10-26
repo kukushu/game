@@ -17,6 +17,8 @@ namespace HarborCity.RoadCore
     [Serializable] public sealed class Vehicle
     {
         internal readonly LaneOccupant sourceOccupant,shadowOccupant;
+        [NonSerialized] internal World indexOwner;
+        [NonSerialized] internal long indexedLane,indexedShadow; // World-owned derived membership; never saved.
         public Vehicle(){sourceOccupant=new LaneOccupant(this,0);shadowOccupant=new LaneOccupant(this,0,true);}
         public int id {get;internal set;}
         public TripTask Task {get;internal set;}
@@ -37,7 +39,7 @@ namespace HarborCity.RoadCore
             if(Plan==null||navigationCursor<0||navigationCursor>=Plan.segments.Count||Plan.segments[navigationCursor]!=drivable)throw new ArgumentException("Navigation does not match physical drivable");
             Position.Commit(drivable,distance,status==VehicleStatus.Stranded||status==VehicleStatus.AwaitingRestart);cursor=navigationCursor;
         }
-        internal void Freeze(Point point){Position.Freeze(point);status=VehicleStatus.Stranded;}
+        internal void Freeze(Point point){Position.Freeze(point);status=VehicleStatus.Stranded;indexOwner?.InvalidateOccupantState();}
     }
     [Serializable] public sealed class WorldData
     {
@@ -52,7 +54,7 @@ namespace HarborCity.RoadCore
         public List<Vehicle> vehicles=new List<Vehicle>();
         public List<RoadAccess> accesses=new List<RoadAccess>();
     }
-    public sealed class World
+    public sealed partial class World
     {
         public const double StepSeconds=SimulationClock.StepSeconds,MinimumSpacing=1.5;
         readonly WorldData data;
@@ -156,7 +158,7 @@ namespace HarborCity.RoadCore
             data=state; // Take ownership of a private copy, never the caller's mutable save DTO.
             timeline=clock??new SimulationClock(state.standaloneClock);data=owned?state:Snapshot();if(endpoints!=null)data.availableEndpoints=new List<int>(endpoints);arrivalsView=arrivals.AsReadOnly();foreach(int endpoint in data.availableEndpoints)if(endpoint<=0||!availableEndpoints.Add(endpoint))throw new ArgumentException("Duplicate/invalid endpoint");vehicleView=data.vehicles.AsReadOnly();taskView=data.tasks.AsReadOnly();foreach(var t in data.tasks)tasksById.Add(t.id,t);depotView=data.depots.AsReadOnly();foreach(var depot in data.depots)depotsById.Add(depot.id,depot);
             if(data.externalBusiness&&data.depots.Count!=0)throw new ArgumentException("External city cannot contain duplicate fixture inventories");foreach(var access in data.accesses)accesses.Add(access.endpoint,access);
-            foreach(var vehicle in data.vehicles){vehiclesById.Add(vehicle.id,vehicle);vehiclesByTask.Add(vehicle.Task.id,vehicle);}business=data.externalBusiness?null:new DepotBusiness(depotsById);Network=prepared??new Network(data.network);Validate();AssertSafety();
+            foreach(var vehicle in data.vehicles){vehicle.indexOwner=this;vehiclesById.Add(vehicle.id,vehicle);vehiclesByTask.Add(vehicle.Task.id,vehicle);}business=data.externalBusiness?null:new DepotBusiness(depotsById);Network=prepared??new Network(data.network);Validate();AssertSafety();
         }
         // Only serializers may receive this copy; callers cannot mutate the live facts.
         public WorldData Snapshot()
@@ -476,7 +478,7 @@ namespace HarborCity.RoadCore
             // a different route just because its departure lane happens to be free.
             if(purpose==TransportPurpose.Service&&source!=null&&target!=null&&ServiceSourceBlocked(source,target)){rejection=TransportRejection.SourceOccupied;return false;}
             blueprint=purpose==TransportPurpose.Service&&source!=null&&target!=null?ServiceBlueprint(origin,destination,source,target):dispatchRoutes.Get(Network,origin,destination,source,target,purpose!=TransportPurpose.Freight,business as IJunctionEndpointProvider);var route=blueprint.route;double start=blueprint.start,end=blueprint.end;if(route==null||route.Length==0){rejection=TransportRejection.NoRoute;return false;}
-            if(indexDirty)Reindex();List<LaneOccupant> bucket;
+            if(indexDirty)EnsureIndex();List<LaneOccupant> bucket;
             if(occupancy.TryGetValue(route[0],out bucket)){int slot=InsertionSlot(bucket,start);if(slot>0&&bucket[slot-1].distance-start<MinimumSpacing||slot<bucket.Count&&start-bucket[slot].distance<MinimumSpacing){rejection=TransportRejection.SourceOccupied;return false;}}
             var entry=Network.Get(route[0]);int reservation=start<EntryReservationEnd(entry)-1e-9?entry.From:start>StopDistance(entry)+1e-9?entry.To:0;
             long spawnMovement=reservation==entry.To&&route.Length>1?route[1]:0;
@@ -485,7 +487,7 @@ namespace HarborCity.RoadCore
         }
         internal Vehicle CommitAdmission(TransportAdmission admission)
         {
-            CheckAdmission(admission);var v=admission.vehicle;data.nextVehicle++;data.nextTask++;data.tasks.Add(v.Task);tasksById.Add(v.Task.id,v.Task);vehiclesByTask.Add(v.Task.id,v);data.vehicles.Add(v);vehiclesById.Add(v.id,v);ActiveCount++;EditEpoch++;IndexDeparture(v);return v;
+            CheckAdmission(admission);var v=admission.vehicle;v.indexOwner=this;data.nextVehicle++;data.nextTask++;data.tasks.Add(v.Task);tasksById.Add(v.Task.id,v.Task);vehiclesByTask.Add(v.Task.id,v);data.vehicles.Add(v);vehiclesById.Add(v.id,v);ActiveCount++;EditEpoch++;IndexDeparture(v);return v;
         }
         void IndexDeparture(Vehicle v)
         {
@@ -493,7 +495,7 @@ namespace HarborCity.RoadCore
             int reservation=start<EntryReservationEnd(entry)-1e-9?entry.From:start>StopDistance(entry)+1e-9?entry.To:0;
             long movement=reservation==entry.To&&v.Plan.segments.Count>1?v.Plan.segments[1]:0;
             if(!occupancy.TryGetValue(v.Current,out var bucket))occupancy.Add(v.Current,bucket=new List<LaneOccupant>());
-            v.sourceOccupant.distance=start;bucket.Insert(InsertionSlot(bucket,start),v.sourceOccupant);
+            v.sourceOccupant.distance=start;bucket.Insert(InsertionSlot(bucket,start),v.sourceOccupant);v.indexedLane=v.Current;v.indexedShadow=0;
             if(Network.IsConflictJunction(reservation))reservations.Reserve(reservation,movement,v.id);
         }
         // Pending actors are off-road tasks, never obstacles on deleted pavement.
@@ -501,7 +503,7 @@ namespace HarborCity.RoadCore
         internal int RestartDemolishedDepartures()
         {
             if(awaitingRestarts==0||timeline.Tick%20!=0)return 0;
-            if(indexDirty)Reindex();int resumed=0;
+            if(indexDirty)EnsureIndex();int resumed=0;
             foreach(var v in data.vehicles)
             {
                 if(v.status!=VehicleStatus.AwaitingRestart||v.Task.purpose==TransportPurpose.Service)continue;
@@ -525,7 +527,7 @@ namespace HarborCity.RoadCore
             CheckDemolishedService(vehicle,task);if(delivered<0)throw new ArgumentOutOfRangeException(nameof(delivered));var v=FindVehicle(vehicle);
             data.delivered+=delivered;if(v.Task.Shipment!=null)v.Task.Shipment.remaining=0;
             v.Task.state=TripState.Completed;v.status=VehicleStatus.Delivered;
-            awaitingRestarts--;lostOccupancy.Forget(v.id);EditEpoch++;indexDirty=true;
+            awaitingRestarts--;lostOccupancy.Forget(v.id);RemoveIndexedOccupant(v);EditEpoch++;indexDirty=true;
         }
         internal void CheckAdmission(TransportAdmission admission)
         {if(admission==null||admission.owner!=this||admission.epoch!=EditEpoch||admission.vehicle.id!=data.nextVehicle||admission.vehicle.Task.id!=data.nextTask)throw new InvalidOperationException("Stale transport admission");}
@@ -538,7 +540,7 @@ namespace HarborCity.RoadCore
         static int InsertionSlot(List<LaneOccupant> bucket,double position){int lo=0,hi=bucket.Count;while(lo<hi){int mid=(lo+hi)/2;if(bucket[mid].distance>position)lo=mid+1;else hi=mid;}return lo;}
         internal bool FreightSourceBlocked(int origin)
         {
-            var source=GetAccess(origin);if(source==null||!source.valid)return false;if(indexDirty)Reindex();
+            var source=GetAccess(origin);if(source==null||!source.valid)return false;if(indexDirty)EnsureIndex();
             if(!occupancy.TryGetValue(source.lane,out var bucket))return false;int slot=InsertionSlot(bucket,source.distance);
             return slot>0&&bucket[slot-1].distance-source.distance<MinimumSpacing||slot<bucket.Count&&source.distance-bucket[slot].distance<MinimumSpacing;
         }
@@ -555,7 +557,7 @@ namespace HarborCity.RoadCore
         }
         bool ServiceSourceBlocked(RoadAccess source,RoadAccess target)
         {
-            if(indexDirty)Reindex();bool first=SpawnBlocked(source.lane,source.distance);
+            if(indexDirty)EnsureIndex();bool first=SpawnBlocked(source.lane,source.distance);
             var lane=Network.Get(source.lane);long opposite=Network.LaneId(lane.RoadId,!lane.Reverse,lane.LaneIndex);bool hasOther=Network.Contains(opposite);
             double otherDistance=hasOther?lane.Geometry.MapReverseDistance(Network.Get(opposite).Geometry,source.distance):0;
             bool second=!hasOther||SpawnBlocked(opposite,otherDistance);
@@ -580,7 +582,7 @@ namespace HarborCity.RoadCore
         long RemappedChangeTarget(Vehicle v,Network candidate,long current)
         {if(v.changeTarget==0)return 0;var lane=candidate.Get(current);var old=Network.Get(v.changeTarget);long target=Network.LaneId(lane.RoadId,lane.Reverse,old.LaneIndex);if(lane.IsConnection||!candidate.Contains(target))throw new InvalidOperationException("Construction removes a changing lane; retry after the maneuver completes");return target;}
         public bool TryChangeLane(int vehicleId,int targetIndex)
-        {Vehicle v;if(!vehiclesById.TryGetValue(vehicleId,out v))return false;if(indexDirty)Reindex();if(!LaneChanges.TryStart(Network,occupancy,v,targetIndex))return false;EditEpoch++;return true;}
+        {Vehicle v;if(!vehiclesById.TryGetValue(vehicleId,out v))return false;if(indexDirty)EnsureIndex();if(!LaneChanges.TryStart(Network,occupancy,v,targetIndex))return false;EditEpoch++;return true;}
         public void RefreshEndpoints()
         {foreach(var v in data.vehicles)if(v.status==VehicleStatus.Active&&(!EndpointExists(v.Task.origin)||!EndpointExists(v.Task.destination))){v.Freeze(Position(v));}EditEpoch++;Reindex();}
         double Clearance(Drivable lane)=>Network.Clearance(lane);
@@ -609,6 +611,7 @@ namespace HarborCity.RoadCore
         }
         void Reindex()
         {
+            FullIndexBuilds++;
 #if UNITY_5_3_OR_NEWER
             using var indexObservation=indexSample.Auto();
 #endif
@@ -633,6 +636,7 @@ namespace HarborCity.RoadCore
             {
                 foreach(var v in data.vehicles)
                 {
+                    v.indexedLane=v.indexedShadow=0;
                     if(v.status==VehicleStatus.Active&&(!EndpointExists(v.Task.origin)||!EndpointExists(v.Task.destination))){v.Freeze(Position(v));}
                     if(v.status==VehicleStatus.AwaitingRestart){awaitingRestarts++;continue;}
                     if(v.status==VehicleStatus.Delivered)continue;
@@ -645,8 +649,8 @@ namespace HarborCity.RoadCore
                         }
                         continue;
                     }
-                    if(v.status==VehicleStatus.Active)ActiveCount++;List<LaneOccupant> b;if(!occupancy.TryGetValue(v.Current,out b))occupancy.Add(v.Current,b=new List<LaneOccupant>());v.sourceOccupant.distance=v.distance;b.Add(v.sourceOccupant);
-                    if(v.changeTarget!=0&&Network.Contains(v.changeTarget)){var target=Network.Get(v.changeTarget);List<LaneOccupant> shadow;if(!occupancy.TryGetValue(target.Id,out shadow))occupancy.Add(target.Id,shadow=new List<LaneOccupant>());v.shadowOccupant.distance=Network.Get(v.Current).Geometry.MapDistance(target.Geometry,v.distance);shadow.Add(v.shadowOccupant);}
+                    if(v.status==VehicleStatus.Active)ActiveCount++;List<LaneOccupant> b;if(!occupancy.TryGetValue(v.Current,out b))occupancy.Add(v.Current,b=new List<LaneOccupant>());v.sourceOccupant.distance=v.distance;b.Add(v.sourceOccupant);v.indexedLane=v.Current;
+                    if(v.changeTarget!=0&&Network.Contains(v.changeTarget)){var target=Network.Get(v.changeTarget);List<LaneOccupant> shadow;if(!occupancy.TryGetValue(target.Id,out shadow))occupancy.Add(target.Id,shadow=new List<LaneOccupant>());v.shadowOccupant.distance=Network.Get(v.Current).Geometry.MapDistance(target.Geometry,v.distance);shadow.Add(v.shadowOccupant);v.indexedShadow=v.changeTarget;}
                     var d=Network.Get(v.Current);int junction=d.JunctionId;
                     // Keep reservation until the body has cleared the outgoing lane.
                     if(junction==0&&v.distance<EntryReservationEnd(d)-1e-9)junction=d.From;
@@ -663,7 +667,7 @@ namespace HarborCity.RoadCore
             {
                 foreach(var b in occupancy.Values)b.Sort(LaneOccupantOrder.Instance);
             }
-            indexDirty=false;
+            indexDirty=false;fullIndexRequired=false;pendingOccupants.Clear();dirtyOccupancyBuckets.Clear();
         }
         public void Step()
         {
@@ -682,7 +686,7 @@ namespace HarborCity.RoadCore
             {
                 // Preparations/edits may already have rebuilt this exact state;
                 // committed births maintain its sorted buckets and claims.
-                if(indexDirty)Reindex();
+                if(indexDirty)EnsureIndex();
                 if(Network.HasParallelLanes)EditEpoch+=LaneChanges.Choose(Network,data.vehicles,occupancy,(int)(timeline.Tick%int.MaxValue));
                 entries.Clear();intents.Clear();
 #if UNITY_5_3_OR_NEWER
@@ -755,7 +759,7 @@ namespace HarborCity.RoadCore
                 {
                     var v=intent.vehicle;v.CommitPosition(intent.drivable,intent.distance,intent.cursor);
                     if(v.changeTarget!=0){v.changeElapsed+=StepSeconds;if(v.changeElapsed>=1-1e-9){var lane=Network.Get(v.Current);var target=Network.Get(v.changeTarget);var route=new List<long>();if(!LaneChanges.Route(Network,v,target.Id,route))throw new InvalidOperationException("Lane-change route became invalid");double mapped=lane.Geometry.MapDistance(target.Geometry,v.distance);v.Plan.segments=route;v.CommitPosition(target.Id,mapped,0);v.changeTarget=0;v.changeElapsed=0;}}
-                    if(v.cursor!=v.Plan.segments.Count-1||v.distance<EndDistance(v,Network.Get(v.Current))-1e-9)continue;
+                    TrackMovedOccupant(v);if(v.cursor!=v.Plan.segments.Count-1||v.distance<EndDistance(v,Network.Get(v.Current))-1e-9)continue;
                     arrivals.Add(new TransportArrival(v,context.End));
                 }
                 EditEpoch++;
@@ -764,11 +768,11 @@ namespace HarborCity.RoadCore
         }
         internal bool EndpointExists(int id)=>data.externalBusiness?availableEndpoints.Contains(id):business.Exists(id);
         internal void SetEndpointAvailable(int id,bool present)
-        {if(!data.externalBusiness)throw new InvalidOperationException("Fixture endpoints are depots");if(present){if(availableEndpoints.Add(id)){data.availableEndpoints.Add(id);indexDirty=true;}}else if(availableEndpoints.Remove(id)){data.availableEndpoints.Remove(id);indexDirty=true;}}
+        {if(!data.externalBusiness)throw new InvalidOperationException("Fixture endpoints are depots");if(present){if(availableEndpoints.Add(id)){data.availableEndpoints.Add(id);indexDirty=true;fullIndexRequired=true;}}else if(availableEndpoints.Remove(id)){data.availableEndpoints.Remove(id);indexDirty=true;fullIndexRequired=true;}}
         internal void AcknowledgeArrival(int id)
-        {var v=FindVehicle(id);if(v==null||v.status!=VehicleStatus.Active||v.cursor!=v.Plan.segments.Count-1||v.distance<EndDistance(v,Network.Get(v.Current))-1e-9)throw new InvalidOperationException("Cannot acknowledge non-arrival");data.delivered+=v.Task.Cargo;if(v.Task.Shipment!=null)v.Task.Shipment.remaining=0;v.Task.state=TripState.Completed;v.status=VehicleStatus.Delivered;ActiveCount--;}
+        {var v=FindVehicle(id);if(v==null||v.status!=VehicleStatus.Active||v.cursor!=v.Plan.segments.Count-1||v.distance<EndDistance(v,Network.Get(v.Current))-1e-9)throw new InvalidOperationException("Cannot acknowledge non-arrival");data.delivered+=v.Task.Cargo;if(v.Task.Shipment!=null)v.Task.Shipment.remaining=0;v.Task.state=TripState.Completed;v.status=VehicleStatus.Delivered;ActiveCount--;RemoveIndexedOccupant(v);indexDirty=true;}
         internal void RetireCompleted()
-        {int retained=0;for(int i=0;i<data.vehicles.Count;i++)if(data.vehicles[i].status!=VehicleStatus.Delivered)data.vehicles[retained++]=data.vehicles[i];else {var actor=data.vehicles[i];vehiclesById.Remove(actor.id);tasksById.Remove(actor.Task.id);vehiclesByTask.Remove(actor.Task.id);}if(retained<data.vehicles.Count)data.vehicles.RemoveRange(retained,data.vehicles.Count-retained);data.tasks.RemoveAll(CompletedTask);arrivals.Clear();indexDirty=true;}
+        {int retained=0;for(int i=0;i<data.vehicles.Count;i++)if(data.vehicles[i].status!=VehicleStatus.Delivered)data.vehicles[retained++]=data.vehicles[i];else {var actor=data.vehicles[i];actor.indexOwner=null;vehiclesById.Remove(actor.id);tasksById.Remove(actor.Task.id);vehiclesByTask.Remove(actor.Task.id);}if(retained<data.vehicles.Count)data.vehicles.RemoveRange(retained,data.vehicles.Count-retained);data.tasks.RemoveAll(CompletedTask);arrivals.Clear();}
         public int SplitRoad(int roadId,int sample)
         {
             return SplitCandidate(CopyNetwork(),roadId,sample);
@@ -922,6 +926,9 @@ namespace HarborCity.RoadCore
         }
         public void AssertSafety()
         {
+#if TRAFFIC_INDEX_VERIFY
+            AssertIncrementalIndex();
+#endif
             Reindex();foreach(var bucket in occupancy.Values)for(int i=1;i<bucket.Count;i++)if(bucket[i-1].distance-bucket[i].distance<MinimumSpacing-1e-8)throw new InvalidOperationException("Vehicle overlap");
         }
     }

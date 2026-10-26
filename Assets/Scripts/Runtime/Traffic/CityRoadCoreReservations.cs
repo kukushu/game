@@ -12,6 +12,11 @@ namespace HarborCity.RoadCore
         Network network;
         public JunctionReservations(Network network){this.network=network;}
         public void Reset(Network network){if(!ReferenceEquals(this.network,network))claims.Clear();this.network=network;foreach(var bucket in claims.Values)bucket.Clear();}
+        internal List<(int junction,int owner,long movement)> CopyClaims()
+        {
+            var result=new List<(int,int,long)>();foreach(var pair in claims)foreach(var claim in pair.Value)result.Add((pair.Key,claim.owner,claim.movement));
+            result.Sort((a,b)=>{int c=a.Item1.CompareTo(b.Item1);if(c!=0)return c;c=a.Item2.CompareTo(b.Item2);return c!=0?c:a.Item3.CompareTo(b.Item3);});return result;
+        }
         public bool CanReserve(int junction,long movement,int owner)
         {
             List<Claim> bucket;if(!claims.TryGetValue(junction,out bucket))return true;
