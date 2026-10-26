@@ -1,8 +1,9 @@
-param([ValidateSet('stock','detail','memo','legacy')][string]$Variant='stock',[switch]$PrepareOnly,[switch]$RunOnly,[ValidateSet('stock','counts','sampled','memo','legacy')][string]$Mode='stock',[string]$RunName='')
+param([ValidateSet('stock','detail','memo','legacy','retry')][string]$Variant='stock',[switch]$PrepareOnly,[switch]$RunOnly,[ValidateSet('stock','counts','sampled','memo','legacy','retry')][string]$Mode='stock',[string]$RunName='',[string]$SourceReference='',[string]$BuildTag='')
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
 . (Join-Path $PSScriptRoot 'ProjectLayout.ps1')
-$out=Join-Path $root ('Temp/ResidentScheduling/'+$Variant)
+if(-not $BuildTag){$BuildTag=$Variant};if($BuildTag -notmatch '^[a-zA-Z0-9_-]+$'){throw 'BuildTag must be a simple directory name'}
+$out=Join-Path $root ('Temp/ResidentScheduling/'+$BuildTag)
 $project=Join-Path $root 'Temp/ResidentScheduling/Unity'
 New-Item -ItemType Directory -Force -Path $out | Out-Null
 if($RunOnly){
@@ -24,7 +25,7 @@ if($RunOnly){
  Write-Output "Completed $RunName";return
 }
 Sync-CityWorkspaceProject $root $project
-python (Join-Path $PSScriptRoot 'Diagnostics/PrepareResidentProbe.py') $root $project $Variant
+python (Join-Path $PSScriptRoot 'Diagnostics/PrepareResidentProbe.py') $root $project $Variant $SourceReference
 if($LASTEXITCODE -ne 0){throw 'Probe preparation failed'}
 if($PrepareOnly){return}
 $unity='C:/Program Files/Unity/Hub/Editor/6000.6.3f1/Editor/Unity.exe'
