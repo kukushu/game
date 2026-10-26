@@ -18,13 +18,18 @@ def instrument(project, counting=False, trim=False, active_sort=False):
     start=s.index('        internal void MoveStep(');end=s.index('        internal bool EndpointExists',start);move=s[start:end]
     i=move.index('{')+1;move=move[:i]+'\n            using var moveProbe='+probe+'.Measure('+probe+'.Part.Move);'+move[i:]
     move=move.replace('if(indexDirty)Reindex();',timed('EnsureIndex','if(indexDirty)Reindex();'))
+    move=move.replace('if(indexDirty)EnsureIndex();',timed('EnsureIndex','if(indexDirty)EnsureIndex();'))
     old='if(Network.HasParallelLanes)EditEpoch+=LaneChanges.Choose(Network,data.vehicles,occupancy,(int)(timeline.Tick%int.MaxValue));'
     assert old in move
     move=move.replace(old,timed('ChooseChanges','if(Network.HasParallelLanes){int started=LaneChanges.Choose(Network,data.vehicles,occupancy,(int)(timeline.Tick%int.MaxValue));EditEpoch+=started;'+probe+'.Started(started);}'))
     move=move.replace('entries.Clear();intents.Clear();',timed('ClearBuffers','entries.Clear();intents.Clear();'))
-    a=move.index('                    foreach(var pair in occupancy)');b=move.index('                    intents.Sort(',a)
+    a=move.index('                    foreach(var pair in occupancy)');b=move.index('                    intents.Sort(',a) if '                    intents.Sort(' in move else move.index('                    // Stable ID order',a)
     move=move[:a]+timed('GatherIntents',move[a:b])+move[b:]
-    move=move.replace('intents.Sort(IntentOrder.Instance);',timed('SortIntents','intents.Sort(IntentOrder.Instance);'))
+    if 'intents.Sort(IntentOrder.Instance);' in move:
+        move=move.replace('intents.Sort(IntentOrder.Instance);',timed('SortIntents','intents.Sort(IntentOrder.Instance);'))
+    else:
+        a=move.index('                    // Stable ID order');b=move.index('                    for(int index=0;',a)
+        move=move[:a]+timed('SortIntents',move[a:b])+move[b:]
     a=move.index('                    for(int index=0;');b=move.index('\n                }\n#if UNITY_5_3_OR_NEWER',a)
     move=move[:a]+timed('AdvanceIntents',move[a:b])+move[b:]
     a=move.index('                foreach(var intent in intents)');b=move.index('                EditEpoch++;',a)
@@ -54,11 +59,12 @@ def instrument(project, counting=False, trim=False, active_sort=False):
     if counting:
         needle='        void IndexDeparture(Vehicle v)\n        {';assert needle in s
         s=s.replace(needle,needle+'\n            '+probe+'.Departure();')
-        needle='if(retained<data.vehicles.Count)data.vehicles.RemoveRange(retained,data.vehicles.Count-retained);';assert needle in s
+        needle='if(retained<data.vehicles.Count)'
+        assert needle in s
         s=s.replace(needle,probe+'.Retired(data.vehicles.Count-retained);'+needle)
         changes=project/'Assets/Scripts/Runtime/Traffic/CityRoadCoreLaneChanges.cs'
-        c=changes.read_text(encoding='utf-8-sig');needle='bucket.Insert(Slot(bucket,d),v.shadowOccupant);return true;';assert needle in c
-        changes.write_text(c.replace(needle,'bucket.Insert(Slot(bucket,d),v.shadowOccupant);HarborCity.OccupancyMovementProbe.ShadowAdded(target);return true;'),encoding='utf-8')
+        c=changes.read_text(encoding='utf-8-sig');needle='bucket.Insert(Slot(bucket,d),v.shadowOccupant);';assert needle in c
+        changes.write_text(c.replace(needle,needle+'HarborCity.OccupancyMovementProbe.ShadowAdded(target);'),encoding='utf-8')
         s=s.replace('        internal bool EndpointExists',helper+'        internal bool EndpointExists',1)
     else:
         s=s.replace(probe+'.Actor(v);','').replace(probe+'.Bucket(b.Count);','').replace(probe+'.Started(started);','')
@@ -77,3 +83,12 @@ def instrument(project, counting=False, trim=False, active_sort=False):
         r=r.replace('foreach(var b in occupancy.Values){','foreach(var b in indexProbeLiveBuckets){')
         s=s[:a]+r+s[b:]
     path.write_text(s,encoding='utf-8')
+    delta=project/'Assets/Scripts/Runtime/Traffic/CityRoadCoreOccupancy.cs'
+    if delta.exists():
+        d=delta.read_text(encoding='utf-8-sig');needle='            IncrementalIndexUpdates++;'
+        assert needle in d;d=d.replace(needle,needle+'using var deltaProbe='+probe+'.Measure('+probe+'.Part.IndexDelta);')
+        a=d.index('            foreach(var v in pendingOccupants)');b=d.index('            // Movement reserves',a)
+        d=d[:a]+timed('DeltaEntries',d[a:b])+d[b:]
+        a=d.index('            ActiveCount=0;awaitingRestarts=0;');b=d.index('            indexDirty=false;',a)
+        d=d[:a]+timed('DeltaClaims',d[a:b])+d[b:]
+        delta.write_text(d,encoding='utf-8')

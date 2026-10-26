@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
@@ -216,12 +216,12 @@ namespace HarborCity
             if(city.Simulation.Tick!=endTick||city.Simulation.PendingSeconds!=endPending)throw new InvalidOperationException("Paused host silently drains saved debt");
             try
             {
-                city.Validate();byte[] final=CityCoreSave.Write(city);File.WriteAllBytes(Path.Combine(output,"final.hcity"),final);
+                IndexOracle(city);city.Validate();byte[] final=CityCoreSave.Write(city);File.WriteAllBytes(Path.Combine(output,"final.hcity"),final);
                 if(Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-window-restore")>=0)
                 {
                     var restored=CityCoreSave.Read(final);restored.Transport.DepotLaneRoutingEnabled=city.Transport.DepotLaneRoutingEnabled;restored.Transport.DepotJunctionRoutingEnabled=junctionRouting;restored.Simulation.Growth.Zoning.SetSurface(host.ScenarioSurface);
                     for(int i=0;i<20;i++){double request=city.Simulation.PendingSeconds>=.05?0:.05;if(city.Simulation.Advance(request,1,double.PositiveInfinity)!=1||restored.Simulation.Advance(request,1,double.PositiveInfinity)!=1)throw new InvalidOperationException("Restore check lost a full step");}
-                    city.Validate();restored.Validate();if(!CityCoreSave.Write(city).SequenceEqual(CityCoreSave.Write(restored)))throw new InvalidOperationException("Warm/cold whole-city debt continuation differs");
+                    IndexOracle(city);IndexOracle(restored);city.Validate();restored.Validate();if(!CityCoreSave.Write(city).SequenceEqual(CityCoreSave.Write(restored)))throw new InvalidOperationException("Warm/cold whole-city debt continuation differs");
                     File.WriteAllText(Path.Combine(output,"RestoreResult.txt"),"PASS native Unity warm/cold 20 complete steps with saved pending debt, all city/transport/money/goods/waste state byte-identical. Outside timed window; final.hcity is original measured endpoint.\n");
                 }
                 File.WriteAllText(Path.Combine(output,"Result.txt"),"PASS normal host visible Player, loaded captured city and saved map; not mouse construction acceptance. GC pauses not measured.\n");
@@ -236,6 +236,11 @@ namespace HarborCity
             foreach(var r in roads){var mesh=r.sharedMesh;if(mesh==null)continue;vertices+=mesh.vertexCount;triangles+=(long)mesh.GetIndexCount(0)/3;bytes+=UnityEngine.Profiling.Profiler.GetRuntimeMemorySizeLong(mesh);count++;}
             if(count!=host.ScenarioRoadRenderers)throw new InvalidOperationException("Actual chunk renderer count does not match ownership");
             rows.Add(string.Join(",",phase,host.ScenarioRoadViews,count,vertices,triangles,bytes,GC.GetTotalMemory(false),UnityEngine.Profiling.Profiler.GetTotalAllocatedMemoryLong()));
+        }
+        static void IndexOracle(CityCoreIndustrySession city)
+        {
+            // Outside the measured window, before the old validator can repair.
+            city.Transport.GetType().GetMethod("AssertIncrementalIndex",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic)?.Invoke(city.Transport,null);
         }
         const double WorldStepSeconds=HarborCity.RoadCore.World.StepSeconds;
     }

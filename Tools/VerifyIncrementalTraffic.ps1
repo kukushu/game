@@ -1,4 +1,4 @@
-param([string]$Results='Temp/IncrementalTraffic/checks',[int]$Steps=4000)
+param([string]$Results='Temp/IncrementalTraffic/checks',[int]$Steps=4000,[switch]$MeasureAllocation)
 $ErrorActionPreference='Stop';$root=Split-Path $PSScriptRoot -Parent;. (Join-Path $PSScriptRoot 'ProjectLayout.ps1')
 $out=Join-Path $root $Results;if(Test-Path -LiteralPath $out){throw 'Fresh output required'};New-Item -ItemType Directory -Path $out|Out-Null
 $baseline='0bbd20f0a255a7055a6f0ad4a971a265e18531e7';$old=@{}
@@ -12,6 +12,7 @@ foreach($version in @('new','old')){
  $overrides=@{};$defines='INCREMENTAL_INDEX_TEST';if($version -eq 'old'){$overrides=$old;$defines=''}
  $binary=Build-CityDotNetHost -ProjectRoot $root -OutputDirectory $dir -Entry (Join-Path $PSScriptRoot 'Diagnostics/CityIncrementalTrafficChecks.cs') -Defines $defines -SourceOverrides $overrides
  & dotnet $binary $save $dir $Steps | Tee-Object (Join-Path $dir 'Result.txt');if($LASTEXITCODE -ne 0){throw "$version traffic checks failed"}
+ if($MeasureAllocation){& dotnet $binary $save $dir 600 allocation;if($LASTEXITCODE -ne 0){throw 'Allocation probe failed'}}
 }
 if([IO.File]::ReadAllText((Join-Path $out 'old/states.csv')) -cne [IO.File]::ReadAllText((Join-Path $out 'new/states.csv'))){throw 'Old/new complete states differ'}
 Write-Output 'PASS frozen/full vs incremental complete-state checkpoints identical'

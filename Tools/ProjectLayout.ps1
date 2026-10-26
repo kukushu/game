@@ -35,6 +35,24 @@ function Sync-CityWorkspaceProject([string]$SourceRoot,[string]$ProjectRoot) {
     }
 }
 
+function Set-CityTrafficReference([string]$SourceRoot,[string]$ProjectRoot,[string]$Reference) {
+    $source=[IO.Path]::GetFullPath($SourceRoot);$project=[IO.Path]::GetFullPath($ProjectRoot)
+    if(-not $project.StartsWith(([IO.Path]::GetFullPath((Join-Path $source 'Temp'))+[IO.Path]::DirectorySeparatorChar),[StringComparison]::OrdinalIgnoreCase)){throw 'Reference injection is restricted to Temp'}
+    foreach($name in @('CityRoadCoreWorld.cs','CityRoadCoreLaneChanges.cs','CityRoadCoreOccupancy.cs')){
+        $relative='Assets/Scripts/Runtime/Traffic/'+$name;$target=Join-Path $project $relative
+        & git -C $source cat-file -e ($Reference+':'+$relative) 2>$null
+        if($LASTEXITCODE -ne 0){
+            if($name -ne 'CityRoadCoreOccupancy.cs'){throw 'Frozen traffic source missing'}
+            # The baseline predates this partial: exclude it from the disposable
+            # assembly, rather than adding a runtime compatibility stub.
+            if(Test-Path -LiteralPath $target){Remove-Item -LiteralPath $target}
+            if(Test-Path -LiteralPath ($target+'.meta')){Remove-Item -LiteralPath ($target+'.meta')}
+            continue
+        }
+        $text=& git -C $source show ($Reference+':'+$relative);if($LASTEXITCODE -ne 0){throw 'Frozen traffic source read failed'}
+        [IO.File]::WriteAllLines($target,$text)
+    }
+}
 # Optional 64-bit test host; same model and entry source, no alternative simulator.
 function Build-CityDotNetHost([string]$ProjectRoot,[string]$OutputDirectory,[string]$Entry,[string]$Defines='',[string]$WorldReference='',[string]$WorldSource='',[hashtable]$SourceOverrides=@{}) {
     $sources=Get-CityModelSources $ProjectRoot

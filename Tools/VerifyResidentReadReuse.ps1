@@ -5,10 +5,12 @@ $source='Assets/Scripts/Runtime/Simulation/Residents/CityCoreResidents.cs'
 $baseline='2b261f3ed9f169d6de500827ed218f5839de8d8c'
 $old=Join-Path $out 'CityCoreResidents.frozen.cs';$text=& git -C $root show ($baseline+':'+$source);if($LASTEXITCODE -ne 0){throw 'Frozen source unavailable'};[IO.File]::WriteAllLines($old,$text)
 $oldWorld=Join-Path $out 'CityRoadCoreWorld.frozen.cs';$text=& git -C $root show ($baseline+':Assets/Scripts/Runtime/Traffic/CityRoadCoreWorld.cs');if($LASTEXITCODE -ne 0){throw 'Frozen world unavailable'};[IO.File]::WriteAllLines($oldWorld,$text)
+$oldLane=Join-Path $out 'CityRoadCoreLaneChanges.frozen.cs';$text=& git -C $root show ($baseline+':Assets/Scripts/Runtime/Traffic/CityRoadCoreLaneChanges.cs');if($LASTEXITCODE -ne 0){throw 'Frozen lane source unavailable'};[IO.File]::WriteAllLines($oldLane,$text)
+$empty=Join-Path $out 'Empty.cs';[IO.File]::WriteAllText($empty,'// Baseline predates incremental occupancy partial.')
 $save=Join-Path (Split-Path $root -Parent) 'test/Temp/CityScenarios/regenerated30000-20261017/city.hcity'
 foreach($version in @('old','new')){
  $dir=Join-Path $out $version;New-Item -ItemType Directory -Path $dir|Out-Null
- $overrides=@{};if($version -eq 'old'){$overrides['CityCoreResidents.cs']=$old;$overrides['CityRoadCoreWorld.cs']=$oldWorld}
+ $overrides=@{};if($version -eq 'old'){$overrides['CityCoreResidents.cs']=$old;$overrides['CityRoadCoreWorld.cs']=$oldWorld;$overrides['CityRoadCoreLaneChanges.cs']=$oldLane;$overrides['CityRoadCoreOccupancy.cs']=$empty}
  $binary=Build-CityDotNetHost -ProjectRoot $root -OutputDirectory $dir -Entry (Join-Path $PSScriptRoot 'Diagnostics/CityResidentReadReplay.cs') -SourceOverrides $overrides
  & dotnet $binary $save $dir $Steps | Tee-Object (Join-Path $dir 'Result.txt');if($LASTEXITCODE -ne 0){throw "$version replay failed"}
 }

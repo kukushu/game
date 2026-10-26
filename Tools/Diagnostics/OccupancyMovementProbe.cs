@@ -2,8 +2,8 @@ using System;using System.IO;using System.Linq;using System.Diagnostics;using Sy
 namespace HarborCity {
  // Temp-only timing and change census. Never participates in movement decisions.
  internal static class OccupancyMovementProbe {
-  internal enum Part {Reindex,ClearBuckets,ResetReservations,RegisterActors,SortBuckets,Move,EnsureIndex,ChooseChanges,ClearBuffers,GatherIntents,SortIntents,AdvanceIntents,CommitPositions}
-  static bool timing,insideMove;internal static bool Counting;static readonly long[] ticks=new long[13],calls=new long[13];static long indexInMove;
+  internal enum Part {Reindex,ClearBuckets,ResetReservations,RegisterActors,SortBuckets,Move,EnsureIndex,ChooseChanges,ClearBuffers,GatherIntents,SortIntents,AdvanceIntents,CommitPositions,IndexDelta,DeltaEntries,DeltaClaims}
+  static bool timing,insideMove;internal static bool Counting;static readonly long[] ticks=new long[16],calls=new long[16];static long indexInMove;
   static readonly long[] total=new long[21],step=new long[21];static readonly List<string> rows=new List<string>();static readonly HashSet<long> dirty=new HashSet<long>(),membership=new HashSet<long>();
   static readonly string[] names={"registered_vehicle_visits","active_intents","stationary","same_drivable_moved","changed_drivable","changing_before","changing_after","finished_change","changed_claim_signature","started_lane_changes","historical_buckets","nonempty_buckets","bucket_entries","position_dirty_buckets","membership_dirty_buckets","departures_indexed","retired_vehicles","registered_active","registered_stranded","registered_restart","registered_delivered"};
   static string N(double x)=>x.ToString("R",CultureInfo.InvariantCulture);
@@ -12,7 +12,7 @@ namespace HarborCity {
   internal static void EndStep(long tick){if(!Counting)return;step[13]=dirty.Count;step[14]=membership.Count;for(int i=0;i<step.Length;i++)total[i]+=step[i];rows.Add(tick+","+string.Join(",",step));}
   internal readonly struct Scope:IDisposable {readonly Part part;readonly long start;readonly bool inMove;
    internal Scope(Part value){part=value;start=timing?Stopwatch.GetTimestamp():0;inMove=insideMove;if(value==Part.Move)insideMove=true;}
-   public void Dispose(){if(start!=0){long duration=Stopwatch.GetTimestamp()-start;ticks[(int)part]+=duration;calls[(int)part]++;if(part==Part.Reindex&&inMove)indexInMove+=duration;}if(part==Part.Move)insideMove=false;}
+   public void Dispose(){if(start!=0){long duration=Stopwatch.GetTimestamp()-start;ticks[(int)part]+=duration;calls[(int)part]++;if((part==Part.Reindex||part==Part.IndexDelta)&&inMove)indexInMove+=duration;}if(part==Part.Move)insideMove=false;}
   }
   internal static Scope Measure(Part part)=>new Scope(part);
   internal static void Actor(Vehicle v){if(!Counting)return;step[0]++;step[v.status==VehicleStatus.Active?17:v.status==VehicleStatus.Stranded?18:v.status==VehicleStatus.AwaitingRestart?19:20]++;}

@@ -42,5 +42,13 @@ static class CityIncrementalTrafficChecks
    }
   }
  }
- static void Main(string[] args){Directory.CreateDirectory(args[1]);Run("commute",CityCoreIndustrySession.Create(),6000,1);Run("edits",CityCoreIndustrySession.Create(),1200,1);Run("30000",CityCoreSave.Read(File.ReadAllBytes(args[0])),int.Parse(args[2]),127);UnorderedLoad();File.WriteAllLines(Path.Combine(args[1],"states.csv"),rows);Console.WriteLine("PASS complete city, safety/ledgers, cold continuation and reversed vehicle order; exact pre-rebuild index oracles="+oracles);}
+ static void Allocation(string[] args)
+ {
+  var s=CityCoreSave.Read(File.ReadAllBytes(args[0]));s.Transport.DepotLaneRoutingEnabled=true;s.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);
+  for(int i=0;i<2400;i++)s.Simulation.Advance(.05,1,double.PositiveInfinity);
+  long retained=GC.GetTotalMemory(true),before=GC.GetAllocatedBytesForCurrentThread();var timer=System.Diagnostics.Stopwatch.StartNew();
+  for(int i=0;i<600;i++)s.Simulation.Advance(.05,1,double.PositiveInfinity);timer.Stop();long allocated=GC.GetAllocatedBytesForCurrentThread()-before;
+  Oracle(s);s.Validate();File.WriteAllText(Path.Combine(args[1],"allocation.csv"),"runtime,steps,allocated_bytes,retained_after_warmup_bytes,model_ms,final_sha256\n"+string.Join(",","DotNet64-not-Player",600,allocated,retained,timer.Elapsed.TotalMilliseconds.ToString("R",System.Globalization.CultureInfo.InvariantCulture),Hash(CityCoreSave.Write(s))));
+ }
+ static void Main(string[] args){Directory.CreateDirectory(args[1]);if(args.Length>3&&args[3]=="allocation"){Allocation(args);return;}Run("commute",CityCoreIndustrySession.Create(),6000,1);Run("edits",CityCoreIndustrySession.Create(),1200,1);Run("30000",CityCoreSave.Read(File.ReadAllBytes(args[0])),int.Parse(args[2]),127);UnorderedLoad();File.WriteAllLines(Path.Combine(args[1],"states.csv"),rows);Console.WriteLine("PASS complete city, safety/ledgers, cold continuation and reversed vehicle order; exact pre-rebuild index oracles="+oracles);}
 }
