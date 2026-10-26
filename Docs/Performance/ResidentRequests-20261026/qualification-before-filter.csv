@@ -1,0 +1,11 @@
+category,count
+passed_basic_gate,15333159
+not_eligible_at_work,121472
+not_eligible_away,752
+not_eligible_already_departed,0
+not_eligible_cannot_attend,6000000
+not_eligible_unfunded,3595372
+eligible_unreachable,0
+eligible_before_departure,5612425
+eligible_shift_ended,0
+eligible_ready,3138

@@ -1,0 +1,6 @@
+metric,value
+eligible_residents,10241
+waiting_residents,9766
+waiting_qualified_checks,5612425
+threshold_changes_among_waiting,0
+waiting_checks_max_per_person,600

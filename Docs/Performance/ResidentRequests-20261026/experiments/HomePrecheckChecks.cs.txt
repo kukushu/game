@@ -1,0 +1,31 @@
+using System;using System.Linq;using HarborCity.RoadCore;
+static class CityHomeDepartureChecks
+{
+ static int checks;static void Check(bool value,string message){checks++;if(!value)throw new Exception(message);}
+ static World Fixture(bool oneWay=false,bool otherBlocked=true,bool disconnected=false)
+ {
+  var w=new World(new WorldData{externalBusiness=true},new SimulationClock(),Enumerable.Range(1,6));
+  var points=new[]{new Point(0,0,0),new Point(100,0,0),new Point(100,0,100),new Point(0,0,100)};var nodes=points.Select(w.AddJunction).ToArray();
+  int road=w.AddRoad(nodes[0],nodes[1],new[]{points[0],points[1]},oneWay:oneWay,lanes:2);
+  for(int i=1;i<4;i++)w.AddRoad(nodes[i],nodes[(i+1)%4],new[]{points[i],points[(i+1)%4]},lanes:2);
+  long lane=Network.LaneId(road,false);w.RegisterAccess(1,lane,20,AccessUse.All);w.RegisterAccess(2,lane,80,AccessUse.All);
+  var forward=w.PrepareTransport(1,2,1,0,TransportPurpose.Freight,0);Check(forward!=null,"Forward blocker could not depart");w.CommitAdmission(forward);
+  if(!oneWay&&otherBlocked){long reverse=Network.LaneId(road,true);w.RegisterAccess(3,reverse,80,AccessUse.All);w.RegisterAccess(4,reverse,95,AccessUse.All);var backward=w.PrepareTransport(3,4,1,0,TransportPurpose.Freight,0);Check(backward!=null,"Opposite blocker could not depart");w.CommitAdmission(backward);}
+  if(disconnected){int a=w.AddJunction(new Point(300,0,0)),b=w.AddJunction(new Point(400,0,0));int isolated=w.AddRoad(a,b,new[]{w.JunctionPosition(a),w.JunctionPosition(b)},lanes:2);w.RegisterAccess(6,Network.LaneId(isolated,false),40,AccessUse.All);}
+  w.Validate();w.AssertSafety();return w;
+ }
+ static void Main()
+ {
+  foreach(bool oneWay in new[]{false,true})
+  {
+   var w=Fixture(oneWay);long prepared=w.RoutePreparations;var snapshot=w.Snapshot();int count=w.ActiveCount;
+   var attempt=w.PrepareTransport(1,2,2,0,TransportPurpose.Home,42,out var reason);Check(attempt==null&&reason==TransportRejection.SourceOccupied,"Fully blocked home departure was not rejected");Check(w.RoutePreparations==prepared,"Blocked home departure prepared a full route");Check(w.ActiveCount==count&&w.Snapshot().nextTask==snapshot.nextTask&&w.Snapshot().nextVehicle==snapshot.nextVehicle,"Rejected request consumed task/vehicle IDs");
+   var cold=new World(w.Snapshot(),new SimulationClock());attempt=cold.PrepareTransport(1,2,2,0,TransportPurpose.Home,42,out reason);Check(attempt==null&&reason==TransportRejection.SourceOccupied&&cold.RoutePreparations==0,"Cold occupancy/reachability did not reject safely");w.Validate();w.AssertSafety();
+  }
+  var oneFree=Fixture(otherBlocked:false);long before=oneFree.RoutePreparations;var rejected=oneFree.PrepareTransport(1,2,0,0,TransportPurpose.Home,42,out var blocked);Check(rejected==null&&blocked==TransportRejection.SourceOccupied,"Free opposite curb changed canonical route");Check(oneFree.RoutePreparations==before+1,"Partial blockage must defer to canonical route selection");
+  var isolated=Fixture(disconnected:true);rejected=isolated.PrepareTransport(1,6,0,0,TransportPurpose.Home,42,out var noRoute);Check(rejected==null&&noRoute==TransportRejection.NoRoute,"Blocked but disconnected target changed NoRoute into SourceOccupied");
+  var clear=new World(new WorldData{externalBusiness=true},new SimulationClock(),new[]{1,2});int a=clear.AddJunction(new Point(0,0,0)),b=clear.AddJunction(new Point(100,0,0));int road=clear.AddRoad(a,b,new[]{clear.JunctionPosition(a),clear.JunctionPosition(b)},lanes:2);clear.RegisterAccess(1,Network.LaneId(road,false),20,AccessUse.All);clear.RegisterAccess(2,Network.LaneId(road,false),80,AccessUse.All);
+  var admitted=clear.PrepareTransport(1,2,2,0,TransportPurpose.Home,42,out var ok);Check(admitted!=null&&ok==TransportRejection.None,"Free home departure was rejected");clear.CheckAdmission(admitted);var car=clear.CommitAdmission(admitted);Check(car.Task.Cargo==2&&car.Task.purpose==TransportPurpose.Home,"Home goods payload changed");clear.Validate();clear.AssertSafety();clear.RemoveRoad(road);rejected=clear.PrepareTransport(1,2,0,0,TransportPurpose.Home,43,out var removed);Check(rejected==null&&removed==TransportRejection.AccessUnavailable,"Deleted access bypassed normal rejection");clear.Validate();clear.AssertSafety();
+  Console.WriteLine("PASS "+checks+" home admission checks: both-curb blockage, one-way, multilane, free opposite curb, unreachable target, payload/IDs, cold index and road deletion");
+ }
+}

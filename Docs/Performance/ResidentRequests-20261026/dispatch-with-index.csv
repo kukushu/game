@@ -1,0 +1,7 @@
+purpose,result,home_reason,count,measured_ms,reindex_calls,reindex_ms
+Work,SourceOccupied,Work,2162,230.8504,97,227.7376
+Work,Success,Work,976,376.1072,146,347.0732
+Home,SourceOccupied,NotAtWork,714,0.6649,0,0
+Home,SourceOccupied,PriorDay,65274,686.9485,278,659.2673
+Home,Success,NotAtWork,38,29.6455,6,14.0543
+Home,Success,PriorDay,131,8.0325,3,7.1955
