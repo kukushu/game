@@ -1,0 +1,9 @@
+phase,calls,repeat_same_id_within_iteration,invalid_id
+Gate,0,0,0
+Shift,15333159,0,6000000
+Return,177539,177539,0
+Eligible,9210935,9210935,0
+Estimate,5615563,5615563,0
+Observed,9329559,9329559,0
+Leaving,0,0,0
+Dispatch,5090,5090,0
