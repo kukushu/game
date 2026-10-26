@@ -1,0 +1,5 @@
+run,source,steps,step_mean_ms,residents_ms,dispatch_ms,non_dispatch_ms,dispatch_calls,shutdown
+latest-coarse-1,fresh24dee,600,9.443774,4.8987498333333335,1.3460898333333333,3.552660000000001,69295,"TIMEOUT; measurement Result.txt, if present, does not imply normal shutdown"
+latest-coarse-2,fresh24dee,600,9.345093333333333,4.776019166666667,1.3193713333333332,3.4566478333333333,69295,0
+resident-current-stock-1,reused92e-same-simulation-logic,600,9.175709833333332,4.744748833333333,1.3071263333333334,3.4376225000000007,69295,0
+resident-current-stock-2,reused92e-same-simulation-logic,600,9.489173666666666,4.941935,1.3265368333333334,3.615398166666667,69295,0
