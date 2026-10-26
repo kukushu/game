@@ -3,8 +3,8 @@ from pathlib import Path
 import sys, subprocess
 root, project, variant = Path(sys.argv[1]).resolve(), Path(sys.argv[2]).resolve(), sys.argv[3]
 assert project.is_relative_to(root / 'Temp')
-assert variant in ('stock', 'detail', 'memo', 'legacy', 'retry')
-for name in ('ResidentRequestProbe.cs', 'HarborCityResidentWindowProbe.cs', 'ResidentDispatchTrace.cs'):
+assert variant in ('stock', 'detail', 'memo', 'legacy', 'retry', 'occupancy', 'occupancy-census', 'occupancy-trim', 'occupancy-active')
+for name in ('ResidentRequestProbe.cs', 'HarborCityResidentWindowProbe.cs', 'ResidentDispatchTrace.cs', 'OccupancyMovementProbe.cs'):
     (project/'Assets/Scripts/Diagnostics/Runtime'/name).write_text((root/'Tools/Diagnostics'/name).read_text(encoding='utf-8-sig'), encoding='utf-8')
 host=project/'Assets/Scripts/Runtime/Presentation/Game/HarborCityRoadCoreGame.cs'
 text=host.read_text(encoding='utf-8-sig')
@@ -50,4 +50,7 @@ if variant=='retry':
     w=world.read_text(encoding='utf-8-sig');needle='        void Reindex()\n        {';assert needle in w
     world.write_text(w.replace(needle,needle+'\n            using var indexTrace=ResidentDispatchTrace.Index();'),encoding='utf-8')
 path.write_text(text[:a]+body+text[b:],encoding='utf-8')
+if variant in ('occupancy','occupancy-census','occupancy-trim','occupancy-active'):
+    from PrepareOccupancyProbe import instrument
+    instrument(project, counting=variant=='occupancy-census', trim=variant in ('occupancy-trim','occupancy-active'), active_sort=variant=='occupancy-active')
 print('Prepared Temp-only',variant,project)

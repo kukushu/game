@@ -1,4 +1,4 @@
-param([ValidateSet('stock','detail','memo','legacy','retry')][string]$Variant='stock',[switch]$PrepareOnly,[switch]$RunOnly,[ValidateSet('stock','counts','sampled','memo','legacy','retry')][string]$Mode='stock',[string]$RunName='',[string]$SourceReference='',[string]$BuildTag='')
+param([ValidateSet('stock','detail','memo','legacy','retry','occupancy','occupancy-census','occupancy-trim','occupancy-active')][string]$Variant='stock',[switch]$PrepareOnly,[switch]$RunOnly,[ValidateSet('stock','counts','sampled','memo','legacy','retry','occupancy-timing','occupancy-counts','occupancy-trim','occupancy-active')][string]$Mode='stock',[string]$RunName='',[string]$SourceReference='',[string]$BuildTag='')
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
 . (Join-Path $PSScriptRoot 'ProjectLayout.ps1')
