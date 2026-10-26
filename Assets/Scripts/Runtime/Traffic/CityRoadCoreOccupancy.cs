@@ -46,6 +46,9 @@ namespace HarborCity.RoadCore
         {
             if(!indexDirty)return;
             if(fullIndexRequired){Reindex();return;}
+#if UNITY_5_3_OR_NEWER
+            using var indexObservation=indexSample.Auto();
+#endif
             IncrementalIndexUpdates++;
             foreach(var v in pendingOccupants)
             {
