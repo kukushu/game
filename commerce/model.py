@@ -112,6 +112,10 @@ class City:
 
     width, height = 7, 5
 
+    def observe(self, event, **details):
+        """Optional observation hook. The baseline does not change any decisions."""
+        pass
+
     def __init__(self, seed=1, settings=None, trace=False):
         self.seed, self.settings, self.trace = seed, settings or Settings(), trace
         self.settings.validate()
@@ -329,6 +333,9 @@ class City:
                     profit, demand, prices = self.estimate_site(node, area, assortment)
                     working = round(48 * area * 130 + 2 * (self.rent(node, area) + self.staff_hours(area)*100))
                     fee = 800 + 600 * area
+                    self.observe('site_estimate', node=node, area=area, assortment=assortment,
+                                 profit=profit, demand=demand, prices=prices, capital=working+fee,
+                                 affordable=self.accounts['fund'] >= working+fee)
                     if profit > 0 and self.accounts["fund"] >= working + fee:
                         proposals.append((profit / (working + fee), node, area, assortment, demand, prices, working, fee, profit))
         if not proposals:
@@ -437,6 +444,10 @@ class City:
                     self.truck_trips += trips
                     s.freight_paid += delivery
                     self.freight_spend += delivery
+                    self.observe('shipment', store=s.id, supplier=p.id, good=good, quantity=quantity,
+                                 wholesale_cents=cost, freight_cents=delivery, hours=hired, trips=trips,
+                                 source=p.node, destination=s.node,
+                                 path=self.route(p.node, s.node, 'truck')[1])
                     needed -= quantity
                 # Unfinanced intentions are not upstream orders.
                 if needed and suppliers and self.accounts[account] >= suppliers[0].price:
@@ -504,10 +515,17 @@ class City:
                     if feasible and sum(q for _,_,q in orders):
                         plans.append((utility, duration, path, orders))
             if not plans:
+                self.observe('shopping_blocked', resident=h.id, cash=cash,
+                             available={g:len([o for o in choices[g] if o]) for g in GOODS})
                 if cash < 100:
                     self.budget_shortfall += 1
                 continue
             utility, duration, path, orders = max(plans, key=lambda x: x[0])
+            self.observe('shopping_plan', resident=h.id, utility=utility, duration=duration, path=path,
+                         orders=[{'good':g,'seller':o[0],'node':o[1],'quantity':q,'price_cents':o[2][g]}
+                                 for g,o,q in orders],
+                         alternatives=[{'utility':u,'duration':d,'sellers':list(dict.fromkeys(o[0] for _,o,q in orders_ if q))}
+                                       for u,d,_,orders_ in sorted(plans,key=lambda p:-p[0])[:3]])
             if utility <= 0:
                 continue
             h.shopping += duration
@@ -527,6 +545,8 @@ class City:
                     amount = quantity*prices[good]
                     self.pay(f"h{h.id}", account, amount, "direct_sale" if account[0]=="p" else "retail_sale")
                     self.consumer_spend += amount
+                    self.observe('purchase', resident=h.id, seller=account, good=good, quantity=quantity,
+                                 price_cents=prices[good], cents=amount, node=node)
                     setattr(h,good,getattr(h,good)+quantity)
                     remaining[good] -= quantity
                     self.sales_by_location[node] = self.sales_by_location.get(node,0)+quantity

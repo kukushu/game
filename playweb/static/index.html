@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>街区经济 · 规划试验桌</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div><span class="eyebrow">CITY ECONOMY LAB / 可玩实验 01</span><h1>街区经济 · 规划试验桌</h1><p>你改变条件，居民与企业决定下一步。</p></div>
+    <div class="file-tools"><button id="save">导出存档</button><label class="file-button">导入存档<input id="load" type="file" accept=".json,application/json"></label></div>
+  </header>
+  <section class="setup" aria-label="城市与时间">
+    <label>种子 <input id="seed" type="number" min="0" max="2147483647" value="1"></label>
+    <label>起始条件 <select id="preset"><option value="neighborhood">住宅与工厂分离</option><option value="sparse">稀疏住宅</option><option value="easy_access">出行便利</option></select></label>
+    <button id="new">新城市</button><span class="separator"></span>
+    <strong id="month">连接中…</strong>
+    <button class="primary" data-step="1">推进 1 期</button><button data-step="3">推进 3 期</button><button data-step="12">推进 12 期</button>
+    <span id="busy-label" class="muted"></span>
+  </section>
+  <div id="status" class="status" role="status" aria-live="polite">正在连接本地模拟…</div>
+  <section id="metrics" class="metrics" aria-label="城市概况"></section>
+  <main>
+    <aside class="planning panel">
+      <span class="eyebrow">01 / 观察后再行动</span><h2>你的规划桌</h2>
+      <p>试着让居民少跑腿，又不让商品贵得买不起。企业会自行评估选址，许可不等于立即开店。</p>
+      <div class="points"><span>剩余行动额度</span><strong id="points">—</strong><span>/ 8</span></div>
+      <p class="tiny">额度只是本轮的试验约束，不是财政资金。交通建设成本尚未模拟。</p>
+      <label class="hypothesis">先记下你的预期<textarea id="hypothesis" rows="3" maxlength="240" placeholder="例如：给住宅旁的大地块许可，附近家庭会少跑腿，但价格未必下降。"></textarea></label>
+      <div class="action-group"><h3 id="parcel-title">先选地图上的区域</h3>
+        <button data-action="permit_large">允许综合大店 <em>2 点</em></button>
+        <button data-action="permit_small">仅许可新小店 <em>1 点</em></button>
+        <p class="tiny">只影响未来进入。现有商店可继续经营，不会强制升级或拆除。</p>
+      </div>
+      <div class="action-group"><h3>城市条件</h3>
+        <button data-action="freight">试行货运优先走廊 <em>5 点</em></button><p class="tiny">中部横向道路的货车通行更快，商家仍付运费。</p>
+        <button data-action="access">改善居民出行 <em>5 点</em></button><p class="tiny">居民到所有卖家的行程耗时减少，包括工厂。</p>
+        <button data-action="assortment">放宽新小店品类 <em>3 点</em></button><p class="tiny">新开小店可以兼售两类商品，货架容量不增加。</p>
+      </div>
+      <details><summary>本轮怎样算值得？</summary><p class="tiny">没有总分或预设最优路线。一起看购买满足、实际价格、购物时间，以及哪些家庭受益、哪些企业亏损。</p><p class="tiny">每期是抽象模拟时间，货币和小时没有现实校准。只有点击推进，经济才会继续运行。</p></details>
+    </aside>
+    <section class="center">
+      <section class="panel map-panel">
+        <div class="section-head"><div><span class="eyebrow">02 / 看见经济发生的地方</span><h2>城市活动图</h2></div><label>查看 <select id="world"><option value="player">你的城市</option><option value="reference">不新增干预的对照</option></select></label></div>
+        <div class="legend"><span class="home-dot"></span>家庭 <span class="shop-dot"></span>小店 / 大店 <span class="factory-dot"></span>工厂 <span class="permit-dot"></span>允许新大店</div>
+        <div id="map" aria-label="城市地图"></div>
+        <div class="map-bottom"><span>点击区域，再检查具体家庭、工厂或商店。</span><label><input id="show-reference-route" type="checkbox">叠加同一家庭的对照路线</label></div>
+        <p class="tiny">道路粗细表示上一期实际通行计数。绿色线是选中家庭的真实购物路线，橙色线是店铺的实际进货路线；虚线为对照。</p>
+      </section>
+      <section class="panel feedback"><div class="section-head"><div><span class="eyebrow">03 / 谁变了，为什么值得追问</span><h2>这期的线索</h2></div></div><div id="clues"></div><div id="examples"></div></section>
+      <section class="panel comparison"><div class="section-head"><div><h2>如果没有新增干预</h2><p id="comparison-label" class="tiny"></p></div><button id="anchor">从现在重新设对照</button></div><div id="comparison"></div><div id="chart"></div><p class="tiny">对照与你从同一个状态出发，同步推进。这里是事实差异，不是对因果机制的完整证明。</p></section>
+      <section class="panel"><h2>你的决策记录</h2><ol id="actions" class="action-history"></ol></section>
+    </section>
+    <aside class="panel inspector"><span class="eyebrow">点击地图或线索查看</span><h2 id="inspector-title">区域与主体</h2><div id="inspector"><p>选择一户家庭，看它买了什么、去了哪里，以及为什么选这一条路线。</p></div></aside>
+  </main>
+  <footer>本地 Python 真实结算 · 刷新页面不会重置城市 · 自动保存在本项目 outputs/web/ · <span id="audit"></span></footer>
+</body>
+</html>

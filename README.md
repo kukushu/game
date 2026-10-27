@@ -1,6 +1,12 @@
 # 城市经济实验室 City Economy Lab
 
-一个独立的 Python 主体模拟原型，用少量可追踪规则探索城市建设游戏的经济机制。**没有游戏界面，不依赖 Unity 或 Citybound，也没有读取、修改现有游戏。** 这不是现实经济预测工具。
+一个独立的 Python 主体模拟原型，用少量可追踪规则探索城市建设游戏的经济机制。**不依赖 Unity 或 Citybound，也没有读取、修改现有游戏。** 这不是现实经济预测工具。
+
+## 新增：可以亲手玩的网页实验
+
+双击 `run-web.cmd`，打开本机的“街区经济 · 规划试验桌”。Python 负责真实结算，HTML 负责地图、主体检查和规划操作；只在你点击推进时运行。支持同状态分叉对照、种子、自动保存、导出和导入。停止服务用 `stop-web.cmd`。
+
+先看 [试玩方法、实验证据与限制](PLAYWEB.md)。新分支 `experiment/playable-web`；商业实验分支和旧版基线均保留，没有合并进正式游戏。
 
 ## 新增：商业为什么存在？
 
@@ -35,7 +41,7 @@ $labPython = '.\.venv\Scripts\python.exe'
 & $labPython -m unittest discover -s tests -v
 ```
 
-换电脑：安装 Python 3.11+，`python -m venv .venv`，再 `.venv\Scripts\python -m pip install -r requirements.txt`。**模拟、CSV、快照、测试本身只用 Python 标准库**；Matplotlib 仅供 `--plot` 画图。没有后台服务或端口。
+换电脑：安装 Python 3.11+，`python -m venv .venv`，再 `.venv\Scripts\python -m pip install -r requirements.txt`。**模拟、快照、测试和网页玩法本身只用 Python 标准库**；Matplotlib 仅供 `--plot` 画图。命令行实验不启动服务；网页模式使用本机 18765 端口。
 
 ## 调试器
 
