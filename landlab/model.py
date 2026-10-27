@@ -1,0 +1,272 @@
+from __future__ import annotations
+
+import copy
+import heapq
+import math
+
+from commerce.model import Settings
+from playweb.engine import PlayCity
+
+ZONES = {'reserve':'保留地', 'home':'住宅', 'shop':'商业', 'factory':'工业',
+         'mixed':'住商混合', 'open':'自由混合'}
+RIGHTS = {'reserve':'', 'home':'R', 'shop':'C', 'factory':'I', 'mixed':'RC', 'open':'RCI'}
+
+
+class LandCity(PlayCity):
+    """Finite shared parcels; no forced eviction, demographic growth, or free buildings."""
+
+    def __init__(self, seed=1, settings=None, trace=False):
+        super().__init__(seed, settings or Settings(households=64, zoning='flexible'), trace)
+        self.mode = 'adaptive'
+        self.environment_weight = 1.0
+        self.zones = {n:'reserve' for n in range(35)}
+        for h in self.residents: self.zones[h.node] = 'home'
+        for n in (8,16,22): self.zones[n] = 'mixed'
+        for n in (9,15,21): self.zones[n] = 'home'
+        for n in (10,17,24): self.zones[n] = 'shop'
+        for p in self.producers: self.zones[p.node] = 'factory'
+        self.roads = {tuple(sorted((n,n+1))):1 for n in range(35) if n%7<6}
+        self.roads.update({(n,n+7):1 for n in range(28) if n%7 in (0,6)})
+        self.accounts['civic'] = 30000
+        self.accounts['fund'] -= 30000
+        self.jobs, self.commute, self.commute_visits = {}, {}, set()
+        self.moved_home, self.moved_factory = {}, {}
+        self.spatial_events, self.home_reviews, self.factory_reviews = [], [], []
+        self.spatial_history = []
+        self.spatial_log, self.home_review_history, self.factory_review_history = [], [], []
+        self.maintenance_ratio = 1.0
+        self.extra_maintenance = 0  # Offline cash-flow placebo; never exposed as a player action.
+        self.preferences = {h.id:self.rng('environment_preference',h.id).uniform(100,350) for h in self.residents}
+
+    def usage(self, node):
+        homes = sum(h.node==node for h in self.residents)
+        return {'homes':homes,'housing_land':math.ceil(homes/4),
+                'commercial_land':sum(s.area for s in self.stores if s.active and s.node==node),
+                'industrial_land':4*sum(p.node==node for p in self.producers)}
+
+    def free_land(self,node):
+        u=self.usage(node)
+        return 8-u['housing_land']-u['commercial_land']-u['industrial_land']
+
+    def legal_areas(self,node):
+        if not hasattr(self,'zones'): return super().legal_areas(node)
+        return [a for a in (1,4) if 'C' in RIGHTS[self.zones[node]] and self.free_land(node)>=a]
+
+    def route(self,start,end,mode='customer'):
+        if not hasattr(self,'roads'): return super().route(start,end,mode)
+        key=start,end,mode
+        if key in self.paths: return self.paths[key]
+        base=self.settings.customer_edge_hours if mode=='customer' else self.settings.truck_edge_hours
+        queue,best,parents=[(0.,start)],{start:0.},{}
+        while queue:
+            cost,n=heapq.heappop(queue)
+            if cost!=best[n]: continue
+            if n==end: break
+            for neighbor in (n-1,n+1,n-7,n+7):
+                if not 0<=neighbor<35 or self.manhattan(n,neighbor)!=1: continue
+                edge=tuple(sorted((n,neighbor)))
+                if edge not in self.roads: continue
+                duration=base*(.55 if self.roads[edge]==2 else 1)*(2-self.maintenance_ratio)*(1+self.settings.congestion*self.previous_traffic.get(edge,0)/12)
+                if cost+duration<best.get(neighbor,math.inf)-1e-12:
+                    best[neighbor]=cost+duration;parents[neighbor]=(n,edge)
+                    heapq.heappush(queue,(cost+duration,neighbor))
+        if end not in best: return math.inf,()
+        edges,n=[],end
+        while n!=start:
+            n,edge=parents[n];edges.append(edge)
+        self.paths[key]=best[end],tuple(reversed(edges))
+        return self.paths[key]
+
+    def home_rent(self,node):
+        # A posted scarcity tariff, not a developer or bidding market.
+        return 55+3*self.usage(node)['homes']+5*(8-self.free_land(node))
+
+    def exposure(self,node):
+        return sum(p.production/100/(1+self.manhattan(node,p.node))**2 for p in self.producers)
+
+    def home_score(self,h,node,previous_jobs=None):
+        offers=self.offers()
+        shopping=0.
+        for g in ('food','goods'):
+            shopping+=min((2*prices[g]+h.value_time*(2*self.route(node,n)[0]+.06)
+                           for _,n,prices in offers if g in prices),default=1000)
+        jobs=(self.jobs if previous_jobs is None else previous_jobs).get(str(h.id),{})
+        total=sum(jobs.values())
+        commute=sum(self.route(node,self.employer_node(a))[0]*2*w for a,w in jobs.items())/max(1,total)
+        rent=self.home_rent(node)
+        environment=self.environment_weight*self.preferences[h.id]*self.exposure(node)
+        return {'rent':rent,'shopping':shopping,'commute':h.value_time*commute,
+                'environment':environment,'total':rent+shopping+h.value_time*commute+environment}
+
+    def employer_node(self,account):
+        return self.producers[int(account[1:])].node if account.startswith('p') else self.stores[int(account[1:])].node
+
+    def hire(self,account,hours,purpose):
+        if not hasattr(self,'roads'): return super().hire(account,hours,purpose)
+        wanted=min(round(hours*100),self.accounts[account]);remaining=wanted;visited=0
+        node=self.employer_node(account)
+        while remaining and visited<len(self.residents):
+            h=self.residents[self.employee_order[self.worker_cursor]]
+            visit=(h.id,node)
+            trip=0. if visit in self.commute_visits else 2*self.route(h.node,node)[0]
+            available=max(0,math.floor((8-h.work-self.commute.get(h.id,0)-trip)*100+1e-7))
+            amount=min(remaining,available)
+            if amount:
+                if trip:
+                    self.observe('commute_trip',resident=h.id,workplace=node,duration=trip,
+                                 edges=[list(e) for e in self.route(h.node,node)[1]])
+                    self.commute[h.id]=self.commute.get(h.id,0)+self.trip(h.node,node,count=2)
+                self.commute_visits.add(visit)
+                self.pay(account,f'h{h.id}',amount,purpose)
+                h.work+=amount/100;remaining-=amount
+                jobs=self.jobs.setdefault(str(h.id),{})
+                jobs[account]=jobs.get(account,0)+amount
+            if amount==available:
+                self.worker_cursor=(self.worker_cursor+1)%len(self.residents);visited+=1
+        actual=(wanted-remaining)/100
+        self.labor[purpose]+=actual
+        return actual
+
+    def review_homes(self,previous_jobs):
+        if self.mode=='fixed' or self.month<6: return
+        candidates=list(self.residents)
+        self.rng('home_review').shuffle(candidates)
+        for h in candidates[:max(1,len(candidates)//6)]:
+            if self.month-self.moved_home.get(h.id,-10)<4: continue
+            nodes=[n for n in range(35) if n==h.node or ('R' in RIGHTS[self.zones[n]] and
+                   self.free_land(n)>=(1 if self.usage(n)['homes']%4==0 else 0))]
+            current=self.home_score(h,h.node,previous_jobs)
+            scored=[(self.home_score(h,n,previous_jobs),n) for n in nodes]
+            best,node=min(scored,key=lambda x:(x[0]['total'],x[1]))
+            if self.mode=='blind':
+                node=self.rng('blind_home',h.id).choice(nodes);best=self.home_score(h,node,previous_jobs)
+            enough=self.accounts[f'h{h.id}']>=120
+            willing=self.mode=='blind' or current['total']-best['total']>120/6+30
+            reason='同地居住' if node==h.node else '现金不足' if not enough else '节约不足以补偿搬迁' if not willing else '搬迁'
+            record={'resident':h.id,'from':h.node,'to':node,'current':current,'candidate':best,
+                    'reason':reason,'month':self.month,'alternatives':sorted([{'node':n,**s} for s,n in scored],key=lambda x:x['total'])[:3]}
+            self.home_reviews.append(record)
+            if node!=h.node and enough and willing:
+                self.pay(f'h{h.id}','property',120,'home_move')
+                h.node=node;self.moved_home[h.id]=self.month
+                self.spatial_events.append({'type':'home_move',**record})
+                self.paths={}
+
+    def factory_score(self,p,node):
+        others=[q for q in self.producers if q.good==p.good and q.id!=p.id]
+        direct=0.
+        for h in self.residents:
+            own=p.price+h.value_time*(2*self.route(h.node,node)[0]+.06)/2
+            alternatives=[q.price+h.value_time*(2*self.route(h.node,q.node)[0]+.06)/2 for q in others]
+            alternatives += [s.prices[p.good]+h.value_time*(2*self.route(h.node,s.node)[0]+.06)/(2*len(s.assortment))
+                             for s in self.stores if s.active and p.good in s.assortment]
+            if 2*self.route(h.node,node)[0]+.06<=self.settings.shopping_hours:
+                direct+=2*max(0,min(1,.5+(min(alternatives,default=own)-own)/100))
+        wholesale=0.
+        for s in self.stores:
+            if not s.active or p.good not in s.assortment: continue
+            own=self.route(node,s.node,'truck')[0]
+            other=min((self.route(q.node,s.node,'truck')[0] for q in others),default=own)
+            wholesale+=s.expected[p.good]*max(0,min(1,.5+(other-own)))
+        labor=sum(max(0,8-2*self.route(h.node,node)[0]) for h in self.residents)/len(self.producers)
+        volume=min(160,direct+wholesale,labor/.25)
+        rent=self.rent(node,4)+100
+        # Same output price and production wage as actual trading, approximate counter labor.
+        profit=volume*(p.price-25)-100*(1+.05*min(direct,volume))-rent
+        return {'direct':direct,'wholesale':wholesale,'volume':volume,'rent':rent,'profit':profit}
+
+    def review_factory(self):
+        if self.mode=='fixed' or self.month<6: return
+        p=self.producers[self.month%len(self.producers)]
+        if self.month-self.moved_factory.get(p.id,-10)<8: return
+        nodes=[n for n in range(35) if n==p.node or ('I' in RIGHTS[self.zones[n]] and self.free_land(n)>=4)]
+        current=self.factory_score(p,p.node)
+        scored=[(self.factory_score(p,n),n) for n in nodes]
+        best,node=max(scored,key=lambda x:(x[0]['profit'],-x[1]))
+        if self.mode=='blind': node=self.rng('blind_factory',p.id).choice(nodes);best=self.factory_score(p,node)
+        enough=self.accounts[f'p{p.id}']>=1200
+        willing=self.mode=='blind' or best['profit']-current['profit']>1200/6+200
+        reason='原址更合适' if node==p.node else '现金不足' if not enough else '预期改善不足以补偿搬迁' if not willing else '搬迁'
+        record={'producer':p.id,'from':p.node,'to':node,'current':current,'candidate':best,'reason':reason,'month':self.month,
+                'alternatives':sorted([{'node':n,**s} for s,n in scored],key=lambda x:-x['profit'])[:3]}
+        self.factory_reviews.append(record)
+        if node!=p.node and enough and willing:
+            self.pay(f'p{p.id}','property',1200,'factory_move')
+            p.node=node;self.moved_factory[p.id]=self.month
+            self.spatial_events.append({'type':'factory_move',**record});self.paths={}
+
+    def enter(self):
+        previous_jobs=copy.deepcopy(self.jobs)
+        self.jobs,self.commute,self.commute_visits={},{},set()
+        self.spatial_events,self.home_reviews,self.factory_reviews=[],[],[]
+        upkeep=4*sum(self.roads.values())+self.extra_maintenance
+        paid=min(upkeep,self.accounts['civic'])
+        self.maintenance_ratio=paid/max(1,upkeep)
+        self.pay('civic','property',paid,'road_maintenance')
+        for h in self.residents:
+            self.pay(f'h{h.id}','property',min(self.home_rent(h.node),self.accounts[f'h{h.id}']),'housing_rent')
+        self.review_homes(previous_jobs)
+        self.review_factory()
+        for p in self.producers:
+            self.pay(f'p{p.id}','property',min(self.rent(p.node,4)+100,self.accounts[f'p{p.id}']),'industrial_rent')
+        super().enter()
+
+    def step(self):
+        row=super().step()
+        assert all(self.free_land(n)>=0 for n in range(35))
+        assert all(h.work+self.commute.get(h.id,0)<=8+1e-6 for h in self.residents)
+        item={'month':self.month-1,'moves':len([e for e in self.spatial_events if e['type']=='home_move']),
+              'factory_moves':len([e for e in self.spatial_events if e['type']=='factory_move']),
+              'commute':sum(self.commute.values())/len(self.residents),
+              'exposure':sum(self.exposure(h.node) for h in self.residents)/len(self.residents),
+              'occupied_home_nodes':len({h.node for h in self.residents}),
+              'production':sum(p.production for p in self.producers),
+              'home_factory_distance':sum(min(self.manhattan(h.node,p.node) for p in self.producers) for h in self.residents)/len(self.residents),
+              'home_factory_overlap':sum(any(h.node==p.node for p in self.producers) for h in self.residents)/len(self.residents),
+              'civic':self.accounts['civic']/100,'built_land':sum(8-self.free_land(n) for n in range(35))}
+        self.spatial_history.append(item)
+        self.spatial_log=(self.spatial_log+copy.deepcopy(self.spatial_events))[-200:]
+        self.home_review_history=(self.home_review_history+copy.deepcopy(self.home_reviews))[-256:]
+        self.factory_review_history=(self.factory_review_history+copy.deepcopy(self.factory_reviews))[-96:]
+        # Inspections quote the next period's known traffic, consistently before/after a save.
+        # Actual previous-period routes are preserved in the observation records.
+        self.paths={}
+        return row
+
+    def snapshot(self):
+        data=super().snapshot()
+        data['_land']=copy.deepcopy({'version':1,'mode':self.mode,'environment_weight':self.environment_weight,
+              'zones':self.zones,'roads':[[a,b,v] for (a,b),v in self.roads.items()],
+              'jobs':self.jobs,'commute':self.commute,'moved_home':self.moved_home,'moved_factory':self.moved_factory,
+              'spatial_events':self.spatial_events,'home_reviews':self.home_reviews,'factory_reviews':self.factory_reviews,
+              'spatial_history':self.spatial_history})
+        data['_land']['maintenance_ratio']=self.maintenance_ratio
+        data['_land']['extra_maintenance']=self.extra_maintenance
+        for key in ('spatial_log','home_review_history','factory_review_history'):
+            data['_land'][key]=copy.deepcopy(getattr(self,key))
+        return data
+
+    @classmethod
+    def restore(cls,data,trace=False):
+        model=super().restore(data,trace)
+        extra=data['_land']
+        if extra['version']!=1: raise ValueError('土地实验存档版本无效')
+        for k in ('mode','environment_weight','jobs','spatial_events','home_reviews','factory_reviews','spatial_history'):
+            setattr(model,k,copy.deepcopy(extra[k]))
+        for k in ('zones','commute','moved_home','moved_factory'):
+            setattr(model,k,{int(n):v for n,v in extra[k].items()})
+        model.roads={(a,b):v for a,b,v in extra['roads']}
+        model.maintenance_ratio=float(extra['maintenance_ratio'])
+        model.extra_maintenance=extra.get('extra_maintenance',0)
+        if not isinstance(model.extra_maintenance,int) or not 0<=model.extra_maintenance<=10000: raise ValueError('维护参数无效')
+        for key in ('spatial_log','home_review_history','factory_review_history'):
+            setattr(model,key,copy.deepcopy(extra.get(key,[])))
+        if not 0<=model.maintenance_ratio<=1: raise ValueError('道路维护状态无效')
+        if set(model.zones)!=set(range(35)) or any(v not in ZONES for v in model.zones.values()): raise ValueError('土地用途无效')
+        if model.mode not in ('adaptive','fixed','blind') or not 0<=model.environment_weight<=2: raise ValueError('选址机制无效')
+        if any(not 0<=a<b<35 or model.manhattan(a,b)!=1 or v not in (1,2) for (a,b),v in model.roads.items()): raise ValueError('道路无效')
+        model.paths={}
+        if any(not math.isfinite(model.route(0,n)[0]) for n in range(35)): raise ValueError('道路网络必须连通')
+        if any(model.free_land(n)<0 for n in range(35)): raise ValueError('地块超过土地容量')
+        model.commute_visits=set()
+        return model

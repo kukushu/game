@@ -21,7 +21,9 @@ class Conflict(ValueError):
 
 
 class Application:
-    def __init__(self, save_path=None, session=None):
+    def __init__(self, save_path=None, session=None, session_type=Session, static=STATIC, app_id=APP_ID, default_preset='neighborhood'):
+        self.session_type, self.static, self.app_id = session_type, Path(static), app_id
+        self.default_preset = default_preset
         self.lock = threading.RLock()
         self.save_path = Path(save_path) if save_path else None
         self.revision = 1
@@ -29,10 +31,10 @@ class Application:
             self.session = session
         elif self.save_path and self.save_path.exists():
             data = json.loads(self.save_path.read_text(encoding='utf-8'))
-            self.session = Session.load(data)
+            self.session = self.session_type.load(data)
             self.revision = max(1, int(data.get('web_revision',1)))
         else:
-            self.session = Session.new()
+            self.session = self.session_type.new()
 
     def state(self):
         with self.lock:
@@ -60,12 +62,12 @@ class Application:
                 raise Conflict('城市状态已更新，请刷新后重新操作')
             # A failed action, simulation, load, or disk write cannot partially overwrite a game.
             if operation=='new':
-                candidate=Session.new(data.get('seed',1),data.get('preset','neighborhood'))
+                candidate=self.session_type.new(data.get('seed',1),data.get('preset',self.default_preset))
             elif operation=='load':
                 if not isinstance(data.get('save'),dict): raise ValueError('存档应是 JSON 对象')
-                candidate=Session.load(data['save'])
+                candidate=self.session_type.load(data['save'])
             else:
-                candidate=Session.load(self.session.dump())
+                candidate=self.session_type.load(self.session.dump())
                 if operation=='advance': candidate.advance(data.get('count'))
                 elif operation=='action': candidate.intervene(data.get('action'),data.get('node'),data.get('note',''))
                 elif operation=='anchor': candidate.anchor()
@@ -117,7 +119,7 @@ class Handler(BaseHTTPRequestHandler):
         parsed=urlsplit(self.path)
         try:
             if parsed.path=='/api/health':
-                return self.send(200,{'app':APP_ID,'pid':os.getpid(),'version':1})
+                return self.send(200,{'app':self.server.app.app_id,'pid':os.getpid(),'version':1})
             if parsed.path=='/api/state':
                 return self.send(200,self.server.app.state())
             if parsed.path=='/api/save':
@@ -132,7 +134,7 @@ class Handler(BaseHTTPRequestHandler):
                    '/style.css':('style.css','text/css; charset=utf-8'),'/favicon.svg':('favicon.svg','image/svg+xml')}
             if parsed.path in files:
                 name,mime=files[parsed.path]
-                return self.send(200,(STATIC/name).read_bytes(),mime)
+                return self.send(200,(self.server.app.static/name).read_bytes(),mime)
             return self.send(404,{'error':'没有这个页面'})
         except (ValueError,KeyError,TypeError,AssertionError,IndexError) as error:
             return self.send(400,{'error':str(error) or '请求数据不合法'})
