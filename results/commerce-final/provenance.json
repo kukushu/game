@@ -1,0 +1,16 @@
+{
+  "rules": "service-aware v2; draft e56df93 is explicitly superseded",
+  "python": "3.13.12 | packaged by Anaconda, Inc. | (main, Feb 24 2026, 16:05:56) [MSC v.1942 64 bit (AMD64)]",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "source_sha256": {
+    "commerce\\__init__.py": "1f993b6a67ab23651b6ce1f848de645662cbfecafd9e05ae06f8d6c6f9404391",
+    "commerce\\__main__.py": "7681a5450d35e0c426265b27b3567ae89863d0b533c04e9ec7d88ef12eaa2855",
+    "commerce\\experiments.py": "689d608b760a829bc650c2de1abab11fc8f698763ffce2c2d369e4745c64376c",
+    "commerce\\model.py": "b3afa0787c4b135b6f786b370f45ad9968728b7b21b07214efa6c6119871af4d"
+  },
+  "raw_outputs": "outputs/commerce-final, outputs/commerce-final-holdout, outputs/commerce-parcel-control",
+  "runs": 372,
+  "monthly_rows": 26784,
+  "tests": "python -m unittest discover -s tests -v",
+  "regression": "Unstaffed/fully-booked shops and factories cannot be selected as feasible sellers"
+}

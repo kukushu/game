@@ -22,7 +22,9 @@ CONTEXTS = {
     "expensive_freight": {"freight_multiplier": 6.0},
     "no_chaining": {"chain_trips": False},
     "equal_assortment": {"small_multigood": True},
+    "matched_edge": {"zoning": "matched_edge"},
 }
+CORE_CONTEXTS = [name for name in CONTEXTS if name != 'matched_edge']
 METRICS = ("food_coverage", "goods_coverage", "retail_share", "shopping_hours", "labor_hours", "hours_per_unit",
            "paid_price", "stores", "small", "large", "retail_land", "truck_trips", "road_load", "waste",
            "production_exposure", "commercial_exposure", "retail_profit", "fund_cash", "service_rejections", "budget_shortfall")
@@ -89,7 +91,7 @@ def export_city(city, out):
 def compare(out,seeds,months=72,tail=24,contexts=None,plot=False):
     if not seeds or len(set(seeds))!=len(seeds) or not 0<tail<=months:
         raise ValueError('Require unique seeds, positive months and tail <= months')
-    contexts=contexts or list(CONTEXTS)
+    contexts=contexts or list(CORE_CONTEXTS)
     for name in contexts:
         if name not in CONTEXTS:
             raise ValueError(f'Unknown context {name}')

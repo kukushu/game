@@ -21,7 +21,9 @@
 
 每个居民最多提供 8 小时劳动，并有另外 4 小时购物预算。购物的时间价值有个体差异，影响其愿不愿为附近商店付高价。为了聚焦流通，不模拟工资竞争、技能或家庭储蓄偏好：居民在自身现金和购买意愿允许时买固定需要量，所有企业和土地服务的权益由家庭共同持有。没有新增货币、外部收入、贷款和补贴。
 
-居民知道当前报价和库存；不需要先跑一趟才知道有没有货。这是对两种渠道同样适用的强信息假设，**并没有测试零售的信息搜寻功能**。每次到店还有相同的固定停留时间。两种商品可以在同一店买，也可以顺路去两家，路程按真实路径计算；`no_chaining` 强制每次回家，测试顺路购物的重要性。
+居民知道当前报价、库存和可用柜台服务；不需要先跑一趟才知道有没有货或柜台有没有营业。这是对两种渠道同样适用的强信息假设，**并没有测试零售的信息搜寻功能**。每次到店还有相同的固定停留时间。两种商品可以在同一店买，也可以顺路去两家，路程按真实路径计算；`no_chaining` 强制每次回家，测试顺路购物的重要性。
+
+第一轮遗漏了营业/服务可用性，使无人开门的廉价商店持续截走购物计划。该轮完整保存在本地 `outputs/commerce-main`，精简数据为 `results/commerce-draft/`，代码在 `e56df93`；不能当成最终经济证据。最终版加入对两种渠道都适用的服务可行性检查，并重新跑全部情景，结果位于 `outputs/commerce-final` 与 `outputs/commerce-final-holdout`。
 
 ### 工厂与直接销售
 
@@ -71,6 +73,8 @@ direct：只允许工厂直销。retail：只允许商店向居民销售。mixed
 
 主批次 8 个种子，各运行 72 期，用末尾 24 期均值；保留全部过渡轨迹。住宅分布、低密度、工业位置、顾客低出行成本、大小地块、货运走廊、高货运成本、顺路购物和商品范围共 12 个预先定义条件。另用 91–94 种子检查部分情景，避免只看一个初始化。
 
+原 large_edge 与 large_central 不仅位置不同，允许的大地块数量也不同（15 对 6）。因此另补一个 matched_edge：同样恰好六个大地块，移到城市东侧；与原 central 的六块逐种子对照，隔离数量混杂。该补充是看到首轮设计局限后的追加实验，不冒称事前注册。
+
 聚集不能只看地图：先算商店最近邻距离，再与“相同店数、规模、合法用地约束”的随机布局比较。再加入按住宅密度加权的随机基准。低于均匀基准但不低于住宅加权基准，只说明追随客源，不能说商店互相吸引。
 
 ## 使用
@@ -83,11 +87,13 @@ $labPython = '.\.venv\Scripts\python.exe'
 # 一组有正反条件的配对实验
 & $labPython -m commerce compare --seeds 1,2,3,4 --contexts separated,cheap_access,sparse,small_only,equal_assortment --plot --out outputs/commerce-demo
 # 完整主批次
-& $labPython -m commerce compare --plot --out outputs/commerce-main
+& $labPython -m commerce compare --plot --out outputs/commerce-final
 # 自定义，例如提高租金
 & $labPython -m commerce run --config configs/commerce-high-rent.json --out outputs/high-rent
 # 精确续跑，months 是结束月份
 & $labPython -m commerce run --resume outputs/mixed/snapshot.json --months 100 --out outputs/mixed-continued
+# 查看某店的成本、现金、存货、最近经营记录和进入/退出原因
+& $labPython -m commerce inspect outputs/mixed/snapshot.json --store 0
 ```
 
 也可双击 `run-commerce.cmd`。原来的 `run-demo.cmd` 与 `python -m econlab ...` 仍运行旧版基线。

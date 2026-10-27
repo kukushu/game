@@ -41,5 +41,5 @@ def validate(folder):
 
 
 if __name__=='__main__':
-    for path in sys.argv[1:] or ['outputs/commerce-main']:
+    for path in sys.argv[1:] or ['outputs/commerce-final']:
         validate(path)

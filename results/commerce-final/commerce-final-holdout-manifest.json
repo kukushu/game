@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "seeds": [
+    91,
+    92,
+    93,
+    94
+  ],
+  "months": 72,
+  "tail": 24,
+  "contexts": {
+    "separated": {},
+    "cheap_access": {
+      "customer_edge_hours": 0.02
+    },
+    "sparse": {
+      "households": 32,
+      "residential": "dispersed"
+    },
+    "equal_assortment": {
+      "small_multigood": true
+    },
+    "freight_road": {
+      "corridor": true
+    }
+  },
+  "base_settings": {
+    "households": 96,
+    "channel": "mixed",
+    "residential": "clustered",
+    "industry": "far",
+    "zoning": "flexible",
+    "customer_edge_hours": 0.18,
+    "truck_edge_hours": 0.045,
+    "shopping_hours": 4.0,
+    "time_value": 100.0,
+    "chain_trips": true,
+    "congestion": 0.12,
+    "corridor": false,
+    "freight_multiplier": 1.0,
+    "truck_load": 32,
+    "spoilage": true,
+    "entry": true,
+    "factory_prices_adapt": false,
+    "rent_multiplier": 1.0,
+    "initial_capital": 180000,
+    "service_multiplier": 1.0,
+    "small_multigood": false
+  },
+  "channels": [
+    "direct",
+    "retail",
+    "mixed"
+  ],
+  "comparison": "same keyed initial residents, producer technologies, household cash, and investment pool within context",
+  "uncertainty": "1500 paired seed bootstrap resamples, not model uncertainty"
+}

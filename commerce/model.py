@@ -39,7 +39,7 @@ class Settings:
             raise ValueError("channel must be direct/retail/mixed")
         if self.residential not in ("clustered", "dispersed") or self.industry not in ("far", "near"):
             raise ValueError("Unknown city layout")
-        if self.zoning not in ("small_only", "large_edge", "large_central", "flexible"):
+        if self.zoning not in ("small_only", "large_edge", "large_central", "flexible", "matched_edge"):
             raise ValueError("Unknown zoning")
         if not isinstance(self.households, int) or self.households < 8:
             raise ValueError("households must be integer >= 8")
@@ -262,7 +262,9 @@ class City:
         if zone == "small_only":
             return [1]
         x, y = self.xy(node)
-        large = zone == "flexible" or (zone == "large_edge" and x >= 4) or (zone == "large_central" and 1 <= x <= 2 and 1 <= y <= 3)
+        large = (zone == "flexible" or (zone == "large_edge" and x >= 4)
+                 or (zone == "large_central" and 1 <= x <= 2 and 1 <= y <= 3)
+                 or (zone == "matched_edge" and 5 <= x <= 6 and 1 <= y <= 3))
         return [1, 4] if large else [1]
 
     def offers(self, include_empty=True):
@@ -447,6 +449,10 @@ class City:
             return p.stock if p.good == good else 0
         return self.stores[int(account[1:])].stock.get(good, 0)
 
+    def seller_service(self, account):
+        seller = self.producers[int(account[1:])] if account[0] == 'p' else self.stores[int(account[1:])]
+        return seller.service
+
     def stock_total(self, good):
         return sum(p.stock for p in self.producers if p.good == good) + sum(s.stock.get(good, 0) for s in self.stores)
 
@@ -468,7 +474,8 @@ class City:
             # At most three local alternatives per product; no global optimal-tour solver.
             choices = {}
             for good in GOODS:
-                candidates = [o for o in offers if good in o[2] and self.seller_stock(o[0], good)]
+                candidates = [o for o in offers if good in o[2] and self.seller_stock(o[0], good)
+                              and self.seller_service(o[0]) >= .08-1e-8]
                 candidates.sort(key=lambda o: 2*o[2][good] + h.value_time*(2*self.route(h.node,o[1])[0]+.06)/len(o[2]))
                 choices[good] = candidates[:3] + [None]
             plans = []
@@ -489,7 +496,12 @@ class City:
                             budget -= quantity*price
                             utility += quantity*((650 if good == "food" else 500)-price)
                             orders.append((good,offer,quantity))
-                    if sum(q for _,_,q in orders):
+                    service_needed = {}
+                    for _, offer, quantity in orders:
+                        if quantity:
+                            service_needed[offer[0]] = service_needed.get(offer[0], .06) + .02*quantity
+                    feasible = all(self.seller_service(account)+1e-8 >= service for account,service in service_needed.items())
+                    if feasible and sum(q for _,_,q in orders):
                         plans.append((utility, duration, path, orders))
             if not plans:
                 if cash < 100:

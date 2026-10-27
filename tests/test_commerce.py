@@ -127,6 +127,33 @@ class CommerceTests(unittest.TestCase):
             self.assertEqual(a.step(),b.step())
         self.assertEqual(a.accounts,b.accounts)
 
+    def test_unstaffed_shop_cannot_hide_working_factory_counter(self):
+        city=self.city(entry=False)
+        for h in city.residents:
+            h.node=0
+        for p in city.producers:
+            p.node=0
+            p.stock=2*len(city.residents)
+            p.service=100
+        s=Store(0,0,4,list(('food','goods')),{'food':1,'goods':1},
+                {'food':100,'goods':100},{'food':100,'goods':100},{'food':100,'goods':140},service=0)
+        s.period_sales={'food':0,'goods':0}
+        city.stores.append(s)
+        city.accounts['r0']=0
+        city.consume()
+        self.assertEqual(sum(h.food for h in city.residents),2*len(city.residents))
+        self.assertEqual(sum(h.goods for h in city.residents),2*len(city.residents))
+        self.assertEqual(city.lost_service,0)
+
+    def test_matched_parcel_control_has_same_count_and_different_positions(self):
+        central=self.city(zoning='large_central')
+        edge=self.city(zoning='matched_edge')
+        central_nodes={n for n in range(35) if 4 in central.legal_areas(n)}
+        edge_nodes={n for n in range(35) if 4 in edge.legal_areas(n)}
+        self.assertEqual(len(central_nodes),6)
+        self.assertEqual(len(edge_nodes),6)
+        self.assertTrue(central_nodes.isdisjoint(edge_nodes))
+
 
 if __name__=='__main__':
     unittest.main()

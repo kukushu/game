@@ -1,8 +1,9 @@
 import argparse
 import json
+from dataclasses import asdict
 from pathlib import Path
 
-from .experiments import CONTEXTS, compare, export_city, plots
+from .experiments import CONTEXTS, CORE_CONTEXTS, compare, export_city, plots
 from .model import City, Settings
 
 
@@ -11,7 +12,7 @@ def main():
     sub=parser.add_subparsers(dest='command',required=True)
     p=sub.add_parser('compare')
     p.add_argument('--seeds',default='1,2,3,4,5,6,7,8')
-    p.add_argument('--contexts',default=','.join(CONTEXTS))
+    p.add_argument('--contexts',default=','.join(CORE_CONTEXTS))
     p.add_argument('--months',type=int,default=72)
     p.add_argument('--tail',type=int,default=24)
     p.add_argument('--out',default='outputs/commerce')
@@ -27,9 +28,27 @@ def main():
     p.add_argument('--out',default='outputs/commerce-run')
     p=sub.add_parser('plot')
     p.add_argument('out')
+    p=sub.add_parser('inspect')
+    p.add_argument('snapshot')
+    group=p.add_mutually_exclusive_group()
+    group.add_argument('--store',type=int)
+    group.add_argument('--resident',type=int)
     args=parser.parse_args()
     try:
-        if args.command=='compare':
+        if args.command=='inspect':
+            city=City.restore(json.loads(Path(args.snapshot).read_text(encoding='utf-8-sig')))
+            if args.store is not None:
+                store=city.stores[args.store]
+                print(json.dumps({**asdict(store),'cash':city.accounts[f'r{store.id}'],
+                    'last_six_observations':[x for x in city.observations if x['store']==store.id][-6:],
+                    'events':[x for x in city.events if x['store']==store.id]},indent=2))
+            elif args.resident is not None:
+                h=city.residents[args.resident]
+                print(json.dumps({**asdict(h),'cash':city.accounts[f'h{h.id}']},indent=2))
+            else:
+                print(json.dumps(city.metrics[-1] if city.metrics else {'month':0},indent=2))
+            return
+        elif args.command=='compare':
             compare(args.out,[int(x) for x in args.seeds.split(',')],args.months,args.tail,args.contexts.split(','),args.plot)
         elif args.command=='plot':
             plots(args.out)
@@ -52,7 +71,7 @@ def main():
             export_city(city,args.out)
             print(json.dumps(city.metrics[-1],indent=2))
         print('Results:',Path(args.out).resolve())
-    except (ValueError,TypeError,OSError) as error:
+    except (ValueError,TypeError,OSError,IndexError) as error:
         parser.error(str(error))
 
 
