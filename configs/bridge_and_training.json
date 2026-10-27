@@ -1,0 +1,4 @@
+[
+  {"month": 12, "action": "bridge_target", "value": 30},
+  {"month": 12, "action": "training_seats", "value": 4}
+]

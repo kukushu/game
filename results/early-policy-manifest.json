@@ -1,0 +1,120 @@
+{
+  "seeds": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "months": 72,
+  "warmup": 2,
+  "tail": 12,
+  "config": {
+    "households": 240,
+    "firms": 16,
+    "initial_household_cash": 20,
+    "initial_firm_cash": 120,
+    "initial_treasury": 2000,
+    "food_need": 1.0,
+    "goods_need": 0.55,
+    "food_productivity": 3.0,
+    "goods_productivity": 1.5,
+    "food_price": 3.5,
+    "goods_price": 8.0,
+    "food_wage": 8.0,
+    "goods_wage": 11.0,
+    "income_spend": 0.85,
+    "wealth_spend": 0.06,
+    "demand_memory": 0.35,
+    "inventory_buffer": 0.25,
+    "price_adjustment": 0.025,
+    "wage_adjustment": 0.02,
+    "food_spoilage": 0.3,
+    "goods_spoilage": 0.025,
+    "max_workers": 28,
+    "max_commute": 1.35,
+    "max_shopping": 2.0,
+    "river_penalty": 1.35,
+    "job_search_rate": 0.15,
+    "commute_disutility": 1.4,
+    "shopping_disutility": 0.6,
+    "dividend_fraction": 0.25,
+    "reserve_payrolls": 2.0,
+    "skill_premium": 0.25,
+    "enable_price_adaptation": true,
+    "enable_demand_adaptation": true,
+    "enable_entry": true,
+    "search_all_sellers": false,
+    "shuffle_buyers": true
+  },
+  "scenarios": {
+    "baseline": [],
+    "bridge": [
+      [
+        0,
+        "bridge_target",
+        30
+      ]
+    ],
+    "training": [
+      [
+        0,
+        "training_seats",
+        4
+      ]
+    ],
+    "tax_cut": [
+      [
+        0,
+        "income_tax",
+        0.04
+      ]
+    ],
+    "safety_net": [
+      [
+        0,
+        "benefit",
+        3.0
+      ]
+    ],
+    "higher_tax": [
+      [
+        0,
+        "income_tax",
+        0.25
+      ]
+    ],
+    "bridge_training": [
+      [
+        0,
+        "bridge_target",
+        30
+      ],
+      [
+        0,
+        "training_seats",
+        4
+      ]
+    ],
+    "bridge_late": [
+      [
+        12,
+        "bridge_target",
+        30
+      ]
+    ],
+    "food_shock": [
+      [
+        0,
+        "food_shock",
+        0.65
+      ],
+      [
+        12,
+        "food_shock",
+        1.0
+      ]
+    ]
+  },
+  "ablations": {},
+  "interval": "1500 paired seed bootstrap resamples; not model uncertainty"
+}

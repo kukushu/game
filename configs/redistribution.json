@@ -1,0 +1,4 @@
+[
+  {"month": 12, "action": "income_tax", "value": 0.25},
+  {"month": 12, "action": "benefit", "value": 2.0}
+]
