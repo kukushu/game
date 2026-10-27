@@ -2,6 +2,14 @@
 
 一个独立的 Python 主体模拟原型，用少量可追踪规则探索城市建设游戏的经济机制。**没有游戏界面，不依赖 Unity 或 Citybound，也没有读取、修改现有游戏。** 这不是现实经济预测工具。
 
+## 新增：商业为什么存在？
+
+`commerce/` 是独立的流通机制实验：比较工厂直销、零售中转与两者竞争，追踪真实运输、库存、用工、购物时间、资金和开关店。旧版 `econlab/` 没有改动。
+
+先看 [商业实验结论](COMMERCE_FINDINGS.md) 和 [规则与运行方法](COMMERCE_DESIGN.md)。双击 `run-commerce.cmd` 可重跑一组正反条件；`python -m commerce --help` 查看命令。完整复现脚本为 `tools/reproduce_commerce.py`。
+
+新实验分支为 `experiment/retail-intermediation`；旧基线保留在 `experiment/python-city-economy`（`628c173`）。
+
 ## 已准备好的运行方式
 
 直接双击 `run-demo.cmd`：运行同城分叉对照并打开结果图；批次耗时取决于机器，控制台会在完成后列出结果。
