@@ -22,7 +22,7 @@ python -m unittest discover -s tests -v
 python tools/reproduce_land.py
 ```
 
-新界面和存档位于 `landlab/`、`outputs/land/`；上一轮仍用 `run-web.cmd`、18765、`outputs/web/`，不会覆盖。Git 分支 `experiment/land-and-location` 从网页分支 `experiment/playable-web` 创建；商业分支 `experiment/retail-intermediation` 和旧版 `experiment/python-city-economy` 保留。没有修改或合并正式 Unity 游戏。
+新界面和存档位于 `landlab/`、`outputs/land/`；上一轮仍用 `run-web.cmd`、18765、`outputs/web/`，不会覆盖。本阶段标签为 `cityeconomylab/land-location`；网页、商业和旧版基线都在统一分支 `experiment/city-economy-lab` 中保留，历史标签见 [分支与历史版本](GIT_BRANCHES.md)。没有修改或合并正式 Unity 游戏。
 
 第一次建议种子 1，选“自主权衡”：
 

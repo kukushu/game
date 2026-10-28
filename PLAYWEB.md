@@ -8,7 +8,7 @@
 - 双击 `stop-web.cmd` 停止本项目服务。再次启动会恢复最近一次已完成操作。
 - 本功能仅需 Python 3.11+，无需 npm、数据库、框架或任何 pip 依赖。启动器优先用 `.venv`，没有则用系统 `python.exe`。
 - 也可在项目目录运行 `python -m playweb --browser`。换端口例如 `python -m playweb --port 18766 --state outputs/web/other.json --browser`。
-- GitHub 分支 `experiment/playable-web`，与商业分支 `experiment/retail-intermediation`、旧版 `experiment/python-city-economy` 分开；不应合并正式游戏逻辑。换电脑可单独克隆这个分支，或下载该分支 ZIP，再运行本目录启动器。
+- GitHub 统一实验分支为 `experiment/city-economy-lab`，包含商业实验、旧版基线和后续土地玩法；本阶段标签为 `cityeconomylab/web-prototype`。换电脑克隆统一分支或下载该分支 ZIP，再运行本目录启动器。详见 [分支与历史版本](GIT_BRANCHES.md)，不应合并正式游戏逻辑。
 - 自动存档 `outputs/web/session.json` 与日志不提交 Git。想带走当前进度请点“导出存档”，另一台电脑点“导入存档”。新城市会替换本机当前局，先导出可保留旧局。
 
 ## 建议先玩一轮

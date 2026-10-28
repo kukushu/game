@@ -4,7 +4,7 @@
 
 双击 `run-land.cmd`。第一屏只保留预算、家庭数、通勤和时间，地图是主画面。按顶部的“试修第一条路”开始：预览连接 → 确认付款 → 推进三个月 → 查看城市回信 → 在地图上检查具体家庭或门店。无需先阅读经济文档。
 
-新分支为 `experiment/landlab-player-interface`；前一版界面和空间研究完整保留在 `experiment/land-and-location`。这次没有修改 `commerce/model.py`、`playweb/engine.py` 或 `landlab/model.py`，没有新增经济机制。
+本阶段标签为 `cityeconomylab/player-interface`；前一版界面和空间研究保留在 `cityeconomylab/land-location`。后续统一维护在 `experiment/city-economy-lab`，见 [分支与历史版本](GIT_BRANCHES.md)。这次没有修改 `commerce/model.py`、`playweb/engine.py` 或 `landlab/model.py`，没有新增经济机制。
 
 ## 页面怎样重新组织
 

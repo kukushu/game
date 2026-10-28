@@ -116,7 +116,7 @@
 
 ## 工程和验证
 
-- 分支 `experiment/retail-intermediation`；旧 `econlab/`、旧测试和旧启动脚本无修改，原始种子完整状态复跑与旧归档逐字段完全一致。
+- 商业阶段标签 `cityeconomylab/retail`（现统一维护在 `experiment/city-economy-lab`）；旧 `econlab/`、旧测试和旧启动脚本无修改，原始种子完整状态复跑与旧归档逐字段完全一致。
 - **30 项测试通过**，含旧版 14 项、新增商业测试、失效柜台回归、等数量地块控制、资金账本重建、真实批量配送、有限劳动/时间/库存约束与快照精确续跑。
 - 372 条最终运行的每一期现金误差和两种商品守恒误差均为 **整数零**；同种子三渠道初始家庭与资金完全一致；所有存活店均满足用地许可、容量和唯一地块占用。
 - 精简结果、参数清单、规模统计、示例可恢复城市与图归档在 `results/commerce-final/`；全部大体积原始结果位于本地 `outputs/`，可用 `tools/reproduce_commerce.py` 重建。`tools/validate_commerce.py` 独立核验完整输出。

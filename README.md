@@ -2,19 +2,27 @@
 
 一个独立的 Python 主体模拟原型，用少量可追踪规则探索城市建设游戏的经济机制。**不依赖 Unity 或 Citybound，也没有读取、修改现有游戏。** 这不是现实经济预测工具。
 
+全部 Python 验证成果统一维护在 **`experiment/city-economy-lab`**：`econlab`、`commerce`、`playweb`、`landlab` 都在这个分支。各阶段基线通过标签保留，参见 [分支与历史版本](GIT_BRANCHES.md)。没有合并进正式游戏主分支。
+
+换电脑下载：
+
+```sh
+git clone --branch experiment/city-economy-lab --single-branch https://github.com/kukushu/game.git CityEconomyLab
+```
+
 ## 新增：可以亲手玩的网页实验
 
 **默认开局已改为空白场地。** 双击 `run-land.cmd`，从零铺路、划住宅和工业许可，准备好后点“开放城市”。原有小城仍在研究菜单中，旧实验与存档保留。[空白开局说明](BLANK_START.md)。
 
 第二轮空间玩法：双击 `run-land.cmd`，进入“土地与选址”。可以规划住宅、商业、工业或混合用地，修建相邻道路，观察家庭、工厂和商店的自主反应。新旧界面、存档和启动脚本分开，旧版 `run-web.cmd` 保留。
 
-玩家界面已返工为城市主画面：从“试修第一条路”开始，在地图上预览和确认，再推进三个月看真实回信。研究参数收进右上角菜单。[界面与浏览器验收截图](PLAYER_UI.md)。界面分支为 `experiment/landlab-player-interface`，经济规则没有随返工改变。
+玩家界面已返工为城市主画面：在地图上预览和确认操作，再推进三个月看真实回信。研究参数收进右上角菜单。[界面与浏览器验收截图](PLAYER_UI.md)。经济规则没有随界面返工改变。
 
-先看 [土地实验：试玩、规则、结果与设计判断](LANDLAB.md)。当前空间实验分支为 `experiment/land-and-location`。
+先看 [土地实验：试玩、规则、结果与设计判断](LANDLAB.md)。空间实验已包含在统一分支中。
 
 双击 `run-web.cmd`，打开本机的“街区经济 · 规划试验桌”。Python 负责真实结算，HTML 负责地图、主体检查和规划操作；只在你点击推进时运行。支持同状态分叉对照、种子、自动保存、导出和导入。停止服务用 `stop-web.cmd`。
 
-先看 [试玩方法、实验证据与限制](PLAYWEB.md)。新分支 `experiment/playable-web`；商业实验分支和旧版基线均保留，没有合并进正式游戏。
+先看 [试玩方法、实验证据与限制](PLAYWEB.md)。旧网页入口与商业实验均保留在统一分支中。
 
 ## 新增：商业为什么存在？
 
@@ -22,7 +30,7 @@
 
 先看 [商业实验结论](COMMERCE_FINDINGS.md) 和 [规则与运行方法](COMMERCE_DESIGN.md)。双击 `run-commerce.cmd` 可重跑一组正反条件；`python -m commerce --help` 查看命令。完整复现脚本为 `tools/reproduce_commerce.py`。
 
-新实验分支为 `experiment/retail-intermediation`；旧基线保留在 `experiment/python-city-economy`（`628c173`）。
+商业阶段标签为 `cityeconomylab/retail`；旧基线标签为 `cityeconomylab/baseline`（`628c173`）。
 
 ## 已准备好的运行方式
 
