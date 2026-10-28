@@ -34,7 +34,9 @@ def main():
     out=Path('results/land');out.mkdir(parents=True,exist_ok=True)
     rows=[]
     for seed in range(1,5):
-        initial=LandSession.new(seed).dump()
+        baseline=LandSession.new(seed)
+        baseline.player.home_move_policy=baseline.reference.home_move_policy='legacy'
+        initial=baseline.dump()  # Preserve the original land study's relocation rule.
         for case in CASES:
             s=LandSession.load(initial)
             mode='fixed' if case=='open_fixed' else 'blind' if case=='open_blind' else 'adaptive'

@@ -18,6 +18,7 @@ class LandCity(PlayCity):
     def __init__(self, seed=1, settings=None, trace=False):
         super().__init__(seed, settings or Settings(households=64, zoning='flexible'), trace)
         self.mode = 'adaptive'
+        self.home_move_policy = 'stable'
         self.greenfield, self.gateway = False, None
         self.environment_weight = 1.0
         self.zones = {n:'reserve' for n in range(35)}
@@ -146,10 +147,13 @@ class LandCity(PlayCity):
             if self.mode=='blind':
                 node=self.rng('blind_home',h.id).choice(nodes);best=self.home_score(h,node,previous_jobs)
             enough=self.accounts[f'h{h.id}']>=120
-            willing=self.mode=='blind' or current['total']-best['total']>120/6+30
+            gain=current['total']-best['total']
+            required_gain=max(120/6+30,.10*current['total']) if self.home_move_policy=='stable' else 120/6+30
+            willing=self.mode=='blind' or gain>required_gain
             reason='同地居住' if node==h.node else '现金不足' if not enough else '节约不足以补偿搬迁' if not willing else '搬迁'
             record={'resident':h.id,'from':h.node,'to':node,'current':current,'candidate':best,
-                    'reason':reason,'month':self.month,'alternatives':sorted([{'node':n,**s} for s,n in scored],key=lambda x:x['total'])[:3]}
+                    'reason':reason,'month':self.month,'gain':gain,'required_gain':required_gain,
+                    'move_policy':self.home_move_policy,'alternatives':sorted([{'node':n,**s} for s,n in scored],key=lambda x:x['total'])[:3]}
             self.home_reviews.append(record)
             if node!=h.node and enough and willing:
                 self.pay(f'h{h.id}','property',120,'home_move')
@@ -245,6 +249,7 @@ class LandCity(PlayCity):
               'jobs':self.jobs,'commute':self.commute,'moved_home':self.moved_home,'moved_factory':self.moved_factory,
               'spatial_events':self.spatial_events,'home_reviews':self.home_reviews,'factory_reviews':self.factory_reviews,
               'spatial_history':self.spatial_history})
+        data['_land']['home_move_policy']=self.home_move_policy
         data['_land']['maintenance_ratio']=self.maintenance_ratio
         data['_land']['extra_maintenance']=self.extra_maintenance
         if self.greenfield:data['_land']['greenfield']={'gateway':self.gateway}
@@ -257,6 +262,9 @@ class LandCity(PlayCity):
         model=super().restore(data,trace)
         extra=data['_land']
         if extra['version']!=1: raise ValueError('土地实验存档版本无效')
+        # Old saves keep their history and adopt the new rule for future decisions.
+        model.home_move_policy=extra.get('home_move_policy','stable')
+        if model.home_move_policy not in ('stable','legacy'):raise ValueError('迁居规则无效')
         for k in ('mode','environment_weight','jobs','spatial_events','home_reviews','factory_reviews','spatial_history'):
             setattr(model,k,copy.deepcopy(extra[k]))
         for k in ('zones','commute','moved_home','moved_factory'):

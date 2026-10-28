@@ -10,6 +10,8 @@
 git clone --branch experiment/city-economy-lab --single-branch https://github.com/kukushu/game.git CityEconomyLab
 ```
 
+家庭迁居已加入更明确的收益门槛，减少小幅波动引起的反复搬家，旧存档可继续使用。[规则、对照结果与代价](HOME_STABILITY.md)。
+
 ## 新增：可以亲手玩的网页实验
 
 **默认开局已改为空白场地。** 双击 `run-land.cmd`，从零铺路、划住宅和工业许可，准备好后点“开放城市”。原有小城仍在研究菜单中，旧实验与存档保留。[空白开局说明](BLANK_START.md)。

@@ -181,6 +181,8 @@ class LandSession(Session):
                                        for e in t.get('site_estimate',[]) if e['node']==identity]
         elif kind=='resident':
             result['commute']=city.commute.get(identity,0)
+            result['move_rule']={'policy':city.home_move_policy,'cooldown_months':4,'cash_cost':120,
+                                 'required_fraction':.10 if city.home_move_policy=='stable' else 0}
             result['appraisal']=city.home_score(city.residents[identity],city.residents[identity].node)
             result['reviews']=[r for r in city.home_review_history if r['resident']==identity][-3:]
             result['routes'] += [{'mode':'commute','edges':r['edges']} for r in city.current.get('commute_trip',[]) if r['resident']==identity]
