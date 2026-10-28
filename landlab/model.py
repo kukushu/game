@@ -9,6 +9,9 @@ from playweb.engine import PlayCity
 
 ZONES = {'reserve':'保留地', 'home':'住宅', 'shop':'商业', 'factory':'工业',
          'mixed':'住商混合', 'open':'自由混合'}
+TAXABLE_INCOME = frozenset(('manufacturing','factory_service','retail_staff','freight',
+                            'household_dividend','fund_dividend'))
+
 RIGHTS = {'reserve':'', 'home':'R', 'shop':'C', 'factory':'I', 'mixed':'RC', 'open':'RCI'}
 
 
@@ -19,6 +22,7 @@ class LandCity(PlayCity):
         super().__init__(seed, settings or Settings(households=64, zoning='flexible'), trace)
         self.mode = 'adaptive'
         self.home_move_policy = 'stable'
+        self.income_tax_rate = 0
         self.greenfield, self.gateway = False, None
         self.environment_weight = 1.0
         self.zones = {n:'reserve' for n in range(35)}
@@ -39,6 +43,25 @@ class LandCity(PlayCity):
         self.maintenance_ratio = 1.0
         self.extra_maintenance = 0  # Offline cash-flow placebo; never exposed as a player action.
         self.preferences = {h.id:self.rng('environment_preference',h.id).uniform(100,350) for h in self.residents}
+
+    def pay(self, source, target, amount, purpose):
+        super().pay(source, target, amount, purpose)
+        rate=getattr(self,'income_tax_rate',0)
+        if amount and rate and target.startswith('h') and purpose in TAXABLE_INCOME:
+            # Gross employer/owner payment is unchanged; a real second transfer withholds tax.
+            tax=amount*rate//100
+            if tax:super().pay(target,'civic',tax,'income_tax')
+
+    def fiscal_summary(self):
+        payments=self.current.get('payments',[])
+        gross=sum(p['cents'] for p in payments if p['target'].startswith('h') and p['purpose'] in TAXABLE_INCOME)
+        tax=sum(p['cents'] for p in payments if p['purpose']=='income_tax')
+        paid=sum(p['cents'] for p in payments if p['purpose']=='road_maintenance')
+        return {'tax_rate':self.income_tax_rate,'tax_income':tax,'gross_income':gross,
+                'net_income':gross-tax,'upkeep_paid':paid,
+                'next_upkeep_due':4*sum(self.roads.values())+self.extra_maintenance,
+                'household_cash':sum(v for a,v in self.accounts.items() if a.startswith('h')),
+                'maintenance_ratio':self.maintenance_ratio,'period':self.month}
 
     def usage(self, node):
         homes = sum(h.node==node for h in self.residents)
@@ -233,6 +256,9 @@ class LandCity(PlayCity):
               'home_factory_distance':sum(min(self.manhattan(h.node,p.node) for p in self.producers) for h in self.residents)/len(self.residents),
               'home_factory_overlap':sum(any(h.node==p.node for p in self.producers) for h in self.residents)/len(self.residents),
               'civic':self.accounts['civic']/100,'built_land':sum(8-self.free_land(n) for n in range(35))}
+        fiscal=self.fiscal_summary()
+        item.update({'tax_income':fiscal['tax_income'],'upkeep_paid':fiscal['upkeep_paid'],
+                     'upkeep_due':fiscal['next_upkeep_due'],'income_tax_rate':self.income_tax_rate})
         self.spatial_history.append(item)
         self.spatial_log=(self.spatial_log+copy.deepcopy(self.spatial_events))[-200:]
         self.home_review_history=(self.home_review_history+copy.deepcopy(self.home_reviews))[-256:]
@@ -249,6 +275,7 @@ class LandCity(PlayCity):
               'jobs':self.jobs,'commute':self.commute,'moved_home':self.moved_home,'moved_factory':self.moved_factory,
               'spatial_events':self.spatial_events,'home_reviews':self.home_reviews,'factory_reviews':self.factory_reviews,
               'spatial_history':self.spatial_history})
+        data['_land']['income_tax_rate']=self.income_tax_rate
         data['_land']['home_move_policy']=self.home_move_policy
         data['_land']['maintenance_ratio']=self.maintenance_ratio
         data['_land']['extra_maintenance']=self.extra_maintenance
@@ -263,6 +290,8 @@ class LandCity(PlayCity):
         extra=data['_land']
         if extra['version']!=1: raise ValueError('土地实验存档版本无效')
         # Old saves keep their history and adopt the new rule for future decisions.
+        model.income_tax_rate=extra.get('income_tax_rate',0)
+        if not isinstance(model.income_tax_rate,int) or isinstance(model.income_tax_rate,bool) or not 0<=model.income_tax_rate<=30:raise ValueError('收入税率须为 0 到 30 的整数百分比')
         model.home_move_policy=extra.get('home_move_policy','stable')
         if model.home_move_policy not in ('stable','legacy'):raise ValueError('迁居规则无效')
         for k in ('mode','environment_weight','jobs','spatial_events','home_reviews','factory_reviews','spatial_history'):

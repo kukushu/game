@@ -38,3 +38,5 @@ git log --oneline experiment/city-economy-lab
 ```
 
 本机未提交存档仍留在本机；本次整理没有删除或改写存档。
+
+后续对照标签：`cityeconomylab/before-home-stability` 保存迁居门槛调整前版本；`cityeconomylab/before-taxation` 保存税收加入前版本。日常仍只使用统一实验分支。

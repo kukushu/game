@@ -4,7 +4,7 @@ import copy
 import math
 
 from playweb.engine import Session, validate_snapshot
-from .model import LandCity, ZONES, RIGHTS
+from .model import LandCity, ZONES, RIGHTS, TAXABLE_INCOME
 
 MODES={'adaptive':'自主选址','fixed':'固定位置','blind':'只看许可随机选址'}
 
@@ -60,13 +60,21 @@ class LandSession(Session):
         if [(h.id,h.value_time) for h in a.residents]!=[(h.id,h.value_time) for h in b.residents]: raise ValueError('对照家庭身份不一致')
         actions,fork=data.get('actions'),data.get('fork_month')
         if not isinstance(actions,list) or len(actions)>500 or not isinstance(fork,int) or not 0<=fork<=a.month: raise ValueError('规划记录无效')
-        if any(not isinstance(x,dict) or x.get('action') not in ('zone','road') or not isinstance(x.get('month'),int) or not 0<=x['month']<=a.month for x in actions): raise ValueError('规划记录无效')
+        if any(not isinstance(x,dict) or x.get('action') not in ('zone','road','tax') or not isinstance(x.get('month'),int) or not 0<=x['month']<=a.month for x in actions): raise ValueError('规划记录无效')
         return cls(a,b,actions=copy.deepcopy(actions),fork_month=fork,preset=a.mode)
 
     def anchor(self):
         self.reference=LandCity.restore(self.player.snapshot());self.fork_month=self.player.month
 
     def intervene(self,action,node=None,note=''):
+        if action=='tax':
+            rate=node.get('rate') if isinstance(node,dict) and set(node)=={'rate'} else None
+            if not isinstance(rate,int) or isinstance(rate,bool) or not 0<=rate<=30:raise ValueError('收入税率须为 0 到 30 的整数百分比')
+            if rate==self.player.income_tax_rate:raise ValueError('税率没有变化')
+            self.player.income_tax_rate=rate
+            self.actions.append({'month':self.player.month,'action':'tax','node':{'rate':rate},
+                                 'name':f'居民收入税改为 {rate}%','cost':0,'note':str(note)[:240]})
+            return
         if action not in ('zone','road') or not isinstance(node,dict): raise ValueError('仅支持规划用途或修建道路；不能直接放置主体')
         city=self.player
         identity=node.get('id')
@@ -105,6 +113,7 @@ class LandSession(Session):
             world['spatial_events']=copy.deepcopy(city.spatial_events)
             world['spatial_log']=copy.deepcopy(city.spatial_log[-12:])
             world['civic']=city.accounts['civic']/100
+            world['fiscal']=city.fiscal_summary()
             world['maintenance_ratio']=city.maintenance_ratio
             world['reviews']={'home':len(city.home_reviews),'factory':len(city.factory_reviews)}
             # Presentation-only facts. No new decisions, inferred buildings, or generated demand.
@@ -181,6 +190,8 @@ class LandSession(Session):
                                        for e in t.get('site_estimate',[]) if e['node']==identity]
         elif kind=='resident':
             result['commute']=city.commute.get(identity,0)
+            result['income']={'gross':sum(p['cents'] for p in result['payments'] if p['target']==f'h{identity}' and p['purpose'] in TAXABLE_INCOME),
+                              'tax':sum(p['cents'] for p in result['payments'] if p['source']==f'h{identity}' and p['purpose']=='income_tax')}
             result['move_rule']={'policy':city.home_move_policy,'cooldown_months':4,'cash_cost':120,
                                  'required_fraction':.10 if city.home_move_policy=='stable' else 0}
             result['appraisal']=city.home_score(city.residents[identity],city.residents[identity].node)
