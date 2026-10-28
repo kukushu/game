@@ -6,6 +6,7 @@ import math
 
 from commerce.model import Settings
 from playweb.engine import PlayCity
+from .assessments import CommercialAudit
 
 ZONES = {'reserve':'保留地', 'home':'住宅', 'shop':'商业', 'factory':'工业',
          'mixed':'住商混合', 'open':'自由混合'}
@@ -23,6 +24,7 @@ class LandCity(PlayCity):
         self.mode = 'adaptive'
         self.home_move_policy = 'stable'
         self.income_tax_rate = 0
+        self.commercial_audit = CommercialAudit()
         self.greenfield, self.gateway = False, None
         self.environment_weight = 1.0
         self.zones = {n:'reserve' for n in range(35)}
@@ -43,6 +45,11 @@ class LandCity(PlayCity):
         self.maintenance_ratio = 1.0
         self.extra_maintenance = 0  # Offline cash-flow placebo; never exposed as a player action.
         self.preferences = {h.id:self.rng('environment_preference',h.id).uniform(100,350) for h in self.residents}
+
+    def observe(self, event, **details):
+        super().observe(event, **details)
+        if event == 'site_estimate' and hasattr(self, 'commercial_audit'):
+            self.commercial_audit.estimate(self, details)
 
     def pay(self, source, target, amount, purpose):
         super().pay(source, target, amount, purpose)
@@ -75,8 +82,9 @@ class LandCity(PlayCity):
 
     def legal_areas(self,node):
         if not hasattr(self,'zones'): return super().legal_areas(node)
-        if not self.location_accessible(node): return []
-        return [a for a in (1,4) if 'C' in RIGHTS[self.zones[node]] and self.free_land(node)>=a]
+        areas=[a for a in (1,4) if self.location_accessible(node) and 'C' in RIGHTS[self.zones[node]] and self.free_land(node)>=a]
+        if self.commercial_audit.active:self.commercial_audit.visit(self,node,areas)
+        return areas
 
     def location_accessible(self,node):
         return not self.greenfield or math.isfinite(self.route(self.gateway,node)[0])
@@ -176,7 +184,9 @@ class LandCity(PlayCity):
             reason='同地居住' if node==h.node else '现金不足' if not enough else '节约不足以补偿搬迁' if not willing else '搬迁'
             record={'resident':h.id,'from':h.node,'to':node,'current':current,'candidate':best,
                     'reason':reason,'month':self.month,'gain':gain,'required_gain':required_gain,
-                    'move_policy':self.home_move_policy,'alternatives':sorted([{'node':n,**s} for s,n in scored],key=lambda x:x['total'])[:3]}
+                    'move_policy':self.home_move_policy,'cash_at_review':self.accounts[f'h{h.id}'],
+                    'move_cost':120,'candidate_count':len(scored),
+                    'alternatives':sorted([{'node':n,**s} for s,n in scored],key=lambda x:x['total'])}
             self.home_reviews.append(record)
             if node!=h.node and enough and willing:
                 self.pay(f'h{h.id}','property',120,'home_move')
@@ -220,7 +230,8 @@ class LandCity(PlayCity):
         willing=self.mode=='blind' or best['profit']-current['profit']>1200/6+200
         reason='原址更合适' if node==p.node else '现金不足' if not enough else '预期改善不足以补偿搬迁' if not willing else '搬迁'
         record={'producer':p.id,'from':p.node,'to':node,'current':current,'candidate':best,'reason':reason,'month':self.month,
-                'alternatives':sorted([{'node':n,**s} for s,n in scored],key=lambda x:-x['profit'])[:3]}
+                'cash_at_review':self.accounts[f'p{p.id}'],'move_cost':1200,'required_gain':400,
+                'candidate_count':len(scored),'alternatives':sorted([{'node':n,**s} for s,n in scored],key=lambda x:-x['profit'])}
         self.factory_reviews.append(record)
         if node!=p.node and enough and willing:
             self.pay(f'p{p.id}','property',1200,'factory_move')
@@ -241,7 +252,11 @@ class LandCity(PlayCity):
         self.review_factory()
         for p in self.producers:
             self.pay(f'p{p.id}','property',min(self.rent(p.node,4)+100,self.accounts[f'p{p.id}']),'industrial_rent')
-        super().enter()
+        self.commercial_audit.begin(self)
+        try:
+            super().enter()
+        finally:
+            self.commercial_audit.finish(self)
 
     def step(self):
         row=super().step()
@@ -261,8 +276,8 @@ class LandCity(PlayCity):
                      'upkeep_due':fiscal['next_upkeep_due'],'income_tax_rate':self.income_tax_rate})
         self.spatial_history.append(item)
         self.spatial_log=(self.spatial_log+copy.deepcopy(self.spatial_events))[-200:]
-        self.home_review_history=(self.home_review_history+copy.deepcopy(self.home_reviews))[-256:]
-        self.factory_review_history=(self.factory_review_history+copy.deepcopy(self.factory_reviews))[-96:]
+        self.home_review_history.extend(copy.deepcopy(self.home_reviews))
+        self.factory_review_history.extend(copy.deepcopy(self.factory_reviews))
         # Inspections quote the next period's known traffic, consistently before/after a save.
         # Actual previous-period routes are preserved in the observation records.
         self.paths={}
@@ -275,6 +290,7 @@ class LandCity(PlayCity):
               'jobs':self.jobs,'commute':self.commute,'moved_home':self.moved_home,'moved_factory':self.moved_factory,
               'spatial_events':self.spatial_events,'home_reviews':self.home_reviews,'factory_reviews':self.factory_reviews,
               'spatial_history':self.spatial_history})
+        data['_land']['commercial_audit']=self.commercial_audit.dump()
         data['_land']['income_tax_rate']=self.income_tax_rate
         data['_land']['home_move_policy']=self.home_move_policy
         data['_land']['maintenance_ratio']=self.maintenance_ratio
@@ -317,4 +333,5 @@ class LandCity(PlayCity):
         if any(not math.isfinite(model.route(origin,n)[0]) for n in required): raise ValueError('已有主体的道路网络必须连通')
         if any(model.free_land(n)<0 for n in range(35)): raise ValueError('地块超过土地容量')
         model.commute_visits=set()
+        model.commercial_audit=CommercialAudit.restore(extra.get('commercial_audit'),model)
         return model

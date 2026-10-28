@@ -21,9 +21,10 @@ class Conflict(ValueError):
 
 
 class Application:
-    def __init__(self, save_path=None, session=None, session_type=Session, static=STATIC, app_id=APP_ID, default_preset='neighborhood'):
+    def __init__(self, save_path=None, session=None, session_type=Session, static=STATIC, app_id=APP_ID, default_preset='neighborhood', max_body=MAX_BODY):
         self.session_type, self.static, self.app_id = session_type, Path(static), app_id
         self.default_preset = default_preset
+        self.max_body = max_body
         self.lock = threading.RLock()
         self.save_path = Path(save_path) if save_path else None
         self.revision = 1
@@ -151,7 +152,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.send(415,{'error':'请使用 application/json'})
         try:
             size=int(self.headers.get('Content-Length','0'))
-            if not 0<size<=MAX_BODY: return self.send(413,{'error':'请求或存档过大'})
+            if not 0<size<=self.server.app.max_body: return self.send(413,{'error':'请求或存档过大'})
             data=json.loads(self.rfile.read(size))
             if not isinstance(data,dict): raise ValueError('请求应为 JSON 对象')
             if self.path=='/api/stop':

@@ -191,6 +191,7 @@ class LandSession(Session):
                            'near_roads':[{'neighbor':n,'level':city.roads.get(tuple(sorted((identity,n))),0)} for n in range(35) if city.manhattan(identity,n)==1]})
             result['recent_estimates']=[{'month':t['month'],**copy.deepcopy(e)} for t in city.traces[-3:]
                                        for e in t.get('site_estimate',[]) if e['node']==identity]
+            result['commercial_history']=city.commercial_audit.for_node(identity)
         elif kind=='resident':
             result['commute']=city.commute.get(identity,0)
             result['income']={'gross':sum(p['cents'] for p in result['payments'] if p['target']==f'h{identity}' and p['purpose'] in TAXABLE_INCOME),
@@ -198,9 +199,9 @@ class LandSession(Session):
             result['move_rule']={'policy':city.home_move_policy,'cooldown_months':4,'cash_cost':120,
                                  'required_fraction':.10 if city.home_move_policy=='stable' else 0}
             result['appraisal']=city.home_score(city.residents[identity],city.residents[identity].node)
-            result['reviews']=[r for r in city.home_review_history if r['resident']==identity][-3:]
+            result['reviews']=[r for r in city.home_review_history if r['resident']==identity]
             result['routes'] += [{'mode':'commute','edges':r['edges']} for r in city.current.get('commute_trip',[]) if r['resident']==identity]
         elif kind=='producer':
-            result['reviews']=[r for r in city.factory_review_history if r['producer']==identity][-3:]
+            result['reviews']=[r for r in city.factory_review_history if r['producer']==identity]
             result['appraisal']=city.factory_score(city.producers[identity],city.producers[identity].node)
         return result
