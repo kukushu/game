@@ -98,6 +98,15 @@ class LandSession(Session):
             world['civic']=city.accounts['civic']/100
             world['maintenance_ratio']=city.maintenance_ratio
             world['reviews']={'home':len(city.home_reviews),'factory':len(city.factory_reviews)}
+            # Presentation-only facts. No new decisions, inferred buildings, or generated demand.
+            world['producers']=[{'id':p.id,'node':p.node,'good':p.good,'production':p.production,
+                                 'sold':p.sold,'direct_sold':p.direct_sold} for p in city.producers]
+            for store in world['stores']:
+                actor=city.stores[store['id']]
+                store.update({'assortment':list(actor.assortment),'customers':actor.customers,
+                              'stock':sum(actor.stock.values()),'service':actor.service})
+            world['changes']={'shops':copy.deepcopy([e for e in city.events if e['month']>=city.month-12]),
+                              'moves':copy.deepcopy([e for e in city.spatial_log if e['month']>=city.month-12])}
             for h in world['residents']:
                 h['commute']=city.commute.get(h['id'],0)
             for n in world['nodes']:
@@ -110,9 +119,44 @@ class LandSession(Session):
         result['spatial_comparisons']={}
         for key in ('exposure','commute','occupied_home_nodes','moves','factory_moves'):
             result['spatial_comparisons'][key]={name:sum(x[key] for x in city.spatial_history[-window:])/window for name,city in [('player',self.player),('reference',self.reference)]} if window else None
+        # Show measured differences against the synchronous reference, not a success score.
+        periods=min(3,self.player.month-self.fork_month)
+        new_edges={tuple(sorted((a['node']['id'],a['node']['neighbor']))) for a in self.actions
+                   if a['action']=='road' and tuple(sorted((a['node']['id'],a['node']['neighbor']))) not in self.reference.roads}
+        examples=[]
+        if periods:
+            for h,ref in zip(self.player.residents,self.reference.residents):
+                values={}
+                for name,city in [('player',self.player),('reference',self.reference)]:
+                    traces=city.traces[-periods:]
+                    values[name]={'commute':sum(r['duration'] for t in traces for r in t.get('commute_trip',[]) if r['resident']==h.id)/periods,
+                                  'shopping':sum(t['residents'][h.id]['shopping'] for t in traces)/periods}
+                used=any(tuple(edge) in new_edges for t in self.player.traces[-periods:]
+                         for r in t.get('commute_trip',[]) if r['resident']==h.id for edge in r['edges'])
+                examples.append({'id':h.id,'node':h.node,'reference_node':ref.node,'used_new_road':used,**values})
+        result['player_feedback']={'periods':periods,
+            'new_road_users':sum(x['used_new_road'] for x in examples),
+            'commute_less':sum(x['player']['commute']<x['reference']['commute']-1e-6 for x in examples),
+            'commute_more':sum(x['player']['commute']>x['reference']['commute']+1e-6 for x in examples),
+            'shopping_less':sum(x['player']['shopping']<x['reference']['shopping']-1e-6 for x in examples),
+            'shopping_more':sum(x['player']['shopping']>x['reference']['shopping']+1e-6 for x in examples),
+            'examples':sorted(examples,key=lambda x:-(abs(x['player']['commute']-x['reference']['commute'])+
+                                                     abs(x['player']['shopping']-x['reference']['shopping'])))[:8]}
         return result
 
     def inspect(self,kind,identity,world='player'):
+        if kind=='road':
+            city=self.world(world)
+            if not isinstance(identity,int) or isinstance(identity,bool): raise ValueError('道路无效')
+            a,b=divmod(identity,35)
+            if not 0<=a<b<35 or city.manhattan(a,b)!=1: raise ValueError('请选择相邻街区之间的道路')
+            level=city.roads.get((a,b),0)
+            duration,path=city.route(a,b)
+            direct=city.settings.customer_edge_hours*(.55 if level else 1)*(2-city.maintenance_ratio)*(1+city.settings.congestion*city.previous_traffic.get((a,b),0)/12)
+            return {'kind':'road','id':identity,'a':a,'b':b,'level':level,'cost':1200 if not level else 900 if level==1 else None,
+                    'upkeep_after':8 if level else 4,'duration_before':duration,'duration_with_connection':min(duration,direct),
+                    'residents_nearby':sum(city.usage(n)['homes'] for n in (a,b)),
+                    'routes':[{'mode':'detour','edges':[list(e) for e in path]}]}
         result=super().inspect(kind,identity,world)
         city=self.world(world)
         if kind=='node':
@@ -123,6 +167,8 @@ class LandSession(Session):
                            'factory_eligible':'I' in RIGHTS[city.zones[identity]] and city.free_land(identity)>=4,
                            'factory_appraisals':[{'producer':p.id,**city.factory_score(p,identity),'current_profit':city.factory_score(p,p.node)['profit']} for p in city.producers],
                            'near_roads':[{'neighbor':n,'level':city.roads.get(tuple(sorted((identity,n))),0)} for n in range(35) if city.manhattan(identity,n)==1]})
+            result['recent_estimates']=[{'month':t['month'],**copy.deepcopy(e)} for t in city.traces[-3:]
+                                       for e in t.get('site_estimate',[]) if e['node']==identity]
         elif kind=='resident':
             result['commute']=city.commute.get(identity,0)
             result['appraisal']=city.home_score(city.residents[identity],city.residents[identity].node)
