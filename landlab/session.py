@@ -34,6 +34,10 @@ def validate(data):
 class LandSession(Session):
     @classmethod
     def new(cls,seed=1,preset='adaptive'):
+        if preset=='blank':
+            if not isinstance(seed,int) or isinstance(seed,bool) or not 0<=seed<2**31:raise ValueError('种子无效')
+            from .planning import PlanningSession
+            return PlanningSession(seed)
         if not isinstance(seed,int) or isinstance(seed,bool) or not 0<=seed<2**31 or preset not in MODES:
             raise ValueError('种子或选址机制无效')
         city=LandCity(seed)
@@ -47,6 +51,9 @@ class LandSession(Session):
 
     @classmethod
     def load(cls,data):
+        if data.get('app')=='CityEconomyLab Blueprint':
+            from .planning import PlanningSession
+            return PlanningSession.load(data)
         if data.get('app')!='CityEconomyLab Land' or data.get('version')!=1: raise ValueError('这不是土地实验存档')
         a,b=validate(data['player']),validate(data['reference'])
         if a.seed!=b.seed or a.month!=b.month or a.mode!=b.mode: raise ValueError('对照的种子、时间与选址机制必须相同')
@@ -88,6 +95,8 @@ class LandSession(Session):
 
     def view(self):
         result=super().view()
+        result['stage']='running'
+        result['greenfield']=self.player.greenfield
         result['mode']=self.player.mode
         for name,city in [('player',self.player),('reference',self.reference)]:
             world=result['worlds'][name]
@@ -154,7 +163,7 @@ class LandSession(Session):
             duration,path=city.route(a,b)
             direct=city.settings.customer_edge_hours*(.55 if level else 1)*(2-city.maintenance_ratio)*(1+city.settings.congestion*city.previous_traffic.get((a,b),0)/12)
             return {'kind':'road','id':identity,'a':a,'b':b,'level':level,'cost':1200 if not level else 900 if level==1 else None,
-                    'upkeep_after':8 if level else 4,'duration_before':duration,'duration_with_connection':min(duration,direct),
+                    'upkeep_after':8 if level else 4,'duration_before':duration if math.isfinite(duration) else None,'duration_with_connection':min(duration,direct),
                     'residents_nearby':sum(city.usage(n)['homes'] for n in (a,b)),
                     'routes':[{'mode':'detour','edges':[list(e) for e in path]}]}
         result=super().inspect(kind,identity,world)
@@ -162,10 +171,11 @@ class LandSession(Session):
         if kind=='node':
             result.update({'zone':city.zones[identity],'usage':city.usage(identity),'free':city.free_land(identity),
                            'exposure':city.exposure(identity),'home_rent':city.home_rent(identity),
-                           'home_appraisals':sorted([{'resident':h.id,'origin':h.node,**city.home_score(h,identity)} for h in city.residents if h.node!=identity],key=lambda x:x['total'])[:3],
-                           'home_eligible':'R' in RIGHTS[city.zones[identity]] and city.free_land(identity)>=(1 if city.usage(identity)['homes']%4==0 else 0),
-                           'factory_eligible':'I' in RIGHTS[city.zones[identity]] and city.free_land(identity)>=4,
-                           'factory_appraisals':[{'producer':p.id,**city.factory_score(p,identity),'current_profit':city.factory_score(p,p.node)['profit']} for p in city.producers],
+                           'connected':city.location_accessible(identity),
+                           'home_appraisals':sorted([{'resident':h.id,'origin':h.node,**city.home_score(h,identity)} for h in city.residents if h.node!=identity and city.location_accessible(identity)],key=lambda x:x['total'])[:3],
+                           'home_eligible':city.location_accessible(identity) and 'R' in RIGHTS[city.zones[identity]] and city.free_land(identity)>=(1 if city.usage(identity)['homes']%4==0 else 0),
+                           'factory_eligible':city.location_accessible(identity) and 'I' in RIGHTS[city.zones[identity]] and city.free_land(identity)>=4,
+                           'factory_appraisals':[{'producer':p.id,**city.factory_score(p,identity),'current_profit':city.factory_score(p,p.node)['profit']} for p in city.producers if city.location_accessible(identity)],
                            'near_roads':[{'neighbor':n,'level':city.roads.get(tuple(sorted((identity,n))),0)} for n in range(35) if city.manhattan(identity,n)==1]})
             result['recent_estimates']=[{'month':t['month'],**copy.deepcopy(e)} for t in city.traces[-3:]
                                        for e in t.get('site_estimate',[]) if e['node']==identity]

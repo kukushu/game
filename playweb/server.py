@@ -34,7 +34,7 @@ class Application:
             self.session = self.session_type.load(data)
             self.revision = max(1, int(data.get('web_revision',1)))
         else:
-            self.session = self.session_type.new()
+            self.session = self.session_type.new(preset=self.default_preset)
 
     def state(self):
         with self.lock:
@@ -54,6 +54,7 @@ class Application:
         allowed = {
             'advance': {'revision','count'}, 'action': {'revision','action','node','note'},
             'new': {'revision','seed','preset'}, 'anchor': {'revision'}, 'load': {'revision','save'},
+            'launch': {'revision'},
         }
         with self.lock:
             if operation not in allowed or set(data)-allowed[operation]:
@@ -71,6 +72,9 @@ class Application:
                 if operation=='advance': candidate.advance(data.get('count'))
                 elif operation=='action': candidate.intervene(data.get('action'),data.get('node'),data.get('note',''))
                 elif operation=='anchor': candidate.anchor()
+                elif operation=='launch':
+                    if not hasattr(candidate,'launch'):raise ValueError('城市已经开放')
+                    candidate=candidate.launch()
             self.persist(candidate,self.revision+1)
             self.session=candidate
             self.revision+=1
@@ -124,7 +128,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200,self.server.app.state())
             if parsed.path=='/api/save':
                 with self.server.app.lock:
-                    return self.send(200,self.server.app.dump(),filename=f'city-economy-seed-{self.server.app.session.player.seed}.json')
+                    session=self.server.app.session
+                    seed=session.seed if hasattr(session,'seed') else session.player.seed
+                    return self.send(200,self.server.app.dump(),filename=f'city-economy-seed-{seed}.json')
             if parsed.path=='/api/inspect':
                 q=parse_qs(parsed.query)
                 with self.server.app.lock:
@@ -152,7 +158,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.send(200,{'stopped':True})
                 threading.Thread(target=self.server.shutdown,daemon=True).start()
                 return
-            paths={'/api/advance':'advance','/api/action':'action','/api/new':'new','/api/anchor':'anchor','/api/load':'load'}
+            paths={'/api/advance':'advance','/api/action':'action','/api/new':'new','/api/anchor':'anchor','/api/load':'load','/api/launch':'launch'}
             if self.path not in paths: return self.send(404,{'error':'未知操作'})
             return self.send(200,self.server.app.mutate(paths[self.path],data))
         except Conflict as error:

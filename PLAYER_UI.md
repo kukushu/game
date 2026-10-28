@@ -1,5 +1,7 @@
 # 玩家界面返工：城市优先
 
+当前默认已改为[空白规划开局](BLANK_START.md)：先自己铺路划地，准备好再开放城市。下文保留预建小城界面的返工与验收记录；该情景仍可在研究菜单中选择。
+
 双击 `run-land.cmd`。第一屏只保留预算、家庭数、通勤和时间，地图是主画面。按顶部的“试修第一条路”开始：预览连接 → 确认付款 → 推进三个月 → 查看城市回信 → 在地图上检查具体家庭或门店。无需先阅读经济文档。
 
 新分支为 `experiment/landlab-player-interface`；前一版界面和空间研究完整保留在 `experiment/land-and-location`。这次没有修改 `commerce/model.py`、`playweb/engine.py` 或 `landlab/model.py`，没有新增经济机制。

@@ -18,6 +18,7 @@ class LandCity(PlayCity):
     def __init__(self, seed=1, settings=None, trace=False):
         super().__init__(seed, settings or Settings(households=64, zoning='flexible'), trace)
         self.mode = 'adaptive'
+        self.greenfield, self.gateway = False, None
         self.environment_weight = 1.0
         self.zones = {n:'reserve' for n in range(35)}
         for h in self.residents: self.zones[h.node] = 'home'
@@ -50,7 +51,11 @@ class LandCity(PlayCity):
 
     def legal_areas(self,node):
         if not hasattr(self,'zones'): return super().legal_areas(node)
+        if not self.location_accessible(node): return []
         return [a for a in (1,4) if 'C' in RIGHTS[self.zones[node]] and self.free_land(node)>=a]
+
+    def location_accessible(self,node):
+        return not self.greenfield or math.isfinite(self.route(self.gateway,node)[0])
 
     def route(self,start,end,mode='customer'):
         if not hasattr(self,'roads'): return super().route(start,end,mode)
@@ -133,7 +138,7 @@ class LandCity(PlayCity):
         self.rng('home_review').shuffle(candidates)
         for h in candidates[:max(1,len(candidates)//6)]:
             if self.month-self.moved_home.get(h.id,-10)<4: continue
-            nodes=[n for n in range(35) if n==h.node or ('R' in RIGHTS[self.zones[n]] and
+            nodes=[n for n in range(35) if n==h.node or ('R' in RIGHTS[self.zones[n]] and self.location_accessible(n) and
                    self.free_land(n)>=(1 if self.usage(n)['homes']%4==0 else 0))]
             current=self.home_score(h,h.node,previous_jobs)
             scored=[(self.home_score(h,n,previous_jobs),n) for n in nodes]
@@ -179,7 +184,7 @@ class LandCity(PlayCity):
         if self.mode=='fixed' or self.month<6: return
         p=self.producers[self.month%len(self.producers)]
         if self.month-self.moved_factory.get(p.id,-10)<8: return
-        nodes=[n for n in range(35) if n==p.node or ('I' in RIGHTS[self.zones[n]] and self.free_land(n)>=4)]
+        nodes=[n for n in range(35) if n==p.node or ('I' in RIGHTS[self.zones[n]] and self.location_accessible(n) and self.free_land(n)>=4)]
         current=self.factory_score(p,p.node)
         scored=[(self.factory_score(p,n),n) for n in nodes]
         best,node=max(scored,key=lambda x:(x[0]['profit'],-x[1]))
@@ -242,6 +247,7 @@ class LandCity(PlayCity):
               'spatial_history':self.spatial_history})
         data['_land']['maintenance_ratio']=self.maintenance_ratio
         data['_land']['extra_maintenance']=self.extra_maintenance
+        if self.greenfield:data['_land']['greenfield']={'gateway':self.gateway}
         for key in ('spatial_log','home_review_history','factory_review_history'):
             data['_land'][key]=copy.deepcopy(getattr(self,key))
         return data
@@ -256,6 +262,9 @@ class LandCity(PlayCity):
         for k in ('zones','commute','moved_home','moved_factory'):
             setattr(model,k,{int(n):v for n,v in extra[k].items()})
         model.roads={(a,b):v for a,b,v in extra['roads']}
+        model.greenfield='greenfield' in extra
+        model.gateway=extra.get('greenfield',{}).get('gateway')
+        if model.greenfield and (not isinstance(model.gateway,int) or not 0<=model.gateway<35):raise ValueError('城市道路起点无效')
         model.maintenance_ratio=float(extra['maintenance_ratio'])
         model.extra_maintenance=extra.get('extra_maintenance',0)
         if not isinstance(model.extra_maintenance,int) or not 0<=model.extra_maintenance<=10000: raise ValueError('维护参数无效')
@@ -266,7 +275,9 @@ class LandCity(PlayCity):
         if model.mode not in ('adaptive','fixed','blind') or not 0<=model.environment_weight<=2: raise ValueError('选址机制无效')
         if any(not 0<=a<b<35 or model.manhattan(a,b)!=1 or v not in (1,2) for (a,b),v in model.roads.items()): raise ValueError('道路无效')
         model.paths={}
-        if any(not math.isfinite(model.route(0,n)[0]) for n in range(35)): raise ValueError('道路网络必须连通')
+        required=({h.node for h in model.residents}|{p.node for p in model.producers}|{s.node for s in model.stores if s.active}) if model.greenfield else set(range(35))
+        origin=model.gateway if model.greenfield else 0
+        if any(not math.isfinite(model.route(origin,n)[0]) for n in required): raise ValueError('已有主体的道路网络必须连通')
         if any(model.free_land(n)<0 for n in range(35)): raise ValueError('地块超过土地容量')
         model.commute_visits=set()
         return model
