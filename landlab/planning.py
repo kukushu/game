@@ -7,6 +7,7 @@ import heapq
 import math
 
 from .model import LandCity, RIGHTS, ZONES
+from .layers import planning_layers
 
 
 def route(roads,start,end):
@@ -130,7 +131,8 @@ class PlanningSession:
     def view(self):
         def world(zones,roads,budget):
             return {'nodes':[{'id':n,'zone':zones[n],'residents':0,'homes':0,'housing_land':0,'commercial_land':0,'industrial_land':0,
-                              'free':8,'stores':[],'producers':[],'large_allowed':False,'exposure':0,'home_rent':None} for n in range(35)],
+                              'free':8,'stores':[],'producers':[],'large_allowed':False,'exposure':0,'home_rent':None,
+                              'layer_data':planning_layers()} for n in range(35)],
                     'roads':[[a,b,v] for (a,b),v in roads.items()],'space':[],'residents':[],'producers':[],'stores':[],
                     'civic':budget/100,'metrics':None,'traffic':[],'history':[],'events':[],
                     'changes':{'shops':[],'moves':[]},'maintenance_ratio':1}

@@ -5,6 +5,7 @@ import math
 
 from playweb.engine import Session, validate_snapshot
 from .model import LandCity, ZONES, RIGHTS, TAXABLE_INCOME
+from .layers import city_layers
 
 MODES={'adaptive':'自主选址','fixed':'固定位置','blind':'只看许可随机选址'}
 
@@ -108,6 +109,7 @@ class LandSession(Session):
         result['mode']=self.player.mode
         for name,city in [('player',self.player),('reference',self.reference)]:
             world=result['worlds'][name]
+            thematic=city_layers(city)
             world['roads']=[[a,b,v] for (a,b),v in city.roads.items()]
             world['space']=copy.deepcopy(city.spatial_history[-36:])
             world['spatial_events']=copy.deepcopy(city.spatial_events)
@@ -129,6 +131,7 @@ class LandSession(Session):
                 h['commute']=city.commute.get(h['id'],0)
             for n in world['nodes']:
                 identity=n['id'];n.update(city.usage(identity))
+                n['layer_data']=thematic[identity]
                 n.update({'zone':city.zones[identity],'free':city.free_land(identity),'exposure':city.exposure(identity),
                           'home_rent':city.home_rent(identity)/100})
             world['home_reviews']=copy.deepcopy(city.home_reviews)
