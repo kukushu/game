@@ -24,3 +24,9 @@ const household=context.buildCashTree(rows,'h0');
 assert.equal(household.income.children[0].name,'劳动收入');
 assert.equal(household.expense.children[0].name,'生活消费');
 console.log('Cashflow reconciliation, classification, counterparties and edge cases passed.');
+
+// Presentation changes must not alter the integer transaction tree.
+const formatting = vm.createContext({});
+vm.runInContext(source.split('\n').slice(0,3).join('\n'),formatting);
+for(const [expression, expected] of [["money(29558)",'296K'],["cashK(295.58)",'296K'],["money(0)",'0K'],["money(2)",'＜1K'],["money(-2)",'−＜1K'],["money(-150)",'−2K'],["money(null)",'—']]){assert.equal(vm.runInContext(expression,formatting),expected);}
+console.log('Integer K display, tiny flows, signs and unit consistency passed.');
