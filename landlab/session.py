@@ -193,6 +193,8 @@ class LandSession(Session):
                                        for e in t.get('site_estimate',[]) if e['node']==identity]
             result['commercial_history']=city.commercial_audit.for_node(identity)
         elif kind=='resident':
+            from .resident_profile import resident_profile
+            result['profile']=resident_profile(city,city.residents[identity],result['payments'])
             result['initial_location']=next((copy.deepcopy(r) for r in city.initial_locations['homes'] if r['resident']==identity),None)
             result['commute']=city.commute.get(identity,0)
             result['income']={'gross':sum(p['cents'] for p in result['payments'] if p['target']==f'h{identity}' and p['purpose'] in TAXABLE_INCOME),
