@@ -283,6 +283,53 @@ class City:
                     result.append((f"r{s.id}", s.node, s.prices))
         return result
 
+    def procurement_quotes(self, good, node, quantity):
+        """Joint price/freight quotes for one batch, without reserving supply.
+
+        Retail uses the same ordering before clipping orders to stock and cash.
+        Stock and hiring feasibility remain separate from the posted quote.
+        """
+        quantity = max(1, math.ceil(quantity))
+        quotes = []
+        for p in self.producers:
+            if p.good != good or not math.isfinite(self.route(p.node,node,'truck')[0]):
+                continue
+            freight, hours, trips = self.delivery_cost(p.node,node,quantity)
+            total = p.price*quantity+freight
+            quotes.append({'supplier':p.id, 'source':p.node, 'base_price':p.price,
+                           'batch_quantity':quantity, 'batch_goods_cost':p.price*quantity,
+                           'freight':freight, 'freight_hours':hours, 'trips':trips,
+                           'landed_cost':total, 'landed_unit_cost':total/quantity,
+                           'supplier_stock':p.stock})
+        return sorted(quotes,key=lambda q:q['landed_unit_cost'])
+
+    def forecast_procurement(self, node, demand, prices):
+        """Expected sales cost with a coherent, integer-batch transport quote.
+
+        Expected sales may be fractional. Goods expense is expected units times
+        the selected supplier's price; freight charges the whole rounded batch.
+        This conservatively expenses all batch freight, without predicting stock,
+        production, cash competition or transport hiring before they occur.
+        """
+        products = []
+        revenue = purchases = freight = 0.
+        for good, quantity in demand.items():
+            quote = self.procurement_quotes(good,node,quantity)[0]
+            shipping = quote['freight'] if quantity > 0 else 0
+            goods_cost = quantity*quote['base_price']
+            revenue += quantity*prices[good]
+            purchases += goods_cost
+            freight += shipping
+            products.append({**quote, 'good':good, 'quantity':quantity, 'price':prices[good],
+                             'expected_goods_cost':goods_cost, 'freight':shipping,
+                             'freight_hours':quote['freight_hours'] if quantity > 0 else 0,
+                             'trips':quote['trips'] if quantity > 0 else 0,
+                             'batch_quantity':quote['batch_quantity'] if quantity > 0 else 0,
+                             'batch_goods_cost':quote['batch_goods_cost'] if quantity > 0 else 0,
+                             'landed_cost':quote['landed_cost'] if quantity > 0 else 0,
+                             'quote_rule':'joint_price_freight', 'supply_guaranteed':False})
+        return {'revenue':revenue, 'purchases':purchases, 'freight':freight, 'products':products}
+
     def estimate_site(self, node, area, assortment):
         """Myopic entrant forecast: known residents/posted prices, not future sales.
 
@@ -311,13 +358,8 @@ class City:
         total = sum(demand.values())
         scale = min(1., capacity / max(1., total))
         demand = {g: q * scale for g, q in demand.items()}
-        # Same shipping equation as actual delivery, evaluated on the forecast.
-        freight = 0
-        for g, qty in demand.items():
-            supplier = min((p for p in self.producers if p.good == g), key=lambda p: self.route(p.node, node, "truck")[0])
-            freight += self.delivery_cost(supplier.node, node, math.ceil(qty))[0] if qty >= 1 else 0
-        margin = sum((prices[g] - min(p.price for p in self.producers if p.good == g)) * q for g, q in demand.items())
-        return margin - overhead - freight, demand, prices
+        procurement = self.forecast_procurement(node,demand,prices)
+        return procurement['revenue']-procurement['purchases']-overhead-procurement['freight'], demand, prices
 
     def site_candidates(self):
         """Legacy commerce baseline; spatial experiments may override scheduling."""
@@ -349,7 +391,7 @@ class City:
         self.accounts[f"r{i}"] = 0
         self.pay("fund", f"r{i}", working, "equity_investment")
         self.pay("fund", "property", fee, "lease_setup_fee")
-        cost = {g: min(p.price for p in self.producers if p.good == g) for g in assortment}
+        cost = {q['good']:q['landed_unit_cost'] for q in self.forecast_procurement(node,demand,prices)['products']}
         self.stores.append(Store(i, node, area, assortment, prices, dict.fromkeys(assortment, 0), demand, cost))
         self.events.append({"month": self.month, "event": "entry", "store": i, "node": node, "area": area,
                             "forecast_profit": forecast, "capital": working, "fee": fee})
@@ -419,8 +461,7 @@ class City:
                 target_stock = math.ceil(s.expected[good] * 1.1)
                 space = s.capacity // len(s.assortment) - s.stock[good]
                 needed = max(0, min(space, target_stock - s.stock[good]))
-                suppliers = sorted((p for p in self.producers if p.good == good),
-                    key=lambda p: p.price + self.delivery_cost(p.node, s.node, max(1, needed))[0] / max(1, needed))
+                suppliers = [self.producers[q['supplier']] for q in self.procurement_quotes(good,s.node,needed)]
                 ordered = needed
                 for p in suppliers:
                     quantity = min(needed, p.stock)

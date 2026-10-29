@@ -1,6 +1,5 @@
 """Persist actual commercial site visits without changing investment decisions."""
 import copy
-import math
 
 
 class CommercialAudit:
@@ -64,20 +63,9 @@ class CommercialAudit:
         wages = round(hours*100)
         working = round(48*area*130 + 2*(rent+hours*100))
         fee = 800+600*area
-        revenue = purchases = freight = 0.
-        products = []
-        for good, quantity in details['demand'].items():
-            base = min(p.price for p in city.producers if p.good == good)
-            supplier = min((p for p in city.producers if p.good == good),
-                           key=lambda p: city.route(p.node, node, 'truck')[0])
-            cost, labor, trips = city.delivery_cost(supplier.node, node, math.ceil(quantity)) if quantity >= 1 else (0, 0., 0)
-            revenue += details['prices'][good]*quantity
-            purchases += base*quantity
-            freight += cost
-            products.append({'good': good, 'quantity': quantity, 'price': details['prices'][good],
-                             'base_price': base, 'supplier': supplier.id, 'source': supplier.node,
-                             'supplier_stock': supplier.stock, 'freight': cost,
-                             'freight_hours': labor, 'trips': trips})
+        procurement = city.forecast_procurement(node,details['demand'],details['prices'])
+        revenue, purchases, freight = (procurement[k] for k in ('revenue','purchases','freight'))
+        products = procurement['products']
         plan = copy.deepcopy(details)
         plan.update({'working_capital': working, 'setup_fee': fee,
                      'score': details['profit']/details['capital'],
