@@ -152,3 +152,7 @@ python tools/reproduce_land.py
 ### 金额显示单位
 
 网页统一按整数K（千元）显示金额：旧版295.58显示296K，即旧的一单位解释为一千元。非零金额不足1K显示“＜1K”，避免将小额税款或余额变化显示为零。分项、合计及净额分别取整，可能有显示尾差。Python整数现金、交易、比较条件和存档数值保持原精度；原始观察记录仍提供精确调试数据。时间、税率、评分和商品数量不改成K。
+
+### 暂停自动分红（2026-10-30）
+
+当前 landlab 暂停 retail_dividend、factory_dividend、household_dividend、fund_dividend 四类自动支付，现金留在原账户。利润、销量预期、库存、亏损退出和清算仍照常结算。旧存档历史不重写，加载后从下一次结算开始使用暂停规则。commerce/playweb 保留旧分红基线。财税面板显示当前暂停状态；修改 Python 后需重启本项目服务才能生效。验证：`python -m unittest discover -s tests -p test_dividend_pause.py -q`，包含同初态首期逐笔对照、历史存档恢复及后续12期现金/商品守恒。

@@ -648,10 +648,14 @@ class City:
                 s.expected[good] = .65*s.expected[good]+.35*sold
             if s.age >= 6 and s.losses >= 4:
                 self.close(s,"losses")
-            elif s.active:
+        self.distribute_dividends()
+
+    def distribute_dividends(self):
+        """Legacy shared-ownership baseline; scenarios may suspend distributions."""
+        for s in self.stores:
+            if s.active:
                 reserve = round(48*s.area*130 + self.rent(s.node,s.area)+self.staff_hours(s.area)*100)
                 self.pay(f"r{s.id}","fund",max(0,self.accounts[f"r{s.id}"]-reserve)//2,"retail_dividend")
-        pool = self.accounts["property"]
         for p in self.producers:
             extra = max(0,self.accounts[f"p{p.id}"]-8000)
             self.pay(f"p{p.id}","property",extra//2,"factory_dividend")

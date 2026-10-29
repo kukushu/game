@@ -61,12 +61,20 @@ class LandCity(PlayCity):
             tax=amount*rate//100
             if tax:super().pay(target,'civic',tax,'income_tax')
 
+    def distribute_dividends(self):
+        """Temporarily suspend all four distributions; keep cash with its owner.
+
+        Profit, inventory, expectations and exits are still settled by the base class.
+        Historical payments are preserved when restoring earlier snapshots.
+        """
+        return None
+
     def fiscal_summary(self):
         payments=self.current.get('payments',[])
         gross=sum(p['cents'] for p in payments if p['target'].startswith('h') and p['purpose'] in TAXABLE_INCOME)
         tax=sum(p['cents'] for p in payments if p['purpose']=='income_tax')
         paid=sum(p['cents'] for p in payments if p['purpose']=='road_maintenance')
-        return {'tax_rate':self.income_tax_rate,'tax_income':tax,'gross_income':gross,
+        return {'dividends_enabled':False,'tax_rate':self.income_tax_rate,'tax_income':tax,'gross_income':gross,
                 'net_income':gross-tax,'upkeep_paid':paid,
                 'next_upkeep_due':4*sum(self.roads.values())+self.extra_maintenance,
                 'household_cash':sum(v for a,v in self.accounts.items() if a.startswith('h')),
