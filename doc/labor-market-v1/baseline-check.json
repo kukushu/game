@@ -1,0 +1,23 @@
+[
+  {
+    "seed": 1,
+    "months": 18,
+    "exact_old_pool_state": true,
+    "current_sha256": "2d0f859c16c8ae7773b81e986bd6fe4bd42ecb9ad194f9f2cf048c386c9d9a5d",
+    "baseline_sha256": "2d0f859c16c8ae7773b81e986bd6fe4bd42ecb9ad194f9f2cf048c386c9d9a5d"
+  },
+  {
+    "seed": 7,
+    "months": 18,
+    "exact_old_pool_state": true,
+    "current_sha256": "5e598691fc6ba7ab33e39a3d76cfd155f6ba76b9941aeb0c48a64451a4d0736a",
+    "baseline_sha256": "5e598691fc6ba7ab33e39a3d76cfd155f6ba76b9941aeb0c48a64451a4d0736a"
+  },
+  {
+    "seed": 23,
+    "months": 18,
+    "exact_old_pool_state": true,
+    "current_sha256": "9366f92457aad0f74a4445dffdec6a225c8bcc737750e820a00132e443f32e34",
+    "baseline_sha256": "9366f92457aad0f74a4445dffdec6a225c8bcc737750e820a00132e443f32e34"
+  }
+]

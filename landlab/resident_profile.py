@@ -29,6 +29,14 @@ def resident_profile(city, resident, payments):
         if p['target'] == account and p['purpose'] in WAGES:
             key = p['source'], p['purpose']
             jobs[key] = jobs.get(key, 0) + p['cents']
+    # A variable wage is money, not an hours proxy. Use observed contracts;
+    # old pool traces have no contracts and retain their exact 100/hour meaning.
+    production_hours = {}
+    contracts = city.current.get('labor_contract', [])
+    for contract in contracts:
+        if contract['resident'] == resident.id:
+            seller = f'p{contract["producer"]}'
+            production_hours[seller] = production_hours.get(seller, 0) + contract['hours']
     offers = []
     for seller, node, prices in city.offers():
         trip = 2*city.route(resident.node, node)[0]+.06
@@ -57,7 +65,7 @@ def resident_profile(city, resident, payments):
                 'shopping':resident.shopping, 'work_commute_limit':8,
                 'shopping_limit':city.settings.shopping_hours},
         'jobs':[{'seller':seller, 'node':city.employer_node(seller), 'purpose':purpose,
-                 'hours':amount/100, 'gross_wage':amount} for (seller,purpose),amount in jobs.items()],
+                 'hours':(production_hours.get(seller,0) if purpose=='manufacturing' and contracts else amount/100), 'gross_wage':amount} for (seller,purpose),amount in jobs.items()],
         'posted_offers':offers,
         'move':{'last_month':last_move+1 if last_move is not None else None,
                 'earliest_month':earliest+1, 'cooldown':4, 'fee':120,

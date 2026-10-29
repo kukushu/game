@@ -143,7 +143,7 @@ class PlanningSession:
                     'roads':[[a,b,v] for (a,b),v in roads.items()],'space':[],'residents':[],'producers':[],'stores':[],
                     'civic':budget/100,'metrics':None,'traffic':[],'history':[],'events':[],
                     'changes':{'shops':[],'moves':[]},'maintenance_ratio':1}
-        return {'stage':'planning','month':0,'seed':self.seed,'mode':'blank','preset':'blank','fork_month':0,
+        return {'stage':'planning','employment_available':True,'month':0,'seed':self.seed,'mode':'blank','preset':'blank','fork_month':0,
                 'actions':copy.deepcopy(self.actions),'readiness':self.layout(),'comparison_window':0,'comparisons':{},'spatial_comparisons':{},
                 'player_feedback':{'periods':0,'commute_less':0,'commute_more':0,'new_road_users':0,'examples':[]},
                 'worlds':{'player':world(self.zones,self.roads,self.budget),

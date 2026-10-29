@@ -156,3 +156,7 @@ python tools/reproduce_land.py
 ### 暂停自动分红（2026-10-30）
 
 当前 landlab 暂停 retail_dividend、factory_dividend、household_dividend、fund_dividend 四类自动支付，现金留在原账户。利润、销量预期、库存、亏损退出和清算仍照常结算。旧存档历史不重写，加载后从下一次结算开始使用暂停规则。commerce/playweb 保留旧分红基线。财税面板显示当前暂停状态；修改 Python 后需重启本项目服务才能生效。验证：`python -m unittest discover -s tests -p test_dividend_pause.py -q`，包含同初态首期逐笔对照、历史存档恢复及后续12期现金/商品守恒。
+
+### 可选生产岗位市场（2026-10-30）
+
+独立分支 `experiment/labor-market-v1` 增加显式 `labor` 预设，原配置/旧存档保持劳动池。双击 `run-labor.cmd` 或运行 `python -m landlab.labor_web`，使用独立18767端口与 `outputs/labor-play/session.json`。原18766存档不自动切换。工业生产岗位比较税后班次工资、时间成本和稳定偏好；临时服务仍用剩余劳动池。界面点击家庭看候选，点击工厂看工资、班次和缺产。实现、规则边界、失败例和完整A/B见 [劳动市场v1实验报告](doc/劳动市场v1实验报告.md)。

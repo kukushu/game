@@ -7,7 +7,7 @@ from playweb.engine import Session, validate_snapshot
 from .model import LandCity, ZONES, RIGHTS, TAXABLE_INCOME
 from .layers import city_layers
 
-MODES={'adaptive':'自主选址','fixed':'固定位置','blind':'只看许可随机选址'}
+MODES={'adaptive':'自主选址','fixed':'固定位置','blind':'只看许可随机选址','labor':'生产岗位就业实验'}
 
 
 def validate(data):
@@ -42,7 +42,8 @@ class LandSession(Session):
         if not isinstance(seed,int) or isinstance(seed,bool) or not 0<=seed<2**31 or preset not in MODES:
             raise ValueError('种子或选址机制无效')
         city=LandCity(seed)
-        city.mode=preset
+        city.mode='adaptive' if preset=='labor' else preset
+        if preset=='labor':city.labor_mode='market'
         for _ in range(6): city.step()
         return cls(city,LandCity.restore(city.snapshot()),preset=preset)
 
@@ -62,7 +63,7 @@ class LandSession(Session):
         actions,fork=data.get('actions'),data.get('fork_month')
         if not isinstance(actions,list) or len(actions)>500 or not isinstance(fork,int) or not 0<=fork<=a.month: raise ValueError('规划记录无效')
         if any(not isinstance(x,dict) or x.get('action') not in ('zone','road','tax') or not isinstance(x.get('month'),int) or not 0<=x['month']<=a.month for x in actions): raise ValueError('规划记录无效')
-        return cls(a,b,actions=copy.deepcopy(actions),fork_month=fork,preset=a.mode)
+        return cls(a,b,actions=copy.deepcopy(actions),fork_month=fork,preset=data.get('preset') if data.get('preset') in MODES else a.mode)
 
     def anchor(self):
         self.reference=LandCity.restore(self.player.snapshot());self.fork_month=self.player.month
@@ -105,11 +106,13 @@ class LandSession(Session):
     def view(self):
         result=super().view()
         result['stage']='running'
+        result['employment_available']=True
         result['greenfield']=self.player.greenfield
         result['mode']=self.player.mode
         for name,city in [('player',self.player),('reference',self.reference)]:
             world=result['worlds'][name]
             thematic=city_layers(city)
+            world['labor_mode']=city.labor_mode
             world['roads']=[[a,b,v] for (a,b),v in city.roads.items()]
             world['space']=copy.deepcopy(city.spatial_history[-36:])
             world['spatial_events']=copy.deepcopy(city.spatial_events)
@@ -194,6 +197,8 @@ class LandSession(Session):
             result['commercial_history']=city.commercial_audit.for_node(identity)
         elif kind=='resident':
             from .resident_profile import resident_profile
+            result['employment']=copy.deepcopy(city.labor_result.get('choices',{}).get(str(identity)))
+            result['labor_mode']=city.labor_mode
             result['profile']=resident_profile(city,city.residents[identity],result['payments'])
             result['initial_location']=next((copy.deepcopy(r) for r in city.initial_locations['homes'] if r['resident']==identity),None)
             result['commute']=city.commute.get(identity,0)
@@ -205,6 +210,8 @@ class LandSession(Session):
             result['reviews']=[r for r in city.home_review_history if r['resident']==identity]
             result['routes'] += [{'mode':'commute','edges':r['edges']} for r in city.current.get('commute_trip',[]) if r['resident']==identity]
         elif kind=='producer':
+            result['recruitment']=copy.deepcopy(city.labor_result.get('firms',{}).get(str(identity)))
+            result['labor_mode']=city.labor_mode
             result['initial_location']=next((copy.deepcopy(r) for r in city.initial_locations['factories'] if r['producer']==identity),None)
             result['reviews']=[r for r in city.factory_review_history if r['producer']==identity]
             result['appraisal']=city.factory_score(city.producers[identity],city.producers[identity].node)

@@ -22,6 +22,9 @@ class LandCity(PlayCity):
     def __init__(self, seed=1, settings=None, trace=False):
         super().__init__(seed, settings or Settings(households=64, zoning='flexible'), trace)
         self.mode = 'adaptive'
+        self.labor_mode = 'pool'
+        self.factory_wages = {str(p.id):100 for p in self.producers}
+        self.employers, self.labor_result = {}, {}
         self.home_move_policy = 'stable'
         self.income_tax_rate = 0
         self.commercial_audit = CommercialAudit()
@@ -60,6 +63,12 @@ class LandCity(PlayCity):
             # Gross employer/owner payment is unchanged; a real second transfer withholds tax.
             tax=amount*rate//100
             if tax:super().pay(target,'civic',tax,'income_tax')
+
+    def production(self):
+        if self.labor_mode=='pool':
+            return super().production()
+        from .labor import production
+        return production(self,pooled=self.labor_mode=='batch_pool')
 
     def distribute_dividends(self):
         """Temporarily suspend all four distributions; keep cash with its owner.
@@ -240,7 +249,8 @@ class LandCity(PlayCity):
         volume=min(160,direct+wholesale,labor/.25)
         rent=self.rent(node,4)+100
         # Same output price and production wage as actual trading, approximate counter labor.
-        profit=volume*(p.price-25)-100*(1+.05*min(direct,volume))-rent
+        unit_wage=self.factory_wages[str(p.id)]/4 if self.labor_mode=='market' else 25
+        profit=volume*(p.price-unit_wage)-100*(1+.05*min(direct,volume))-rent
         return {'direct':direct,'wholesale':wholesale,'volume':volume,'rent':rent,'profit':profit}
 
     def review_factory(self):
@@ -317,6 +327,8 @@ class LandCity(PlayCity):
               'jobs':self.jobs,'commute':self.commute,'moved_home':self.moved_home,'moved_factory':self.moved_factory,
               'spatial_events':self.spatial_events,'home_reviews':self.home_reviews,'factory_reviews':self.factory_reviews,
               'spatial_history':self.spatial_history})
+        data['_land']['employment']=copy.deepcopy({'version':1,'mode':self.labor_mode,
+            'wages':self.factory_wages,'employers':self.employers,'result':self.labor_result})
         data['_land']['commercial_audit']=self.commercial_audit.dump()
         data['_land']['commercial_last_review']=copy.deepcopy(self.commercial_last_review)
         data['_land']['initial_locations']=copy.deepcopy(self.initial_locations)
@@ -380,4 +392,6 @@ class LandCity(PlayCity):
                 if visit['plans']:
                     n=visit['node']
                     model.commercial_last_review[n]=max(visit['month'],model.commercial_last_review.get(n,-1))
+        from .labor import restore as restore_employment
+        restore_employment(model,extra.get('employment'))
         return model
