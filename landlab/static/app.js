@@ -115,7 +115,7 @@ function ledger(rows,account){const names={housing_rent:'住房租金',home_move
 function research(content,data){return `<details><summary>账本与决策细节</summary><div>${content}<details><summary>原始观察记录</summary><pre>${esc(JSON.stringify(data,null,2))}</pre></details></div></details>`;}
 
 'use strict';
-const auditReasons={no_commercial_permission:'当时没有商业许可',disconnected:'当时没有接通城区',insufficient_land:'当时没有空余土地',no_legal_size:'没有合法店面规模',non_positive_profit:'预期利润不大于零',insufficient_capital:'创业资金不足',entry_disabled:'当前关闭了商业投资',direct_only:'当前为工厂直销模式',store_limit:'营业门店达到模型上限（18家）'};
+const auditReasons={no_eligible_sites:'本轮没有符合许可、道路、容量要求且无营业店的商业候选',no_commercial_permission:'当时没有商业许可',disconnected:'当时没有接通城区',insufficient_land:'当时没有空余土地',no_legal_size:'没有合法店面规模',non_positive_profit:'预期利润不大于零',insufficient_capital:'创业资金不足',entry_disabled:'当前关闭了商业投资',direct_only:'当前为工厂直销模式',store_limit:'营业门店达到模型上限（18家）'};
 function auditStatus(p){return p.decision==='selected'?'本期选中并投资':p.decision==='other_site_selected'?'可行，但本期选择了别处':p.decision==='legacy_unknown'?'旧记录未保存最终选择':(p.blockers||[]).map(x=>auditReasons[x]||x).join('；')||'未保存结果';}
 function auditPlan(p){
  const c=p.costs,items=p.products||[];
@@ -126,16 +126,17 @@ function auditPlan(p){
 }
 function commercialSummary(d){
  const history=d.commercial_history,visit=history?.visits.at(-1),round=history?.last_round;
- let text='还没有保存这个地块的考察记录。商业许可只提供进入资格，仍要等待实际抽样考察。';
+ let text='还没有保存这个地块的考察记录。商业许可只提供进入资格，仍需推进时间进行考察。';
  if(visit){const p=[...visit.plans].sort((a,b)=>b.profit-a.profit)[0];text=`最近一次记录：第 ${visit.month+1} 月。`+(p?`当次预期利润最高的方案，收入 ${p.costs?money(p.costs.revenue):'未保存'}，总成本 ${p.costs?money(p.costs.total):'未保存'}，预期利润 ${money(p.profit)}。${auditStatus(p)}。`:(visit.blockers||[]).map(x=>auditReasons[x]||x).join('；')+'，未进入利润试算。');}
  if(round&&round.status in auditReasons)text+=` 第 ${round.month+1} 月：${auditReasons[round.status]}，没有开展新考察。`;
+ else if(round?.selection_rule==='eligible_least_recent'){text+=` 第 ${round.month+1} 月：合法候选 ${round.eligible_nodes.length} 块，实际考察 ${round.selected_nodes.length} 块。`;if(!round.selected_nodes.includes(d.id))text+=round.eligible_nodes.includes(d.id)?'这里正在轮候，尚未轮到；不代表企业认为会亏损。':'当轮未列入候选；若刚修改许可或道路，下一次推进会重新筛选。';}
  else if(round&&(!visit||round.month>visit.month))text+=` 第 ${round.month+1} 月未抽到这里，这不算一次失败考察。`;
  return `<div class="reason"><strong>允许商业，为什么还没有店？</strong>${esc(text)}<p class="info-note">下方逐次保存全部考察方案与当时数值。</p></div>`;
 }
 function commercialHistory(d){
  const h=d.commercial_history;if(!h)return '<p class="info-note">当前服务尚未提供完整考察历史。</p>';
  const visits=[...h.visits].reverse();
- return `<details class="audit-history" ${commercialShown>5?'open':''}><summary>商业考察记录 · ${h.total_visits} 次 / ${h.total_plans} 个方案</summary><p class="info-note">从第 ${h.full_since+1} 月起完整记录。更早的旧存档只保留当时尚未丢失的部分数据。每次真实抽样考察均保留，包括无资格、亏损、缺钱、选中与未选中；未抽到或已有营业店的地块不是新考察。</p>${visits.slice(0,commercialShown).map(v=>`<details class="audit-visit"><summary>第 ${v.month+1} 月 · ${v.plans.length} 个方案${v.legacy_partial?' · 旧版部分记录':''}</summary>${v.legacy_partial?'<p class="info-note">当时的许可、余额和成本拆分未保存，不用当前状态补算。</p>':facts([['当时土地许可',zoneNames[v.zone]],['当时空余土地',`${v.free_land}/8`],['接入城市道路',v.connected?'是':'否'],['城市家庭 / 可达家庭',`${v.households} / ${v.reachable_households}`],['当时创业资金池',money(v.fund_cash)]])}${v.blockers?.length?`<p>${esc(v.blockers.map(x=>auditReasons[x]||x).join('；'))}，没有利润试算。</p>`:''}${v.plans.map(auditPlan).join('')}${v.winner?`<p class="info-note">本轮实际投资：${place(v.winner.node)}，门店 ${v.winner.store+1}；利润/启动资金 ${n(v.winner.score,4)}。</p>`:''}</details>`).join('')||'<p>尚无真实考察记录。推进时间后，企业才会考察。</p>'}${visits.length>commercialShown?'<button id="audit-more">再显示 10 次</button><button id="audit-all">显示全部历史</button>':''}<p class="info-note">完整历史随“保存城市”导出，加载后继续累积。页面默认只展开最近5次，不删除更早记录。</p></details>`;
+ return `<details class="audit-history" ${commercialShown>5?'open':''}><summary>商业考察记录 · ${h.total_visits} 次 / ${h.total_plans} 个方案</summary><p class="info-note">从第 ${h.full_since+1} 月起完整记录。更早的旧存档只保留当时尚未丢失的部分数据。每次真实考察均保留，包括亏损、缺钱、选中与未选中。现版本先筛商业许可、连通和容量；候选最多8块时全看，更多时优先考察从未或最久未看的地块。旧版本历史可能包含无资格访问；资格筛选不冒充经营考察。</p>${visits.slice(0,commercialShown).map(v=>`<details class="audit-visit"><summary>第 ${v.month+1} 月 · ${v.plans.length} 个方案${v.legacy_partial?' · 旧版部分记录':''}</summary>${v.legacy_partial?'<p class="info-note">当时的许可、余额和成本拆分未保存，不用当前状态补算。</p>':facts([['当时土地许可',zoneNames[v.zone]],['当时空余土地',`${v.free_land}/8`],['接入城市道路',v.connected?'是':'否'],['城市家庭 / 可达家庭',`${v.households} / ${v.reachable_households}`],['当时创业资金池',money(v.fund_cash)]])}${v.blockers?.length?`<p>${esc(v.blockers.map(x=>auditReasons[x]||x).join('；'))}，没有利润试算。</p>`:''}${v.plans.map(auditPlan).join('')}${v.winner?`<p class="info-note">本轮实际投资：${place(v.winner.node)}，门店 ${v.winner.store+1}；利润/启动资金 ${n(v.winner.score,4)}。</p>`:''}</details>`).join('')||'<p>尚无真实考察记录。推进时间后，企业才会考察。</p>'}${visits.length>commercialShown?'<button id="audit-more">再显示 10 次</button><button id="audit-all">显示全部历史</button>':''}<p class="info-note">完整历史随“保存城市”导出，加载后继续累积。页面默认只展开最近5次，不删除更早记录。</p></details>`;
 }
 function reviewHistory(reviews,factory){
  const fields=factory?[['direct','预计直销量'],['wholesale','预计批发量'],['volume','预计产量'],['rent','租金'],['profit','预计利润']]:[['rent','房租'],['shopping','购物估值'],['commute','通勤估值'],['environment','干扰估值'],['total','综合成本']];

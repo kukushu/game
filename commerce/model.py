@@ -319,12 +319,16 @@ class City:
         margin = sum((prices[g] - min(p.price for p in self.producers if p.good == g)) * q for g, q in demand.items())
         return margin - overhead - freight, demand, prices
 
+    def site_candidates(self):
+        """Legacy commerce baseline; spatial experiments may override scheduling."""
+        occupied = {s.node for s in self.stores if s.active}
+        nodes = [n for n in range(self.width * self.height) if n not in occupied]
+        return self.rng("sites").sample(nodes, min(8, len(nodes)))
+
     def enter(self):
         if not self.settings.entry or self.settings.channel == "direct" or len([s for s in self.stores if s.active]) >= 18:
             return
-        occupied = {s.node for s in self.stores if s.active}
-        nodes = [n for n in range(self.width * self.height) if n not in occupied]
-        candidates = self.rng("sites").sample(nodes, min(8, len(nodes)))
+        candidates = self.site_candidates()
         proposals = []
         for node in candidates:
             for area in self.legal_areas(node):

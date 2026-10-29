@@ -23,6 +23,11 @@ class CommercialAudit:
         self._current = {}
         self.active = reason is None
 
+    def schedule(self, eligible, selected):
+        if self.active:
+            self._round.update({'selection_rule': 'eligible_least_recent',
+                                'eligible_nodes': list(eligible), 'selected_nodes': list(selected)})
+
     def visit(self, city, node, areas):
         if not self.active:
             return
@@ -94,7 +99,8 @@ class CommercialAudit:
                       'score': event['forecast_profit']/(event['capital']+event['fee'])}
             self._round['winner'] = winner
         if self.active:
-            self._round['status'] = 'invested' if winner else 'no_investment'
+            self._round['status'] = ('no_eligible_sites' if self._round.get('eligible_nodes') == [] else
+                                     'invested' if winner else 'no_investment')
         for visit in self._current.values():
             visit['winner'] = copy.deepcopy(winner)
             for plan in visit['plans']:

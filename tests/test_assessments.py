@@ -34,21 +34,73 @@ class AssessmentTests(unittest.TestCase):
         c.step(); restored.step()
         self.assertEqual(c.snapshot(), restored.snapshot())
 
-    def test_blocked_sites_and_inspection_are_recorded_honestly(self):
+    def test_ineligible_sites_do_not_consume_assessments(self):
         c = LandCity(2)
         c.zones = dict.fromkeys(range(35), 'reserve')
         c.step()
-        self.assertEqual(len(c.commercial_audit.visits), 8)
-        for v in c.commercial_audit.visits:
-            self.assertIn('no_commercial_permission', v['blockers'])
-            self.assertEqual(v['plans'], [])
+        self.assertEqual(c.commercial_audit.visits, [])
+        self.assertEqual(c.commercial_audit.rounds[-1]['eligible_nodes'], [])
         s = LandSession(c, LandCity.restore(c.snapshot()))
         before = c.snapshot()
         s.inspect('node', 8)
         self.assertEqual(c.snapshot(), before)
         frozen = c.commercial_audit.dump()
         c.step()
-        self.assertEqual(frozen['visits'], c.commercial_audit.visits[:8])
+        self.assertEqual(frozen['visits'], [])
+        self.assertEqual(c.commercial_audit.visits, [])
+
+    def test_few_eligible_sites_are_all_assessed_without_forced_investment(self):
+        c = LandCity(2)
+        c.zones = dict.fromkeys(range(35), 'reserve')
+        c.zones.update({10:'shop', 17:'mixed'})
+        c.accounts['property'] += c.accounts['fund']; c.accounts['fund'] = 0
+        c.step()
+        self.assertEqual({v['node'] for v in c.commercial_audit.visits}, {10,17})
+        self.assertTrue(all(v['plans'] for v in c.commercial_audit.visits))
+        self.assertFalse(c.stores)
+        self.assertTrue(all('insufficient_capital' in p['blockers'] for v in c.commercial_audit.visits for p in v['plans']))
+
+    def test_rotation_covers_all_eligible_sites_and_survives_save(self):
+        c = LandCity(7)
+        c.zones = dict.fromkeys(range(35), 'open')
+        c.accounts['property'] += c.accounts['fund']; c.accounts['fund'] = 0
+        eligible = {n for n in range(35) if c.commercial_areas(n)}
+        for _ in range(5): c.step()
+        visited = {v['node'] for v in c.commercial_audit.visits}
+        self.assertTrue(eligible <= visited)
+        self.assertTrue(all(len(r['selected_nodes']) <= 8 for r in c.commercial_audit.rounds))
+        restored = LandCity.restore(json.loads(json.dumps(c.snapshot())))
+        c.step(); restored.step()
+        self.assertEqual(c.snapshot(), restored.snapshot())
+
+    def test_disconnected_full_and_occupied_sites_are_excluded(self):
+        c = LandCity(7)
+        c.zones = dict.fromkeys(range(35), 'shop')
+        c.greenfield = True; c.gateway = 0
+        # Empty border plot 1 is isolated; existing actors remain connected.
+        c.roads.pop((0,1)); c.roads.pop((1,2)); c.paths = {}
+        self.assertFalse(c.commercial_areas(1))
+        for h in c.residents: h.node = 0 if h.id < 32 else 7
+        full = 0
+        self.assertEqual(c.free_land(full), 0)
+        c.step()
+        selected = c.commercial_audit.rounds[-1]['selected_nodes']
+        self.assertNotIn(1, selected)
+        self.assertNotIn(full, selected)
+        occupied = {s.node for s in c.stores if s.active}
+        c.step()
+        self.assertTrue(occupied.isdisjoint(c.commercial_audit.rounds[-1]['selected_nodes']))
+
+    def test_newly_zoned_unseen_candidate_is_reviewed_next_period(self):
+        c = LandCity(7)
+        c.zones = dict.fromkeys(range(35), 'open')
+        c.zones[2] = 'reserve'
+        c.accounts['property'] += c.accounts['fund']; c.accounts['fund'] = 0
+        for _ in range(5): c.step()
+        self.assertNotIn(2, c.commercial_last_review)
+        c.zones[2] = 'shop'
+        c.step()
+        self.assertEqual(c.commercial_audit.rounds[-1]['selected_nodes'][0], 2)
 
     def test_instrumentation_does_not_change_economy(self):
         a, b = LandCity(5), LandCity(5)

@@ -25,6 +25,7 @@ class LandCity(PlayCity):
         self.home_move_policy = 'stable'
         self.income_tax_rate = 0
         self.commercial_audit = CommercialAudit()
+        self.commercial_last_review = {}
         self.greenfield, self.gateway = False, None
         self.environment_weight = 1.0
         self.zones = {n:'reserve' for n in range(35)}
@@ -82,9 +83,24 @@ class LandCity(PlayCity):
 
     def legal_areas(self,node):
         if not hasattr(self,'zones'): return super().legal_areas(node)
-        areas=[a for a in (1,4) if self.location_accessible(node) and 'C' in RIGHTS[self.zones[node]] and self.free_land(node)>=a]
+        areas=self.commercial_areas(node)
         if self.commercial_audit.active:self.commercial_audit.visit(self,node,areas)
         return areas
+
+    def commercial_areas(self,node):
+        """Pure eligibility check: screening a plot is not a site assessment."""
+        return [a for a in (1,4) if 'C' in RIGHTS[self.zones[node]] and
+                self.location_accessible(node) and self.free_land(node)>=a]
+
+    def site_candidates(self):
+        occupied={s.node for s in self.stores if s.active}
+        eligible=[n for n in range(35) if n not in occupied and self.commercial_areas(n)]
+        # Least recently assessed first. New/unseen candidates precede reviewed ones;
+        # node ID breaks ties deterministically, independently of audit retention.
+        selected=sorted(eligible,key=lambda n:(self.commercial_last_review.get(n,-1),n))[:8]
+        for node in selected:self.commercial_last_review[node]=self.month
+        self.commercial_audit.schedule(eligible,selected)
+        return selected
 
     def location_accessible(self,node):
         return not self.greenfield or math.isfinite(self.route(self.gateway,node)[0])
@@ -291,6 +307,7 @@ class LandCity(PlayCity):
               'spatial_events':self.spatial_events,'home_reviews':self.home_reviews,'factory_reviews':self.factory_reviews,
               'spatial_history':self.spatial_history})
         data['_land']['commercial_audit']=self.commercial_audit.dump()
+        data['_land']['commercial_last_review']=copy.deepcopy(self.commercial_last_review)
         data['_land']['income_tax_rate']=self.income_tax_rate
         data['_land']['home_move_policy']=self.home_move_policy
         data['_land']['maintenance_ratio']=self.maintenance_ratio
@@ -334,4 +351,17 @@ class LandCity(PlayCity):
         if any(model.free_land(n)<0 for n in range(35)): raise ValueError('地块超过土地容量')
         model.commute_visits=set()
         model.commercial_audit=CommercialAudit.restore(extra.get('commercial_audit'),model)
+        if 'commercial_last_review' in extra:
+            if not isinstance(extra['commercial_last_review'],dict):raise ValueError('商业轮查记录无效')
+            model.commercial_last_review={int(n):v for n,v in extra['commercial_last_review'].items()}
+            if any(not 0<=n<35 or not isinstance(v,int) or isinstance(v,bool) or not 0<=v<=model.month
+                   for n,v in model.commercial_last_review.items()):raise ValueError('商业轮查记录无效')
+        else:
+            # Only surviving actual estimates can seed old-save scheduling. Missing
+            # history is unknown; do not reconstruct it from the current economy.
+            model.commercial_last_review={}
+            for visit in model.commercial_audit.visits:
+                if visit['plans']:
+                    n=visit['node']
+                    model.commercial_last_review[n]=max(visit['month'],model.commercial_last_review.get(n,-1))
         return model
