@@ -129,7 +129,51 @@ function supplySummary(people){
 
 function bindInspector(){if($('audit-more'))$('audit-more').onclick=()=>{commercialShown+=10;renderInspector();};if($('audit-all'))$('audit-all').onclick=()=>{commercialShown=Infinity;renderInspector();};$('inspector-body').querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>select({kind:b.dataset.pick,id:Number(b.dataset.id),node:Number(b.dataset.node)}));$('inspector-body').querySelectorAll('[data-zone]').forEach(b=>b.onclick=()=>{zoneChoice=b.dataset.zone;renderInspector();});if($('apply-action'))$('apply-action').onclick=applyAction;if($('begin-zoning'))$('begin-zoning').onclick=()=>{chooseTool('zone');};}
 function homeDecision(r){if(state.mode==='fixed')return '当前研究模式固定住址，家庭不会自主搬迁。';if(state.mode==='blind')return '当前研究模式随机选择合法地点，不比较生活收益；仍须满足现金、容量与搬迁冷却。';if(!r&&state.greenfield)return '首批家庭按开城的合法用地和通路选择位置，目前还没有新的迁居考察。';if(!r)return '它还没有新的迁居考察记录。下一次被选中时，会比较生活便利、房租与生产干扰。';const parts=[['房租',r.current.rent-r.candidate.rent],['购物',r.current.shopping-r.candidate.shopping],['通勤',r.current.commute-r.candidate.commute],['生产干扰',r.current.environment-r.candidate.environment]].sort((a,b)=>b[1]-a[1]);if(r.reason==='搬迁')return `第 ${r.month+1} 月，它从${place(r.from)}搬到${place(r.to)}。当时最吸引它的是${parts[0][0]}条件；合计预期改善足以补偿搬迁。${r.candidate.environment>r.current.environment?'它也接受了更高的生产干扰。':''}${r.candidate.rent>r.current.rent?'新住处的房租报价更高。':''}`;if(r.reason==='现金不足')return `第 ${r.month+1} 月，它考虑换住处，但现款不足以支付搬迁费，所以留下了。`;if(r.reason==='同地居住')return `第 ${r.month+1} 月，它比较后仍选择原来的住处，暂时没有更值得搬去的地方。`;if(r.move_policy==='stable')return `第 ${r.month+1} 月，换住处预期可节约 ${n(Math.max(0,r.gain)/100)}，未超过本次需要的 ${n(r.required_gain/100)}，所以它选择留下。这里包含时间和环境的估值，不是单纯现金。`;return `第 ${r.month+1} 月，换住处的预期改善还不足以补偿搬迁代价，所以它没有搬家。`;}
-function ledger(rows,account){const names={housing_rent:'住房租金',home_move:'搬迁费用',manufacturing:'生产工资',factory_service:'柜台工资',retail_staff:'店员工资',freight:'货运工资',industrial_rent:'厂房租金',factory_move:'工厂搬迁',direct_sale:'工厂直销',retail_sale:'门店成交',wholesale:'采购付款',income_tax:'居民收入税',fund_dividend:'投资分红',household_dividend:'家庭权益分配',rent_utilities:'开门费用',equity_investment:'开店投资',truck_lease:'车辆租用',retail_dividend:'门店分红',liquidation:'退出返还'},g={};for(const p of rows||[])g[p.purpose]=(g[p.purpose]||0)+(p.target===account?1:-1)*p.cents;return '<table><thead><tr><th>本月现金收支</th><th>金额</th></tr></thead><tbody>'+Object.entries(g).map(([k,v])=>`<tr><td>${esc(names[k]||k)}</td><td>${v>=0?'+':''}${money(v)}</td></tr>`).join('')+'</tbody></table>';}
+function cashflowPath(purpose,incoming){
+ const wages={manufacturing:'生产工资',factory_service:'柜台工资',retail_staff:'店员工资',freight:'货运工资'};
+ const dividends={retail_dividend:'门店分红',factory_dividend:'工厂分红',household_dividend:'家庭权益分配',fund_dividend:'投资分红'};
+ if(wages[purpose])return incoming?['劳动收入',wages[purpose]]:purpose==='freight'?['经营支出','运输费用',wages[purpose]]:['经营支出','人工费用',wages[purpose]];
+ if(dividends[purpose])return [incoming?'权益收入':'收益分配',dividends[purpose]];
+ if(purpose==='equity_investment')return [incoming?'资本流入':'资本投入','投资本金'];
+ if(purpose==='liquidation')return [incoming?'资本返还':'资本退出','清算返还'];
+ if(purpose==='lease_setup_fee')return [incoming?'服务收入':'投资与开业费','开店手续费'];
+ if(purpose==='home_move'||purpose==='factory_move')return ['搬迁支出',purpose==='home_move'?'家庭搬迁费':'工厂迁址费'];
+ if(purpose==='income_tax')return [incoming?'税收收入':'税费','居民收入税'];
+ const incomingNames={direct_sale:'工厂直销',retail_sale:'门店销售',wholesale:'商品批发',housing_rent:'住宅租金',industrial_rent:'厂房租金',rent_utilities:'场地服务收费',truck_lease:'车辆租用'};
+ if(incoming&&incomingNames[purpose])return ['经营收入',incomingNames[purpose]];
+ const outgoingPaths={direct_sale:['生活消费','工厂购物'],retail_sale:['生活消费','门店购物'],housing_rent:['生活支出','住房租金'],wholesale:['经营支出','进货采购','采购付款'],rent_utilities:['经营支出','场地与固定费','开门费用'],industrial_rent:['经营支出','场地与固定费','厂房租金'],truck_lease:['经营支出','运输费用','车辆租用'],road_build:['公共建设','道路施工'],road_maintenance:['公共养护','道路养护'],planning_admin:['规划支出','土地许可费用']};
+ return !incoming&&outgoingPaths[purpose]?outgoingPaths[purpose]:[incoming?'其他收入':'其他支出',purpose];
+}
+function buildCashTree(rows,account){
+ const income={name:'收入',total:0,children:[]},expense={name:'支出',total:0,children:[]};
+ let operating=0;
+ for(const p of rows||[]){
+  if(p.source===p.target||p.cents===0)continue;
+  const incoming=p.target===account;if(!incoming&&p.source!==account)continue;
+  const path=cashflowPath(p.purpose,incoming),root=incoming?income:expense;
+  if(path[0]==='经营收入'||path[0]==='经营支出')operating+=(incoming?1:-1)*p.cents;
+  root.total+=p.cents;let node=root;
+  for(const name of [...path,incoming?p.source:p.target]){
+   let child=node.children.find(x=>x.name===name);
+   if(!child){child={name,total:0,children:[]};node.children.push(child);}
+   child.total+=p.cents;node=child;
+  }
+ }
+ return {income,expense,net:income.total-expense.total,operating};
+}
+function ledgerParty(account){
+ if(account.startsWith('h')&&/^h[0-9]+$/.test(account))return `家庭 ${Number(account.slice(1))+1}`;
+ return {property:'土地服务账户',fund:'投资资金池',civic:'公共账户'}[account]||(/^([pr])[0-9]+$/.test(account)?accountName(account):account);
+}
+function ledger(rows,account){
+ const tree=buildCashTree(rows,account),signed=(value,sign)=>`${sign>0?'+':'−'}${money(value)}`;
+ function branch(node,sign,depth=0){
+  const label=node.children.length?node.name:ledgerParty(node.name),amount=signed(node.total,sign);
+  if(!node.children.length)return `<div class="cash-leaf"><span>${esc(label)}</span><strong>${amount}</strong></div>`;
+  return `<details ${depth<2?'open':''}><summary><span>${esc(label)}</span><strong>${amount}</strong></summary><div class="cash-children">${node.children.map(c=>branch(c,sign,depth+1)).join('')}</div></details>`;
+ }
+ return `<section class="cash-tree"><h3>本月现金收支分析</h3><div class="cash-net"><span>现金净变化</span><strong>${tree.net>=0?'+':'−'}${money(Math.abs(tree.net))}</strong></div>${/^[pr]/.test(account)?`<div class="cash-net"><span>经营现金净额</span><strong>${tree.operating>=0?'+':'−'}${money(Math.abs(tree.operating))}</strong></div>`:''}${tree.income.children.length?`<div class="cash-income">${branch(tree.income,1)}</div>`:'<p class="info-note">本月没有现金收入。</p>'}${tree.expense.children.length?`<div class="cash-expense">${branch(tree.expense,-1)}</div>`:'<p class="info-note">本月没有现金支出。</p>'}<p class="info-note">点击三角逐层展开，可查到具体付款或收款账户。子项合计等于父项；收入减支出等于现金净变化。投资、分红和清算单列，库存变化与核销不在现金树中，因此现金净额不等于经营利润。</p></section>`;
+}
 function research(content,data){return `<details><summary>账本与决策细节</summary><div>${content}<details><summary>原始观察记录</summary><pre>${esc(JSON.stringify(data,null,2))}</pre></details></div></details>`;}
 
 'use strict';
