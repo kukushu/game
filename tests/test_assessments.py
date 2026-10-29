@@ -7,6 +7,29 @@ from landlab.session import LandSession
 
 
 class AssessmentTests(unittest.TestCase):
+    def test_whole_round_ranking_is_historical_and_matches_actual_winner(self):
+        c = LandCity(7)
+        c.zones = dict.fromkeys(range(35), 'open')
+        c.step()
+        round_ = c.commercial_audit.rounds[-1]
+        proposals = round_['proposals']
+        eligible = [p for p in proposals if p['profit'] > 0 and p['affordable']]
+        expected = max(eligible, key=lambda p:p['score'])
+        self.assertEqual(expected['decision'], 'selected')
+        self.assertEqual(expected['rank'], 1)
+        self.assertEqual(round_['winner']['node'], expected['node'])
+        store_report=c.commercial_audit.for_store(round_['winner']['store'])
+        self.assertEqual(store_report['proposals'],round_['proposals'])
+        self.assertEqual(store_report['selected_plan']['profit'],expected['profit'])
+        for p in proposals:
+            self.assertAlmostEqual(p['score'], p['profit']/p['capital'])
+            if p['blockers']: self.assertIsNone(p['rank'])
+        saved = json.dumps(round_, sort_keys=True)
+        c.step()
+        self.assertEqual(saved, json.dumps(c.commercial_audit.rounds[0], sort_keys=True))
+        visit = c.commercial_audit.for_node(expected['node'])['visits'][0]
+        self.assertEqual(visit['comparison'], round_)
+
     def test_complete_costs_outcomes_and_roundtrip(self):
         c = LandCity(7)
         c.zones = dict.fromkeys(range(35), 'open')

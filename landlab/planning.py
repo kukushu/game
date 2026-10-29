@@ -94,7 +94,7 @@ class PlanningSession:
             pending-=component;components.append(component)
         for component in sorted(components,key=lambda c:-len(c)):
             homes=[n for n in component if 'R' in RIGHTS[self.zones[n]]]
-            used=dict.fromkeys(component,0);factories=[]
+            used=dict.fromkeys(component,0);factories=[];factory_assessments=[]
             for _ in range(4):
                 candidates=[]
                 for node in component:
@@ -104,8 +104,12 @@ class PlanningSession:
                     distance=sum(route(self.roads,node,n)[0] for n in homes)/max(1,len(homes))
                     candidates.append((distance,node))
                 if not candidates:break
-                _,node=min(candidates);used[node]+=4;factories.append(node)
-            if len(factories)==4:return {'ready':True,'component':sorted(component),'factories':factories,'homes':homes,'reason':'道路与用地已能容纳首批 64 户和 4 家工厂。'}
+                distance,node=min(candidates)
+                factory_assessments.append({'producer':len(factories),'node':node,'distance':distance,
+                    'alternatives':[{'node':n,'distance':d} for d,n in sorted(candidates)]})
+                used[node]+=4;factories.append(node)
+            if len(factories)==4:return {'ready':True,'component':sorted(component),'factories':factories,'homes':homes,
+                'factory_assessments':factory_assessments,'reason':'道路与用地已能容纳首批 64 户和 4 家工厂。'}
         if not self.roads:reason='先在地图上修路，再沿道路规划住宅和工业用地。'
         else:reason='同一片连通道路内，需要容纳 64 户的住宅土地和 4 家工厂的工业土地；可先连起两块住宅地、两块工业地。'
         return {'ready':False,'reason':reason}
@@ -119,9 +123,12 @@ class PlanningSession:
         city.zones=self.zones.copy();city.roads=self.roads.copy();city.paths={}
         for h in city.residents:h.node=-1
         for p,node in zip(city.producers,layout['factories']):p.node=node
+        city.initial_locations['factories']=copy.deepcopy(layout['factory_assessments'])
         for h in city.residents:
             candidates=[n for n in layout['homes'] if city.free_land(n)>=(1 if city.usage(n)['homes']%4==0 else 0)]
-            h.node=min(candidates,key=lambda n:(city.home_score(h,n)['total'],n))
+            scored=sorted([{'node':n,**city.home_score(h,n)} for n in candidates],key=lambda a:(a['total'],a['node']))
+            h.node=scored[0]['node']
+            city.initial_locations['homes'].append({'resident':h.id,'node':h.node,'alternatives':scored})
         spent=30000-self.budget
         city.accounts['civic']=self.budget;city.accounts['property']+=spent
         city.check()

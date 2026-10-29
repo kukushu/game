@@ -193,6 +193,7 @@ class LandSession(Session):
                                        for e in t.get('site_estimate',[]) if e['node']==identity]
             result['commercial_history']=city.commercial_audit.for_node(identity)
         elif kind=='resident':
+            result['initial_location']=next((copy.deepcopy(r) for r in city.initial_locations['homes'] if r['resident']==identity),None)
             result['commute']=city.commute.get(identity,0)
             result['income']={'gross':sum(p['cents'] for p in result['payments'] if p['target']==f'h{identity}' and p['purpose'] in TAXABLE_INCOME),
                               'tax':sum(p['cents'] for p in result['payments'] if p['source']==f'h{identity}' and p['purpose']=='income_tax')}
@@ -202,6 +203,9 @@ class LandSession(Session):
             result['reviews']=[r for r in city.home_review_history if r['resident']==identity]
             result['routes'] += [{'mode':'commute','edges':r['edges']} for r in city.current.get('commute_trip',[]) if r['resident']==identity]
         elif kind=='producer':
+            result['initial_location']=next((copy.deepcopy(r) for r in city.initial_locations['factories'] if r['producer']==identity),None)
             result['reviews']=[r for r in city.factory_review_history if r['producer']==identity]
             result['appraisal']=city.factory_score(city.producers[identity],city.producers[identity].node)
+        elif kind=='store':
+            result['location_decision']=city.commercial_audit.for_store(identity)
         return result

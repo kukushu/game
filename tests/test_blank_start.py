@@ -40,6 +40,16 @@ class BlankStartTests(unittest.TestCase):
         self.assertEqual(sum(p.production for p in c.producers),0)
         self.assertTrue(all(c.zones[h.node]=='home' for h in c.residents))
         self.assertTrue(all(c.zones[p.node]=='factory' for p in c.producers))
+        self.assertEqual(len(c.initial_locations['homes']),64)
+        self.assertEqual(len(c.initial_locations['factories']),4)
+        for record in c.initial_locations['homes']:
+            winner=min(record['alternatives'],key=lambda a:(a['total'],a['node']))
+            self.assertEqual(record['node'],winner['node'])
+        for record in c.initial_locations['factories']:
+            winner=min(record['alternatives'],key=lambda a:(a['distance'],a['node']))
+            self.assertEqual(record['node'],winner['node'])
+        restored=LandSession.load(json.loads(json.dumps(s.dump())))
+        self.assertEqual(restored.player.initial_locations,c.initial_locations)
         self.assertEqual(len(c.roads),3)
         s.advance(3)
         self.assertGreater(c.metrics[-1]['units'],0)

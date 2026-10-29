@@ -26,6 +26,7 @@ class LandCity(PlayCity):
         self.income_tax_rate = 0
         self.commercial_audit = CommercialAudit()
         self.commercial_last_review = {}
+        self.initial_locations = {'homes': [], 'factories': []}
         self.greenfield, self.gateway = False, None
         self.environment_weight = 1.0
         self.zones = {n:'reserve' for n in range(35)}
@@ -200,6 +201,7 @@ class LandCity(PlayCity):
             reason='同地居住' if node==h.node else '现金不足' if not enough else '节约不足以补偿搬迁' if not willing else '搬迁'
             record={'resident':h.id,'from':h.node,'to':node,'current':current,'candidate':best,
                     'reason':reason,'month':self.month,'gain':gain,'required_gain':required_gain,
+                    'decision_mode':self.mode,'cooldown_months':4,
                     'move_policy':self.home_move_policy,'cash_at_review':self.accounts[f'h{h.id}'],
                     'move_cost':120,'candidate_count':len(scored),
                     'alternatives':sorted([{'node':n,**s} for s,n in scored],key=lambda x:x['total'])}
@@ -246,6 +248,7 @@ class LandCity(PlayCity):
         willing=self.mode=='blind' or best['profit']-current['profit']>1200/6+200
         reason='原址更合适' if node==p.node else '现金不足' if not enough else '预期改善不足以补偿搬迁' if not willing else '搬迁'
         record={'producer':p.id,'from':p.node,'to':node,'current':current,'candidate':best,'reason':reason,'month':self.month,
+                'decision_mode':self.mode,'cooldown_months':8,
                 'cash_at_review':self.accounts[f'p{p.id}'],'move_cost':1200,'required_gain':400,
                 'candidate_count':len(scored),'alternatives':sorted([{'node':n,**s} for s,n in scored],key=lambda x:-x['profit'])}
         self.factory_reviews.append(record)
@@ -308,6 +311,7 @@ class LandCity(PlayCity):
               'spatial_history':self.spatial_history})
         data['_land']['commercial_audit']=self.commercial_audit.dump()
         data['_land']['commercial_last_review']=copy.deepcopy(self.commercial_last_review)
+        data['_land']['initial_locations']=copy.deepcopy(self.initial_locations)
         data['_land']['income_tax_rate']=self.income_tax_rate
         data['_land']['home_move_policy']=self.home_move_policy
         data['_land']['maintenance_ratio']=self.maintenance_ratio
@@ -351,6 +355,10 @@ class LandCity(PlayCity):
         if any(model.free_land(n)<0 for n in range(35)): raise ValueError('地块超过土地容量')
         model.commute_visits=set()
         model.commercial_audit=CommercialAudit.restore(extra.get('commercial_audit'),model)
+        model.initial_locations=copy.deepcopy(extra.get('initial_locations',{'homes':[],'factories':[]}))
+        if (not isinstance(model.initial_locations,dict) or
+            any(not isinstance(model.initial_locations.get(k),list) for k in ('homes','factories'))):
+            raise ValueError('初始选址记录无效')
         if 'commercial_last_review' in extra:
             if not isinstance(extra['commercial_last_review'],dict):raise ValueError('商业轮查记录无效')
             model.commercial_last_review={int(n):v for n,v in extra['commercial_last_review'].items()}

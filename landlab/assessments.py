@@ -115,6 +115,16 @@ class CommercialAudit:
                 plan['decision'] = ('selected' if selected else 'rejected' if blockers else 'other_site_selected')
                 if selected:
                     plan['store'] = winner['store']
+        # Keep the whole contemporary comparison once per round, rather than
+        # reconstructing competitors from today's prices or storing only a winner.
+        proposals = [{'node': v['node'], **{k: copy.deepcopy(p[k]) for k in
+                      ('area','assortment','profit','capital','affordable','score','decision','blockers')}}
+                     for v in self._current.values() for p in v['plans']]
+        qualified = sorted((p for p in proposals if not p['blockers']),key=lambda p:-p['score'])
+        for p in proposals:
+            p['rank'] = next((i+1 for i,q in enumerate(qualified) if q is p),None)
+        self._round['proposals'] = proposals
+        self._round['comparison_rule'] = 'positive_profit_affordable_max_return_first_tie'
         self.active = False
 
     def dump(self):
@@ -148,6 +158,18 @@ class CommercialAudit:
 
     def for_node(self, node):
         records = [copy.deepcopy(v) for v in self.visits if v['node'] == node]
+        rounds = {r['month']: r for r in self.rounds}
+        for record in records:
+            record['comparison'] = copy.deepcopy(rounds.get(record['month']))
         return {'full_since': self.full_since, 'visits': records,
                 'total_visits': len(records), 'total_plans': sum(len(v['plans']) for v in records),
                 'last_round': copy.deepcopy(self.rounds[-1]) if self.rounds else None}
+
+    def for_store(self, identity):
+        for round_ in self.rounds:
+            if (round_.get('winner') or {}).get('store') == identity:
+                result = copy.deepcopy(round_)
+                result['selected_plan'] = next((copy.deepcopy(p) for v in self.visits
+                    if v['month'] == round_['month'] for p in v['plans'] if p.get('store') == identity),None)
+                return result
+        return None
