@@ -108,7 +108,25 @@ async function buildRoad(a,b){
 }
 async function select(item,keepImpacts=false){if(busy)return;commercialShown=5;$("map-callout").hidden=true;if(!keepImpacts)impactVisible=false;const token=++inspectSequence;selection=item;detail=null;$('inspector').hidden=false;renderMap();renderInspector();if(item.kind==='home')return;const key=worldKey,revision=state.revision;try{const result=await api(`/api/inspect?kind=${item.kind}&id=${item.id}&world=${key}`);if(token!==inspectSequence||revision!==state.revision||key!==worldKey)return;detail=result;if(item.kind==='node')zoneChoice=result.zone;renderInspector();renderMap();availability();}catch(e){toast(e.message,true);}}
 function facts(items){return '<div class="facts">'+items.map(([a,b])=>`<div><span>${esc(a)}</span><strong>${esc(b)}</strong></div>`).join('')+'</div>';}
-function pick(kind,id,node,label,sub=''){return `<button data-pick="${kind}" data-id="${id}" data-node="${node}"><span>${esc(label)}</span><small>${esc(sub)}</small></button>`;}
+function pick(kind,id,node,label,sub='',status=''){return `<button class="${esc(status)}" data-pick="${kind}" data-id="${id}" data-node="${node}"><span>${esc(label)}</span><small>${esc(sub)}</small></button>`;}
+function shoppingStatus(people){
+ const missing=people.filter(h=>h.food<2||h.goods<2).length;
+ const foodMissing=people.filter(h=>h.food<2).length,goodsMissing=people.filter(h=>h.goods<2).length;
+ return {missing,foodMissing,goodsMissing,complete:people.length-missing,
+  food:people.reduce((v,h)=>v+h.food,0),goods:people.reduce((v,h)=>v+h.goods,0),target:people.length*2};
+}
+function homePick(people,index,node){
+ const s=shoppingStatus(people),pending=state.month===0;
+ const sub=pending?'等待首月购物结算':s.missing?`${s.missing}/${people.length} 户未买齐 · ${[s.foodMissing?'缺食品':'',s.goodsMissing?'缺日用品':''].filter(Boolean).join('、')}`:`${people.length} 户都已买齐`;
+ return pick('home',index,node,`住宅单元 ${index+1} · ${people.length} 户`,sub,pending?'supply-pending':s.missing?'supply-warning':'supply-ok');
+}
+function supplySummary(people){
+ if(!people.length)return '';
+ if(state.month===0)return '<section class="supply-summary"><strong>商品购买情况 · 待结算</strong><p>居民刚入住，尚未经历第一个月的购物，暂不判定买齐或缺货。</p></section>';
+ const s=shoppingStatus(people);
+ return `<section class="supply-summary ${s.missing?'supply-warning':'supply-ok'}"><strong>${s.missing?`⚠ ${s.missing} 户商品没买齐`:'✓ 本街区所有家庭都买齐了'}</strong><p>本月 ${s.complete}/${people.length} 户买齐食品和日用品。</p>${facts([['食品已买 / 目标',`${s.food} / ${s.target} 件`],['日用品已买 / 目标',`${s.goods} / ${s.target} 件`]])}<p class="info-note">${s.foodMissing} 户缺食品，${s.goodsMissing} 户缺日用品；两项可能是同一户。每户每月目标各2件，未买齐不一定是卖家缺货，也可能与现金或出行有关。点击下方住宅查看具体家庭。</p></section>`;
+}
+
 function bindInspector(){if($('audit-more'))$('audit-more').onclick=()=>{commercialShown+=10;renderInspector();};if($('audit-all'))$('audit-all').onclick=()=>{commercialShown=Infinity;renderInspector();};$('inspector-body').querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>select({kind:b.dataset.pick,id:Number(b.dataset.id),node:Number(b.dataset.node)}));$('inspector-body').querySelectorAll('[data-zone]').forEach(b=>b.onclick=()=>{zoneChoice=b.dataset.zone;renderInspector();});if($('apply-action'))$('apply-action').onclick=applyAction;if($('begin-zoning'))$('begin-zoning').onclick=()=>{chooseTool('zone');};}
 function homeDecision(r){if(state.mode==='fixed')return '当前研究模式固定住址，家庭不会自主搬迁。';if(state.mode==='blind')return '当前研究模式随机选择合法地点，不比较生活收益；仍须满足现金、容量与搬迁冷却。';if(!r&&state.greenfield)return '首批家庭按开城的合法用地和通路选择位置，目前还没有新的迁居考察。';if(!r)return '它还没有新的迁居考察记录。下一次被选中时，会比较生活便利、房租与生产干扰。';const parts=[['房租',r.current.rent-r.candidate.rent],['购物',r.current.shopping-r.candidate.shopping],['通勤',r.current.commute-r.candidate.commute],['生产干扰',r.current.environment-r.candidate.environment]].sort((a,b)=>b[1]-a[1]);if(r.reason==='搬迁')return `第 ${r.month+1} 月，它从${place(r.from)}搬到${place(r.to)}。当时最吸引它的是${parts[0][0]}条件；合计预期改善足以补偿搬迁。${r.candidate.environment>r.current.environment?'它也接受了更高的生产干扰。':''}${r.candidate.rent>r.current.rent?'新住处的房租报价更高。':''}`;if(r.reason==='现金不足')return `第 ${r.month+1} 月，它考虑换住处，但现款不足以支付搬迁费，所以留下了。`;if(r.reason==='同地居住')return `第 ${r.month+1} 月，它比较后仍选择原来的住处，暂时没有更值得搬去的地方。`;if(r.move_policy==='stable')return `第 ${r.month+1} 月，换住处预期可节约 ${n(Math.max(0,r.gain)/100)}，未超过本次需要的 ${n(r.required_gain/100)}，所以它选择留下。这里包含时间和环境的估值，不是单纯现金。`;return `第 ${r.month+1} 月，换住处的预期改善还不足以补偿搬迁代价，所以它没有搬家。`;}
 function ledger(rows,account){const names={housing_rent:'住房租金',home_move:'搬迁费用',manufacturing:'生产工资',factory_service:'柜台工资',retail_staff:'店员工资',freight:'货运工资',industrial_rent:'厂房租金',factory_move:'工厂搬迁',direct_sale:'工厂直销',retail_sale:'门店成交',wholesale:'采购付款',income_tax:'居民收入税',fund_dividend:'投资分红',household_dividend:'家庭权益分配',rent_utilities:'开门费用',equity_investment:'开店投资',truck_lease:'车辆租用',retail_dividend:'门店分红',liquidation:'退出返还'},g={};for(const p of rows||[])g[p.purpose]=(g[p.purpose]||0)+(p.target===account?1:-1)*p.cents;return '<table><thead><tr><th>本月现金收支</th><th>金额</th></tr></thead><tbody>'+Object.entries(g).map(([k,v])=>`<tr><td>${esc(names[k]||k)}</td><td>${v>=0?'+':''}${money(v)}</td></tr>`).join('')+'</tbody></table>';}
@@ -184,7 +202,7 @@ function renderInspector(){
     const people=groups(city,selection.node)[selection.id]||[],missing=people.filter(h=>h.food<2||h.goods<2).length;
     if(!people.length){$('inspector-body').innerHTML='<h2>这里的家庭已经搬走</h2><p class="lead">在地图上检查它们的新住处。</p>';return;}
     const shopping=people.reduce((s,h)=>s+h.shopping,0)/people.length,commute=people.reduce((s,h)=>s+h.commute,0)/people.length;
-    html+=`<div class="selection-art">${art('home')}</div><h2>${place(selection.node)}住宅</h2><p class="subtitle">这个图标对应实际的 ${people.length} 户家庭。</p><span class="tag ${missing?'warning':''}">${state.month===0?'刚入住，等待首月记录':missing?`${missing} 户没买齐商品`:'家家买齐了日常商品'}</span>${facts([['平均购物',hours(shopping)],['平均通勤',hours(commute)]])}<div class="reason"><strong>${state.month===0?'刚入住，等待第一个月的生活记录':missing?'先看看谁没买齐东西':shopping>1.5?'购物还要花些时间':commute>1.5?'上班需要绕一段路':'这里的生活目前比较方便'}</strong>${state.month===0?'推进时间之后，再查看实际购物、通勤与收支。':missing?'点一户家庭，看看它实际去哪买、是不是缺货或来不及。':'工作地点和购物选择因人而异。点开一户，能看到它自己的路线与选择理由。'}</div><h3>住在这里的人</h3><div class="entity-list">${people.map(h=>pick('resident',h.id,h.node,`家庭 ${String(h.id+1).padStart(2,'0')}`,`购物 ${n(h.shopping)}h`)).join('')}</div><p class="info-note">住宅图标每个最多表示 4 户，不额外创建人口或空房。</p>`;
+    html+=`<div class="selection-art">${art('home')}</div><h2>${place(selection.node)}住宅</h2><p class="subtitle">这个图标对应实际的 ${people.length} 户家庭。</p><span class="tag ${missing?'warning':''}">${state.month===0?'刚入住，等待首月记录':missing?`${missing} 户没买齐商品`:'家家买齐了日常商品'}</span>${facts([['平均购物',hours(shopping)],['平均通勤',hours(commute)]])}<div class="reason"><strong>${state.month===0?'刚入住，等待第一个月的生活记录':missing?'先看看谁没买齐东西':shopping>1.5?'购物还要花些时间':commute>1.5?'上班需要绕一段路':'这里的生活目前比较方便'}</strong>${state.month===0?'推进时间之后，再查看实际购物、通勤与收支。':missing?'点一户家庭，看看它实际去哪买、是不是缺货或来不及。':'工作地点和购物选择因人而异。点开一户，能看到它自己的路线与选择理由。'}</div><h3>住在这里的人</h3><div class="entity-list">${people.map(h=>pick('resident',h.id,h.node,`家庭 ${String(h.id+1).padStart(2,'0')}`,state.month===0?'等待首月结算':`${h.food>=2&&h.goods>=2?'已买齐':'未买齐'} · 食品 ${h.food}/2 · 日用品 ${h.goods}/2`,state.month===0?'supply-pending':h.food<2||h.goods<2?'supply-warning':'supply-ok')).join('')}</div><p class="info-note">住宅图标每个最多表示 4 户，不额外创建人口或空房。</p>`;
   }else if(!detail){html+='<p class="lead">正在看看这里发生了什么…</p>';
   }else if(kind==='road'){
     const d=detail;
@@ -205,7 +223,8 @@ function renderInspector(){
       html+=commercialSummary(d);
     }
     if(d.connected===false&&!planning())html+='<div class="reason"><strong>还没有接入城市道路</strong>请把这里连接到已开放的城区，主体才会考虑进入。</div>';
-    if(occupied)html+='<h3>实际已经在这里的</h3><div class="entity-list">'+groups(city,d.id).map((g,i)=>pick('home',i,d.id,`住宅单元 ${i+1} · ${g.length} 户`,'查看家庭')).join('')+d.stores.map(s=>pick('store',s.id,s.node,shopName(s))).join('')+d.producers.map(p=>pick('producer',p.id,p.node,factoryName(p))).join('')+'</div>';
+    if(!planning())html+=supplySummary(city.residents.filter(h=>h.node===d.id));
+    if(occupied)html+='<h3>实际已经在这里的</h3><div class="entity-list">'+groups(city,d.id).map((g,i)=>homePick(g,i,d.id)).join('')+d.stores.map(s=>pick('store',s.id,s.node,shopName(s))).join('')+d.producers.map(p=>pick('producer',p.id,p.node,factoryName(p))).join('')+'</div>';
     if(!planning())html+=(d.commercial_history?.visits.length?roundDecision(d.commercial_history.visits.at(-1).comparison,d.id):'')+commercialHistory(d)+research(`<p>住房报价 ${money(d.home_rent)} / 户；生产干扰 ${n(d.exposure)}；住 ${d.usage.housing_land} / 商 ${d.usage.commercial_land} / 工 ${d.usage.industrial_land} 单位土地。</p>`,{...d,commercial_history:d.commercial_history?{...d.commercial_history,visits:'见上方完整考察记录'}:null});
   }else if(kind==='resident'){
     const d=detail,h=d.entity,missing=h.food<2||h.goods<2;
