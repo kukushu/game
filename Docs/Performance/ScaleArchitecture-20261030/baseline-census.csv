@@ -1,0 +1,2 @@
+population,members,families,buildings,jobs,occupied_jobs,at_work,active_vehicles,vehicles,waste_plants,waste_missions,raw_bytes,resaved_bytes,load_ms,save_ms,dotnet_retained_bytes
+30000,30000,10000,7806,20000,20000,0,5230,5230,200,595,37120578,37120592,758.301,845.264,45847912
