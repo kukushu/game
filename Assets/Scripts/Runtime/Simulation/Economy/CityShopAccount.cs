@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 namespace HarborCity
 {
     [Serializable] public sealed class ShopAccountData
@@ -7,7 +7,9 @@ namespace HarborCity
     // wholesaleFunded - wholesaleCosts is paid cargo still in transport.
     public sealed class CityShopAccount
     {
-        public double Cash {get;internal set;}
+        double balance;
+        internal CityEntities FundingOwner;internal int FundingBuilding=-1;
+        public double Cash {get=>balance;internal set{bool funded=balance>0;balance=value;if(funded!=(value>0))FundingOwner?.MarkFundingDirty(FundingBuilding,this);}}
         public double Capital {get;internal set;}
         public double RetailRevenue {get;internal set;}
         public double WageCosts {get;internal set;}

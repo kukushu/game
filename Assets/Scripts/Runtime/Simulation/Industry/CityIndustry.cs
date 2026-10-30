@@ -9,7 +9,11 @@ namespace HarborCity
         public const int RawCapacity=24, GoodsCapacity=24;
         public const float LabourPerItem=60;
         public const int StartingCash=1200, RawPrice=8, SalePrice=45, ProcessingCost=2;
-        public double cash, capital, salesRevenue, rawCosts, wageCosts, productionCosts, unpaidWages,taxCosts;
+        public double capital, salesRevenue, rawCosts, wageCosts, productionCosts, unpaidWages,taxCosts;
+        double balance;
+        internal CityEntities FundingOwner;internal int FundingBuilding=-1;
+        [CitySavedFact] public double cash
+        {get=>balance;set{bool funded=balance>0;balance=value;if(funded!=(value>0))FundingOwner?.MarkFundingDirty(FundingBuilding,this);}}
         public int sold;
         public double Profit => salesRevenue-rawCosts-wageCosts-productionCosts-taxCosts;
         public double CashError => cash-(capital+salesRevenue-rawCosts-wageCosts-productionCosts-taxCosts);
@@ -28,9 +32,13 @@ namespace HarborCity
         public FactoryState Factory(int id) => (GetBuilding(id) as IndustrialBuilding)?.factory;
         public bool JobFunded(CityJob job)
         {
-            if(job==null)return false;
-            if(entities!=null&&development.enabled){var b=GetBuilding(job.buildingId);return b is IndustrialBuilding factory?factory.factory.cash>0:b is CommercialBuilding shop&&shop.Account.Cash>0;}
-            return development.enabled||Factory(job.buildingId)==null||Factory(job.buildingId).cash>0;
+            return job!=null&&EmployerFunded(job.buildingId);
+        }
+        // Shared original predicate; no wage, amount, or mode rule is reinterpreted.
+        internal bool EmployerFunded(int building)
+        {
+            if(entities!=null&&development.enabled){var b=GetBuilding(building);return b is IndustrialBuilding factory?factory.factory.cash>0:b is CommercialBuilding shop&&shop.Account.Cash>0;}
+            return development.enabled||Factory(building)==null||Factory(building).cash>0;
         }
         // Employer cash becomes a saved citizen credit immediately. Day-end transfers
         // whole units to savings and carries fractions, never rounding into new money.

@@ -63,6 +63,77 @@ namespace HarborCity
         readonly Dictionary<int,HashSet<CityMember>> employees=new Dictionary<int,HashSet<CityMember>>();
         readonly Dictionary<int,int> memberWorkplace=new Dictionary<int,int>();
         internal event Action<CityMember> JobAssignmentsChanged;
+        sealed class FundingState {internal object Account;internal bool Funded;}
+        readonly Dictionary<int,FundingState> funding=new Dictionary<int,FundingState>();
+        readonly HashSet<int> dirtyFunding=new HashSet<int>();
+        readonly List<int> fundingChecks=new List<int>();
+        readonly HashSet<CityMember> fundingMembers=new HashSet<CityMember>();
+        readonly List<CityMember> fundingOrder=new List<CityMember>();
+        Action<CityMember> fundingChanged;bool fundingMode;
+        // Invalidation only. Subscribers may mark scheduling state dirty, never
+        // dispatch or settle inside a notification. Attach seeds current facts.
+        internal event Action<CityMember> FundingEligibilityChanged
+        {
+            add{if(value==null)return;if(fundingChanged==null){fundingMode=city.development.enabled;foreach(var pair in funding)pair.Value.Funded=city.EmployerFunded(pair.Key);dirtyFunding.Clear();}fundingChanged+=value;}
+            remove{fundingChanged-=value;if(fundingChanged==null)dirtyFunding.Clear();}
+        }
+        internal void MarkFundingDirty(int building,object account)
+        {
+            if(fundingChanged==null)return;
+            if(!funding.TryGetValue(building,out var state)||!ReferenceEquals(state.Account,account))throw new InvalidOperationException("Funding changed outside account ownership");
+            dirtyFunding.Add(building);
+        }
+        void BindFunding(CityBuilding b)
+        {
+            object account;CityEntities previous;
+            if(b is IndustrialBuilding f){account=f.factory;previous=f.factory.FundingOwner;}
+            else if(b is CommercialBuilding shop){account=shop.Account;previous=shop.Account.FundingOwner;}
+            else return;
+            // Constructing a replacement session over the same CityModel is an
+            // existing handover API. Cross-city sharing is never ownership transfer.
+            if(previous!=null){if(previous==this||!ReferenceEquals(previous.city,city))throw new InvalidOperationException("Employer account already owned");previous.UnbindFunding(b);}
+            if(b is IndustrialBuilding factory){factory.factory.FundingOwner=this;factory.factory.FundingBuilding=b.id;}
+            else {var shop=(CommercialBuilding)b;shop.Account.FundingOwner=this;shop.Account.FundingBuilding=b.id;}
+            funding.Add(b.id,new FundingState{Account=account,Funded=city.EmployerFunded(b.id)});
+        }
+        void UnbindFunding(CityBuilding b)
+        {
+            object account=b is IndustrialBuilding factory?(object)factory.factory:b is CommercialBuilding shop?shop.Account:null;
+            if(account==null)return;
+            if(!funding.TryGetValue(b.id,out var state)||!ReferenceEquals(state.Account,account))throw new InvalidOperationException("Unbinding foreign employer account");
+            if(b is IndustrialBuilding f){f.factory.FundingOwner=null;f.factory.FundingBuilding=-1;}
+            else if(b is CommercialBuilding s){s.Account.FundingOwner=null;s.Account.FundingBuilding=-1;}
+            else return;
+            funding.Remove(b.id);dirtyFunding.Remove(b.id);
+        }
+        internal void FlushFundingChanges()
+        {
+            var notify=fundingChanged;if(notify==null)return;
+            bool modeChanged=fundingMode!=city.development.enabled;
+            if(!modeChanged&&dirtyFunding.Count==0)return;
+            fundingChecks.Clear();
+            if(modeChanged){foreach(int id in funding.Keys)fundingChecks.Add(id);fundingMode=city.development.enabled;}
+            else foreach(int id in dirtyFunding)fundingChecks.Add(id);
+            dirtyFunding.Clear();fundingMembers.Clear();fundingOrder.Clear();
+            foreach(int id in fundingChecks)
+            {
+                if(!funding.TryGetValue(id,out var state))continue;
+                bool next=city.EmployerFunded(id);if(next==state.Funded)continue;state.Funded=next;
+                if(employees.TryGetValue(id,out var staff))foreach(var member in staff)if(fundingMembers.Add(member))fundingOrder.Add(member);
+            }
+            fundingOrder.Sort((a,b)=>a.Ordinal.CompareTo(b.Ordinal));
+            // All final balances/indexes were read before notifying. New writes
+            // from a callback stay pending for the next safe flush, not discarded.
+            foreach(var member in fundingOrder)notify(member);
+            fundingMembers.Clear();fundingOrder.Clear();fundingChecks.Clear();
+        }
+        void ValidateFundingBindings()
+        {
+            if(funding.Count!=factories.Count+shops.Count)throw new InvalidOperationException("Stale employer account count");
+            foreach(var f in factories)if(!funding.TryGetValue(f.id,out var state)||!ReferenceEquals(state.Account,f.factory)||f.factory.FundingOwner!=this||f.factory.FundingBuilding!=f.id)throw new InvalidOperationException("Stale factory account ownership");
+            foreach(var s in shops)if(!funding.TryGetValue(s.id,out var state)||!ReferenceEquals(state.Account,s.Account)||s.Account.FundingOwner!=this||s.Account.FundingBuilding!=s.id)throw new InvalidOperationException("Stale shop account ownership");
+        }
+
         int AssignedWorkplace(CityMember m)=>jobs.TryGetValue(m.Person.jobId,out var job)&&job.occupiedCitizenId==m.Person.id?job.buildingId:-1;
         bool RefreshEmployment(CityMember m)
         {
@@ -145,8 +216,17 @@ namespace HarborCity
             RebuildJobs();city.entities=this;
         }
         static bool Available(CityBuilding b)=>!b.abandoned&&!b.burned;
-        void IndexType(CityBuilding b){if(b is IndustrialBuilding f)factories.Add(f);if(b is CommercialBuilding s)shops.Add(s);}
-        void UnindexType(CityBuilding b){if(b is IndustrialBuilding f)factories.Remove(f);if(b is CommercialBuilding s)shops.Remove(s);}
+        void IndexType(CityBuilding b){BindFunding(b);if(b is IndustrialBuilding f)factories.Add(f);if(b is CommercialBuilding s)shops.Add(s);}
+        void UnindexType(CityBuilding b){UnbindFunding(b);if(b is IndustrialBuilding f)factories.Remove(f);if(b is CommercialBuilding s)shops.Remove(s);}
+        void ReplaceType(CityBuilding old,CityBuilding next)
+        {
+            funding.TryGetValue(old.id,out var previous);bool pending=dirtyFunding.Contains(old.id);
+            UnindexType(old);IndexType(next);
+            // A shop replacement reuses its account: retain the last observed
+            // eligibility and pending change, rather than seeding away that change.
+            if(previous!=null&&funding.TryGetValue(next.id,out var current)&&ReferenceEquals(previous.Account,current.Account)){current.Funded=previous.Funded;if(pending&&fundingChanged!=null)dirtyFunding.Add(next.id);}
+        }
+
         internal void RebuildJobs()
         {
             foreach(var j in jobs.Values)j.EntityOwner=null;
@@ -183,9 +263,9 @@ namespace HarborCity
         public CityMember Member(int id)=>people.TryGetValue(id,out var m)?m:null;
         public Household Family(int id)=>families.TryGetValue(id,out var h)?h:null;
         public void AddBuilding(CityBuilding b)
-        {StructuralBoundary();if(b==null||b.id<city.nextBuildingId||b.id>=int.MaxValue||buildings.ContainsKey(b.id))throw new ArgumentException("Building ID must be new and monotonic");city.buildings.Add(b);buildings.Add(b.id,b);IndexType(b);city.nextBuildingId=b.id+1;transport.SetEndpointAvailable(b.id,Available(b));Revision++;BuildingRevision++;city.SyncJobs();}
+        {StructuralBoundary();if(b==null||b.id<city.nextBuildingId||b.id>=int.MaxValue||buildings.ContainsKey(b.id))throw new ArgumentException("Building ID must be new and monotonic");if(b is IndustrialBuilding factory&&(factory.factory==null||factory.factory.FundingOwner!=null)||b is CommercialBuilding shop&&(shop.Account==null||shop.Account.FundingOwner!=null))throw new ArgumentException("New building requires its own unbound account");city.buildings.Add(b);buildings.Add(b.id,b);IndexType(b);city.nextBuildingId=b.id+1;transport.SetEndpointAvailable(b.id,Available(b));Revision++;BuildingRevision++;city.SyncJobs();}
         public void ReplaceBuilding(CityBuilding b)
-        {StructuralBoundary();var old=b==null?null:Building(b.id);if(old==null||b.Use!=old.Use||old is IndustrialBuilding)throw new ArgumentException("Replacement preserves identity/use; factory accounts need explicit retirement, not replacement");if(old.garbage!=b.garbage||old is LandfillBuilding landfill&&(!(b is LandfillBuilding nextPlant)||landfill.stored!=nextPlant.stored||landfill.processingRemainder!=nextPlant.processingRemainder))throw new ArgumentException("Replacement cannot discard waste inventory");if(old is CommercialBuilding shop&&b is CommercialBuilding next){if(shop.Stock!=next.Stock||shop.wholesaleCosts!=next.wholesaleCosts)throw new ArgumentException("Replacement cannot discard inventory/finance");next.Account=shop.Account;}int at=city.buildings.IndexOf(old);city.buildings[at]=b;buildings[b.id]=b;UnindexType(old);IndexType(b);transport.SetEndpointAvailable(b.id,Available(b));Revision++;BuildingRevision++;city.SyncJobs();transport.RefreshEndpoints();}
+        {StructuralBoundary();var old=b==null?null:Building(b.id);if(old==null||b.Use!=old.Use||old is IndustrialBuilding)throw new ArgumentException("Replacement preserves identity/use; factory accounts need explicit retirement, not replacement");if(old.garbage!=b.garbage||old is LandfillBuilding landfill&&(!(b is LandfillBuilding nextPlant)||landfill.stored!=nextPlant.stored||landfill.processingRemainder!=nextPlant.processingRemainder))throw new ArgumentException("Replacement cannot discard waste inventory");if(old is CommercialBuilding shop&&b is CommercialBuilding next){if(shop.Stock!=next.Stock||shop.wholesaleCosts!=next.wholesaleCosts)throw new ArgumentException("Replacement cannot discard inventory/finance");next.Account=shop.Account;}int at=city.buildings.IndexOf(old);city.buildings[at]=b;buildings[b.id]=b;ReplaceType(old,b);transport.SetEndpointAvailable(b.id,Available(b));Revision++;BuildingRevision++;city.SyncJobs();transport.RefreshEndpoints();}
         internal CityBuilding RemoveBuilding(int id)
         {StructuralBoundary();var b=Building(id);if(b==null)throw new ArgumentException("Missing building");city.buildings.Remove(b);buildings.Remove(id);UnindexType(b);retired.Add(b);transport.SetEndpointAvailable(id,false);Revision++;BuildingRevision++;city.SyncJobs();transport.RefreshEndpoints();return b;}
         public void SetAvailability(int id,bool abandoned,bool burned)
@@ -208,6 +288,7 @@ namespace HarborCity
         }
         public void Validate()
         {
+            ValidateFundingBindings();
             ValidateEmploymentIndex();
             int workingCount=0;long previousOrdinal=-1;
             foreach(var m in members){if(m.Ordinal<=previousOrdinal||m.Person.EntityOwner!=this||workingMembers.Contains(m)!=m.Person.atWork)throw new InvalidOperationException("Stale attendance index");previousOrdinal=m.Ordinal;if(m.Person.atWork)workingCount++;}
