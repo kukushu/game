@@ -1,0 +1,5 @@
+variant,runtime_source,run,phase_timing,steps,mean_ms,p95_ms,p99_ms,max_ms,gc_allocation,final_sha256,cold20,exit
+old,a3f7cea,scale-attendance-plain-old-1,disabled,1200,9.974712666666667,12.6779,20.0381,51.9777,unsupported,2388ff392a6cdc1ced39a4fc527e7870f2a73cd5a6d1ae4b256e2dfe8c67c40d,PASS,0
+old,a3f7cea,scale-attendance-plain-old-2,disabled,1200,9.7796405,12.3944,18.6452,51.587,unsupported,2388ff392a6cdc1ced39a4fc527e7870f2a73cd5a6d1ae4b256e2dfe8c67c40d,PASS,0
+new,4a03d7c,scale-attendance-plain-new-1,disabled,1200,9.537720416666666,12.4188,18.6691,51.3512,unsupported,2388ff392a6cdc1ced39a4fc527e7870f2a73cd5a6d1ae4b256e2dfe8c67c40d,PASS,0
+new,4a03d7c,scale-attendance-plain-new-2,disabled,1200,9.545237166666666,12.4749,19.1618,52.0789,unsupported,2388ff392a6cdc1ced39a4fc527e7870f2a73cd5a6d1ae4b256e2dfe8c67c40d,PASS,0
