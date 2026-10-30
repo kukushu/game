@@ -10,9 +10,32 @@ static class CityEmploymentIndexChecks {
  static void Measure(string output,string save){var s=CityCoreSave.Read(File.ReadAllBytes(save));s.Transport.DepotLaneRoutingEnabled=true;s.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);for(int i=0;i<2400;i++)s.Advance(.05);
   long retained=GC.GetTotalMemory(true),allocated=GC.GetAllocatedBytesForCurrentThread();var times=new double[600];var watch=new System.Diagnostics.Stopwatch();for(int i=0;i<times.Length;i++){watch.Restart();if(s.Advance(.05)!=1)throw new Exception("Lost fixed step");watch.Stop();times[i]=watch.Elapsed.TotalMilliseconds;}allocated=GC.GetAllocatedBytesForCurrentThread()-allocated;Array.Sort(times);
   File.WriteAllLines(Path.Combine(output,"maintenance.csv"),new[]{"steps,mean_ms,p95_ms,p99_ms,max_ms,allocated_bytes,retained_bytes,final_sha256",string.Join(",",600,times.Average().ToString("R",System.Globalization.CultureInfo.InvariantCulture),times[569].ToString("R",System.Globalization.CultureInfo.InvariantCulture),times[593].ToString("R",System.Globalization.CultureInfo.InvariantCulture),times[599].ToString("R",System.Globalization.CultureInfo.InvariantCulture),allocated,retained,Hash(s))});Console.WriteLine("PASS real30k maintenance measurement; model only, not Player/FPS");}
- static void Main(string[] args){if(args.Length>1){Measure(args[0],args[1]);return;}var s=CityCoreIndustrySession.Create();var p=s.Entities.Members[0].Person;int jobId=p.jobId;var job=s.City.ResidentJob(p);var rows=new List<string>{"case,sha256"};Oracle(s);
+ static void RebuildMeasure(string output,string save){var s=CityCoreSave.Read(File.ReadAllBytes(save));s.Entities.RebuildJobs();
+#if EMPLOYMENT_INDEX
+  var field=typeof(CityEntities).GetField("employees",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance);var sets=(Dictionary<int,HashSet<CityMember>>)field.GetValue(s.Entities);var original=sets.ToDictionary(p=>p.Key,p=>p.Value);
+#endif
+  long allocated=GC.GetAllocatedBytesForCurrentThread();var watch=System.Diagnostics.Stopwatch.StartNew();for(int i=0;i<10;i++)s.Entities.RebuildJobs();watch.Stop();allocated=GC.GetAllocatedBytesForCurrentThread()-allocated;
+#if EMPLOYMENT_INDEX
+  foreach(var pair in original)if(!sets.TryGetValue(pair.Key,out var current)||!ReferenceEquals(pair.Value,current))throw new Exception("Unchanged employer set was recreated");Oracle(s);
+#endif
+  File.WriteAllLines(Path.Combine(output,"rebuild.csv"),new[]{"calls,total_ms,allocated_bytes,final_sha256",string.Join(",",10,watch.Elapsed.TotalMilliseconds.ToString("R",System.Globalization.CultureInfo.InvariantCulture),allocated,Hash(s))});Console.WriteLine("PASS unchanged job rebind measurement; model-only maintenance, not Player");}
+ static void Main(string[] args){if(args.Length>2&&args[2]=="rebuild"){RebuildMeasure(args[0],args[1]);return;}if(args.Length>1){Measure(args[0],args[1]);return;}var s=CityCoreIndustrySession.Create();var p=s.Entities.Members[0].Person;int jobId=p.jobId;var job=s.City.ResidentJob(p);var rows=new List<string>{"case,sha256"};Oracle(s);
   // Direct supported scalar writes invalidate even between the two sides of a binding.
   p.jobId=-1;Oracle(s);p.jobId=jobId;Oracle(s);job.occupiedCitizenId=-1;Oracle(s);job.occupiedCitizenId=p.id;Oracle(s);int workplace=job.buildingId;job.buildingId=2;Oracle(s);job.buildingId=workplace;Oracle(s);
+#if EMPLOYMENT_INDEX
+  var notifications=new List<int>();s.Entities.JobAssignmentsChanged+=m=>notifications.Add(m.Person.id);s.Entities.RebuildJobs();if(notifications.Count!=0)throw new Exception("No-op job rebind broadcast employment changes");
+#endif
+  // Rebuild must also reconcile replacement records, not just scalar callbacks.
+  int at=s.City.society.jobEntities.IndexOf(job);var replacement=new CityJob{id=job.id,buildingId=2,wage=job.wage,requiredSkill=job.requiredSkill,occupiedCitizenId=p.id};
+  s.City.society.jobEntities[at]=replacement;s.Entities.RebuildJobs();Oracle(s);
+#if EMPLOYMENT_INDEX
+  if(!notifications.SequenceEqual(new[]{p.id}))throw new Exception("Replaced job did not notify exactly its affected member");notifications.Clear();
+#endif
+  job.occupiedCitizenId=-1;Oracle(s);job.occupiedCitizenId=p.id;
+  s.City.society.jobEntities[at]=job;s.Entities.RebuildJobs();Oracle(s);replacement.occupiedCitizenId=-1;Oracle(s);
+  // Replacing an occupied record with an empty one must remove only that binding.
+  replacement=new CityJob{id=job.id,buildingId=job.buildingId,wage=job.wage,requiredSkill=job.requiredSkill};s.City.society.jobEntities[at]=replacement;s.Entities.RebuildJobs();Oracle(s);
+  s.City.society.jobEntities[at]=job;s.Entities.RebuildJobs();Oracle(s);
   for(int i=0;i<100;i++){s.City.ReleaseJob(p);Oracle(s);if(!s.City.AssignJob(p,jobId))throw new Exception("Reassignment fixture failed");Oracle(s);}rows.Add("reassign,"+Hash(s));
   s.City.GetBuilding(1).level=2;s.City.SyncJobs();Oracle(s);rows.Add("slots,"+Hash(s));
   var family=s.Entities.Members[0].Family;var added=new CityResident{id=s.City.society.nextCitizenId,age=30,canWork=true,skill=3,location=family.home};s.Entities.AddResident(family.id,added);int vacancy=s.City.society.jobEntities.First(j=>j.occupiedCitizenId<0).id;if(!s.City.AssignJob(added,vacancy))throw new Exception("Added employment fixture failed");Oracle(s);

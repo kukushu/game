@@ -1,38 +1,36 @@
 # 执行进度
 
-## 恢复点（2026-10-31）
+## 当前恢复点（2026-10-31）
 
-- 独立工作树：C:/Users/16934/Documents/unity_game/million-scale-execution-20261031；分支codex/million-scale-execution-20261031。
-- 正式远端93d97f2、旧实验53a9e8c重新核实；首次网络读取失败，重试成功。用户正式工作树仍d248cf3与四个用户修改，实验配置原样；不移动这些HEAD。
-- MS-001 DONE（48552f5）；MS-002 DONE：见ResidentWakeContracts.md；MS-003 DONE：冻结状态/保存字节及Mono核心通过；MS-004 DONE：6920帧/995814请求零遗漏，完整状态同，正负控通过；MS-005 DONE：岗位依赖索引/完整状态与维护测试通过；当前MS-006 IN_PROGRESS（资金写口审计，未开始改现金）。
-- 旧失败试验不重复；在岗位图已在基线中，未重新集成。
+- 工作树C:/Users/16934/Documents/unity_game/million-scale-execution-20261031，分支codex/million-scale-execution-20261031。
+- 正式基线93d97f2004b3893d3b76bf765e972e21405d19fa；旧独立实验53a9e8c只读参考，不整支集成。用户正式工作树仍d248cf3，有三个cmd修改与.editorconfig；保护快照Temp/MillionScaleExecution/protection.json，不能覆盖这些文件。
+- MS-001..005完成；本次复查发现MS005的无变化RebuildJobs重建全部员工集合，已修正和补测，见MS005-Review.md/CSV。MS-006 IN_PROGRESS：资金写口与账户生命周期审计，尚未修改现金。
+- 正式居民请求仍全员轮询；守卫/索引与影子是前置阶段，不是已交付事件调度。完整Player收益、100k/1m长期运行未验收。没有需要恢复的本轮测试子进程。
 
-## 执行口径
+## 已提交阶段与证据
 
-先补权威写通知，再影子覆盖、再按类别真实执行；目前正式居民循环仍全员poll。guard-only可保守覆盖其他未通知条件，但不能据此宣称班次/资金/健康全事件化。原Members顺序、float/double边界、0.25重试及完整安全和交易规则不改。
+|任务|提交|实际结果|
+|---|---|---|
+|MS001台账保护|48552f5|独立工作树、30项依赖、保护文件哈希|
+|MS002写口审计|f1439a6|ResidentWakeContracts.md，不声称所有条件已通知|
+|MS003守卫通知|3102e74|冻结93d保存字节、126状态检查点与核心测试同|
+|MS004通知影子|7047a7d|6920帧、995814请求、零遗漏；正负控制通过|
+|MS005雇主成员索引|464e94e|完整状态同；稳态模型无稳定CPU收益，约+2.41MB常驻|
+|恢复记录|0bb83fe|上轮保护与资金门槛审计；不是新性能收益|
+|MS005复查修正|本报告所在提交，git log定位|无变化重绑2.112→1.244ms/次，1.84MB/次重复分配消除；不是整体FPS|
 
-30k复用test/Temp/CityScenarios/regenerated30000-20261017/city.hcity（3f49bd1a…）；100k复用旧实验Temp/ScaleArchitecture/resume-city100k/initial.hcity，禁止重建昂贵城市来刷规模数字。所有性能都区分冷启动/稳定、模型/普通Player/详细归因。新实测未开始，旧3.4%不是本轮新结果。
+## 当前测试与输入
 
-## 下一项具体操作
+原30k只读存档test/Temp/CityScenarios/regenerated30000-20261017/city.hcity，SHA3F49BD1A02879BB686C24D5517902CC581C657220CE2B955107D89B6FA870B4E。100k继续复用旧实验Temp/ScaleArchitecture/resume-city100k/initial.hcity，禁止重造来刷人口数。100k既有5706模型步不是Player/长期经营验收。
 
-1. MS-002：检索所有tripId/retryAt/visitUntil写口及结构/冷恢复；记录最小可靠通知契约。
-2. MS-003：利用已有CitySavedFact和实体Owner封装守卫，保留保存位模式与业务顺序；冻结93d完整状态和时间边界测试。
-3. MS-004：只选择性复用53a的队列/影子工具，接入真实变更；公共setter提前deadline必须被覆盖，故意绕过通知仍须被负控发现。
+本次Temp/MillionScaleExecution/review-employment、review-events：冻结0bb对照与726成员/顺序oracle、1200步冷热、岗位替换及精确通知通过；review-guards：冻结93d完整状态/字节与126检查点通过；review-core：Mono核心23627、jobs10000、grid1522、zone83、utility460474通过。详细报告与必要CSV在本目录，原始日志/二进制留Temp。
 
-## 提交与结果
+## 下一项具体开发：MS-006
 
-台账建立提交48552f5；尚未修改运行代码，未宣称新的性能收益。原始测量/二进制继续留本地Temp，简要报告放本目录/按任务编号定位，不新建管理框架。
+1. 完整审计FactoryState.cash与CityShopAccount.Cash的全部写口、账户替换、IndexType/UnindexType与冷读绑定。
+2. JobFunded在development.enabled下按工厂/商店余额>0；关闭development的语义不同，不能统一硬套。规则及失败交易不改，字段通知只能标脏，不能在部分扣款状态执行业务。
+3. 复用MS005工作地→成员索引。资金跨门槛才使相关成员失效，保持Members顺序；同一交易去重及同轮较后成员唤醒需证明。工资、生产、税费、零售、贸易均需覆盖，不能只测工资。
+4. 工厂账户定义在Industry/CityIndustry.cs；商店在Economy/CityShopAccount.cs，有独立DTO。不存在单独FactoryState.cs。现金写口见Payroll、Industry、Trade、Finance、Consumption、Growth/Session初始化。
+5. 之后MS007健康/家庭、MS008精确时间、MS009路网/日切、完整影子和实际执行与Player门槛。不得先启用不完整调度来声称提速；负控不能削弱。
 
-MS-002提交f1439a6。MS-003结果见MS003-GuardNotifications.md；未开启候选执行，未测新Player收益。
-
-MS-003提交3102e74。MS-004复用旧队列/影子，完善真实通知和同轮后续成员唤醒；先前对照控制场景受发车占用干扰，修正场景并完整重跑通过，未放宽断言。详见MS004-WakeShadow.md。
-
-MS-004提交7047a7d。MS-005模型维护配对无稳定CPU收益，额外约2.41MB，正式轮询未变；报告/4行CSV已保存。原始三万人存档保持只读。正式分支/旧实验未集成。
-
-## 下一恢复点：MS-006
-
-- MS-005提交464e94e4936f55e9b594763806d0de8cd3279619，已推送；工作树干净。重新核实正式93d、旧实验53a、main/master/Python远端均未移动，用户四个修改/旧实验配置哈希及原30k存档均保持一致。
-- 已查实际资金门槛：CityIndustry.JobFunded在development.enabled下按FactoryState.cash>0或CityShopAccount.Cash>0；关闭development的分支语义不同，不能统一硬套。
-- 工厂账户定义在Industry/CityIndustry.cs（没有单独FactoryState.cs）；写口包括Payroll.PayAttendance、生产成本、工业销售、Trade原料付款、Finance税费、初始化。商店写口包括工资、货运预付、零售收入、税费；CityShopAccount有独立Snapshot DTO。
-- 下一次先完整列出所有余额写口和账户替换/绑定生命周期，再实现仅门槛跨越的通知，通知只标脏，不能在扣款未完成时派车。利用MS005的雇主→成员索引，去重并保留Members顺序。FactoryState.cash若封装可沿用既有CitySavedFact，商店DTO保持原有事实；不加旧档适配器。
-- 当前尚未修改现金，不存在自动事件执行、资金广播优化或新的Player/FPS成果；MS-006仍IN_PROGRESS，MS-007以后TODO。无测试子进程需要恢复；原始数据均在本工作树Temp/MillionScaleExecution。
+旧稀疏在岗收益已正式集成，不重复记功。旧缓存扩容/工作区失败试验不重做。正式分支、main/master/Python及旧百万实验均不在本轮修改范围。

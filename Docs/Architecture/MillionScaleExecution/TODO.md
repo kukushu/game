@@ -6,7 +6,7 @@
 
 已有成果：稀疏在岗正式2ca4e6c，完整固定步约−3.4%/实际倍率约+5.5%，未改善FPS/长尾；报告[正式证据](../../Performance/SparseAttendance-20261030/Report.md)。旧队列/影子仅Tools，漏通知负控仍失败；垃圾缓存扩容与工作区改动无可靠整体收益，标记历史SKIPPED假设，不再重做。100k初态及5706部分模型步不是长期/Player验收。固定实验资料从53a读取，不能假定正式分支已存在。
 
-现在：MS-006雇主资金写口审计；MS-001..005已通过各自验收。每项代码提交同步状态；SHA在后续记录中回填。完整事件调度与Player收益尚未验收。
+现在：MS-005复查修正通过（MS005-Review.md）；继续MS-006资金变更与账户生命周期审计。每项代码提交同步状态；SHA在后续记录中回填。完整事件调度与Player收益尚未验收。
 
 |ID|状态|依赖|目标/理由|真实文件与调用链（S/下，Tools另注）|问题/预期复杂度|拟用结构/算法|完成定义（正确性及性能）|实际提交/测试/报告|
 |---|---|---|---|---|---|---|---|---|
@@ -14,7 +14,7 @@
 |MS-002|DONE|001|审计居民守卫写路径，确定最小通知范围|Residents/CityResidents.cs、CityCoreResidents.Depart/Arrive/AdvanceRequests；Economy/CityCoreConsumption|每步O(N)；当前直接提前retryAt会漏通知|写入矩阵；先只接tripId/retryAt/visitUntil必要守卫|列出初始化/冷读/出发/到达/购物/结构及直接写入；不推断全事件已覆盖|[写入契约](ResidentWakeContracts.md)，无ref/out或字段反射依赖|
 |MS-003|DONE|002|受控守卫写通知，消除已证实漏唤醒|Residents/CityResidents.cs → Core/CityEntities.cs；CityCoreSave显式事实|直接写O(1)变O(1)+有关监听；不广播全城|复用实体Owner和CitySavedFact；保留所有浮点位模式|冻结93d保存/完整状态一致；直接提前/延后、无效值、增删/冷读通知均测；暂不替换轮询|[MS003结果](MS003-GuardNotifications.md)，冻结状态/字节与核心测试通过|
 |MS-004|DONE|003|复用索引堆并让影子接真实守卫/结构通知|旧53a Tools/Diagnostics/CityWakeQueue.cs、ResidentWakeShadow.cs；Tools/Diagnostics/PrepareResidentWakeShadow.py；Entities生命周期|队列O(logN)，影子仍O(N)；维护成本单列|按当前Members ordinal，去重/取消/冷构建；不重造旧队列|原负控转为被公共setter覆盖；故意漏通知的负控仍能检错；真实请求无遗漏/乱序|[MS004结果](MS004-WakeShadow.md)，6920帧零遗漏，正负控通过|
-|MS-005|DONE|004|为岗位分配/释放建立工作地→成员关系|Residents/CityJobs.AssignJob/ReleaseJob/SyncJobs；CityEntities|由查全员变为受影响员工集合|派生反向索引，原成员序、换户与删除处理|岗位所有权oracle；失业/重雇/关闭/冷热全状态一致；记录维护/内存|[MS005结果](MS005-EmploymentIndex.md)；状态同、维护分配同、约+2.41MB；无稳定提速|
+|MS-005|DONE|004|为岗位分配/释放建立工作地→成员关系|Residents/CityJobs.AssignJob/ReleaseJob/SyncJobs；CityEntities|由查全员变为受影响员工集合|派生反向索引，原成员序、换户与删除处理|岗位所有权oracle；失业/重雇/关闭/冷热全状态一致；记录维护/内存|[MS005结果](MS005-EmploymentIndex.md)；状态同、维护分配同、约+2.41MB；无稳定整体提速；[复查修正](MS005-Review.md)消除无变化重绑重复分配|
 |MS-006|IN_PROGRESS|005|捕获雇主现金耗尽与恢复的精确失效|Economy/CityCorePayroll.PayAttendance；Industry/CityIndustry；Consumption/Trade/Finance事务|资金变化只触及有关员工，避免O(N)广播|提交后门槛变动通知；权威现金不复制|付款失败无事件副作用；有限资金、到货销售/税费恢复、请求顺序/完整状态同|—|
 |MS-007|TODO|004|健康、工作资格和住址生命周期通知|Residents/CityResidents/CityHouseholds/CityJobs；Core/CityEntities.MoveResident/Add/Remove|关系变化按实际成员失效|审计受支持写入口与Owner；未接类别保守poll|疾病/死亡/工作能力、搬家/住宅失效、脱离Owner、冷重建严格对照|—|
 |MS-008|TODO|005,006,007|计划首次合法上班/下班Tick|CityCoreResidents.AdvanceRequests/EstimateCommute；GameData/CityEmploymentDesign；CitySimulationClock|未到时刻O(N)重复判断→到期/变化事件|float minute/retry及double阈值搜索；不可达等待保守策略|所有边界不晚一tick；同tick按Members，原0.25重试；原报价/lastCommute语义同|—|

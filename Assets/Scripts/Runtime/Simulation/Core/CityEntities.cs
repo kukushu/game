@@ -64,14 +64,14 @@ namespace HarborCity
         readonly Dictionary<int,int> memberWorkplace=new Dictionary<int,int>();
         internal event Action<CityMember> JobAssignmentsChanged;
         int AssignedWorkplace(CityMember m)=>jobs.TryGetValue(m.Person.jobId,out var job)&&job.occupiedCitizenId==m.Person.id?job.buildingId:-1;
-        void RefreshEmployment(CityMember m)
+        bool RefreshEmployment(CityMember m)
         {
             int next=AssignedWorkplace(m);bool had=memberWorkplace.TryGetValue(m.Person.id,out int previous);
-            if(had&&previous==next)return;
+            if((had&&previous==next)||(!had&&next<0))return false;
             if(had){var set=employees[previous];set.Remove(m);if(set.Count==0)employees.Remove(previous);memberWorkplace.Remove(m.Person.id);}
-            if(next<0)return;
+            if(next<0)return true;
             if(!employees.TryGetValue(next,out var staff)){staff=new HashSet<CityMember>();employees.Add(next,staff);}
-            staff.Add(m);memberWorkplace.Add(m.Person.id,next);
+            staff.Add(m);memberWorkplace.Add(m.Person.id,next);return true;
         }
         internal void ResidentJobChanged(CityResident p)
         {
@@ -151,14 +151,17 @@ namespace HarborCity
         {
             foreach(var j in jobs.Values)j.EntityOwner=null;
             jobs.Clear();foreach(var j in city.society.jobEntities){jobs.Add(j.id,j);j.EntityOwner=this;}
-            // SyncJobs already traverses the job collection. Rebuild from occupied
-            // jobs, never a second scan of all unemployed residents.
-            var changed=JobAssignmentsChanged;var previous=changed==null?null:new Dictionary<int,int>(memberWorkplace);
-            employees.Clear();memberWorkplace.Clear();
-            foreach(var j in jobs.Values)if(j.occupiedCitizenId>=0){var m=Member(j.occupiedCitizenId);if(m!=null)RefreshEmployment(m);}
-            if(changed!=null){var affected=new HashSet<CityMember>();foreach(var pair in previous)if(!memberWorkplace.TryGetValue(pair.Key,out int next)||next!=pair.Value){var m=Member(pair.Key);if(m!=null)affected.Add(m);}foreach(var pair in memberWorkplace)if(!previous.TryGetValue(pair.Key,out int old)||old!=pair.Value)affected.Add(Member(pair.Key));var ordered=new List<CityMember>(affected);ordered.Sort((a,b)=>a.Ordinal.CompareTo(b.Ordinal));foreach(var m in ordered)changed(m);}
-
+            // Preserve unchanged employer sets. SyncJobs can be a no-op; clearing
+            // these dictionaries would recreate every occupied-employer HashSet.
+            // Reconcile stale entries after enumeration, then add newly bound jobs.
+            List<CityMember> changed=null;
+            foreach(var pair in memberWorkplace){var m=Member(pair.Key);if(m==null)throw new InvalidOperationException("Orphan employment member");if(AssignedWorkplace(m)!=pair.Value){if(changed==null)changed=new List<CityMember>();changed.Add(m);}}
+            if(changed!=null)foreach(var m in changed)RefreshEmployment(m);
+            var notify=JobAssignmentsChanged;
+            foreach(var j in jobs.Values)if(j.occupiedCitizenId>=0){var m=Member(j.occupiedCitizenId);if(m!=null&&RefreshEmployment(m)&&notify!=null){if(changed==null)changed=new List<CityMember>();changed.Add(m);}}
+            if(notify!=null&&changed!=null){changed.Sort((a,b)=>a.Ordinal.CompareTo(b.Ordinal));foreach(var m in changed)notify(m);}
         }
+
         public CityBuilding Building(int id)=>buildings.TryGetValue(id,out var b)?b:null;
         public CityOutsideConnection Connection(int id)=>connections.TryGetValue(id,out var c)?c:null;
         public void AddConnection(CityOutsideConnection connection)

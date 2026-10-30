@@ -11,3 +11,7 @@ Maintenance experiment: .NET10 x64 Release MODEL, no attribution hooks, no paral
 Old means2.94046/2.80685ms, new2.86851/2.83202ms (group2.87366→2.85026ms); ordering/drift means this is NOT a stable speed gain. Full600-step allocation17,535,888bytes in every run, retained heap248,163,320→250,574,232/250,570,560bytes (~+2.41MB, roughly2.30MiB). Four exact final hashes D753D1EBB796CCCE2B836A15E7F8F492CC864E45F8EEA2E6481AA419F97FE6B3. These are maintenance bounds for this scene, not Player FPS/50x or100k/1m evidence. No formal integration based on them.
 
 Purpose is to avoid future all-resident broadcasts on employer changes. This phase alone eliminates no production polling. MS-006 must cover exact JobFunded cash gates and state changes; MS-007 health/household, MS-008 time and MS-009 topology/day follow before full shadow and real execution gates. Wage/config/employer eligibility invalidation is not claimed complete. Index memory/SyncJobs rebuild cost remain candidates for measurement once scheduling is actually enabled.
+
+## Subsequent self-review
+
+The steady workload above missed no-op RebuildJobs allocation. See [review correction and actual measurements](MS005-Review.md): unchanged employer sets are now retained; original measured rows stay intact. No stable overall CPU gain or Player claim is added.
