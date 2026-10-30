@@ -70,6 +70,7 @@ namespace HarborCity
         readonly HashSet<CityMember> fundingMembers=new HashSet<CityMember>();
         readonly List<CityMember> fundingOrder=new List<CityMember>();
         Action<CityMember> fundingChanged;bool fundingMode;
+        internal bool FundingObserved=>fundingChanged!=null;
         // Invalidation only. Subscribers may mark scheduling state dirty, never
         // dispatch or settle inside a notification. Attach seeds current facts.
         internal event Action<CityMember> FundingEligibilityChanged

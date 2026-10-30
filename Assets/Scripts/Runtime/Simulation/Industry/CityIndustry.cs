@@ -13,7 +13,7 @@ namespace HarborCity
         double balance;
         internal CityEntities FundingOwner;internal int FundingBuilding=-1;
         [CitySavedFact] public double cash
-        {get=>balance;set{bool funded=balance>0;balance=value;if(funded!=(value>0))FundingOwner?.MarkFundingDirty(FundingBuilding,this);}}
+        {get=>balance;set{var owner=FundingOwner;if(owner==null||!owner.FundingObserved){balance=value;return;}bool funded=balance>0;balance=value;if(funded!=(value>0))owner.MarkFundingDirty(FundingBuilding,this);}}
         public int sold;
         public double Profit => salesRevenue-rawCosts-wageCosts-productionCosts-taxCosts;
         public double CashError => cash-(capital+salesRevenue-rawCosts-wageCosts-productionCosts-taxCosts);

@@ -85,7 +85,7 @@ namespace HarborCity
             using var observation=HarborCity.RoadCore.CityCoreProfile.Measure(HarborCity.RoadCore.CityCoreProfile.Part.Residents);
 #endif
 
-            if(!Enabled)return;PruneEstimates();entities.FlushFundingChanges();
+            if(!Enabled)return;PruneEstimates();if(entities.FundingObserved)entities.FlushFundingChanges();
             float minute=city.ResidentMinute;
             foreach(var member in entities.Members)
             {
@@ -103,7 +103,7 @@ namespace HarborCity
                 double estimate=eligible?EstimateCommute(p.id,h.home,workplace)*1440/city.society.settings.secondsPerDay:double.PositiveInfinity;
                 if(p.observedHome==h.home&&p.observedWork==workplace&&p.observedRevision==transport.NetworkGeneration)estimate=Math.Max(estimate,p.lastCommute);
                 bool leaving=eligible&&!double.IsInfinity(estimate)&&minute>=Math.Max(0,shift-estimate)&&minute<end;
-                if(!returning&&!leaving)continue;p.retryAt=(float)(transport.Clock+.25);RequestCommute(p.id,returning?p.location:h.home,returning?h.home:workplace,returning);entities.FlushFundingChanges();
+                if(!returning&&!leaving)continue;p.retryAt=(float)(transport.Clock+.25);RequestCommute(p.id,returning?p.location:h.home,returning?h.home:workplace,returning);if(entities.FundingObserved)entities.FlushFundingChanges();
             }
         }
         public ResidentActivity Observe(int citizen)
