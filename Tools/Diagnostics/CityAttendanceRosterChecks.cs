@@ -21,6 +21,9 @@ static class CityAttendanceRosterChecks
   int id=s.City.society.nextCitizenId;var newcomer=new CityResident{id=id,age=30,canWork=true,householdId=h.id};s.Entities.AddResident(h.id,newcomer);Roster(s);newcomer.atWork=true;Roster(s);newcomer.atWork=false;
   // Moving preserves the current Members ordinal, removal must detach notifications.
   var other=new Household{id=s.City.society.nextId};s.Entities.AddFamily(other);s.Entities.MoveResident(id,other.id);Roster(s);s.Entities.RemoveResident(id);Roster(s);newcomer.atWork=true;Roster(s);
+  var added=new List<CityResident>();for(int n=0;n<1600;n++){var person=new CityResident{id=s.City.society.nextCitizenId,age=30,canWork=true};s.Entities.AddResident(h.id,person);added.Add(person);person.atWork=true;Roster(s);person.atWork=false;Roster(s);}
+  // Alternating removals leave holes in every word and force ordinal compaction.
+  foreach(var person in added.Where((p,i)=>i%2==0).Concat(added.Where((p,i)=>i%2!=0))){s.Entities.RemoveResident(person.id);Roster(s);person.atWork=true;Roster(s);}
   Mark(rows,"removed-and-detached",s);var cold=CityCoreSave.Read(CityCoreSave.Write(s));Roster(cold);Mark(rows,"cold",cold);
   for(int i=0;i<1800;i++){if(i==20)people[0].sick=true;if(i==80)people[0].sick=false;if(i==200)people[1].canWork=false;if(i==300)people[1].canWork=true;s.Advance(.05);Roster(s);if(i%100==99)Mark(rows,"lifecycle-"+i,s);}
   File.WriteAllLines(Path.Combine(args[0],"attendance.csv"),rows);File.WriteAllBytes(Path.Combine(args[0],"attendance.hcity"),CityCoreSave.Write(s));Console.WriteLine("PASS attendance direct writes, same-value setters, Members order, structure, detach, cold, and lifecycle; assertions="+assertions);
