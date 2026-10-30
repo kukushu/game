@@ -1,0 +1,6 @@
+PASS checks=1301409 millionQueueSlotsLogicalBytes=16000000 observedDotNetRetainedBytes=16000128 buildAndScheduleMs=29.160; no city load, no Player/FPS claim
+
+PASS full real city checkpoints + cross-day 3000 steps + 80-step exact cold continuation
+frames=6920,oracleVisits=166805440,candidateVisits=138429895,requests=995814,misses=0,rebuilds=4,pending=0
+
+PASS negative control detects unnotified earlier retry deadline; not safe for activation
