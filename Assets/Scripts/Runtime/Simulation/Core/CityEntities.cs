@@ -5,7 +5,50 @@ using HarborCity.RoadCore;
 namespace HarborCity
 {
     public sealed class CityMember
-    {public Household Family {get;internal set;}public CityResident Person {get;}internal long Ordinal {get;}internal CityMember(Household family,CityResident person,long ordinal){Family=family;Person=person;Ordinal=ordinal;}}
+    {public Household Family {get;internal set;}public CityResident Person {get;}internal long Ordinal {get;set;}internal CityMember(Household family,CityResident person,long ordinal){Family=family;Person=person;Ordinal=ordinal;}}
+    // Sparse ordered words: a tree node represents up to 64 attendance bits, not
+    // one worker. Slots reference the original members; empty words are released.
+    internal sealed class CityAttendanceIndex
+    {
+        internal sealed class Word
+        {internal readonly long Key;internal readonly CityMember[] Slots=new CityMember[64];internal ulong Bits;internal int Live;internal Word(long key){Key=key;}}
+        readonly Dictionary<long,Word> words=new Dictionary<long,Word>();
+        readonly SortedSet<Word> active=new SortedSet<Word>(Comparer<Word>.Create((a,b)=>a.Key.CompareTo(b.Key)));
+        internal int Count {get;private set;}
+        internal void Add(CityMember member)
+        {
+            long key=member.Ordinal>>6;if(!words.TryGetValue(key,out var word)){word=new Word(key);words.Add(key,word);}
+            int bit=(int)(member.Ordinal&63);if(word.Slots[bit]!=null)throw new InvalidOperationException("Duplicate attendance ordinal");
+            word.Slots[bit]=member;word.Live++;Set(member,member.Person.atWork);
+        }
+        internal void Set(CityMember member,bool value)
+        {
+            var word=words[member.Ordinal>>6];int bit=(int)(member.Ordinal&63);if(word.Slots[bit]!=member)throw new InvalidOperationException("Attendance slot ownership mismatch");
+            ulong mask=1UL<<bit;bool before=(word.Bits&mask)!=0;if(before==value)return;
+            if(value){if(word.Bits==0)active.Add(word);word.Bits|=mask;Count++;}
+            else{word.Bits&=~mask;Count--;if(word.Bits==0)active.Remove(word);}
+        }
+        internal bool Contains(CityMember member)=>words.TryGetValue(member.Ordinal>>6,out var word)&&word.Slots[(int)(member.Ordinal&63)]==member&&(word.Bits&(1UL<<(int)(member.Ordinal&63)))!=0;
+        internal void Remove(CityMember member)
+        {Set(member,false);var word=words[member.Ordinal>>6];word.Slots[(int)(member.Ordinal&63)]=null;if(--word.Live==0)words.Remove(word.Key);}
+        internal void Clear(){active.Clear();words.Clear();Count=0;}
+        internal Enumerator GetEnumerator()=>new Enumerator(active);
+        internal struct Enumerator:IDisposable
+        {
+            static readonly int[] offsets={0,1,48,2,57,49,28,3,61,58,50,42,38,29,17,4,62,55,59,36,53,51,43,22,45,39,33,30,24,18,12,5,63,47,56,27,60,41,37,16,54,35,52,21,44,32,23,11,46,26,40,15,34,20,31,10,25,14,19,9,13,8,7,6};
+            SortedSet<Word>.Enumerator words;Word word;ulong remaining;bool hasWords;
+            internal Enumerator(SortedSet<Word> active){hasWords=active.Count!=0;words=hasWords?active.GetEnumerator():default(SortedSet<Word>.Enumerator);word=null;remaining=0;Current=null;}
+            internal CityMember Current {get;private set;}
+            internal bool MoveNext()
+            {
+                if(!hasWords)return false;
+                while(remaining==0){if(!words.MoveNext()){Current=null;return false;}word=words.Current;remaining=word.Bits;}
+                ulong low=unchecked(remaining&(0UL-remaining));int offset=offsets[unchecked((int)((low*0x03f79d71b4cb0a89UL)>>58))];
+                remaining&=remaining-1;Current=word.Slots[offset];return true;
+            }
+            public void Dispose(){if(hasWords)words.Dispose();}
+        }
+    }
     // Indexes reference the original facts, never copy people/inventories. Structural
     // changes go through this owner; public legacy lists are not a supported city API.
     public sealed class CityEntities
@@ -17,16 +60,16 @@ namespace HarborCity
         readonly Dictionary<int,CityJob> jobs=new Dictionary<int,CityJob>();
         readonly Dictionary<int,CityOutsideConnection> connections=new Dictionary<int,CityOutsideConnection>();
         readonly List<CityMember> members=new List<CityMember>();
-        readonly SortedSet<CityMember> workingMembers=new SortedSet<CityMember>(Comparer<CityMember>.Create((a,b)=>a.Ordinal.CompareTo(b.Ordinal)));
+        readonly CityAttendanceIndex workingMembers=new CityAttendanceIndex();
         long nextMemberOrdinal;
-        internal SortedSet<CityMember>.Enumerator WorkingMembers()=>workingMembers.GetEnumerator();
+        internal CityAttendanceIndex.Enumerator WorkingMembers()=>workingMembers.GetEnumerator();
         internal void WorkAttendanceChanged(CityResident p)
         {
             var member=Member(p.id);if(member==null||member.Person!=p)throw new InvalidOperationException("Attendance changed outside resident ownership");
-            if(p.atWork)workingMembers.Add(member);else workingMembers.Remove(member);
+            workingMembers.Set(member,p.atWork);
         }
         void BindAttendance(CityMember member)
-        {member.Person.WorkOwner=this;if(member.Person.atWork)workingMembers.Add(member);}
+        {member.Person.WorkOwner=this;workingMembers.Add(member);}
         readonly List<IndustrialBuilding> factories=new List<IndustrialBuilding>();
         readonly List<CommercialBuilding> shops=new List<CommercialBuilding>();
         readonly List<CityBuilding> retired=new List<CityBuilding>();
@@ -93,7 +136,15 @@ namespace HarborCity
         public void MoveResident(int citizen,int familyId)
         {StructuralBoundary();var m=Member(citizen);var h=Family(familyId);if(m==null||h==null||m.Person.tripId!=0)throw new InvalidOperationException("Cannot move absent/in-transit resident");if(m.Family==h)return;m.Family.people.Remove(m.Person);h.people.Add(m.Person);m.Family=h;m.Person.householdId=h.id;Revision++;}
         public void RemoveResident(int citizen)
-        {StructuralBoundary();var m=Member(citizen);if(m==null||m.Person.tripId!=0||m.Person.carriedGoods!=0||m.Person.wageCredit!=0||m.Person.earnedWages!=0)throw new InvalidOperationException("Cannot remove an in-transit resident or discard unclaimed wages");city.ReleaseJob(m.Person);city.society.retiredWagesPaid+=m.Person.wagesPaid;m.Family.people.Remove(m.Person);if(m.Family.people.Count==0){m.Family.resident=false;m.Family.home=m.Family.unit=-1;}workingMembers.Remove(m);m.Person.WorkOwner=null;members.Remove(m);people.Remove(citizen);Revision++;}
+        {StructuralBoundary();var m=Member(citizen);if(m==null||m.Person.tripId!=0||m.Person.carriedGoods!=0||m.Person.wageCredit!=0||m.Person.earnedWages!=0)throw new InvalidOperationException("Cannot remove an in-transit resident or discard unclaimed wages");city.ReleaseJob(m.Person);city.society.retiredWagesPaid+=m.Person.wagesPaid;m.Family.people.Remove(m.Person);if(m.Family.people.Count==0){m.Family.resident=false;m.Family.home=m.Family.unit=-1;}workingMembers.Remove(m);m.Person.WorkOwner=null;members.Remove(m);people.Remove(citizen);CompactAttendanceOrdinals();Revision++;}
+        void CompactAttendanceOrdinals()
+        {
+            // Bound holes from many generations of removals. This cold structural
+            // rebuild is amortized, keeps Members order, and owns no business facts.
+            if(nextMemberOrdinal<=2L*members.Count+1024)return;
+            workingMembers.Clear();nextMemberOrdinal=0;
+            foreach(var member in members){member.Ordinal=nextMemberOrdinal++;workingMembers.Add(member);}
+        }
         public void Validate()
         {
             int workingCount=0;long previousOrdinal=-1;
