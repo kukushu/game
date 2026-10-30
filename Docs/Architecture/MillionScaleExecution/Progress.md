@@ -28,3 +28,11 @@ MS-002提交f1439a6。MS-003结果见MS003-GuardNotifications.md；未开启候�
 MS-003提交3102e74。MS-004复用旧队列/影子，完善真实通知和同轮后续成员唤醒；先前对照控制场景受发车占用干扰，修正场景并完整重跑通过，未放宽断言。详见MS004-WakeShadow.md。
 
 MS-004提交7047a7d。MS-005模型维护配对无稳定CPU收益，额外约2.41MB，正式轮询未变；报告/4行CSV已保存。原始三万人存档保持只读。正式分支/旧实验未集成。
+
+## 下一恢复点：MS-006
+
+- MS-005提交464e94e4936f55e9b594763806d0de8cd3279619，已推送；工作树干净。重新核实正式93d、旧实验53a、main/master/Python远端均未移动，用户四个修改/旧实验配置哈希及原30k存档均保持一致。
+- 已查实际资金门槛：CityIndustry.JobFunded在development.enabled下按FactoryState.cash>0或CityShopAccount.Cash>0；关闭development的分支语义不同，不能统一硬套。
+- 工厂账户定义在Industry/CityIndustry.cs（没有单独FactoryState.cs）；写口包括Payroll.PayAttendance、生产成本、工业销售、Trade原料付款、Finance税费、初始化。商店写口包括工资、货运预付、零售收入、税费；CityShopAccount有独立Snapshot DTO。
+- 下一次先完整列出所有余额写口和账户替换/绑定生命周期，再实现仅门槛跨越的通知，通知只标脏，不能在扣款未完成时派车。利用MS005的雇主→成员索引，去重并保留Members顺序。FactoryState.cash若封装可沿用既有CitySavedFact，商店DTO保持原有事实；不加旧档适配器。
+- 当前尚未修改现金，不存在自动事件执行、资金广播优化或新的Player/FPS成果；MS-006仍IN_PROGRESS，MS-007以后TODO。无测试子进程需要恢复；原始数据均在本工作树Temp/MillionScaleExecution。
