@@ -13,11 +13,12 @@ namespace HarborCity
         public int lastAgeDay;
         public string name;
         public bool canWork,dead;
-        public int householdId, skill, jobId=-1, wagePaid;
+        public int householdId, skill, wagePaid;
         public int departureDay=-1, arrivedDay=-1, location=-1, observedHome=-1, observedWork=-1, observedRevision=-1;
         bool working;
         internal CityEntities EntityOwner;
-        int trip;float retry;double visit;
+        int trip,assignedJob=-1;float retry;double visit;
+        [CitySavedFact] public int jobId {get=>assignedJob;set{assignedJob=value;EntityOwner?.ResidentJobChanged(this);}}
         // Store first, invalidate only. Never evaluate requests inside a partial
         // departure/arrival transaction. Floating writes retain their exact bits.
         [CitySavedFact] public int tripId {get=>trip;set{trip=value;EntityOwner?.RequestGuardChanged(this,CityResidentGuard.Trip);}}

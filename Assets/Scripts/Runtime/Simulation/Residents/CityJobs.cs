@@ -6,8 +6,11 @@ namespace HarborCity
 {
     [Serializable] public sealed class CityJob
     {
-        public int id, buildingId, wage, requiredSkill;
-        public int occupiedCitizenId=-1;
+        public int id, wage, requiredSkill;
+        int workplace,occupant=-1;
+        internal CityEntities EntityOwner;
+        [CitySavedFact] public int buildingId {get=>workplace;set{workplace=value;EntityOwner?.JobBindingChanged(this,occupant,occupant);}}
+        [CitySavedFact] public int occupiedCitizenId {get=>occupant;set{int previous=occupant;occupant=value;EntityOwner?.JobBindingChanged(this,previous,occupant);}}
     }
     public sealed partial class CityModel
     {

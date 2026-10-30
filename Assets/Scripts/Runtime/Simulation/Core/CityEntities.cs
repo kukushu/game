@@ -60,6 +60,43 @@ namespace HarborCity
         readonly Dictionary<int,CityJob> jobs=new Dictionary<int,CityJob>();
         readonly Dictionary<int,CityOutsideConnection> connections=new Dictionary<int,CityOutsideConnection>();
         readonly List<CityMember> members=new List<CityMember>();
+        readonly Dictionary<int,HashSet<CityMember>> employees=new Dictionary<int,HashSet<CityMember>>();
+        readonly Dictionary<int,int> memberWorkplace=new Dictionary<int,int>();
+        internal event Action<CityMember> JobAssignmentsChanged;
+        int AssignedWorkplace(CityMember m)=>jobs.TryGetValue(m.Person.jobId,out var job)&&job.occupiedCitizenId==m.Person.id?job.buildingId:-1;
+        void RefreshEmployment(CityMember m)
+        {
+            int next=AssignedWorkplace(m);bool had=memberWorkplace.TryGetValue(m.Person.id,out int previous);
+            if(had&&previous==next)return;
+            if(had){var set=employees[previous];set.Remove(m);if(set.Count==0)employees.Remove(previous);memberWorkplace.Remove(m.Person.id);}
+            if(next<0)return;
+            if(!employees.TryGetValue(next,out var staff)){staff=new HashSet<CityMember>();employees.Add(next,staff);}
+            staff.Add(m);memberWorkplace.Add(m.Person.id,next);
+        }
+        internal void ResidentJobChanged(CityResident p)
+        {
+            var m=Member(p.id);if(m==null||m.Person!=p)throw new InvalidOperationException("Job changed outside resident ownership");
+            RefreshEmployment(m);JobAssignmentsChanged?.Invoke(m);
+        }
+        internal void JobBindingChanged(CityJob job,int previous,int current)
+        {
+            if(!jobs.TryGetValue(job.id,out var indexed)||indexed!=job)throw new InvalidOperationException("Job changed outside job ownership");
+            var before=Member(previous);if(before!=null){RefreshEmployment(before);JobAssignmentsChanged?.Invoke(before);}
+            var after=Member(current);if(current!=previous&&after!=null){RefreshEmployment(after);JobAssignmentsChanged?.Invoke(after);}
+        }
+        // Query only the affected employer. Hash membership is never an execution order:
+        // stable live Members ordinals supply the original deterministic order.
+        internal void CollectEmployees(int workplace,List<CityMember> result)
+        {
+            result.Clear();if(!employees.TryGetValue(workplace,out var staff))return;
+            foreach(var m in staff)result.Add(m);result.Sort((a,b)=>a.Ordinal.CompareTo(b.Ordinal));
+        }
+        internal void ValidateEmploymentIndex()
+        {
+            int count=0;foreach(var m in members){int workplace=AssignedWorkplace(m);bool found=memberWorkplace.TryGetValue(m.Person.id,out int indexed);if(found!=(workplace>=0)||(found&&(indexed!=workplace||!employees[indexed].Contains(m))))throw new InvalidOperationException("Stale employment index");if(found)count++;}
+            int actual=0;foreach(var set in employees.Values)actual+=set.Count;if(actual!=count||memberWorkplace.Count!=count)throw new InvalidOperationException("Orphan employment index");
+        }
+
         readonly CityAttendanceIndex workingMembers=new CityAttendanceIndex();
         long nextMemberOrdinal;
         internal CityAttendanceIndex.Enumerator WorkingMembers()=>workingMembers.GetEnumerator();
@@ -110,7 +147,18 @@ namespace HarborCity
         static bool Available(CityBuilding b)=>!b.abandoned&&!b.burned;
         void IndexType(CityBuilding b){if(b is IndustrialBuilding f)factories.Add(f);if(b is CommercialBuilding s)shops.Add(s);}
         void UnindexType(CityBuilding b){if(b is IndustrialBuilding f)factories.Remove(f);if(b is CommercialBuilding s)shops.Remove(s);}
-        internal void RebuildJobs(){jobs.Clear();foreach(var j in city.society.jobEntities)jobs.Add(j.id,j);}
+        internal void RebuildJobs()
+        {
+            foreach(var j in jobs.Values)j.EntityOwner=null;
+            jobs.Clear();foreach(var j in city.society.jobEntities){jobs.Add(j.id,j);j.EntityOwner=this;}
+            // SyncJobs already traverses the job collection. Rebuild from occupied
+            // jobs, never a second scan of all unemployed residents.
+            var changed=JobAssignmentsChanged;var previous=changed==null?null:new Dictionary<int,int>(memberWorkplace);
+            employees.Clear();memberWorkplace.Clear();
+            foreach(var j in jobs.Values)if(j.occupiedCitizenId>=0){var m=Member(j.occupiedCitizenId);if(m!=null)RefreshEmployment(m);}
+            if(changed!=null){var affected=new HashSet<CityMember>();foreach(var pair in previous)if(!memberWorkplace.TryGetValue(pair.Key,out int next)||next!=pair.Value){var m=Member(pair.Key);if(m!=null)affected.Add(m);}foreach(var pair in memberWorkplace)if(!previous.TryGetValue(pair.Key,out int old)||old!=pair.Value)affected.Add(Member(pair.Key));var ordered=new List<CityMember>(affected);ordered.Sort((a,b)=>a.Ordinal.CompareTo(b.Ordinal));foreach(var m in ordered)changed(m);}
+
+        }
         public CityBuilding Building(int id)=>buildings.TryGetValue(id,out var b)?b:null;
         public CityOutsideConnection Connection(int id)=>connections.TryGetValue(id,out var c)?c:null;
         public void AddConnection(CityOutsideConnection connection)
@@ -157,6 +205,7 @@ namespace HarborCity
         }
         public void Validate()
         {
+            ValidateEmploymentIndex();
             int workingCount=0;long previousOrdinal=-1;
             foreach(var m in members){if(m.Ordinal<=previousOrdinal||m.Person.EntityOwner!=this||workingMembers.Contains(m)!=m.Person.atWork)throw new InvalidOperationException("Stale attendance index");previousOrdinal=m.Ordinal;if(m.Person.atWork)workingCount++;}
             if(workingMembers.Count!=workingCount)throw new InvalidOperationException("Dangling attendance index");
