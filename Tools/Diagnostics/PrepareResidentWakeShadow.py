@@ -17,7 +17,7 @@ assert s.count(a)==1;s=s.replace(a,b)
 assert s.count('new ResidentWakeShadow(')==s.count('wakeShadow.Observe(')==s.count('wakeShadow.Request(')==1
 (out/'CityCoreResidents.shadow.cs').write_text(s,encoding='utf-8')
 p=root/'Assets/Scripts/Runtime/Simulation/Core/CityEntities.cs';s=p.read_text(encoding='utf-8-sig')
-a='city.society.nextCitizenId=p.id+1;Revision++;';b='people.Remove(citizen);Revision++;'
+a='city.society.nextCitizenId=p.id+1;Revision++;';b='people.Remove(citizen);'
 assert s.count(a)==s.count(b)==1
 s=s.replace('public sealed class CityEntities\n    {','public sealed class CityEntities\n    {\n        internal Action WakeStructureChanged;')
 s=s.replace(a,a+'WakeStructureChanged?.Invoke();').replace(b,b+'WakeStructureChanged?.Invoke();')
