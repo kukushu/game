@@ -1,3 +1,6 @@
+> **当前开发入口（2026-10-30）**：正式分支为 `codex/road-core-20261014`，正式运行系统为 RoadCore/CityCore。请先读[工程导航](Docs/README.md)和[长期规范](AGENTS.md)。
+> 下方正文保留旧版完整原型的历史说明；格式 29、旧 UI/功能清单、旧菜单及运行限制不能作为当前实现。当前保存协议以 CityCoreSave 源码为准。
+
 # 湾岸 / Harbor City
 
 开发目标已调整为先复现《都市：天际线》一代的建设与经营体验，再加入差异化设计。当前复刻范围与分阶段验收见 [开发路线](Docs/ProductRoadmap.md)、[基准与差距](Docs/CS1ReferenceAndGaps.md)、[道路与分区方案](Docs/RoadsAndZoningPlan.md) 和 [实施进度](Docs/CS1ImplementationProgress.md)。已开始持续实施；近似规则和未验收内容单独记录。
