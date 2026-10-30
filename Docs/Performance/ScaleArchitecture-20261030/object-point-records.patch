@@ -1,0 +1,62 @@
+--- baseline/CityRoadCoreNetwork.cs
++++ object-trial/CityRoadCoreNetwork.cs
+@@ -245,6 +245,19 @@
+         // Current routing is synchronous/single-threaded. Results never borrow scratch.
+         sealed class RouteScratch
+         {
++            // One reusable derived record per expanded lane, owned by this Network.
++            // Epochs replace per-query cost/parent/settled hash tables; lane IDs,
++            // queue ties and relaxation arithmetic remain authoritative and unchanged.
++            internal sealed class PointNode
++            {internal Lane lane;internal uint epoch;internal double cost;internal PointNode parent;internal bool settled,known;}
++            readonly Dictionary<long,PointNode> points=new Dictionary<long,PointNode>(CityRoadKeyComparer.Instance);
++            uint epoch;
++            internal PointNode Point(Lane lane)
++            {
++                if(!points.TryGetValue(lane.Id,out var node))points.Add(lane.Id,node=new PointNode{lane=lane});
++                if(node.epoch!=epoch){node.epoch=epoch;node.cost=double.PositiveInfinity;node.parent=null;node.settled=node.known=false;}return node;
++            }
++            internal PointNode QueuedPoint(long id)=>points[id];
+             internal readonly RouteQueue queue=new RouteQueue();
+             internal readonly Dictionary<long,double> costs=new Dictionary<long,double>(CityRoadKeyComparer.Instance);
+             internal readonly Dictionary<long,long> parents=new Dictionary<long,long>(CityRoadKeyComparer.Instance);
+@@ -255,7 +268,7 @@
+             internal Lease Acquire()
+             {
+                 if(busy)throw new InvalidOperationException("Reentrant network route search");
+-                queue.Clear();costs.Clear();parents.Clear();settled.Clear();busy=true;return new Lease(this);
++                queue.Clear();costs.Clear();parents.Clear();settled.Clear();epoch=unchecked(epoch+1);if(epoch==0){points.Clear();epoch=1;}busy=true;return new Lease(this);
+             }
+         }
+         RouteScratch accessSearch;
+@@ -357,22 +370,23 @@
+             if(RouteHeuristicEnabled)PrepareRouteMetric();var goal=target.Entry.Position;
+             var scratch=accessSearch??(accessSearch=new RouteScratch());using(scratch.Acquire())
+             {
+-                var queue=scratch.queue;var costs=scratch.costs;var parents=scratch.parents;var settled=scratch.settled;
+-                costs[source.Id]=0;parents[source.Id]=0;queue.Push(source.Id,0,RouteLowerBound(source,goal));double best=double.PositiveInfinity;long before=0;
++                var queue=scratch.queue;var origin=scratch.Point(source);origin.cost=0;origin.known=true;queue.Push(source.Id,0,RouteLowerBound(source,goal));double best=double.PositiveInfinity;RouteScratch.PointNode before=null;
+                 while(queue.Count>0)
+                 {
+-                    var item=queue.Pop();if(item.priority>best)break;if(item.cost!=costs[item.id]||!settled.Add(item.id))continue;
++                    var item=queue.Pop();if(item.priority>best)break;var node=scratch.QueuedPoint(item.id);if(item.cost!=node.cost||node.settled)continue;node.settled=true;
+                     PointExpanded++;if(trace!=null)trace.expanded++;if(DepotJunctionRouting.CountSearches)DepotJunctionRouting.SearchExpanded++;
+                     var next=AccessConnections(item.id);if(next==null)continue;
+                     foreach(var link in next)
+                     {
+                         var lane=link.Outgoing;double prefix=item.cost+link.Geometry.Length/link.Speed;
+-                        if(lane.Id==target.Id){if(prefix<best){best=prefix;before=item.id;}continue;}
+-                        double candidate=prefix+lane.TravelLength/lane.Speed,old;
+-                        if(!costs.TryGetValue(lane.Id,out old)||candidate<old){costs[lane.Id]=candidate;parents[lane.Id]=item.id;settled.Remove(lane.Id);queue.Push(lane.Id,candidate,RouteLowerBound(lane,goal));}
++                        if(lane.Id==target.Id){if(prefix<best){best=prefix;before=node;}continue;}
++                        double candidate=prefix+lane.TravelLength/lane.Speed;var outgoingNode=scratch.Point(lane);
++                        if(!outgoingNode.known||candidate<outgoingNode.cost){outgoingNode.known=true;outgoingNode.cost=candidate;outgoingNode.parent=node;outgoingNode.settled=false;queue.Push(lane.Id,candidate,RouteLowerBound(lane,goal));}
+                     }
+                 }
+-                return before==0?null:ExpandRoute(parents,before,target.Id);
++                if(before==null)return null;
++                var lanes=new List<long>();for(var node=before;node!=null;node=node.parent)lanes.Add(node.lane.Id);lanes.Reverse();lanes.Add(target.Id);
++                var result=new List<long>(lanes.Count*2-1);for(int i=0;i<lanes.Count;i++){if(i>0)result.Add(ConnectionId(lanes[i-1],lanes[i]));result.Add(lanes[i]);}return result;
+             }
+         }
+         // Start/goal offsets cannot alter the interior path between two fixed
