@@ -68,8 +68,17 @@ namespace HarborCity
             var member=Member(p.id);if(member==null||member.Person!=p)throw new InvalidOperationException("Attendance changed outside resident ownership");
             workingMembers.Set(member,p.atWork);
         }
+        // Derived scheduling observers mark dirtiness; they must not execute business
+        // rules synchronously. No subscriber means no lookup or event allocation.
+        internal event Action<CityMember,CityResidentGuard> RequestGuardsChanged;
+        internal void RequestGuardChanged(CityResident p,CityResidentGuard guard)
+        {
+            var changed=RequestGuardsChanged;if(changed==null)return;
+            var member=Member(p.id);if(member==null||member.Person!=p)throw new InvalidOperationException("Request guard changed outside resident ownership");
+            changed(member,guard);
+        }
         void BindAttendance(CityMember member)
-        {member.Person.WorkOwner=this;workingMembers.Add(member);}
+        {member.Person.EntityOwner=this;workingMembers.Add(member);}
         readonly List<IndustrialBuilding> factories=new List<IndustrialBuilding>();
         readonly List<CommercialBuilding> shops=new List<CommercialBuilding>();
         readonly List<CityBuilding> retired=new List<CityBuilding>();
@@ -136,7 +145,7 @@ namespace HarborCity
         public void MoveResident(int citizen,int familyId)
         {StructuralBoundary();var m=Member(citizen);var h=Family(familyId);if(m==null||h==null||m.Person.tripId!=0)throw new InvalidOperationException("Cannot move absent/in-transit resident");if(m.Family==h)return;m.Family.people.Remove(m.Person);h.people.Add(m.Person);m.Family=h;m.Person.householdId=h.id;Revision++;}
         public void RemoveResident(int citizen)
-        {StructuralBoundary();var m=Member(citizen);if(m==null||m.Person.tripId!=0||m.Person.carriedGoods!=0||m.Person.wageCredit!=0||m.Person.earnedWages!=0)throw new InvalidOperationException("Cannot remove an in-transit resident or discard unclaimed wages");city.ReleaseJob(m.Person);city.society.retiredWagesPaid+=m.Person.wagesPaid;m.Family.people.Remove(m.Person);if(m.Family.people.Count==0){m.Family.resident=false;m.Family.home=m.Family.unit=-1;}workingMembers.Remove(m);m.Person.WorkOwner=null;members.Remove(m);people.Remove(citizen);CompactAttendanceOrdinals();Revision++;}
+        {StructuralBoundary();var m=Member(citizen);if(m==null||m.Person.tripId!=0||m.Person.carriedGoods!=0||m.Person.wageCredit!=0||m.Person.earnedWages!=0)throw new InvalidOperationException("Cannot remove an in-transit resident or discard unclaimed wages");city.ReleaseJob(m.Person);city.society.retiredWagesPaid+=m.Person.wagesPaid;m.Family.people.Remove(m.Person);if(m.Family.people.Count==0){m.Family.resident=false;m.Family.home=m.Family.unit=-1;}workingMembers.Remove(m);m.Person.EntityOwner=null;members.Remove(m);people.Remove(citizen);CompactAttendanceOrdinals();Revision++;}
         void CompactAttendanceOrdinals()
         {
             // Bound holes from many generations of removals. This cold structural
@@ -148,7 +157,7 @@ namespace HarborCity
         public void Validate()
         {
             int workingCount=0;long previousOrdinal=-1;
-            foreach(var m in members){if(m.Ordinal<=previousOrdinal||m.Person.WorkOwner!=this||workingMembers.Contains(m)!=m.Person.atWork)throw new InvalidOperationException("Stale attendance index");previousOrdinal=m.Ordinal;if(m.Person.atWork)workingCount++;}
+            foreach(var m in members){if(m.Ordinal<=previousOrdinal||m.Person.EntityOwner!=this||workingMembers.Contains(m)!=m.Person.atWork)throw new InvalidOperationException("Stale attendance index");previousOrdinal=m.Ordinal;if(m.Person.atWork)workingCount++;}
             if(workingMembers.Count!=workingCount)throw new InvalidOperationException("Dangling attendance index");
             var archivedIds=new HashSet<int>();foreach(var b in retired)if(b.id<=0||b.id>=city.nextBuildingId||!archivedIds.Add(b.id)||Building(b.id)!=null||Connection(b.id)!=null||transport.EndpointExists(b.id))throw new InvalidOperationException("Invalid retired building identity");
             if(connections.Count!=city.trade.connections.Count)throw new InvalidOperationException("Outside lifecycle bypassed");

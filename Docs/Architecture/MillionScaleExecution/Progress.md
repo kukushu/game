@@ -4,7 +4,7 @@
 
 - 独立工作树：C:/Users/16934/Documents/unity_game/million-scale-execution-20261031；分支codex/million-scale-execution-20261031。
 - 正式远端93d97f2、旧实验53a9e8c重新核实；首次网络读取失败，重试成功。用户正式工作树仍d248cf3与四个用户修改，实验配置原样；不移动这些HEAD。
-- MS-001 DONE（48552f5）；MS-002 DONE：见ResidentWakeContracts.md；当前MS-003 IN_PROGRESS，通知契约实现与冻结对照。
+- MS-001 DONE（48552f5）；MS-002 DONE：见ResidentWakeContracts.md；MS-003 DONE：冻结状态/保存字节及Mono核心通过；当前MS-004 IN_PROGRESS，真实通知接影子。
 - 旧失败试验不重复；在岗位图已在基线中，未重新集成。
 
 ## 执行口径
@@ -22,3 +22,5 @@
 ## 提交与结果
 
 台账建立提交48552f5；尚未修改运行代码，未宣称新的性能收益。原始测量/二进制继续留本地Temp，简要报告放本目录/按任务编号定位，不新建管理框架。
+
+MS-002提交f1439a6。MS-003结果见MS003-GuardNotifications.md；未开启候选执行，未测新Player收益。

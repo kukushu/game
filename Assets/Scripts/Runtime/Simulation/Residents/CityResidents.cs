@@ -5,6 +5,7 @@ namespace HarborCity
 {
     // Explicit saved facts may use guarded setters without changing their wire name/type.
     [AttributeUsage(AttributeTargets.Property)] internal sealed class CitySavedFactAttribute : Attribute {}
+    internal enum CityResidentGuard { Trip, Retry, Visit }
     [Serializable] public sealed class CityResident
     {
         public int id, age;
@@ -13,13 +14,19 @@ namespace HarborCity
         public string name;
         public bool canWork,dead;
         public int householdId, skill, jobId=-1, wagePaid;
-        public int tripId, departureDay=-1, arrivedDay=-1, location=-1, observedHome=-1, observedWork=-1, observedRevision=-1;
+        public int departureDay=-1, arrivedDay=-1, location=-1, observedHome=-1, observedWork=-1, observedRevision=-1;
         bool working;
-        internal CityEntities WorkOwner;
+        internal CityEntities EntityOwner;
+        int trip;float retry;double visit;
+        // Store first, invalidate only. Never evaluate requests inside a partial
+        // departure/arrival transaction. Floating writes retain their exact bits.
+        [CitySavedFact] public int tripId {get=>trip;set{trip=value;EntityOwner?.RequestGuardChanged(this,CityResidentGuard.Trip);}}
+        [CitySavedFact] public float retryAt {get=>retry;set{retry=value;EntityOwner?.RequestGuardChanged(this,CityResidentGuard.Retry);}}
+        [CitySavedFact] public double visitUntil {get=>visit;set{visit=value;EntityOwner?.RequestGuardChanged(this,CityResidentGuard.Visit);}}
         [CitySavedFact] public bool atWork
         {
             get=>working;
-            set {if(working==value)return;working=value;WorkOwner?.WorkAttendanceChanged(this);}
+            set {if(working==value)return;working=value;EntityOwner?.WorkAttendanceChanged(this);}
         }
         public float health=100;
         public bool sick;
@@ -31,9 +38,8 @@ namespace HarborCity
         public float studyMinutes,schoolMinutesToday,highSchoolStudyMinutes,universityStudyMinutes;
         public double wageCredit;
         public int carriedGoods;
-        public double visitUntil;
         public int wagesPaid;
-        public float earnedWages, workedMinutes, lastCommute=-1, lastDelay, retryAt, requestedAt=-1;
+        public float earnedWages, workedMinutes, lastCommute=-1, lastDelay, requestedAt=-1;
         public int accessNode=-1;
     }
     public sealed class ResidentActivity

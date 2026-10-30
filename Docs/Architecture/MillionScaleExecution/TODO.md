@@ -6,14 +6,14 @@
 
 已有成果：稀疏在岗正式2ca4e6c，完整固定步约−3.4%/实际倍率约+5.5%，未改善FPS/长尾；报告[正式证据](../../Performance/SparseAttendance-20261030/Report.md)。旧队列/影子仅Tools，漏通知负控仍失败；垃圾缓存扩容与工作区改动无可靠整体收益，标记历史SKIPPED假设，不再重做。100k初态及5706部分模型步不是长期/Player验收。固定实验资料从53a读取，不能假定正式分支已存在。
 
-现在：MS-003守卫通知；MS-002审计见ResidentWakeContracts.md→MS-003守卫通知。每项代码提交同步状态；提交SHA可在下一次记录中回填上一项，避免自引用SHA。无收益方案保留证据、SKIPPED，不放宽断言；必须改变正式语义时BLOCKED并给用户具体决策。
+现在：MS-004通知驱动影子覆盖；MS-003已通过冻结对照→MS-003守卫通知。每项代码提交同步状态；提交SHA可在下一次记录中回填上一项，避免自引用SHA。无收益方案保留证据、SKIPPED，不放宽断言；必须改变正式语义时BLOCKED并给用户具体决策。
 
 |ID|状态|依赖|目标/理由|真实文件与调用链（S/下，Tools另注）|问题/预期复杂度|拟用结构/算法|完成定义（正确性及性能）|实际提交/测试/报告|
 |---|---|---|---|---|---|---|---|---|
 |MS-001|DONE|—|建立可恢复台账与保护基线；不重复已有实验|AGENTS.md；TODO/Progress；git worktree/ref|一次调查 O(文件/引用)；锁定93d/53a与用户修改哈希|独立分支、依赖DAG、既有成果索引|台账字段完整、至多一项IN_PROGRESS；受保护文件不变|48552f5；基线93d97f2/53a9e8c，保护快照留本地Temp|
 |MS-002|DONE|001|审计居民守卫写路径，确定最小通知范围|Residents/CityResidents.cs、CityCoreResidents.Depart/Arrive/AdvanceRequests；Economy/CityCoreConsumption|每步O(N)；当前直接提前retryAt会漏通知|写入矩阵；先只接tripId/retryAt/visitUntil必要守卫|列出初始化/冷读/出发/到达/购物/结构及直接写入；不推断全事件已覆盖|[写入契约](ResidentWakeContracts.md)，无ref/out或字段反射依赖|
-|MS-003|IN_PROGRESS|002|受控守卫写通知，消除已证实漏唤醒|Residents/CityResidents.cs → Core/CityEntities.cs；CityCoreSave显式事实|直接写O(1)变O(1)+有关监听；不广播全城|复用实体Owner和CitySavedFact；保留所有浮点位模式|冻结93d保存/完整状态一致；直接提前/延后、无效值、增删/冷读通知均测；暂不替换轮询|—|
-|MS-004|TODO|003|复用索引堆并让影子接真实守卫/结构通知|旧53a Tools/Diagnostics/CityWakeQueue.cs、ResidentWakeShadow.cs；Tools/PrepareResidentWakeShadow.py；Entities生命周期|队列O(logN)，影子仍O(N)；维护成本单列|按当前Members ordinal，去重/取消/冷构建；不重造旧队列|原负控转为被公共setter覆盖；故意漏通知的负控仍能检错；真实请求无遗漏/乱序|—|
+|MS-003|DONE|002|受控守卫写通知，消除已证实漏唤醒|Residents/CityResidents.cs → Core/CityEntities.cs；CityCoreSave显式事实|直接写O(1)变O(1)+有关监听；不广播全城|复用实体Owner和CitySavedFact；保留所有浮点位模式|冻结93d保存/完整状态一致；直接提前/延后、无效值、增删/冷读通知均测；暂不替换轮询|[MS003结果](MS003-GuardNotifications.md)，冻结状态/字节与核心测试通过|
+|MS-004|IN_PROGRESS|003|复用索引堆并让影子接真实守卫/结构通知|旧53a Tools/Diagnostics/CityWakeQueue.cs、ResidentWakeShadow.cs；Tools/Diagnostics/PrepareResidentWakeShadow.py；Entities生命周期|队列O(logN)，影子仍O(N)；维护成本单列|按当前Members ordinal，去重/取消/冷构建；不重造旧队列|原负控转为被公共setter覆盖；故意漏通知的负控仍能检错；真实请求无遗漏/乱序|—|
 |MS-005|TODO|004|为岗位分配/释放建立工作地→成员关系|Residents/CityJobs.AssignJob/ReleaseJob/SyncJobs；CityEntities|由查全员变为受影响员工集合|派生反向索引，原成员序、换户与删除处理|岗位所有权oracle；失业/重雇/关闭/冷热全状态一致；记录维护/内存|—|
 |MS-006|TODO|005|捕获雇主现金耗尽与恢复的精确失效|Economy/CityCorePayroll.PayAttendance；Industry/CityIndustry；Consumption/Trade/Finance事务|资金变化只触及有关员工，避免O(N)广播|提交后门槛变动通知；权威现金不复制|付款失败无事件副作用；有限资金、到货销售/税费恢复、请求顺序/完整状态同|—|
 |MS-007|TODO|004|健康、工作资格和住址生命周期通知|Residents/CityResidents/CityHouseholds/CityJobs；Core/CityEntities.MoveResident/Add/Remove|关系变化按实际成员失效|审计受支持写入口与Owner；未接类别保守poll|疾病/死亡/工作能力、搬家/住宅失效、脱离Owner、冷重建严格对照|—|
