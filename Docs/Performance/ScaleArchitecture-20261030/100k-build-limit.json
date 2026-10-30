@@ -1,0 +1,11 @@
+{
+  "peakWorkingSetBytes": 2903838720,
+  "exitCode": -1,
+  "timeoutSeconds": 600,
+  "wallSeconds": 600.1659283,
+  "stallSeconds": 120,
+  "peakPrivateBytes": 2821574656,
+  "maxMemoryGB": 8.0,
+  "terminatedBy": "wall-time-limit",
+  "note": "OS-observed process-tree memory sampled ~1s; may miss shorter peaks; progress watchdog is file growth, not proof of model health. Forced termination cannot guarantee an in-memory failure save; latest flushed timeline and prior checkpoints retained."
+}
