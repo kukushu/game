@@ -1,0 +1,13 @@
+# MS-004: real notification driven guard shadow
+
+Source base: 3102e74 (MS-003), frozen business baseline 93d97f2. Only runtime addition is CityEntities.MembersChanged after successful add/remove. Existing 53a9e8c queue/shadow tools were selectively reused, not reimplemented or merged wholesale. They remain Tools diagnostics, outside the production execution path.
+
+The shadow now subscribes to authoritative trip/retry/visit setters and actual membership events. It no longer inserts partial Depart/Arrive notification hooks into temporary source. A scoped pass also admits a newly awakened *later* member during synchronous request callbacks, in the original Members order; already visited members wait for the next pass. The queue still owns only derived ordinal/deadline state. Job, cash, illness and unconnected conditions remain conservatively polled; this is not full event-driven scheduling.
+
+Verification: Tools/VerifyCityWakeQueue.ps1 (reused 1301409 checks; million queue slots, not a million-person city). Tools/VerifyResidentWakeShadow.ps1 -Results Temp/MillionScaleExecution/wake-shadow-confirm completed cleanly. .NET10 x64 model; the original 30k city, 2400 warm steps +3000 crossing-day steps, cold80 and1200 lifecycle steps. Counters:6920 frames,166805440 authoritative visits,138429895 candidates,995814 requests,0 misses,4 rebuilds. Original and shadow states.csv and final.hcity hashes are exact. Counts match the previous conservative prototype: notification correctness, not extra pruning or a new CPU win.
+
+Controls passed: same-count remove/add forces notification rather than a hidden count-based repair; detached writes; synchronous wake of a later member; earlier public deadline wakes and actually dispatches. Deliberately writing the private retry backing field via test reflection bypasses notification and is detected by the unchanged missed-request assertion. No corruption switch exists in production.
+
+The first control attempt incorrectly assumed the first car would launch after other residents had filled the departure lane: a request happened but real admission rejected it. The fixture now sleeps all other residents and retains both request and actual-launch assertions. Initial full-state runs passed, this control failed; the corrected complete script was rerun and passed. Local failed output is preserved in shadow-run.log; final output in shadow-confirm.log. No assertion was weakened and no safety rule changed.
+
+No Player/FPS/GC improvement claimed; production still visits every resident. Next: employer/member reverse dependencies, then funding/health/time invalidation and full shadow gates, before any real polling replacement. First construction and queue capacity tests do not satisfy100k/1m gameplay acceptance.

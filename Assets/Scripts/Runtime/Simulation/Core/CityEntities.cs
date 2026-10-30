@@ -71,6 +71,7 @@ namespace HarborCity
         // Derived scheduling observers mark dirtiness; they must not execute business
         // rules synchronously. No subscriber means no lookup or event allocation.
         internal event Action<CityMember,CityResidentGuard> RequestGuardsChanged;
+        internal event Action MembersChanged; // Successful add/remove only, not building revisions.
         internal void RequestGuardChanged(CityResident p,CityResidentGuard guard)
         {
             var changed=RequestGuardsChanged;if(changed==null)return;
@@ -141,11 +142,11 @@ namespace HarborCity
         public void AddFamily(Household h)
         {StructuralBoundary();if(families.Count>=HouseholdState.MaximumFamilies)throw new InvalidOperationException("Household technical capacity reached");if(h==null||h.id<city.society.nextId||h.id>=int.MaxValue||families.ContainsKey(h.id)||h.people.Count!=0)throw new ArgumentException("Add empty new family first");families.Add(h.id,h);city.society.families.Add(h);city.society.nextId=h.id+1;Revision++;}
         public void AddResident(int familyId,CityResident p)
-        {StructuralBoundary();var h=Family(familyId);if(h==null||p==null||p.id<city.society.nextCitizenId||p.id>=int.MaxValue||people.ContainsKey(p.id)||p.tripId!=0||p.jobId>=0)throw new ArgumentException("Invalid new resident");p.householdId=h.id;h.people.Add(p);var m=new CityMember(h,p,nextMemberOrdinal++);members.Add(m);people.Add(p.id,m);BindAttendance(m);city.society.nextCitizenId=p.id+1;Revision++;}
+        {StructuralBoundary();var h=Family(familyId);if(h==null||p==null||p.id<city.society.nextCitizenId||p.id>=int.MaxValue||people.ContainsKey(p.id)||p.tripId!=0||p.jobId>=0)throw new ArgumentException("Invalid new resident");p.householdId=h.id;h.people.Add(p);var m=new CityMember(h,p,nextMemberOrdinal++);members.Add(m);people.Add(p.id,m);BindAttendance(m);city.society.nextCitizenId=p.id+1;Revision++;MembersChanged?.Invoke();}
         public void MoveResident(int citizen,int familyId)
         {StructuralBoundary();var m=Member(citizen);var h=Family(familyId);if(m==null||h==null||m.Person.tripId!=0)throw new InvalidOperationException("Cannot move absent/in-transit resident");if(m.Family==h)return;m.Family.people.Remove(m.Person);h.people.Add(m.Person);m.Family=h;m.Person.householdId=h.id;Revision++;}
         public void RemoveResident(int citizen)
-        {StructuralBoundary();var m=Member(citizen);if(m==null||m.Person.tripId!=0||m.Person.carriedGoods!=0||m.Person.wageCredit!=0||m.Person.earnedWages!=0)throw new InvalidOperationException("Cannot remove an in-transit resident or discard unclaimed wages");city.ReleaseJob(m.Person);city.society.retiredWagesPaid+=m.Person.wagesPaid;m.Family.people.Remove(m.Person);if(m.Family.people.Count==0){m.Family.resident=false;m.Family.home=m.Family.unit=-1;}workingMembers.Remove(m);m.Person.EntityOwner=null;members.Remove(m);people.Remove(citizen);CompactAttendanceOrdinals();Revision++;}
+        {StructuralBoundary();var m=Member(citizen);if(m==null||m.Person.tripId!=0||m.Person.carriedGoods!=0||m.Person.wageCredit!=0||m.Person.earnedWages!=0)throw new InvalidOperationException("Cannot remove an in-transit resident or discard unclaimed wages");city.ReleaseJob(m.Person);city.society.retiredWagesPaid+=m.Person.wagesPaid;m.Family.people.Remove(m.Person);if(m.Family.people.Count==0){m.Family.resident=false;m.Family.home=m.Family.unit=-1;}workingMembers.Remove(m);m.Person.EntityOwner=null;members.Remove(m);people.Remove(citizen);CompactAttendanceOrdinals();Revision++;MembersChanged?.Invoke();}
         void CompactAttendanceOrdinals()
         {
             // Bound holes from many generations of removals. This cold structural
