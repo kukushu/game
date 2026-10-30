@@ -3,6 +3,8 @@ using System.Collections.Generic;
 
 namespace HarborCity
 {
+    // Explicit saved facts may use guarded setters without changing their wire name/type.
+    [AttributeUsage(AttributeTargets.Property)] internal sealed class CitySavedFactAttribute : Attribute {}
     [Serializable] public sealed class CityResident
     {
         public int id, age;
@@ -12,7 +14,13 @@ namespace HarborCity
         public bool canWork,dead;
         public int householdId, skill, jobId=-1, wagePaid;
         public int tripId, departureDay=-1, arrivedDay=-1, location=-1, observedHome=-1, observedWork=-1, observedRevision=-1;
-        public bool atWork;
+        bool working;
+        internal CityEntities WorkOwner;
+        [CitySavedFact] public bool atWork
+        {
+            get=>working;
+            set {if(working==value)return;working=value;WorkOwner?.WorkAttendanceChanged(this);}
+        }
         public float health=100;
         public bool sick;
         public MedicalStage medicalStage;

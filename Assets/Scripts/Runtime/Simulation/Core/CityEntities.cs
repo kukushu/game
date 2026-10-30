@@ -5,7 +5,7 @@ using HarborCity.RoadCore;
 namespace HarborCity
 {
     public sealed class CityMember
-    {public Household Family {get;internal set;}public CityResident Person {get;}internal CityMember(Household family,CityResident person){Family=family;Person=person;}}
+    {public Household Family {get;internal set;}public CityResident Person {get;}internal long Ordinal {get;}internal CityMember(Household family,CityResident person,long ordinal){Family=family;Person=person;Ordinal=ordinal;}}
     // Indexes reference the original facts, never copy people/inventories. Structural
     // changes go through this owner; public legacy lists are not a supported city API.
     public sealed class CityEntities
@@ -17,6 +17,16 @@ namespace HarborCity
         readonly Dictionary<int,CityJob> jobs=new Dictionary<int,CityJob>();
         readonly Dictionary<int,CityOutsideConnection> connections=new Dictionary<int,CityOutsideConnection>();
         readonly List<CityMember> members=new List<CityMember>();
+        readonly SortedSet<CityMember> workingMembers=new SortedSet<CityMember>(Comparer<CityMember>.Create((a,b)=>a.Ordinal.CompareTo(b.Ordinal)));
+        long nextMemberOrdinal;
+        internal SortedSet<CityMember>.Enumerator WorkingMembers()=>workingMembers.GetEnumerator();
+        internal void WorkAttendanceChanged(CityResident p)
+        {
+            var member=Member(p.id);if(member==null||member.Person!=p)throw new InvalidOperationException("Attendance changed outside resident ownership");
+            if(p.atWork)workingMembers.Add(member);else workingMembers.Remove(member);
+        }
+        void BindAttendance(CityMember member)
+        {member.Person.WorkOwner=this;if(member.Person.atWork)workingMembers.Add(member);}
         readonly List<IndustrialBuilding> factories=new List<IndustrialBuilding>();
         readonly List<CommercialBuilding> shops=new List<CommercialBuilding>();
         readonly List<CityBuilding> retired=new List<CityBuilding>();
@@ -41,7 +51,7 @@ namespace HarborCity
             this.city=city;this.transport=transport;Buildings=city.buildings.AsReadOnly();Members=members.AsReadOnly();Factories=factories.AsReadOnly();Shops=shops.AsReadOnly();
             foreach(var b in city.buildings){buildings.Add(b.id,b);IndexType(b);transport.SetEndpointAvailable(b.id,Available(b));}
             foreach(var c in city.trade.connections){if(buildings.ContainsKey(c.id))throw new ArgumentException("Endpoint identity collision");connections.Add(c.id,c);transport.SetEndpointAvailable(c.id,c.active);}
-            foreach(var h in city.society.families){families.Add(h.id,h);foreach(var p in h.people){var m=new CityMember(h,p);people.Add(p.id,m);members.Add(m);}}
+            foreach(var h in city.society.families){families.Add(h.id,h);foreach(var p in h.people){var m=new CityMember(h,p,nextMemberOrdinal++);people.Add(p.id,m);members.Add(m);BindAttendance(m);}}
             RebuildJobs();city.entities=this;
         }
         static bool Available(CityBuilding b)=>!b.abandoned&&!b.burned;
@@ -79,13 +89,16 @@ namespace HarborCity
         public void AddFamily(Household h)
         {StructuralBoundary();if(families.Count>=HouseholdState.MaximumFamilies)throw new InvalidOperationException("Household technical capacity reached");if(h==null||h.id<city.society.nextId||h.id>=int.MaxValue||families.ContainsKey(h.id)||h.people.Count!=0)throw new ArgumentException("Add empty new family first");families.Add(h.id,h);city.society.families.Add(h);city.society.nextId=h.id+1;Revision++;}
         public void AddResident(int familyId,CityResident p)
-        {StructuralBoundary();var h=Family(familyId);if(h==null||p==null||p.id<city.society.nextCitizenId||p.id>=int.MaxValue||people.ContainsKey(p.id)||p.tripId!=0||p.jobId>=0)throw new ArgumentException("Invalid new resident");p.householdId=h.id;h.people.Add(p);var m=new CityMember(h,p);members.Add(m);people.Add(p.id,m);city.society.nextCitizenId=p.id+1;Revision++;}
+        {StructuralBoundary();var h=Family(familyId);if(h==null||p==null||p.id<city.society.nextCitizenId||p.id>=int.MaxValue||people.ContainsKey(p.id)||p.tripId!=0||p.jobId>=0)throw new ArgumentException("Invalid new resident");p.householdId=h.id;h.people.Add(p);var m=new CityMember(h,p,nextMemberOrdinal++);members.Add(m);people.Add(p.id,m);BindAttendance(m);city.society.nextCitizenId=p.id+1;Revision++;}
         public void MoveResident(int citizen,int familyId)
         {StructuralBoundary();var m=Member(citizen);var h=Family(familyId);if(m==null||h==null||m.Person.tripId!=0)throw new InvalidOperationException("Cannot move absent/in-transit resident");if(m.Family==h)return;m.Family.people.Remove(m.Person);h.people.Add(m.Person);m.Family=h;m.Person.householdId=h.id;Revision++;}
         public void RemoveResident(int citizen)
-        {StructuralBoundary();var m=Member(citizen);if(m==null||m.Person.tripId!=0||m.Person.carriedGoods!=0||m.Person.wageCredit!=0||m.Person.earnedWages!=0)throw new InvalidOperationException("Cannot remove an in-transit resident or discard unclaimed wages");city.ReleaseJob(m.Person);city.society.retiredWagesPaid+=m.Person.wagesPaid;m.Family.people.Remove(m.Person);if(m.Family.people.Count==0){m.Family.resident=false;m.Family.home=m.Family.unit=-1;}members.Remove(m);people.Remove(citizen);Revision++;}
+        {StructuralBoundary();var m=Member(citizen);if(m==null||m.Person.tripId!=0||m.Person.carriedGoods!=0||m.Person.wageCredit!=0||m.Person.earnedWages!=0)throw new InvalidOperationException("Cannot remove an in-transit resident or discard unclaimed wages");city.ReleaseJob(m.Person);city.society.retiredWagesPaid+=m.Person.wagesPaid;m.Family.people.Remove(m.Person);if(m.Family.people.Count==0){m.Family.resident=false;m.Family.home=m.Family.unit=-1;}workingMembers.Remove(m);m.Person.WorkOwner=null;members.Remove(m);people.Remove(citizen);Revision++;}
         public void Validate()
         {
+            int workingCount=0;long previousOrdinal=-1;
+            foreach(var m in members){if(m.Ordinal<=previousOrdinal||m.Person.WorkOwner!=this||workingMembers.Contains(m)!=m.Person.atWork)throw new InvalidOperationException("Stale attendance index");previousOrdinal=m.Ordinal;if(m.Person.atWork)workingCount++;}
+            if(workingMembers.Count!=workingCount)throw new InvalidOperationException("Dangling attendance index");
             var archivedIds=new HashSet<int>();foreach(var b in retired)if(b.id<=0||b.id>=city.nextBuildingId||!archivedIds.Add(b.id)||Building(b.id)!=null||Connection(b.id)!=null||transport.EndpointExists(b.id))throw new InvalidOperationException("Invalid retired building identity");
             if(connections.Count!=city.trade.connections.Count)throw new InvalidOperationException("Outside lifecycle bypassed");
             foreach(var c in city.trade.connections)if(c.id<=0||c.id>=city.nextBuildingId||c.flow<OutsideFlow.Import||c.flow>OutsideFlow.Export||Building(c.id)!=null||!ReferenceEquals(Connection(c.id),c)||transport.EndpointExists(c.id)!=c.active||float.IsNaN(c.x)||float.IsNaN(c.y)||float.IsNaN(c.z)||float.IsInfinity(c.x)||float.IsInfinity(c.y)||float.IsInfinity(c.z))throw new InvalidOperationException("Invalid outside identity/availability");

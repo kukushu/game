@@ -14,9 +14,31 @@ namespace HarborCity
     public static class CityCoreSave
     {
         const int Magic=0x48434932,Version=17,MaximumCount=1000000;
-        static readonly Dictionary<Type,FieldInfo[]> fields=new Dictionary<Type,FieldInfo[]>();
-        static FieldInfo[] Fields(Type type)
-        {FieldInfo[] result;if(!fields.TryGetValue(type,out result)){result=type.GetFields(BindingFlags.Public|BindingFlags.Instance).Where(f=>!f.IsNotSerialized).OrderBy(f=>f.Name,StringComparer.Ordinal).ToArray();fields.Add(type,result);}return result;}
+        // Only explicitly opted-in properties are business facts; derived properties stay out.
+        // Field/property representation is not part of the wire schema: name/type/order are.
+        sealed class SavedMember
+        {
+            readonly FieldInfo info;readonly PropertyInfo property;
+            internal string Name=>info!=null?info.Name:property.Name;
+            internal Type FieldType=>info!=null?info.FieldType:property.PropertyType;
+            internal SavedMember(FieldInfo info){this.info=info;}
+            internal SavedMember(PropertyInfo property){this.property=property;if(!property.CanRead||!property.CanWrite||property.GetIndexParameters().Length!=0)throw new InvalidDataException("Invalid saved fact property");}
+            internal object GetValue(object value)=>info!=null?info.GetValue(value):property.GetValue(value,null);
+            internal void SetValue(object value,object data){if(info!=null)info.SetValue(value,data);else property.SetValue(value,data,null);}
+        }
+        static readonly Dictionary<Type,SavedMember[]> fields=new Dictionary<Type,SavedMember[]>();
+        static SavedMember[] Fields(Type type)
+        {
+            if(!fields.TryGetValue(type,out var result))
+            {
+                result=type.GetFields(BindingFlags.Public|BindingFlags.Instance).Where(f=>!f.IsNotSerialized).Select(f=>new SavedMember(f))
+                    .Concat(type.GetProperties(BindingFlags.Public|BindingFlags.Instance).Where(p=>p.IsDefined(typeof(CitySavedFactAttribute),false)).Select(p=>new SavedMember(p)))
+                    .OrderBy(f=>f.Name,StringComparer.Ordinal).ToArray();
+                if(result.Select(f=>f.Name).Distinct(StringComparer.Ordinal).Count()!=result.Length)throw new InvalidDataException("Duplicate saved business fact");
+                fields.Add(type,result);
+            }
+            return result;
+        }
         static void Put(BinaryWriter writer,Type type,object value)
         {
             if(!type.IsValueType){writer.Write(value!=null);if(value==null)return;}
