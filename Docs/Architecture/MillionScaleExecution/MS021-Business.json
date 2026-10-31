@@ -1,0 +1,218 @@
+{
+  "mode": "cold saved-fact inspection plus explicit endpoint routing; not FPS or throughput measurement",
+  "tick": 24000,
+  "seconds": 1200,
+  "daySeconds": 120,
+  "population": 100006,
+  "employed": 66669,
+  "actualAtWork": 552,
+  "ports": [
+    {
+      "id": 1,
+      "flow": "Import",
+      "active": true,
+      "x": -791,
+      "z": -0.55,
+      "tasks": 4
+    },
+    {
+      "id": 2,
+      "flow": "Export",
+      "active": true,
+      "x": -791,
+      "z": 0.55,
+      "tasks": 0
+    }
+  ],
+  "maxGateTrucks": 4,
+  "freightBatch": 8,
+  "shipments": [
+    {
+      "kind": "Waste",
+      "tasks": 1039,
+      "cargo": 8312,
+      "oldestSeconds": 768.65
+    },
+    {
+      "kind": "Goods",
+      "tasks": 27,
+      "cargo": 27,
+      "oldestSeconds": 550
+    },
+    {
+      "kind": "RawMaterial",
+      "tasks": 4,
+      "cargo": 27,
+      "oldestSeconds": 523
+    }
+  ],
+  "stockedShops": [
+    {
+      "id": 5186,
+      "Stock": 18,
+      "x": -627.6,
+      "z": 134.35,
+      "abandoned": false,
+      "burned": false,
+      "cash": 0,
+      "wholesaleFunded": 810,
+      "wages": 1076.00000000036,
+      "workersAtWork": 0,
+      "retailSold": 0,
+      "access": true,
+      "supply": true
+    },
+    {
+      "id": 5188,
+      "Stock": 9,
+      "x": 531.6,
+      "z": -344.15,
+      "abandoned": false,
+      "burned": false,
+      "cash": 0,
+      "wholesaleFunded": 405,
+      "wages": 1481.0000000002271,
+      "workersAtWork": 0,
+      "retailSold": 0,
+      "access": true,
+      "supply": true
+    },
+    {
+      "id": 5190,
+      "Stock": 5,
+      "x": -3.6,
+      "z": 501.85,
+      "abandoned": false,
+      "burned": false,
+      "cash": 0,
+      "wholesaleFunded": 225,
+      "wages": 1547.000000000241,
+      "workersAtWork": 0,
+      "retailSold": 0,
+      "access": true,
+      "supply": true
+    },
+    {
+      "id": 5196,
+      "Stock": 4,
+      "x": -611.15,
+      "z": -677.1,
+      "abandoned": false,
+      "burned": false,
+      "cash": 0,
+      "wholesaleFunded": 180,
+      "wages": 1592.0000000001862,
+      "workersAtWork": 0,
+      "retailSold": 0,
+      "access": true,
+      "supply": true
+    },
+    {
+      "id": 5200,
+      "Stock": 12,
+      "x": 201.85,
+      "z": -197.1,
+      "abandoned": false,
+      "burned": false,
+      "cash": 0,
+      "wholesaleFunded": 540,
+      "wages": 1232.0000000004145,
+      "workersAtWork": 0,
+      "retailSold": 0,
+      "access": true,
+      "supply": true
+    },
+    {
+      "id": 5202,
+      "Stock": 1,
+      "x": -539.15,
+      "z": -53.1,
+      "abandoned": false,
+      "burned": false,
+      "cash": 0,
+      "wholesaleFunded": 45,
+      "wages": 1727.0000000000941,
+      "workersAtWork": 0,
+      "retailSold": 0,
+      "access": true,
+      "supply": true
+    },
+    {
+      "id": 5206,
+      "Stock": 0,
+      "x": 101.1,
+      "z": -398.15,
+      "abandoned": false,
+      "burned": false,
+      "cash": 180.13388951623142,
+      "wholesaleFunded": 1305,
+      "wages": 64.86611048380576,
+      "workersAtWork": 0,
+      "retailSold": 2,
+      "access": true,
+      "supply": true
+    }
+  ],
+  "movementWindow": {
+    "previousTick": 15601,
+    "currentTick": 24000,
+    "seconds": 419.94999999999993,
+    "previousActive": 13052,
+    "retainedTasks": 8145,
+    "sameRouteCursorAndPosition": 1543,
+    "byPurpose": [
+      {
+        "purpose": "Freight",
+        "retained": 15,
+        "sameRouteCursorAndPosition": 0
+      },
+      {
+        "purpose": "Work",
+        "retained": 642,
+        "sameRouteCursorAndPosition": 185
+      },
+      {
+        "purpose": "Home",
+        "retained": 494,
+        "sameRouteCursorAndPosition": 69
+      },
+      {
+        "purpose": "Shopping",
+        "retained": 5929,
+        "sameRouteCursorAndPosition": 1105
+      },
+      {
+        "purpose": "Service",
+        "retained": 1065,
+        "sameRouteCursorAndPosition": 184
+      }
+    ],
+    "note": "Endpoint snapshots show no net route progress; they do not prove uninterrupted immobility or diagnose a junction deadlock."
+  },
+  "factories": {
+    "count": 8334,
+    "withRaw": 10,
+    "withProduction": 10,
+    "withWorkers": 47,
+    "withWorkersButNoRaw": 47,
+    "cash": 18386.949311576576,
+    "wages": 8789666.050688362
+  },
+  "goods": {
+    "produced": 78,
+    "factoryStock": 0,
+    "shopStock": 49,
+    "retiredProduced": 0,
+    "retiredStock": 0,
+    "inTransit": 27,
+    "carried": 0,
+    "consumed": 2,
+    "exported": 0,
+    "goodsError": 0
+  },
+  "trade": {
+    "rawDispatched": 172,
+    "rawDelivered": 145
+  },
+  "unchangedSave": true
+}

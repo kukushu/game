@@ -12,8 +12,8 @@ static class CityBusinessHealthProbe
     {
         if(IntPtr.Size!=8)throw new Exception("64-bit inspection required");
         byte[] input=File.ReadAllBytes(args[0]);var s=CityCoreSave.Read(input);s.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);s.Validate();
-        // A supported v16 input is canonically written as v17. Compare the full
-        // canonical state before/after queries, not two different wire formats.
+        // Compare the current reader's full canonical state before/after queries;
+        // the inspection does not add support for any legacy wire format.
         byte[] canonical=CityCoreSave.Write(s);
         var workers=new Dictionary<int,int>();
         foreach(var member in s.Entities.Members)
@@ -21,6 +21,26 @@ static class CityBusinessHealthProbe
             var p=member.Person;if(!p.atWork||p.jobId<0)continue;var job=s.Entities.Job(p.jobId);if(job==null)throw new Exception("Invalid worker job");workers.TryGetValue(job.buildingId,out int n);workers[job.buildingId]=n+1;
         }
         var factories=s.Entities.Factories;var shops=s.Entities.Shops;var tasks=s.Transport.Tasks;
+        object movementWindow=null;
+        if(args.Length>2)
+        {
+            byte[] earlierBytes=File.ReadAllBytes(args[2]);var earlier=CityCoreSave.Read(earlierBytes);earlier.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);earlier.Validate();
+            if(earlier.Simulation.Tick>s.Simulation.Tick)throw new ArgumentException("Previous save is later than current save");
+            if(earlier.Transport.NetworkGeneration!=s.Transport.NetworkGeneration)throw new ArgumentException("Progress inspection requires unchanged road generation");
+            var previous=earlier.Transport.Vehicles.Where(v=>v.status==VehicleStatus.Active).ToDictionary(v=>v.id);
+            var retained=new List<Vehicle>();var unchanged=new HashSet<int>();
+            foreach(var vehicle in s.Transport.Vehicles.Where(v=>v.status==VehicleStatus.Active))
+            {
+                if(!previous.TryGetValue(vehicle.id,out var old)||old.Task.id!=vehicle.Task.id||old.Task.purpose!=vehicle.Task.purpose||old.Task.origin!=vehicle.Task.origin||old.Task.destination!=vehicle.Task.destination)continue;
+                retained.Add(vehicle);
+                if(old.cursor==vehicle.cursor&&old.Current==vehicle.Current&&BitConverter.DoubleToInt64Bits(old.distance)==BitConverter.DoubleToInt64Bits(vehicle.distance)&&BitConverter.DoubleToInt64Bits(old.Plan.EndDistance)==BitConverter.DoubleToInt64Bits(vehicle.Plan.EndDistance)&&old.Route.SequenceEqual(vehicle.Route))unchanged.Add(vehicle.id);
+            }
+            movementWindow=new{previousTick=earlier.Simulation.Tick,currentTick=s.Simulation.Tick,seconds=s.Simulation.Seconds-earlier.Simulation.Seconds,
+                previousActive=previous.Count,retainedTasks=retained.Count,sameRouteCursorAndPosition=unchanged.Count,
+                byPurpose=retained.GroupBy(v=>v.Task.purpose).OrderBy(g=>g.Key).Select(g=>new{purpose=g.Key.ToString(),retained=g.Count(),sameRouteCursorAndPosition=g.Count(v=>unchanged.Contains(v.id))}).ToArray(),
+                note="Endpoint snapshots show no net route progress; they do not prove uninterrupted immobility or diagnose a junction deadlock."};
+            if(!earlierBytes.SequenceEqual(File.ReadAllBytes(args[2])))throw new Exception("Inspection changed previous save file");
+        }
         var goods=tasks.Where(t=>t.Shipment?.kind==CargoKind.Goods).ToArray();var raw=tasks.Where(t=>t.Shipment?.kind==CargoKind.RawMaterial).ToArray();
         int employed=s.Entities.Members.Count(m=>m.Person.canWork&&m.Person.jobId>=0);
         var vehicles=s.Transport.Vehicles.ToDictionary(v=>v.Task.id);var gateCounts=s.City.trade.connections.ToDictionary(p=>p.id,p=>0);foreach(var task in tasks){if(gateCounts.ContainsKey(task.origin))gateCounts[task.origin]++;if(gateCounts.ContainsKey(task.destination))gateCounts[task.destination]++;}
@@ -40,7 +60,7 @@ static class CityBusinessHealthProbe
         if(!input.SequenceEqual(File.ReadAllBytes(args[0])))throw new Exception("Inspection changed source save file");
         var freightShops=new HashSet<int>(goods.Select(t=>t.destination));
         var stockedShops=shops.Where(b=>b.Stock>0||freightShops.Contains(b.id)).Select(b=>new{b.id,b.Stock,b.x,b.z,b.abandoned,b.burned,cash=b.Account.Cash,wholesaleFunded=b.Account.WholesaleFunded,wages=b.Account.WageCosts,workersAtWork=workers.TryGetValue(b.id,out int n)?n:0,retailSold=b.retailSold,access=s.City.BuildingAccess(b.id),supply=s.City.Supply(b.id).Complete}).ToArray();
-        var report=new{mode="cold saved-fact inspection plus explicit endpoint routing; not FPS or throughput measurement",tick=s.Simulation.Tick,seconds=s.Simulation.Seconds,daySeconds=s.City.society.settings.secondsPerDay,population=s.Entities.Members.Count,employed,actualAtWork=workers.Values.Sum(),ports,maxGateTrucks=s.Simulation.Design.Economy.MaxGateTrucks,freightBatch=s.Simulation.Design.Economy.FreightBatch,shipments,rawDetails,stockedShops,
+        var report=new{mode="cold saved-fact inspection plus explicit endpoint routing; not FPS or throughput measurement",tick=s.Simulation.Tick,seconds=s.Simulation.Seconds,daySeconds=s.City.society.settings.secondsPerDay,population=s.Entities.Members.Count,employed,actualAtWork=workers.Values.Sum(),ports,maxGateTrucks=s.Simulation.Design.Economy.MaxGateTrucks,freightBatch=s.Simulation.Design.Economy.FreightBatch,shipments,rawDetails,stockedShops,movementWindow,
             factories=new{count=factories.Count,withRaw=factories.Count(f=>f.factory.raw>0),withProduction=factories.Count(f=>f.factory.produced>0),withWorkers=factories.Count(f=>workers.ContainsKey(f.id)),withWorkersButNoRaw=factories.Count(f=>workers.ContainsKey(f.id)&&f.factory.raw==0),cash=factories.Sum(f=>f.factory.cash),wages=factories.Sum(f=>f.factory.wageCosts)},
             goods=new{produced,factoryStock,shopStock,retiredProduced,retiredStock,inTransit,carried,consumed,exported,goodsError},trade=new{s.City.trade.rawDispatched,s.City.trade.rawDelivered},unchangedSave=true};
         File.WriteAllText(args[1],new CityScenarioJson().Serialize(report));Console.WriteLine("PASS read-only inspection and independent goods balance; consumption="+consumed+" in-transit goods="+inTransit);
