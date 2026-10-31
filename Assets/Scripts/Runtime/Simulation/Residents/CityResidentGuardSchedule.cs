@@ -8,13 +8,13 @@ namespace HarborCity
     // remain authoritative. No job/funding/time-of-day decisions live here.
     internal sealed class CityResidentGuardSchedule
     {
-        readonly CityEntities owner;readonly World world;
+        readonly CityEntities owner;readonly World world;readonly CityModel city;int day;readonly HashSet<int> dayBlocked=new HashSet<int>();readonly List<int> dayWake=new List<int>();
         CityMember[] members;readonly Dictionary<int,int> slots=new Dictionary<int,int>();
         HarborCity.Diagnostics.CityWakeQueue timers;
         ulong[] ready;int[] next,previous;int head=-1,scan=-1,cursor=-1;bool inPass;readonly List<int> due=new List<int>();bool structureDirty=true;
         internal long Rebuilds,Changes;
-        internal CityResidentGuardSchedule(CityEntities owner,World world)
-        {this.owner=owner;this.world=world;owner.MembersChanged+=()=>structureDirty=true;owner.RequestGuardsChanged+=(m,g)=>Changed(m);}
+        internal CityResidentGuardSchedule(CityEntities owner,World world,CityModel city)
+        {this.owner=owner;this.world=world;this.city=city;day=city.day;owner.ResidentStateChanged+=(m,r)=>{if(r!=CityResidentStateChange.CommuteObservation)Changed(m);};owner.MembersChanged+=()=>structureDirty=true;owner.RequestGuardsChanged+=(m,g)=>Changed(m);}
         void Changed(CityMember member)
         {
             Changes++;if(structureDirty)return;
@@ -37,7 +37,9 @@ namespace HarborCity
         }
         void Classify(int i)
         {
-            var p=members[i].Person;
+            var m=members[i];var p=m.Person;dayBlocked.Remove(i);
+            if(!m.Family.resident||p.dead||(p.location==m.Family.home&&(p.atWork||!city.CanAttendWork(p)))){SetReady(i,false);timers.Cancel(i);return;}
+            if(p.tripId==0&&p.location==m.Family.home&&p.departureDay==city.day){dayBlocked.Add(i);SetReady(i,false);timers.Cancel(i);return;}
             if(p.tripId!=0){SetReady(i,false);timers.Cancel(i);return;}
             // Match the original two '<' comparisons separately. NaN does not
             // block its own guard and must not swallow the other finite guard.
@@ -47,12 +49,16 @@ namespace HarborCity
             if(deadline>world.Clock){SetReady(i,false);timers.Schedule(i,double.IsPositiveInfinity(deadline)?long.MaxValue:HarborCity.Diagnostics.CityWakeQueue.FirstTick(deadline,owner.Simulation.Tick,SimulationClock.StepSeconds));}
             else{timers.Cancel(i);SetReady(i,true);}
         }
+        void RefreshDay()
+        {
+            if(day==city.day)return;day=city.day;dayWake.Clear();foreach(int i in dayBlocked)dayWake.Add(i);dayBlocked.Clear();foreach(int i in dayWake)Classify(i);dayWake.Clear();
+        }
         internal Pass Begin()
         {
             inPass=false;
-            if(structureDirty){structureDirty=false;members=new CityMember[owner.Members.Count];slots.Clear();ready=new ulong[(members.Length+63)/64];next=new int[members.Length];previous=new int[members.Length];head=-1;timers=new HarborCity.Diagnostics.CityWakeQueue(Math.Max(1,members.Length));Rebuilds++;
+            if(structureDirty){structureDirty=false;members=new CityMember[owner.Members.Count];slots.Clear();ready=new ulong[(members.Length+63)/64];next=new int[members.Length];previous=new int[members.Length];head=-1;dayBlocked.Clear();dayWake.Clear();day=city.day;timers=new HarborCity.Diagnostics.CityWakeQueue(Math.Max(1,members.Length));Rebuilds++;
                 for(int i=0;i<members.Length;i++){var m=owner.Members[i];members[i]=m;slots.Add(m.Person.id,i);Classify(i);}}
-            timers.DrainDue(owner.Simulation.Tick,due);foreach(int i in due)Classify(i);
+            RefreshDay();timers.DrainDue(owner.Simulation.Tick,due);foreach(int i in due)Classify(i);
             scan=head;cursor=-1;inPass=true;return new Pass(this);
         }
         static readonly int[] offsets={0,1,48,2,57,49,28,3,61,58,50,42,38,29,17,4,62,55,59,36,53,51,43,22,45,39,33,30,24,18,12,5,63,47,56,27,60,41,37,16,54,35,52,21,44,32,23,11,46,26,40,15,34,20,31,10,25,14,19,9,13,8,7,6};
@@ -69,7 +75,7 @@ namespace HarborCity
             public CityMember Current {get;private set;}
             public bool MoveNext()
             {
-                int i=index.scan;if(i<0){index.inPass=false;Current=null;return false;}
+                index.RefreshDay();int i=index.scan;if(i<0){index.inPass=false;Current=null;return false;}
                 index.cursor=i;index.scan=index.next[i];Current=index.members[i];return true;
             }
         }

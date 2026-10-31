@@ -182,7 +182,7 @@ namespace HarborCity
         {
             this.city=city;this.transport=transport;this.entities=entities;this.calendarOffset=calendarOffset;Enabled=enabled;
 #if CITY_RESIDENT_GUARD_SCHEDULE
-            guardSchedule=new CityResidentGuardSchedule(entities,transport);
+            guardSchedule=new CityResidentGuardSchedule(entities,transport,city);
 #endif
 
         }
