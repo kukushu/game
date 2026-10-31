@@ -1,0 +1,7 @@
+run,case,iterations,total_ms,allocated_bytes,notifications
+ms009-final,0,10000,0.2094,0,0
+ms009-final,1,10000,2.0841,0,10000
+ms009-final,2,10000,1.251,0,10000
+ms009-targeted-final,0,10000,0.2088,0,0
+ms009-targeted-final,1,10000,2.0776,0,10000
+ms009-targeted-final,2,10000,1.2594,0,10000

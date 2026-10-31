@@ -1,0 +1,11 @@
+case,scope,endpoint,reason
+availability-coalesced,False,1,16
+speed,True,-1,4
+direction,True,-1,4
+split,True,-1,4
+remote-new-road,True,-1,4
+remove,True,-1,4
+day-and-access,True,-1,9
+calendar,True,-1,2
+missing-access-callback,True,-1,40
+missing-availability-callback,True,-1,48
