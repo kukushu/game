@@ -112,7 +112,7 @@ namespace HarborCity
         }
         static bool LegacyStateAbsent()=>typeof(CityModel).GetField("roads")==null&&typeof(CityModel).GetField("traffic")==null;
         string notice="";
-        string SavePath=>Path.Combine(Application.persistentDataPath,session==null?"harbor-road-core-v15.hcrc":"harbor-city-core-v16.hcity");
+        string SavePath=>Path.Combine(Application.persistentDataPath,session==null?"harbor-road-core-v15.hcrc":CityCoreSave.DefaultFileName);
         static Vector3 V(Point p)=>new Vector3((float)p.x,(float)p.y,(float)p.z);
         void Start()
         {

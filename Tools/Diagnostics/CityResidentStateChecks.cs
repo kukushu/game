@@ -35,7 +35,13 @@ static class CityResidentStateChecks {
   Check(calls.Any(c=>c.Split(',')[1]==people[1].id.ToString()),"Later-member callback did not request");File.WriteAllBytes(Path.Combine(output,"final.hcity"),CityCoreSave.Write(s));var cold=CityCoreSave.Read(CityCoreSave.Write(s));for(int i=0;i<80;i++){s.Advance(.05);cold.Advance(.05);}Check(Hash(s)==Hash(cold),"Ordinary cold continuation differs");rows.Add("cold80,"+Hash(s));
   File.WriteAllLines(Path.Combine(output,"states.csv"),rows);File.WriteAllLines(Path.Combine(output,"requests.csv"),calls);
   // Expose an existing baseline ordering defect rather than calling it a PASS.
-  var moved=CityCoreIndustrySession.Create();var family=new Household{id=moved.City.society.nextId};moved.Entities.AddFamily(family);moved.Entities.MoveResident(1,family.id);moved.Entities.MoveResident(1,1);var restored=CityCoreSave.Read(CityCoreSave.Write(moved));string warmOrder=string.Join(";",moved.Entities.Members.Select(m=>m.Person.id)),coldOrder=string.Join(";",restored.Entities.Members.Select(m=>m.Person.id));for(int i=0;i<20;i++){moved.Advance(.05);restored.Advance(.05);}string warmHash=Hash(moved),coldHash=Hash(restored);bool equal=warmHash==coldHash;File.WriteAllLines(Path.Combine(output,"existing-order-defect.csv"),new[]{"warm_order,cold_order,continued_state_equal,warm_final_sha256,cold_final_sha256",warmOrder+","+coldOrder+","+equal+","+warmHash+","+coldHash});Console.WriteLine("KNOWN BASELINE CHECK moved-family warm/cold order="+warmOrder+" / "+coldOrder+"; stateEqual="+equal);
+  var moved=CityCoreIndustrySession.Create();var family=new Household{id=moved.City.society.nextId};moved.Entities.AddFamily(family);moved.Entities.MoveResident(1,family.id);moved.Entities.MoveResident(1,1);var restored=CityCoreSave.Read(CityCoreSave.Write(moved));string warmOrder=string.Join(";",moved.Entities.Members.Select(m=>m.Person.id)),coldOrder=string.Join(";",restored.Entities.Members.Select(m=>m.Person.id));for(int i=0;i<20;i++){moved.Advance(.05);restored.Advance(.05);}string warmHash=Hash(moved),coldHash=Hash(restored);bool equal=warmHash==coldHash;
+#if ORDER_PERSISTED
+  Check(equal&&warmOrder==coldOrder,"Moved-family cold order remains broken");
+#else
+  Check(!equal&&warmOrder!=coldOrder,"Frozen order counterexample no longer reproduces");
+#endif
+  File.WriteAllLines(Path.Combine(output,"existing-order-defect.csv"),new[]{"warm_order,cold_order,continued_state_equal,warm_final_sha256,cold_final_sha256",warmOrder+","+coldOrder+","+equal+","+warmHash+","+coldHash});Console.WriteLine("KNOWN BASELINE CHECK moved-family warm/cold order="+warmOrder+" / "+coldOrder+"; stateEqual="+equal);
   Console.WriteLine("PASS frozen-comparable state/request replay and ordinary cold80; reordered-family cold result recorded separately");
  }
  static void Main(string[] args){

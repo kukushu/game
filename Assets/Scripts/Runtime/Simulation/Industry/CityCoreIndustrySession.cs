@@ -7,7 +7,8 @@ namespace HarborCity
 {
     [Serializable] public sealed class CityCoreBusinessData
     {
-        public int version=8,money,day,nextBuilding;
+        public int version=9,money,day,nextBuilding;
+        public int[] memberOrder; // Saved execution order, references existing residents only.
         public CityUtilityState utilities;
         public CityTradeData trade;
         public GameDesignData design;
@@ -73,10 +74,10 @@ namespace HarborCity
         public CitySimulation Simulation {get;}
         public CityEntities Entities {get;}
         public CityCoreConstruction Construction {get;}
-        public CityCoreIndustrySession(CityModel city,double calendarOffset=50,WorldData transport=null,SimulationClockData clock=null,long nextDispatchTick=0,IEnumerable<CityBuilding> retired=null,bool commuteEnabled=true,int payrollDay=-1,GameDesignData design=null,TreasuryData treasury=null,WasteServiceData waste=null)
+        public CityCoreIndustrySession(CityModel city,double calendarOffset=50,WorldData transport=null,SimulationClockData clock=null,long nextDispatchTick=0,IEnumerable<CityBuilding> retired=null,bool commuteEnabled=true,int payrollDay=-1,GameDesignData design=null,TreasuryData treasury=null,WasteServiceData waste=null,int[] memberOrder=null)
         {
             var rules=new CityGameDesign(design??new GameDesignData());City=city;var timeline=new SimulationClock(clock);
-            Business=new CityCoreIndustryBusiness(city);Transport=new World(transport??new WorldData{externalBusiness=true},timeline,city.buildings.Where(b=>!b.abandoned&&!b.burned).Select(b=>b.id).Concat(city.trade.connections.Where(c=>c.active).Select(c=>c.id)));Entities=new CityEntities(city,Transport,rules.Employment,rules.Production,retired);
+            Business=new CityCoreIndustryBusiness(city);Transport=new World(transport??new WorldData{externalBusiness=true},timeline,city.buildings.Where(b=>!b.abandoned&&!b.burned).Select(b=>b.id).Concat(city.trade.connections.Where(c=>c.active).Select(c=>c.id)));Entities=new CityEntities(city,Transport,rules.Employment,rules.Production,retired,memberOrder);
             double absolute=calendarOffset+timeline.Seconds;City.day=1+(int)Math.Floor(absolute/City.society.settings.secondsPerDay);City.society.dayElapsed=(float)(absolute%City.society.settings.secondsPerDay);
             Residents=new CityCoreResidents(city,Transport,Entities,commuteEnabled,calendarOffset);Business.Residents=Residents;
             Simulation=new CitySimulation(city,Transport,timeline,Entities,Residents,Business,calendarOffset,nextDispatchTick,rules,payrollDay,treasury,waste);
@@ -100,7 +101,7 @@ namespace HarborCity
             foreach(var member in Entities.Members)if(member.Person.location==id)throw new CityRuleException("building.close_wait_residents");
             Entities.RemoveBuilding(id);
         }
-        public CityCoreBusinessData SnapshotBusiness()=>CityCoreSave.CopyBusiness(new CityCoreBusinessData{waste=Simulation.Waste.Snapshot(),treasury=Simulation.Finance.Snapshot(),loans=new CoreLoanData{nextId=City.loans.nextId,contracts=City.loans.contracts},consumption=City.consumption.Snapshot(),design=Simulation.Design.Snapshot(),trade=City.trade.Snapshot(),utilities=City.utilities,map=City.map,zoning=City.zoning,development=City.development,money=City.money,day=City.day,nextBuilding=City.nextBuildingId,calendarOffset=Simulation.CalendarOffset,clock=Simulation.ClockSnapshot,nextDispatchTick=Simulation.Logistics.NextDispatchTick,commuteEnabled=Residents.Enabled,payrollDay=Simulation.Payroll.PaidDay,society=City.society,buildings=City.buildings.Select(BuildingSaveData.FromBuilding).ToList(),retiredBuildings=Entities.RetiredBuildings.Select(BuildingSaveData.FromBuilding).ToList(),residualIndustry=City.residualIndustry});
+        public CityCoreBusinessData SnapshotBusiness()=>CityCoreSave.CopyBusiness(new CityCoreBusinessData{memberOrder=Entities.Members.Select(m=>m.Person.id).ToArray(),waste=Simulation.Waste.Snapshot(),treasury=Simulation.Finance.Snapshot(),loans=new CoreLoanData{nextId=City.loans.nextId,contracts=City.loans.contracts},consumption=City.consumption.Snapshot(),design=Simulation.Design.Snapshot(),trade=City.trade.Snapshot(),utilities=City.utilities,map=City.map,zoning=City.zoning,development=City.development,money=City.money,day=City.day,nextBuilding=City.nextBuildingId,calendarOffset=Simulation.CalendarOffset,clock=Simulation.ClockSnapshot,nextDispatchTick=Simulation.Logistics.NextDispatchTick,commuteEnabled=Residents.Enabled,payrollDay=Simulation.Payroll.PaidDay,society=City.society,buildings=City.buildings.Select(BuildingSaveData.FromBuilding).ToList(),retiredBuildings=Entities.RetiredBuildings.Select(BuildingSaveData.FromBuilding).ToList(),residualIndustry=City.residualIndustry});
         public void Validate()
         {
             if(City.utilities==null||!City.utilities.Valid(City.map?.buildHalfSize??CityMapState.BuildHalfSize)||float.IsNaN(City.development.nextEmployment)||float.IsInfinity(City.development.nextEmployment)||City.development.nextEmployment<0)throw new InvalidOperationException("Invalid utilities/population schedule");

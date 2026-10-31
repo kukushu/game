@@ -88,3 +88,17 @@ function Build-CityDotNetHost([string]$ProjectRoot,[string]$OutputDirectory,[str
     if($LASTEXITCODE -ne 0){throw '64-bit model host build failed'}
     return (Join-Path $OutputDirectory 'bin/Release/net10.0/CityModelHost.dll')
 }
+
+# Test-only schema witnesses. Runtime CityCoreSave never calls these helpers.
+function New-CityOrderWitnessEntry([string]$ProjectRoot,[string]$Entry,[string]$OutputDirectory){
+ $body=[IO.File]::ReadAllText($Entry).Replace('SHA256.HashData(CityCoreSave.Write(s))','SHA256.HashData(CityOrderWire.Witness(s))').Replace('File.WriteAllBytes(','CityOrderWire.WriteNative(')
+ $path=Join-Path $OutputDirectory 'OrderWitnessEntry.cs';[IO.File]::WriteAllText($path,$body+[Environment]::NewLine+[IO.File]::ReadAllText((Join-Path $ProjectRoot 'Tools/Diagnostics/CityOrderWire.cs')));return $path
+}
+function Export-CityMemberOrderFixture([string]$ProjectRoot,[string]$SourceSave,[string]$OutputDirectory){
+ $reader=[IO.BinaryReader]::new([IO.File]::OpenRead($SourceSave));try{$magic=$reader.ReadInt32();$version=$reader.ReadInt32()}finally{$reader.Dispose()}
+ if($magic -ne 0x48434932){throw 'Not a city fixture'};if($version -eq 18){return (Resolve-Path -LiteralPath $SourceSave).Path};if($version -ne 16 -and $version -ne 17){throw 'Test export expects frozen v16/v17 fixture'}
+ $dir=Join-Path $OutputDirectory 'fixture-export';New-Item -ItemType Directory -Path $dir|Out-Null;$frozen=@{}
+ foreach($relative in @('Core/CityCoreSave.cs','Core/CityEntities.cs','Industry/CityCoreIndustrySession.cs')){$name=[IO.Path]::GetFileName($relative);$path=Join-Path $dir $name;$source=& git -C $ProjectRoot show ('30ede55:Assets/Scripts/Runtime/Simulation/'+$relative);if($LASTEXITCODE -ne 0){throw 'Frozen fixture reader missing'};[IO.File]::WriteAllLines($path,$source);$frozen[$name]=$path}
+ $entry=Join-Path $dir 'Export.cs';[IO.File]::WriteAllText($entry,[IO.File]::ReadAllText((Join-Path $ProjectRoot 'Tools/Diagnostics/CityOrderFixtureExport.cs'))+[Environment]::NewLine+[IO.File]::ReadAllText((Join-Path $ProjectRoot 'Tools/Diagnostics/CityOrderWire.cs')))
+ $binary=Build-CityDotNetHost -ProjectRoot $ProjectRoot -OutputDirectory $dir -Entry $entry -SourceOverrides $frozen;$target=Join-Path $dir 'same-input-order18.hcity';& dotnet $binary $SourceSave $target|Out-Host;if($LASTEXITCODE -ne 0){throw 'Frozen same-input fixture export failed'};return $target
+}

@@ -99,7 +99,7 @@ static class CityRoadUtilitiesChecks
         CheckSupplyTotals(s.City);
         Check(s.City.utilities.electricity.edges.Count==0&&s.City.utilities.water.edges.Count==0,"Automatic roads wrote duplicate manual networks");
         s.Simulation.Utilities.SetBudget(CityServiceKind.Water,50);Check(s.City.water==80&&s.City.SewageCapacity==80,"Road utilities bypassed service capacity/budget");CheckSupplyTotals(s.City);s.Simulation.Utilities.SetBudget(CityServiceKind.Water,100);
-        var bytes=CityCoreSave.Write(s);Check(BitConverter.ToInt32(bytes,4)==17,"New saved rule requires explicit city format 17");var restored=CityCoreSave.Read(bytes);restored.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);
+        var bytes=CityCoreSave.Write(s);Check(BitConverter.ToInt32(bytes,4)==18,"Current save requires explicit city format 18");var restored=CityCoreSave.Read(bytes);restored.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);
         Check(restored.City.utilities.roadConduits&&Supplies(s)==Supplies(restored)&&bytes.SequenceEqual(CityCoreSave.Write(restored)),"Road conduit rule or supply topology lost on cold restore");
         CheckSupplyTotals(restored.City);
         var repaired=CityCoreSave.Read(bytes);repaired.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);
@@ -123,11 +123,10 @@ static class CityRoadUtilitiesChecks
         s.City.utilities.roadConduits=false;s.Simulation.Utilities.Refresh();Check(s.City.water==0&&s.City.SewageCapacity==0,"Disabled road conduits still supplied empty pipe network");
         if(args.Length>0)
         {
-            var old=File.ReadAllBytes(args[0]);Check(BitConverter.ToInt32(old,4)==16,"Expected existing original v16 city");var legacy=CityCoreSave.Read(old);legacy.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);
-            Check(!legacy.City.utilities.roadConduits,"Legacy city silently changed utility rules");var upgraded=CityCoreSave.Write(legacy);var repeat=CityCoreSave.Read(upgraded);repeat.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);
-            Check(upgraded.SequenceEqual(CityCoreSave.Write(repeat)),"Existing v16 city failed v17 save round trip");
-            legacy.City.utilities.roadConduits=true;legacy.Simulation.Utilities.Refresh();legacy.Validate();upgraded=CityCoreSave.Write(legacy);repeat=CityCoreSave.Read(upgraded);repeat.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);
-            Check(upgraded.SequenceEqual(CityCoreSave.Write(repeat))&&Supplies(legacy)==Supplies(repeat),"Existing busy city road utility activation failed complete cold restore");
+            var old=File.ReadAllBytes(args[0]);int version=BitConverter.ToInt32(old,4);
+            if(version==16||version==17){bool rejected=false;try{CityCoreSave.Read(old);}catch(InvalidDataException){rejected=true;}Check(rejected&&old.SequenceEqual(File.ReadAllBytes(args[0])),"Unsupported city must be rejected without changing its file");}
+            else {Check(version==18,"Expected current city format");var loaded=CityCoreSave.Read(old);loaded.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);bool rule=loaded.City.utilities.roadConduits;var saved=CityCoreSave.Write(loaded);var repeat=CityCoreSave.Read(saved);Check(saved.SequenceEqual(CityCoreSave.Write(repeat))&&repeat.City.utilities.roadConduits==rule,"Current city changed utility rules on cold restore");loaded.City.utilities.roadConduits=true;loaded.Simulation.Utilities.Refresh();loaded.Validate();saved=CityCoreSave.Write(loaded);repeat=CityCoreSave.Read(saved);repeat.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);Check(saved.SequenceEqual(CityCoreSave.Write(repeat))&&Supplies(loaded)==Supplies(repeat),"Busy city utility activation failed cold restore");}
+
         }
         Console.WriteLine("PASS "+count+" real road utility topology, manual connections, capacities, growth, removal and save checks");
     }

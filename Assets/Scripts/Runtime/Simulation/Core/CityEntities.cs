@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using HarborCity.RoadCore;
 
 namespace HarborCity
@@ -247,15 +248,27 @@ namespace HarborCity
         public ProductionRules Production {get;}
         internal void StructuralBoundary()
         {if(Simulation!=null&&(Simulation.IsStepping||Simulation.Fault!=null))throw new InvalidOperationException("Structural edits require a healthy city step boundary");}
-        internal CityEntities(CityModel city,World transport,EmploymentRules employment=null,ProductionRules production=null,IEnumerable<CityBuilding> archived=null)
+        internal CityEntities(CityModel city,World transport,EmploymentRules employment=null,ProductionRules production=null,IEnumerable<CityBuilding> archived=null,int[] memberOrder=null)
         {
             Employment=employment??new EmploymentRules(new EmploymentDefinition());
             Production=production??new ProductionRules(new ProductionDefinition());
             if(archived!=null)retired.AddRange(archived);RetiredBuildings=retired.AsReadOnly();
             this.city=city;this.transport=transport;Buildings=city.buildings.AsReadOnly();Members=members.AsReadOnly();Factories=factories.AsReadOnly();Shops=shops.AsReadOnly();
+            // Execution order is independent of household grouping. Validate it
+            // before transferring any live resident/household/account ownership.
+            if(memberOrder==null&&city.entities!=null)memberOrder=city.entities.Members.Select(m=>m.Person.id).ToArray();
+            foreach(var h in city.society.families){families.Add(h.id,h);foreach(var p in h.people){var m=new CityMember(h,p,0);people.Add(p.id,m);members.Add(m);}}
+            if(memberOrder!=null)
+            {
+                if(memberOrder.Length!=members.Count)throw new ArgumentException("Invalid saved member order length");
+                var ordered=new List<CityMember>(members.Count);var seen=new HashSet<int>();
+                foreach(int id in memberOrder){if(!people.TryGetValue(id,out var member)||!seen.Add(id))throw new ArgumentException("Invalid saved member order identity");ordered.Add(member);}
+                members.Clear();members.AddRange(ordered);
+            }
             foreach(var b in city.buildings){buildings.Add(b.id,b);IndexType(b);transport.SetEndpointAvailable(b.id,Available(b));}
             foreach(var c in city.trade.connections){if(buildings.ContainsKey(c.id))throw new ArgumentException("Endpoint identity collision");connections.Add(c.id,c);transport.SetEndpointAvailable(c.id,c.active);}
-            foreach(var h in city.society.families){families.Add(h.id,h);h.EntityOwner=this;IndexHome(h,h.home);foreach(var p in h.people){var m=new CityMember(h,p,nextMemberOrdinal++);people.Add(p.id,m);members.Add(m);BindAttendance(m);}}
+            foreach(var h in city.society.families){h.EntityOwner=this;IndexHome(h,h.home);}
+            foreach(var member in members){member.Ordinal=nextMemberOrdinal++;BindAttendance(member);}
             RebuildJobs();city.entities=this;
         }
         static bool Available(CityBuilding b)=>!b.abandoned&&!b.burned;

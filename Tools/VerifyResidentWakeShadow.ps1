@@ -3,6 +3,7 @@ $ErrorActionPreference='Stop';$root=Split-Path $PSScriptRoot -Parent
 . (Join-Path $PSScriptRoot 'ProjectLayout.ps1')
 $out=Join-Path $root $Results;if(Test-Path -LiteralPath $out){throw 'Fresh shadow output required'}
 New-Item -ItemType Directory -Path $out|Out-Null
+$Save=Export-CityMemberOrderFixture $root (Resolve-Path -LiteralPath $Save).Path $out
 python (Join-Path $PSScriptRoot 'Diagnostics/PrepareResidentWakeShadow.py') $root (Join-Path $out 'sources')
 if($LASTEXITCODE -ne 0){throw 'Shadow patch preparation failed'}
 foreach($version in @('old','shadow')){
