@@ -14,7 +14,7 @@ static class CityResidentGuardSchedulingChecks {
  }
  static void Main(string[] args){IndexOracle();
   var rows=new List<string>{"case,requests,guard_bits,sha256"};
-  foreach(int mode in Enumerable.Range(0,17)){
+  foreach(int mode in Enumerable.Range(0,18)){
    var s=CityCoreIndustrySession.Create();var people=s.Entities.Members.Select(m=>m.Person).ToArray();foreach(var p in people)p.retryAt=100000;
    var calls=new List<int>();s.Residents.RequestCommute=(id,from,to,back)=>{calls.Add(id);if(mode==7&&id==people[0].id)people[1].retryAt=0;if(mode==8&&id==people[1].id)people[0].retryAt=0;return null;};
    s.Residents.AdvanceRequests();var first=people[0];
@@ -28,7 +28,7 @@ static class CityResidentGuardSchedulingChecks {
    if(mode==7)first.retryAt=0;
    if(mode==8)people[1].retryAt=0;
    if(mode==9){var removed=people[3];int job=removed.jobId;s.Entities.RemoveResident(removed.id);var added=new CityResident{id=s.City.society.nextCitizenId,age=30,skill=2,canWork=true,location=3,retryAt=0};s.Entities.AddResident(1,added);if(!s.City.AssignJob(added,job))throw new Exception("Replacement job failed");}
-   if(mode>=10){first.retryAt=0;if(mode==10)first.sick=true;if(mode==11)first.canWork=false;if(mode==12)first.dead=true;if(mode==13||mode==16)first.departureDay=s.City.day;if(mode==14)s.Entities.Members[0].Family.resident=false;if(mode==15)first.atWork=true;s.Residents.AdvanceRequests();if(mode==10)first.sick=false;if(mode==11)first.canWork=true;if(mode==12)first.dead=false;if(mode==13)first.departureDay=0;if(mode==14)s.Entities.Members[0].Family.resident=true;if(mode==15)first.atWork=false;if(mode==16){s.City.day++;s.Residents.AdvanceRequests();}}
+   if(mode>=10){first.retryAt=0;if(mode==10)first.sick=true;if(mode==11)first.canWork=false;if(mode==12)first.dead=true;if(mode==13||mode==16||mode==17)first.departureDay=s.City.day;if(mode==14)s.Entities.Members[0].Family.resident=false;if(mode==15)first.atWork=true;s.Residents.AdvanceRequests();if(mode==10)first.sick=false;if(mode==11)first.canWork=true;if(mode==12)first.dead=false;if(mode==13)first.departureDay=0;if(mode==14)s.Entities.Members[0].Family.resident=true;if(mode==15)first.atWork=false;if(mode==16){s.City.day++;s.Residents.AdvanceRequests();}if(mode==17){int day=s.City.day;s.City.day++;first.departureDay=s.City.day;s.City.day=day;}}
    for(int i=0;i<12;i++)s.Advance(.05);
    string bits=BitConverter.SingleToInt32Bits(first.retryAt)+";"+BitConverter.DoubleToInt64Bits(first.visitUntil);first.retryAt=0;first.visitUntil=0;rows.Add(mode+","+string.Join(";",calls)+","+bits+","+Hash(s));
   }
@@ -41,6 +41,6 @@ static class CityResidentGuardSchedulingChecks {
 #else
   if(warm!=1||cold!=1)throw new Exception("Frozen polling oracle fixture invalid");
 #endif
-  Console.WriteLine("PASS 17 paired guard cases; deliberately bypassed notification checked against independent cold oracle");
+  Console.WriteLine("PASS 18 paired guard cases; deliberately bypassed notification checked against independent cold oracle");
  }
 }

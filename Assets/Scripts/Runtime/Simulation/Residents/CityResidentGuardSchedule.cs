@@ -37,6 +37,7 @@ namespace HarborCity
         }
         void Classify(int i)
         {
+            if(day!=city.day)RefreshDay();
             var m=members[i];var p=m.Person;dayBlocked.Remove(i);
             if(!m.Family.resident||p.dead||(p.location==m.Family.home&&(p.atWork||!city.CanAttendWork(p)))){SetReady(i,false);timers.Cancel(i);return;}
             if(p.tripId==0&&p.location==m.Family.home&&p.departureDay==city.day){dayBlocked.Add(i);SetReady(i,false);timers.Cancel(i);return;}
