@@ -12,3 +12,5 @@ foreach($relative in @('state/states.csv','state/requests.csv','state/existing-o
 if((Get-FileHash -LiteralPath (Join-Path $out 'old/state/final.hcity')).Hash -ne (Get-FileHash -LiteralPath (Join-Path $out 'new/state/final.hcity')).Hash){throw 'Saved wire differs'}
 if(!$TargetedOnly -and [IO.File]::ReadAllText((Join-Path $out 'old/growth/states.csv')) -cne [IO.File]::ReadAllText((Join-Path $out 'new/growth/states.csv'))){throw 'Growth/30k state differs'}
 Write-Output 'PASS notification equivalence to frozen934e064; see separate baseline ordering defect, not a general cold-equivalence claim'
+
+if(!$TargetedOnly){$dir=Join-Path $out 'maintenance';New-Item -ItemType Directory -Path $dir|Out-Null;& dotnet (Join-Path $out 'new/state/bin/Release/net10.0/CityModelHost.dll') $dir $save;if($LASTEXITCODE -ne 0){throw 'State maintenance count/cost failed'}}

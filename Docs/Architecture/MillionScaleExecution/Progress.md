@@ -37,6 +37,12 @@
 
 MS008依赖005/006/007；007未通过不得推进班次实际调度。后续008/009/010完整影子、011/012真实执行及013 Player门槛均保持TODO。旧稀疏在岗已正式集成，不重复记功；旧缓存失败试验不重做。正式/main/master/Python和旧百万实验不在本轮修改范围。
 
-## MS-007 working checkpoint
+## MS-007 当前恢复点
 
-Runtime state/home notification implementation and targeted tests prepared against934e064. Found a real baseline defect: move1 away/back yields warm Members1;2;3;4 vs cold2;3;4;1; after20steps states differ in BOTH versions. Do not mark general cold restoration PASS or MS007 DONE. Report MS007-ResidentState.md records the counterexample; MS008 remains TODO. No save protocol change attempted in this stage. New home→households index supports only local home invalidation, reusable by MS017.
+运行代码586777d：健康/工作资格/死亡/位置/在岗、家庭home/resident受控通知，住宅→家庭局部索引，搬家不瞬移，通知按原Members序。仅通知，正式轮询未替换；没有添加医疗/死亡业务。报告MS007-ResidentState.md，三份小CSV保留成本及失败证据。
+
+88定向断言；完整增长/拆分/30k的126状态点与冻结934同，实际观察129673通知；请求序列、当前保存字节同，普通cold80同。726岗位oracle与Mono23627/10000/1522/83/460474通过。模型均值2.89934→2.92947ms（波动约+1.04%，不能宣称收益），常驻约+0.695MiB，600步分配不变。原始日志与二进制在Temp/MillionScaleExecution/ms007-full、ms007-paired、ms007-core-final.log、ms007-cost。
+
+**未解决且必须优先：** 冻结934和候选均复现MoveResident(1,新家庭)再MoveResident(1,原家庭)，暖态Members1;2;3;4，冷态2;3;4;1；20步后完整状态不同。MS007-ExistingColdOrder.csv记录两个版本的warm/cold SHA256。不是新回归，但不能算一般读档一致性通过，MS007不得标DONE，008保持TODO。
+
+下一子步骤先设计/实现显式保存成员执行顺序，覆盖跨家庭交错而非只同户回移；不能偷偷按居民ID排序改变原序，也不能放宽完整状态断言。若需要新保存格式，按用户原则明确报告，不为旧档设计长期适配器。此阶段尚未改协议，当前玩家存档未动；未自动合并正式分支。这个持久化缺陷的修复与已经通过的通知等价验证分开提交/验收。

@@ -1,0 +1,4 @@
+scenario,operations,total_ms,allocated_bytes,notices,family_size
+same_value,10000,2.4154,0,0,3
+illness_toggle,10000,0.1319,0,20000,3
+family_residence_toggle,1000,0.2401,0,6000,3
