@@ -6,7 +6,7 @@
 
 已有成果：稀疏在岗正式2ca4e6c，完整固定步约−3.4%/实际倍率约+5.5%，未改善FPS/长尾；报告[正式证据](../../Performance/SparseAttendance-20261030/Report.md)。旧队列/影子仅Tools，漏通知负控仍失败；垃圾缓存扩容与工作区改动无可靠整体收益，标记历史SKIPPED假设，不再重做。100k初态及5706部分模型步不是长期/Player验收。固定实验资料从53a读取，不能假定正式分支已存在。
 
-现在：MS-005复查修正通过（MS005-Review.md）；MS-006通知/成本验收完成，MS-007通知与成员顺序持久化验收通过；MS-008纯时间计算已验证；MS-009失效通知及状态对照通过；MS-010开始完整影子验收，正式轮询未替换。每项代码提交同步状态；SHA在后续记录中回填。完整事件调度与Player收益尚未验收。
+现在：MS-005复查修正通过（MS005-Review.md）；MS-006通知/成本验收完成，MS-007通知与成员顺序持久化验收通过；MS-008纯时间计算已验证；MS-009失效通知及状态对照通过；MS-010完整影子与补充事实通知验收通过；MS-011开始可靠守卫类别接管准备，正式轮询未替换。每项代码提交同步状态；SHA在后续记录中回填。完整事件调度与Player收益尚未验收。
 
 |ID|状态|依赖|目标/理由|真实文件与调用链（S/下，Tools另注）|问题/预期复杂度|拟用结构/算法|完成定义（正确性及性能）|实际提交/测试/报告|
 |---|---|---|---|---|---|---|---|---|
@@ -19,8 +19,8 @@
 |MS-007|DONE|004|健康、工作资格和住址生命周期通知|Residents/CityResidents/CityHouseholds/CityJobs；Core/CityEntities.MoveResident/Add/Remove|关系变化按实际成员失效|审计受支持写入口与Owner；未接类别保守poll|疾病/死亡/工作能力、搬家/住宅失效、脱离Owner、冷重建严格对照|[MS007阶段证据](MS007-ResidentState.md)；88断言/126点同；[86145e2修复冷序](MS007-MemberOrder.md)，格式18；原FAIL反例保留，当前全部通过|
 |MS-008|DONE|005,006,007|计划首次合法上班/下班Tick|CityCoreResidents.AdvanceRequests/EstimateCommute；GameData/CityEmploymentDesign；CitySimulationClock|未到时刻O(N)重复判断→到期/变化事件|float minute/retry及double阈值搜索；不可达等待保守策略|所有边界不晚一tick；同tick按Members，原0.25重试；原报价/lastCommute语义同|[MS008证据](MS008-ResidentTime.md)；17335断言、210取整反例、实际128+128样本；仅计算未调度|
 |MS-009|DONE|008|日切与路网/入口变化唤醒|CitySimulation.SyncCalendar；Core/CityCoreRoadBindings；RoadCore.NetworkGeneration/AccessRevision|局部依赖失效，真正全局事件可O(N)|关联等待集合/版本失效；不固定半径截断|新增/删除/拆分/方向/入口与不可达恢复、跨日和时间规则对照|d647607；[MS009报告](MS009-PlanInvalidation.md)，60定向/139完整状态点及208167请求同；保留全局安全回退|
-|MS-010|IN_PROGRESS|009|完整影子验收与开销统计|ResidentWakeShadow及居民完整场景回放；CityCoreSave|影子不省正式CPU；量化维护/峰值而非只数候选|冻结原请求序列及完整状态，负控、跨日、冷热|30k+定向资金/病亡/搬家/购物/道路/失败恢复都无遗漏、顺序及状态同|—|
-|MS-011|TODO|010|先接管可靠守卫类别的实际执行|CityCoreResidents.AdvanceRequests；CityEntities；CitySimulation|O(到期+保守候选)，不是全员poll后再过滤|明确实验开关；原oracle路径保留；未接类别原检查|同存档同固定步完整状态/事件序一致；包含队列维护的粗计时先证实收益|—|
+|MS-010|DONE|009|完整影子验收与开销统计|ResidentWakeShadow及居民完整场景回放；CityCoreSave|影子不省正式CPU；量化维护/峰值而非只数候选|冻结原请求序列及完整状态，负控、跨日、冷热|30k+定向资金/病亡/搬家/购物/道路/失败恢复都无遗漏、顺序及状态同|3e86bb0；[MS010验收](MS010-FullShadow.md)，152状态点/482141请求摘要同、7181阶段995818请求0漏；诊断额外约2.1ms/6.38MiB，未接管执行|
+|MS-011|IN_PROGRESS|010|先接管可靠守卫类别的实际执行|CityCoreResidents.AdvanceRequests；CityEntities；CitySimulation|O(到期+保守候选)，不是全员poll后再过滤|明确实验开关；原oracle路径保留；未接类别原检查|同存档同固定步完整状态/事件序一致；包含队列维护的粗计时先证实收益|—|
 |MS-012|TODO|011|逐类启用班次及状态唤醒，减少未到时刻检查|CityCoreResidents；工作地/家庭反向索引|进一步O(N等待)→O(到期/真实变化)|按类别推进，每类单独对照与回退|不得略过实时准入/支付；所有任务、工资、经济及后续模拟同|—|
 |MS-013|TODO|012|居民调度真实Player配对、回归及选择性集成|Tools/RunResidentSchedulingDiagnosis/RunCityScenarioWindow；居民与保存测试|完整步/真实倍率/长尾/GC含维护成本|同30k二进制条件A/B/B/A，细归因和普通构建分离|完整状态同且整体重复收益才集成；不改8ms/32步/.05规则，不强合失败方案|—|
 |MS-014|TODO|001|拆解AdvanceIndustry工厂/环境/状态成本|Industry/CityProductionSystem.Step→CityIndustry.AdvanceIndustry；CityCorePayroll|在岗循环已O(A)，企业环境仍O(B)|低开销分项与周期/活动统计，不重复做在岗集合|同城预热完整步归因；确认恒零、持续变化及状态依赖后再选择实现|已有在岗正式2ca4e6c/报告，不能重复计成果|

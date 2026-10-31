@@ -1,4 +1,4 @@
-"""Temp-only guard shadow. No actual candidate controls execution."""
+"""Temp-only guard or temporal shadow. No candidate controls real execution."""
 from pathlib import Path
 import sys
 root=Path(sys.argv[1]);out=Path(sys.argv[2]);out.mkdir(parents=True,exist_ok=True)

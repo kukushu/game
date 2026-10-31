@@ -74,3 +74,13 @@ VerifyResidentTime的ms008-balanced：16566独立逐Tick案例，总17335断言�
 在26d5600基础上复用CityWakeQueue/ResidentWakeShadow，加入MS008时间计算与MS005–009通知、包含失败目标的home/work/location反向依赖、开发模式政策版本检查。非候选oracle访问禁止重新学习；真实Request仍独立检查候选与原Members序。初轮6920阶段/995814请求0遗漏，增长126状态点相同；不是性能改善声明。
 
 新增直接arrivedDay变更的定向测试真实FAIL（Temp/MillionScaleExecution/ms010-tripday-gap.log），发现旅程日期与通勤观测仍为未通知public字段。沿用CitySavedFact封装departureDay/arrivedDay/observedHome/observedWork/observedRevision/lastCommute，原名字类型/float位模式/计算次序不变，只经原Owner发状态失效。未添加保存字段/版本或兼容器。补充观察通勤使出发提前的正控通过；完整冻结26d5600原CityResidents字段版的状态/字节回归进行中。MS010仍IN_PROGRESS，011未启用。
+
+## MS-010 DONE；MS-011 为唯一 IN_PROGRESS
+
+实现3e86bb0，冻结26d5600字段版CityResidents。补充TripDay/CommuteObservation事实setter保留旧名/类型/位模式/格式18；正式原循环不变。完整Tools影子依赖MS003–009，真正只从候选学习时间计划，不从非候选oracle访问悄悄修复。开发模式政策单独检测；尚未证明可休眠的资格类别保守poll。
+
+完整ms010-complete：7181请求阶段、166806484原访问、95100750候选、995818请求0遗漏，含实际在途删路100步/cold80；增长ms010-growth-accepted：14680阶段、821794请求0遗漏。合计152完整原生状态点、482141正常观测请求序摘要及最终字节相同，冷热继续一致。资金/健康/岗位/住址/不可达入口/模式/直接日期与通勤观测提前检查正控、六事实浮点位模式与四类故意漏通知负控通过。原arrivedDay漏唤醒失败日志保留，不放宽断言。Mono23627/10000/1522/83/460474及101预算检查通过。
+
+独立顺序诊断模型平均步2.9141→5.0110ms（增加影子/断言，不是优化成果）；托管存活增加6.38MiB，暖分配约34295/34292bytes每步基本相同。队列本体峰480000bytes、依赖链接50022；包含其他集合的内存以上述总体差值为准。没有测新Player FPS，不声称已提速或能支撑百万城市。报告MS010-FullShadow.md与必要CSV；原始数据/二进制留Temp/MillionScaleExecution/ms010-*。
+
+下一项MS011先接可靠守卫类别实际执行，避免把全员oracle先扫一遍当成稀疏执行；全时间类别MS012、真实Player及整体收益MS013。未来需计入通知维护、增长重建/内存和实时安全成本，不能机械照搬诊断每成员断言或按候选减少比例推算性能。不合入正式分支，继续保护原始存档与用户修改。
