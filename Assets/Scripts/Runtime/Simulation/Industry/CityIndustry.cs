@@ -100,7 +100,6 @@ namespace HarborCity
         {
             if(minutes<=0) return;
             float noiseKeep=(float)Math.Exp(-minutes/60), pollutionKeep=(float)Math.Exp(-minutes/720), trafficKeep=(float)Math.Exp(-minutes/120);
-            bool finiteMinutes=minutes<float.PositiveInfinity;
             foreach(var old in residualIndustry) {old.noise*=noiseKeep;old.pollution*=pollutionKeep;}
             residualIndustry.RemoveAll(e=>e.noise<.00001f && e.pollution<.00001f);
             foreach(var b in buildings)
@@ -109,20 +108,9 @@ namespace HarborCity
                 if(f!=null)
                 {
                     // Normalised worker-equivalents from actual processing, not job occupancy.
-                    if(finiteMinutes&&f.stepProductive==0&&f.noise==0&&f.pollution==0)
-                    {
-                        // Positive finite scaling preserves a zero's sign. Keep
-                        // the original additions/divisor so -0 is not canonicalized.
-                        float zero=f.stepProductive;
-                        f.noise=f.noise+zero;
-                        f.pollution=f.pollution+zero/(development.enabled?1+.3f*(b.level-1):1);
-                    }
-                    else
-                    {
-                        float activity=f.stepProductive/minutes/4;
-                        f.noise=f.noise*noiseKeep+activity*(1-noiseKeep);
-                        f.pollution=f.pollution*pollutionKeep+activity*(1-pollutionKeep)/(development.enabled?1+.3f*(b.level-1):1);
-                    }
+                    float activity=f.stepProductive/minutes/4;
+                    f.noise=f.noise*noiseKeep+activity*(1-noiseKeep);
+                    f.pollution=f.pollution*pollutionKeep+activity*(1-pollutionKeep)/(development.enabled?1+.3f*(b.level-1):1);
                     string state=b.abandoned?"已废弃":development.enabled && !Supply(b.id).Complete?Supply(b.id).Problem:!development.enabled && f.cash<=0?"资金耗尽":!development.enabled && !f.processing && f.raw>0 && f.cash<FactoryState.ProcessingCost?"加工资金不足":f.stepAttendance==0?"缺工":Inventory(b.id).Stock>=FactoryState.GoodsCapacity?"成品仓满":!f.processing && f.raw==0?"缺料":"生产中";
                     if(state!=f.status) {f.status=state; Trace("factory.status",state,f,building:b.id);}
                     f.stepAttendance=f.stepProductive=0;

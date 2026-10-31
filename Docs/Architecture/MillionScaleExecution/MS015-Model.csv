@@ -1,0 +1,3 @@
+algorithm,steps,mean_ms,p95_ms,p99_ms,max_ms,allocated_per_step,retained_managed_bytes_after_warmup
+old,3000,2.272134266666668,4.0085,7.5369,25.6961,34315.208,256623864
+new,3000,2.332785233333338,4.058,7.6903,24.6924,34315.208,256623864
