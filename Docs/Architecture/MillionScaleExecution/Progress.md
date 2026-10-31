@@ -134,3 +134,18 @@ MS010冻结脚本缺口已明确更正并补跑原字段版，完整和增长仍
 Polling与Temporal Release Player均完成同一2400预热、车道树预热、8秒画面预热，再以每渲染帧一个固定步执行2400步：fixed-start.hcity/fixed-final.hcity/四个状态点完全相同；两侧cold20一致，退出码0。此为脚本固定工作量，不是正常50× FPS。Unity GetAllocatedBytesForCurrentThread不支持，写明未知。出现过基线共有的ZoneBoxTool.Dispose退出清理NRE，发生在已完成验证之后，未写成无异常PASS，未顺带改游戏表现层。
 
 第一轮60秒1×完整采样与冷恢复完成，但Application.Quit后原生退出停滞，240秒由本轮监控终止，记录ms013-a0/1x-resources.json，不作为正常退出通过。保留数据；仅把测量结束后的截图改同步读回。基线15秒短窗重试正常退出0，不能据一次成功断言原生清理根因已查明。新旧均以相同同步截图工具重建Release，正常1×/50× A/B/B/A矩阵ms013-sync-*正在顺序运行，不并行编译/测量。首次1×基线正常退出，约58FPS/实际1×；完整结论待矩阵及长帧归因。MS013仍IN_PROGRESS，不集成、不默认启用。
+
+
+## MS-013 DONE：Player实测完成，保留实验；MS-014唯一IN_PROGRESS
+
+工具d689056已推送；正式游戏逻辑、存档协议及预算未修改。相同30k格式18副本、2400步/8秒预热、1440×900/Release，独立A/B/B/A×1×/50×共8窗口，每窗60秒，全部正常退出并完成额外20步热/冷完整保存对照；共同warm-state一致。原生两侧另2400步，四状态点、初态/最终存档逐字节一致，固定工作量均值8.827→7.552ms，仅单对，不当正常FPS。正常1×两轮均值FPS58.18→58.94，同样1200步的Advance/step9.127→7.348ms；50×目标实际3.103→3.661×（约+18%），FPS46.86→45.77、P99 31.16→32.52ms、最长61.86→66.20ms，存在取舍。没有丢步；Player Release逐帧分配未知，不能宣称零GC。
+
+独立Development归因1200步：Residents3.849、Movement2.743、Production0.780ms/步；嵌套Dispatch/Admission不可再相加。tick8201附近60帧原生Profiler：MainThread62.25ms，完整步51.018ms，Waste40.133ms，内部24次PrepareRoute/92个RouteSearch作用域合计38.294ms；居民5.634ms、移动3.034ms，GC.Collect计数0。Release普通窗口未复现100ms推进峰值（最大67.28ms），不宣称其他场景100ms已解决。
+
+纠正预热计数误读：lane-prewarm的depots=0指真正预热的个数，不是城市垃圾场数。只读事实审计确认200垃圾场/200合法入口，超过DepotLaneRouting.Capacity128，CanServeLiveSet=False；整个集合走普通点寻路回退，窗口树查询/建树都0，ServicePointQueries仍+269。这是常态容量分支而非首次树构建成本。没有调整上限、改选址或减少服务；按原MS020目标留后续调查，不重复盲扩容。
+
+Temporal原生脚本新增道路成功/扣款320，事务113.14ms/道路显示4.62ms，1块更新，车辆显示位置不变，冷续20步一致，退出0；该施工窗口仍有233.38ms长帧，不冒充手动操作或施工收益。之前首轮退出停滞与两侧固定测试退出清理NRE仍保留记录，不抹去失败。
+
+完成集成判定：吞吐有重复收益但50×FPS/尾帧未通过全面体验改善，且A含相同通知维护基础，不能当与旧正式二进制的全方案收益。因此正常构建继续轮询、不合正式，MS013记录已验证和限制后DONE。下一项沿原计划MS014，仅拆解真实在岗与AdvanceIndustry企业环境/状态成本，不重规划30任务。MS013报告、六份必要CSV可独立核对；完整Profiler/Player/逐帧/存档留Temp。正式本地d248cf3、远端93d97f2、旧百万53a9e8c及用户文件哈希/原始30k保存均保持。
+
+MS014已核对真实生产调用链：BeginStep→WorkingMembers/Produce→AdvanceIndustry；后者包含残留衰减、工厂环境/状态/清零与住宅heavyTraffic历史衰减。0.780ms是整个生产作用域，不归给单个函数。MS014-ProductionAudit.md记录下一次需测的边界及为何无在岗仍不可直接跳过，尚未修改或测量子项。

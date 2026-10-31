@@ -6,7 +6,7 @@
 
 已有成果：稀疏在岗正式2ca4e6c，完整固定步约−3.4%/实际倍率约+5.5%，未改善FPS/长尾；报告[正式证据](../../Performance/SparseAttendance-20261030/Report.md)。旧队列/影子仅Tools，漏通知负控仍失败；垃圾缓存扩容与工作区改动无可靠整体收益，标记历史SKIPPED假设，不再重做。100k初态及5706部分模型步不是长期/Player验收。固定实验资料从53a读取，不能假定正式分支已存在。
 
-现在：MS-005复查修正通过（MS005-Review.md）；MS-006通知/成本验收完成，MS-007通知与成员顺序持久化验收通过；MS-008纯时间计算已验证；MS-009失效通知及状态对照通过；MS-010完整影子与补充事实通知验收通过；MS-011实验基础守卫已实际接管并通过模型对照，正常构建仍轮询；MS-012已完成选定班次/状态计划的实际接管与模型对照；MS-013开始真实Player验收准备。每项代码提交同步状态；SHA在后续记录中回填。完整事件调度与Player收益尚未验收。
+现在：MS-005复查修正通过（MS005-Review.md）；MS-006通知/成本验收完成，MS-007通知与成员顺序持久化验收通过；MS-008纯时间计算已验证；MS-009失效通知及状态对照通过；MS-010完整影子与补充事实通知验收通过；MS-011实验基础守卫已实际接管并通过模型对照，正常构建仍轮询；MS-012已完成选定班次/状态计划的实际接管与模型对照；MS-013完成原生Player配对与集成判定，实验默认不开、不合正式；MS-014开始生产分项调查。每项代码提交同步状态；SHA在后续记录中回填。完整事件调度尚未完成；已验证类别的Player吞吐收益及FPS取舍见MS013。
 
 |ID|状态|依赖|目标/理由|真实文件与调用链（S/下，Tools另注）|问题/预期复杂度|拟用结构/算法|完成定义（正确性及性能）|实际提交/测试/报告|
 |---|---|---|---|---|---|---|---|---|
@@ -21,15 +21,15 @@
 |MS-009|DONE|008|日切与路网/入口变化唤醒|CitySimulation.SyncCalendar；Core/CityCoreRoadBindings；RoadCore.NetworkGeneration/AccessRevision|局部依赖失效，真正全局事件可O(N)|关联等待集合/版本失效；不固定半径截断|新增/删除/拆分/方向/入口与不可达恢复、跨日和时间规则对照|d647607；[MS009报告](MS009-PlanInvalidation.md)，60定向/139完整状态点及208167请求同；保留全局安全回退|
 |MS-010|DONE|009|完整影子验收与开销统计|ResidentWakeShadow及居民完整场景回放；CityCoreSave|影子不省正式CPU；量化维护/峰值而非只数候选|冻结原请求序列及完整状态，负控、跨日、冷热|30k+定向资金/病亡/搬家/购物/道路/失败恢复都无遗漏、顺序及状态同|3e86bb0；[MS010验收](MS010-FullShadow.md)，152状态点/482141请求摘要同、7181阶段995818请求0漏；诊断额外约2.1ms/6.38MiB，未接管执行|
 |MS-011|DONE|010|先接管可靠守卫类别的实际执行|CityCoreResidents.AdvanceRequests；CityEntities；CitySimulation|O(到期+保守候选)，不是全员poll后再过滤|明确实验开关；原oracle路径保留；未接类别原检查|同存档同固定步完整状态/事件序一致；包含队列维护的粗计时先证实收益|5c5370d/43a9e10/b23cf85；[MS011](MS011-GuardExecution.md)，152状态点/请求字节同，模型均值约−5～8%；P99未改善，默认关闭待Player验收|
-|MS-012|DONE|011|逐类启用班次及状态唤醒，减少未到时刻检查|CityCoreResidents；工作地/家庭反向索引|进一步O(N等待)→O(到期/真实变化)|按类别推进，每类单独对照与回退|不得略过实时准入/支付；所有任务、工资、经济及后续模拟同|e7d57ba；[MS012](MS012-TemporalExecution.md)，三方152状态点及482141请求同；模型相对MS011约−18.7%，额外2.72MiB，未验Player/默认关闭|
-|MS-013|IN_PROGRESS|012|居民调度真实Player配对、回归及选择性集成|Tools/RunResidentSchedulingDiagnosis/RunCityScenarioWindow；居民与保存测试|完整步/真实倍率/长尾/GC含维护成本|同30k二进制条件A/B/B/A，细归因和普通构建分离|完整状态同且整体重复收益才集成；不改8ms/32步/.05规则，不强合失败方案|—|
-|MS-014|TODO|001|拆解AdvanceIndustry工厂/环境/状态成本|Industry/CityProductionSystem.Step→CityIndustry.AdvanceIndustry；CityCorePayroll|在岗循环已O(A)，企业环境仍O(B)|低开销分项与周期/活动统计，不重复做在岗集合|同城预热完整步归因；确认恒零、持续变化及状态依赖后再选择实现|已有在岗正式2ca4e6c/报告，不能重复计成果|
+|MS-012|DONE|011|逐类启用班次及状态唤醒，减少未到时刻检查|CityCoreResidents；工作地/家庭反向索引|进一步O(N等待)→O(到期/真实变化)|按类别推进，每类单独对照与回退|不得略过实时准入/支付；所有任务、工资、经济及后续模拟同|e7d57ba；[MS012](MS012-TemporalExecution.md)，三方152状态点及482141请求同；模型相对MS011约−18.7%，额外2.72MiB，Player见MS013/默认关闭|
+|MS-013|DONE|012|居民调度真实Player配对、回归及选择性集成|Tools/RunResidentSchedulingDiagnosis/RunCityScenarioWindow；居民与保存测试|完整步/真实倍率/长尾/GC含维护成本|同30k二进制条件A/B/B/A，细归因和普通构建分离|完整状态同且整体重复收益才集成；不改8ms/32步/.05规则，不强合失败方案|[原生Player验收](MS013-PlayerAcceptance.md)：50×目标实际3.103→3.661×，FPS46.86→45.77；不默认启用、不合正式|
+|MS-014|IN_PROGRESS|001|拆解AdvanceIndustry工厂/环境/状态成本|Industry/CityProductionSystem.Step→CityIndustry.AdvanceIndustry；CityCorePayroll|在岗循环已O(A)，企业环境仍O(B)|低开销分项与周期/活动统计，不重复做在岗集合|同城预热完整步归因；确认恒零、持续变化及状态依赖后再选择实现|已有在岗正式2ca4e6c/报告，不能重复计成果；[初步调用链与分项边界](MS014-ProductionAudit.md)，尚未测子项|
 |MS-015|TODO|014|精确恒零/无活动企业稀疏化|CityIndustry.AdvanceIndustry；残余环境、企业状态写口|只省不产生任何变化的高频工作|派生活动集合；原每步float运算顺序不变|冻结全状态、资金/原料/产量/污染状态与冷热同；Player整体收益|—|
 |MS-016|TODO|005|量化并减少求职与岗位候选重复工作|Residents/CityCorePopulation.FindJobs；CityJobs；CityHouseholds|求职者×工作地/岗位与家庭查找|按技能/空缺/原job.id排序的派生候选，不改评分|原最近/同分序与完整岗位选择同，30k/100k冷/热分列；整体有收益|—|
 |MS-017|TODO|007|住房→住户/空置单元关系与失效|CityHouseholds.Occupancy；CityCorePopulation；CityEntities|重复扫家庭→受影响住宅查询|基于原家庭/单元事实的可重建索引|迁入迁出/换户/拆房/冷恢复、住房分配及资金同；先确认热调用|—|
 |MS-018|TODO|006,007|按需购物家庭及营业店候选|Economy/CityCoreConsumption.Step/BeginVisit；CityCorePayroll|每秒扫家庭/店→需求/变化集合|保留原家庭/店选择序与营业资金实时核对|缺钱/补货/付薪/购物到达/失败重试/冷热同；测完整步|—|
 |MS-019|TODO|006|货运供需与在途预留关系|Industry/CityLogisticsSystem.Step；CityFreightCandidates；World任务生命周期|周期O(V+F*S)→实际供需及相关任务|派生反向任务/库存需求索引；原匹配次序|支付、货物、预留和失败原子性不变；真实Player重复收益|—|
-|MS-020|TODO|001|统计垃圾批次查询重复及失败，再选共享方案|Services/CityCoreWaste.Step→World服务路由|集中搜索尖峰；4096→16k、工作区试验已无收益|低开销按站点/目标/成功与展开统计；不重做扩容|同一输入/固定步；证明共享机会后另增实现任务，不改积压优先级/出车规则|旧失败证据53a Progress|
+|MS-020|TODO|001|统计垃圾批次查询重复及失败，再选共享方案|Services/CityCoreWaste.Step→World服务路由|集中搜索尖峰；4096→16k、工作区试验已无收益|低开销按站点/目标/成功与展开统计；不重做扩容|同一输入/固定步；证明共享机会后另增实现任务，不改积压优先级/出车规则|旧失败证据53a Progress；[MS013峰值](MS013-PlayerAcceptance.md)：200基地超过128容量，整组回退，单帧普通搜索38.29ms；后续统计复用，不盲目扩容|
 |MS-021|TODO|001|从已有100k初态继续多日验证并归因经营异常|Tools/RunBoundedCityScenario；CityScenarioRun；100k已有initial.hcity|避免再构建两遍；区分冷峰、稳定CPU与消费0|复用只读初态；有界多日、日切Validate与在途checkpoint|真实就业/到岗/资金/生产/货运/消费/服务；守恒与冷热，失败如实，不为通过改平衡|已有5706步/906稳定步，仅部分模型结果|
 |MS-022|TODO|013,015,021|100k真实UnityPlayer验收|RunCityScenarioWindow；现有100k城市|加载与稳态、FPS和模拟倍率分开|有界Player矩阵、固定相机与预热、原微观负载|至少可靠1×实际推进、可交互；FPS/长尾/欠步/内存与保存；50×独立报告|—|
 |MS-023|TODO|013,015,021|按热数据实测布局与分配候选|CityResidents/CityEntities/World；CityCoreSave|对象布局/索引内存先证据后局部SoA/槽位|稳定ID与可压缩槽位分离；不全面ECS|真实维护/GC/峰内存、完整状态与保存，不能只测数组内核|—|
