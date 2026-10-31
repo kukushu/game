@@ -279,7 +279,7 @@ namespace HarborCity.RoadCore
         // trees intentionally keep Dijkstra: they have no single spatial goal.
         internal bool RouteHeuristicEnabled=true,RouteSharingEnabled=true;
         internal long SharedRouteHits,SharedRouteMisses,SharedRouteEvictions,PointSearches,PointExpanded;
-        const int SharedRouteCapacity=4096;
+        const int SharedRouteCapacity=8192;
         const long SharedRouteByteBudget=8*1024*1024;
         readonly struct LanePair:IEquatable<LanePair>
         {

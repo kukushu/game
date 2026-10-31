@@ -35,7 +35,7 @@ namespace HarborCity
                 Check(BitConverter.DoubleToInt64Bits(Cost(n,path,start,end))==BitConverter.DoubleToInt64Bits(quote),"Quote/materialization bits differ");
             }
             if(Queries%503==0){actual[0]=long.MaxValue;var again=n.RouteToEither(source,goal,other,out int side);Check(again[0]==lane&&side==chosen,"Actor mutated shared cache");}
-            Check(n.SharedRouteCount<=4096&&n.SharedRouteBytes<=8*1024*1024,"Lane cache unbounded");
+            Check(n.SharedRouteCount<=8192&&n.SharedRouteBytes<=8*1024*1024,"Lane cache unbounded");
         }
         internal static void Junctions(Network n)
         {
@@ -103,7 +103,8 @@ namespace HarborCity
             data.nextRoad=421;data.nextJunction=422;var n=new Network(data);n.RouteSharingEnabled=false;
             Action fill=()=>{for(int i=1;i<=12;i++)for(int j=200;j<=420;j++){var a=n.Get(Network.LaneId(i,false,0));var b=n.Get(Network.LaneId(j,false,0));n.Route(new RoadAccess{lane=a.Id,distance=a.StartDistance},new RoadAccess{lane=b.Id,distance=b.EndDistance});}};
             fill();long before=GC.GetTotalMemory(true);n.RouteSharingEnabled=true;fill();long after=GC.GetTotalMemory(true);
-            Check(n.SharedRouteCount<=4096&&n.SharedRouteBytes<=8*1024*1024&&n.SharedRouteEvictions>0,"Memory pressure did not bound/evict cache");
+            Check(n.SharedRouteCount<=8192&&n.SharedRouteBytes<=8*1024*1024&&n.SharedRouteEvictions>0,"Memory pressure did not bound/evict cache");
+            var countPressure=new Network(data);for(int i=1;i<=100;i++)for(int offset=1;offset<=100;offset++){var a=countPressure.Get(Network.LaneId(i,false,0));var b=countPressure.Get(Network.LaneId(i+offset,false,0));countPressure.Route(new RoadAccess{lane=a.Id,distance=a.StartDistance},new RoadAccess{lane=b.Id,distance=b.EndDistance});}Check(countPressure.SharedRouteCount==8192&&countPressure.SharedRouteBytes<=8*1024*1024&&countPressure.SharedRouteEvictions>0,"Entry pressure must reach the new bound and evict independently of the byte limit");
             var first=n.Get(Network.LaneId(1,false,0));var last=n.Get(Network.LaneId(420,false,0));var source=new RoadAccess{lane=first.Id,distance=first.StartDistance};var goal=new RoadAccess{lane=last.Id,distance=last.EndDistance};var expected=n.Route(source,goal);fill();Check(expected.SequenceEqual(n.Route(source,goal)),"Eviction changed path");
             File.WriteAllText(output,"entries,logical_bytes,managed_heap_delta,evictions\n"+string.Join(",",n.SharedRouteCount,n.SharedRouteBytes,after-before,n.SharedRouteEvictions));Console.WriteLine("PASS cache pressure/eviction: "+n.SharedRouteCount+" entries / "+n.SharedRouteBytes+" logical bytes; heap delta "+(after-before));
         }
