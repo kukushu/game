@@ -1,0 +1,12 @@
+metric,value
+buildings,9367200
+factories,3000000
+homes,1500000
+residual,0
+environment_zero,2985301
+environment_changed,14699
+state_changed,764
+attendance_zero,2903174
+productive_zero,2999912
+home_zero,1500000
+home_changed,0

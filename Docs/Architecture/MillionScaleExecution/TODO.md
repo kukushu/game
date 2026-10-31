@@ -6,7 +6,7 @@
 
 已有成果：稀疏在岗正式2ca4e6c，完整固定步约−3.4%/实际倍率约+5.5%，未改善FPS/长尾；报告[正式证据](../../Performance/SparseAttendance-20261030/Report.md)。旧队列/影子仅Tools，漏通知负控仍失败；垃圾缓存扩容与工作区改动无可靠整体收益，标记历史SKIPPED假设，不再重做。100k初态及5706部分模型步不是长期/Player验收。固定实验资料从53a读取，不能假定正式分支已存在。
 
-现在：MS-005复查修正通过（MS005-Review.md）；MS-006通知/成本验收完成，MS-007通知与成员顺序持久化验收通过；MS-008纯时间计算已验证；MS-009失效通知及状态对照通过；MS-010完整影子与补充事实通知验收通过；MS-011实验基础守卫已实际接管并通过模型对照，正常构建仍轮询；MS-012已完成选定班次/状态计划的实际接管与模型对照；MS-013完成原生Player配对与集成判定，实验默认不开、不合正式；MS-014开始生产分项调查。每项代码提交同步状态；SHA在后续记录中回填。完整事件调度尚未完成；已验证类别的Player吞吐收益及FPS取舍见MS013。
+现在：MS-005复查修正通过（MS005-Review.md）；MS-006通知/成本验收完成，MS-007通知与成员顺序持久化验收通过；MS-008纯时间计算已验证；MS-009失效通知及状态对照通过；MS-010完整影子与补充事实通知验收通过；MS-011实验基础守卫已实际接管并通过模型对照，正常构建仍轮询；MS-012已完成选定班次/状态计划的实际接管与模型对照；MS-013完成原生Player配对与集成判定，实验默认不开、不合正式；MS-014已完成生产分项与活动计数调查，MS-015准备精确零工作最小实验。每项代码提交同步状态；SHA在后续记录中回填。完整事件调度尚未完成；已验证类别的Player吞吐收益及FPS取舍见MS013。
 
 |ID|状态|依赖|目标/理由|真实文件与调用链（S/下，Tools另注）|问题/预期复杂度|拟用结构/算法|完成定义（正确性及性能）|实际提交/测试/报告|
 |---|---|---|---|---|---|---|---|---|
@@ -23,8 +23,8 @@
 |MS-011|DONE|010|先接管可靠守卫类别的实际执行|CityCoreResidents.AdvanceRequests；CityEntities；CitySimulation|O(到期+保守候选)，不是全员poll后再过滤|明确实验开关；原oracle路径保留；未接类别原检查|同存档同固定步完整状态/事件序一致；包含队列维护的粗计时先证实收益|5c5370d/43a9e10/b23cf85；[MS011](MS011-GuardExecution.md)，152状态点/请求字节同，模型均值约−5～8%；P99未改善，默认关闭待Player验收|
 |MS-012|DONE|011|逐类启用班次及状态唤醒，减少未到时刻检查|CityCoreResidents；工作地/家庭反向索引|进一步O(N等待)→O(到期/真实变化)|按类别推进，每类单独对照与回退|不得略过实时准入/支付；所有任务、工资、经济及后续模拟同|e7d57ba；[MS012](MS012-TemporalExecution.md)，三方152状态点及482141请求同；模型相对MS011约−18.7%，额外2.72MiB，Player见MS013/默认关闭|
 |MS-013|DONE|012|居民调度真实Player配对、回归及选择性集成|Tools/RunResidentSchedulingDiagnosis/RunCityScenarioWindow；居民与保存测试|完整步/真实倍率/长尾/GC含维护成本|同30k二进制条件A/B/B/A，细归因和普通构建分离|完整状态同且整体重复收益才集成；不改8ms/32步/.05规则，不强合失败方案|[原生Player验收](MS013-PlayerAcceptance.md)：50×目标实际3.103→3.661×，FPS46.86→45.77；不默认启用、不合正式|
-|MS-014|IN_PROGRESS|001|拆解AdvanceIndustry工厂/环境/状态成本|Industry/CityProductionSystem.Step→CityIndustry.AdvanceIndustry；CityCorePayroll|在岗循环已O(A)，企业环境仍O(B)|低开销分项与周期/活动统计，不重复做在岗集合|同城预热完整步归因；确认恒零、持续变化及状态依赖后再选择实现|已有在岗正式2ca4e6c/报告，不能重复计成果；[初步调用链与分项边界](MS014-ProductionAudit.md)，尚未测子项|
-|MS-015|TODO|014|精确恒零/无活动企业稀疏化|CityIndustry.AdvanceIndustry；残余环境、企业状态写口|只省不产生任何变化的高频工作|派生活动集合；原每步float运算顺序不变|冻结全状态、资金/原料/产量/污染状态与冷热同；Player整体收益|—|
+|MS-014|DONE|001|拆解AdvanceIndustry工厂/环境/状态成本|Industry/CityProductionSystem.Step→CityIndustry.AdvanceIndustry；CityCorePayroll|在岗循环已O(A)，企业环境仍O(B)|低开销分项与周期/活动统计，不重复做在岗集合|同城预热完整步归因；确认恒零、持续变化及状态依赖后再选择实现|已有在岗正式2ca4e6c/报告，不能重复计成果；[实测分项与活动计数](MS014-ProductionAudit.md)：Workers0.312/Industry0.275ms每步；六原生状态/冷读一致；细埋点污染已校准|
+|MS-015|IN_PROGRESS|014|精确恒零/无活动企业稀疏化|CityIndustry.AdvanceIndustry；残余环境、企业状态写口|只省不产生任何变化的高频工作|派生活动集合；原每步float运算顺序不变|冻结全状态、资金/原料/产量/污染状态与冷热同；Player整体收益|—|
 |MS-016|TODO|005|量化并减少求职与岗位候选重复工作|Residents/CityCorePopulation.FindJobs；CityJobs；CityHouseholds|求职者×工作地/岗位与家庭查找|按技能/空缺/原job.id排序的派生候选，不改评分|原最近/同分序与完整岗位选择同，30k/100k冷/热分列；整体有收益|—|
 |MS-017|TODO|007|住房→住户/空置单元关系与失效|CityHouseholds.Occupancy；CityCorePopulation；CityEntities|重复扫家庭→受影响住宅查询|基于原家庭/单元事实的可重建索引|迁入迁出/换户/拆房/冷恢复、住房分配及资金同；先确认热调用|—|
 |MS-018|TODO|006,007|按需购物家庭及营业店候选|Economy/CityCoreConsumption.Step/BeginVisit；CityCorePayroll|每秒扫家庭/店→需求/变化集合|保留原家庭/店选择序与营业资金实时核对|缺钱/补货/付薪/购物到达/失败重试/冷热同；测完整步|—|
