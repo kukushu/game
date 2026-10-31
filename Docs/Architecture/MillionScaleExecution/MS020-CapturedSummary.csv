@@ -1,0 +1,2 @@
+queries,depots,point_replay_ms,tree_cold_ms,tree_hot_ms,cold_tree_builds,hot_tree_builds,entries,evictions,logical_tree_bytes,logical_graph_bytes,cold_allocated_bytes,hot_allocated_bytes,route_differences,curb_differences,max_cost_delta_seconds,city_facts_unchanged,note
+269,122,316.9213,639.2567,6.6197,358,0,122,0,26391040,345952,29924096,1088136,143,0,2.842170943040401E-14,True,isolated dotnet static requests; no traffic admission or Unity FPS; no production live-set policy changed
