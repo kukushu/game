@@ -58,7 +58,8 @@ namespace HarborCity
             var warmArgs=Environment.GetCommandLineArgs();var warmSession=host.ScenarioSession;
             if(Array.IndexOf(warmArgs,"-harbor-window-prewarm-lane-depots")>=0)
             {
-                if(!sharedWarmup||!warmSession.Transport.DepotLaneRoutingEnabled)throw new InvalidOperationException("Lane prewarm requires shared warmup and lane routing");
+                if(!sharedWarmup||Array.IndexOf(warmArgs,"-harbor-depot-lane-routing")<0)throw new InvalidOperationException("Lane prewarm requires shared warmup and explicit lane routing");
+                warmSession.Transport.DepotLaneRoutingEnabled=true;
                 byte[] before=CityCoreSave.Write(warmSession);var cache=warmSession.Transport.DepotRoutes;long builds=cache.TreeBuilds;var watch=System.Diagnostics.Stopwatch.StartNew();int depots=0;
                 var fitProperty=cache.GetType().GetProperty("CanServeLiveSet",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic);bool fits=fitProperty==null||(bool)fitProperty.GetValue(cache);
                 foreach(var plant in warmSession.City.buildings.OfType<LandfillBuilding>().Where(p=>fits).OrderBy(p=>p.id))

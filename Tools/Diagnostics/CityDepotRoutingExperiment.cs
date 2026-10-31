@@ -35,6 +35,7 @@ static class CityDepotRoutingExperiment
     }
     static void Main(string[] args)
     {
+        if(args.Length==4&&args[0]=="--captured"){ReplayCaptured(args[1],args[2],args[3]);return;}
         GC.KeepAlive(CityCoreProfile.AllocationAvailable);
         if(Directory.Exists(args[1]))throw new IOException("Choose a fresh experiment result directory");
         Directory.CreateDirectory(args[1]);
@@ -196,5 +197,54 @@ static class CityDepotRoutingExperiment
         File.WriteAllLines(Path.Combine(dir, "state-differences.txt"), differences);
         Console.WriteLine(File.ReadAllText(Path.Combine(dir, "simulation.csv")));
         Console.WriteLine(File.ReadAllText(Path.Combine(dir, "replay-result.txt")));
+    }
+    // Read-only algorithm study: replay actual Player requests with the EXISTING
+    // tree implementation. A private cache has no declared live-set filter; this
+    // deliberately does NOT change the production world's 200>128 policy.
+    static void ReplayCaptured(string save,string capture,string output)
+    {
+        System.Globalization.CultureInfo.CurrentCulture=System.Globalization.CultureInfo.InvariantCulture;
+        if(Directory.Exists(output))throw new IOException("Fresh captured replay output required");
+        Directory.CreateDirectory(output);var city=Load(File.ReadAllBytes(save));var world=city.Transport;
+        string before=Hash(CityCoreSave.Write(city));var lines=File.ReadAllLines(capture);var header=lines[0].Split(',');
+        string Field(string[] row,string name){int i=Array.IndexOf(header,name);if(i<0)throw new Exception("Missing captured field "+name);return row[i];}
+        var queries=new List<Query>();
+        foreach(string line in lines.Skip(1))
+        {
+            var r=line.Split(',');var anchor=world.GetAccess(int.Parse(Field(r,"depot"))).Copy();
+            bool back=bool.Parse(Field(r,"returning"));int endpoint=int.Parse(Field(r,"point_endpoint"));
+            var point=back?new RoadAccess():world.GetAccess(endpoint).Copy();point.endpoint=endpoint;
+            long al=long.Parse(Field(r,"anchor_lane")),pl=long.Parse(Field(r,"point_lane"));double ad=double.Parse(Field(r,"anchor_distance")),pd=double.Parse(Field(r,"point_distance"));
+            if(anchor.lane!=al||BitConverter.DoubleToInt64Bits(anchor.distance)!=BitConverter.DoubleToInt64Bits(ad)||!back&&(point.lane!=pl||BitConverter.DoubleToInt64Bits(point.distance)!=BitConverter.DoubleToInt64Bits(pd)))throw new Exception("Captured access differs from frozen network");
+            point.lane=pl;point.distance=pd;queries.Add(new Query{depot=anchor.endpoint,a=anchor,p=point,back=back});
+        }
+        if(queries.Count==0||queries.Count>10000)throw new Exception("Bounded captured query set required");
+        world.ResetDepotExperimentCaches();world.DepotLaneRoutingEnabled=false;DepotRoutingTrace.Enabled=false;
+        var reference=new List<DispatchBlueprint>();var timer=Stopwatch.StartNew();
+        foreach(var q in queries)reference.Add(world.ReplayDepotQuery(q.depot,q.a,q.p,q.back));
+        timer.Stop();double baselineMs=timer.Elapsed.TotalMilliseconds;
+        var cache=new DepotLaneRouting();var coldPaths=new List<DispatchBlueprint>();var costs=new List<string>{"query,depot,returning,baseline_seconds,tree_seconds,delta_seconds,route_equal,start_equal,end_equal,baseline_first_lane,tree_first_lane"};
+        long bytes=GC.GetAllocatedBytesForCurrentThread();timer.Restart();
+        foreach(var q in queries){if(!cache.TryFind(world,q.depot,q.a,q.p,q.back,out var route,out double start,out double end))throw new Exception("Isolated tree replay could not serve valid input");coldPaths.Add(new DispatchBlueprint(world.Network,route,start,end));}
+        timer.Stop();double coldMs=timer.Elapsed.TotalMilliseconds;long coldBytes=GC.GetAllocatedBytesForCurrentThread()-bytes;long coldBuilds=cache.TreeBuilds;
+        int routesChanged=0,curbsChanged=0;double maxDelta=0;
+        for(int i=0;i<queries.Count;i++)
+        {
+            var q=queries[i];var a=reference[i];var b=coldPaths[i];bool reachable=a.route!=null;
+            if(reachable!=(b.route!=null))throw new Exception("Captured replay reachability differs "+i);
+            if(reachable){world.Network.ValidateRoute(b.route.ToList());if(!AccessRouting.Matches(world.Network,q.a,q.back?b.route.Last():b.route.First(),q.back?b.end:b.start,true)||!AccessRouting.Matches(world.Network,q.p,q.back?b.route.First():b.route.Last(),q.back?b.start:b.end,!q.back))throw new Exception("Captured replay endpoint mismatch "+i);}
+            // Same tolerance as the existing lane-tree research checks, not a state-equivalence assertion.
+            double delta=reachable?b.seconds-a.seconds:0;if(Math.Abs(delta)>1e-9*Math.Max(1,Math.Abs(a.seconds)))throw new Exception("Captured replay shortest cost mismatch "+i);
+            bool sameRoute=!reachable||a.route.SequenceEqual(b.route),sameStart=a.start==b.start,sameEnd=a.end==b.end;
+            if(!sameRoute||!sameStart||!sameEnd)routesChanged++;if(reachable&&(a.route.First()!=b.route.First()||a.route.Last()!=b.route.Last()||!sameStart||!sameEnd))curbsChanged++;maxDelta=Math.Max(maxDelta,Math.Abs(delta));
+            costs.Add(string.Join(",",i,q.depot,q.back,a.seconds.ToString("R"),b.seconds.ToString("R"),delta.ToString("R"),sameRoute,sameStart,sameEnd,reachable?a.route.First():0,reachable?b.route.First():0));
+        }
+        bytes=GC.GetAllocatedBytesForCurrentThread();timer.Restart();
+        for(int i=0;i<queries.Count;i++){var q=queries[i];if(!cache.TryFind(world,q.depot,q.a,q.p,q.back,out var route,out double start,out double end))throw new Exception("Hot replay rejected input");var old=coldPaths[i];if((route==null)!=(old.route==null)||route!=null&&!route.SequenceEqual(old.route)||start!=old.start||end!=old.end)throw new Exception("Cold/hot static route differs "+i);}
+        timer.Stop();double hotMs=timer.Elapsed.TotalMilliseconds;long hotBytes=GC.GetAllocatedBytesForCurrentThread()-bytes;
+        if(before!=Hash(CityCoreSave.Write(city)))throw new Exception("Read-only replay modified city facts");
+        File.WriteAllLines(Path.Combine(output,"captured-choices.csv"),costs);
+        File.WriteAllText(Path.Combine(output,"captured-summary.csv"),"queries,depots,point_replay_ms,tree_cold_ms,tree_hot_ms,cold_tree_builds,hot_tree_builds,entries,evictions,logical_tree_bytes,logical_graph_bytes,cold_allocated_bytes,hot_allocated_bytes,route_differences,curb_differences,max_cost_delta_seconds,city_facts_unchanged,note\n"+string.Join(",",queries.Count,queries.Select(q=>q.depot).Distinct().Count(),baselineMs,coldMs,hotMs,coldBuilds,cache.TreeBuilds-coldBuilds,cache.Count,cache.Evictions,cache.ReservedTreeBytes,cache.ReservedGraphBytes,coldBytes,hotBytes,routesChanged,curbsChanged,maxDelta,true,"isolated dotnet static requests; no traffic admission or Unity FPS; no production live-set policy changed"));
+        Console.WriteLine(File.ReadAllText(Path.Combine(output,"captured-summary.csv")));
     }
 }
