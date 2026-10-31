@@ -7,9 +7,12 @@ namespace HarborCity
     public enum HousingKind { Apartment, Villa }
     [Serializable] public sealed class Household
     {
-        public int id, home=-1, unit=-1, savings=600;
+        public int id, unit=-1, savings=600;
+        int address=-1;bool active;
+        internal CityEntities EntityOwner;
+        [CitySavedFact] public int home {get=>address;set{if(address==value)return;int previous=address;address=value;EntityOwner?.HouseholdHomeChanged(this,previous);}}
+        [CitySavedFact] public bool resident {get=>active;set{if(active==value)return;active=value;EntityOwner?.HouseholdChanged(this,CityResidentStateChange.Residence);}}
         public int rent, leaseEnd, lastMove=-100, nextReview, hardship, arrears;
-        public bool resident;
         public float spacePreference, privacyPreference, timePreference, savingPreference;
         public float noiseSensitivity, pollutionSensitivity, trafficSensitivity;
         public int wagePaid, rentPaid, livingPaid, travelPaid;

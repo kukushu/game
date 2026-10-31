@@ -36,3 +36,7 @@
 仅开始写口审计，不在本阶段修改健康/家庭逻辑。CityHealth.CanAttendWork读取canWork和sick；AdvanceRequests还单独判断dead、家庭resident、home/location及岗位。下一步沿居民、医疗/死亡、家庭迁入迁出和CityEntities.MoveResident/Add/Remove查全部权威写入口及冷恢复。复用唯一Owner和既有显式保存事实，未接类别继续保守poll；不要只接sick就宣称所有工作资格已事件化。
 
 MS008依赖005/006/007；007未通过不得推进班次实际调度。后续008/009/010完整影子、011/012真实执行及013 Player门槛均保持TODO。旧稀疏在岗已正式集成，不重复记功；旧缓存失败试验不重做。正式/main/master/Python和旧百万实验不在本轮修改范围。
+
+## MS-007 working checkpoint
+
+Runtime state/home notification implementation and targeted tests prepared against934e064. Found a real baseline defect: move1 away/back yields warm Members1;2;3;4 vs cold2;3;4;1; after20steps states differ in BOTH versions. Do not mark general cold restoration PASS or MS007 DONE. Report MS007-ResidentState.md records the counterexample; MS008 remains TODO. No save protocol change attempted in this stage. New home→households index supports only local home invalidation, reusable by MS017.

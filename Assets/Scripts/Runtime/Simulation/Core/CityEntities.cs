@@ -63,6 +63,48 @@ namespace HarborCity
         readonly Dictionary<int,HashSet<CityMember>> employees=new Dictionary<int,HashSet<CityMember>>();
         readonly Dictionary<int,int> memberWorkplace=new Dictionary<int,int>();
         internal event Action<CityMember> JobAssignmentsChanged;
+        // Fact invalidation only, not a departure or medical business event.
+        // Consumers mark dirtiness and evaluate after the enclosing mutation returns.
+        internal event Action<CityMember,CityResidentStateChange> ResidentStateChanged;
+        readonly List<CityMember> householdNotices=new List<CityMember>();
+        internal void StateChanged(CityResident person,CityResidentStateChange reason)
+        {
+            var notify=ResidentStateChanged;if(notify==null)return;
+            var member=Member(person.id);if(member==null||member.Person!=person)throw new InvalidOperationException("Resident state changed outside ownership");
+            notify(member,reason);
+        }
+        readonly Dictionary<int,HashSet<Household>> householdsByHome=new Dictionary<int,HashSet<Household>>();
+        void IndexHome(Household family,int home)
+        {if(home<0)return;if(!householdsByHome.TryGetValue(home,out var set)){set=new HashSet<Household>();householdsByHome.Add(home,set);}set.Add(family);}
+        internal void HouseholdHomeChanged(Household family,int previous)
+        {
+            if(!ReferenceEquals(Family(family.id),family))throw new InvalidOperationException("Home changed outside household ownership");
+            if(previous>=0){if(!householdsByHome.TryGetValue(previous,out var set)||!set.Remove(family))throw new InvalidOperationException("Stale household home index");if(set.Count==0)householdsByHome.Remove(previous);}
+            IndexHome(family,family.home);HouseholdChanged(family,CityResidentStateChange.Home);
+        }
+        void CollectHouseholdNotices(Household family)
+        {
+            if(!ReferenceEquals(Family(family.id),family))throw new InvalidOperationException("Household state changed outside ownership");
+            foreach(var person in family.people){var member=Member(person.id);if(member==null||member.Person!=person||member.Family!=family)throw new InvalidOperationException("Household membership bypassed owner");householdNotices.Add(member);}
+        }
+        void PublishHouseholdNotices(Action<CityMember,CityResidentStateChange> notify,CityResidentStateChange reason)
+        {householdNotices.Sort((a,b)=>a.Ordinal.CompareTo(b.Ordinal));foreach(var member in householdNotices)notify(member,reason);householdNotices.Clear();}
+        internal void HouseholdChanged(Household family,CityResidentStateChange reason)
+        {
+            var notify=ResidentStateChanged;if(notify==null)return;
+            householdNotices.Clear();CollectHouseholdNotices(family);PublishHouseholdNotices(notify,reason);
+        }
+        void HousingChanged(int home)
+        {
+            var notify=ResidentStateChanged;if(notify==null||!householdsByHome.TryGetValue(home,out var familiesAtHome))return;
+            householdNotices.Clear();foreach(var family in familiesAtHome)CollectHouseholdNotices(family);PublishHouseholdNotices(notify,CityResidentStateChange.HousingAvailability);
+        }
+        internal void ValidateHomeIndex()
+        {
+            int expected=0,actual=0;foreach(var family in city.society.families)if(family.home>=0){expected++;if(!householdsByHome.TryGetValue(family.home,out var set)||!set.Contains(family))throw new InvalidOperationException("Missing household home index");}
+            foreach(var pair in householdsByHome)foreach(var family in pair.Value){actual++;if(family.home!=pair.Key||!ReferenceEquals(Family(family.id),family))throw new InvalidOperationException("Orphan household home index");}
+            if(actual!=expected)throw new InvalidOperationException("Household home count mismatch");
+        }
         sealed class FundingState {internal object Account;internal bool Funded;}
         readonly Dictionary<int,FundingState> funding=new Dictionary<int,FundingState>();
         readonly HashSet<int> dirtyFunding=new HashSet<int>();
@@ -175,7 +217,7 @@ namespace HarborCity
         internal void WorkAttendanceChanged(CityResident p)
         {
             var member=Member(p.id);if(member==null||member.Person!=p)throw new InvalidOperationException("Attendance changed outside resident ownership");
-            workingMembers.Set(member,p.atWork);
+            workingMembers.Set(member,p.atWork);ResidentStateChanged?.Invoke(member,CityResidentStateChange.Attendance);
         }
         // Derived scheduling observers mark dirtiness; they must not execute business
         // rules synchronously. No subscriber means no lookup or event allocation.
@@ -213,7 +255,7 @@ namespace HarborCity
             this.city=city;this.transport=transport;Buildings=city.buildings.AsReadOnly();Members=members.AsReadOnly();Factories=factories.AsReadOnly();Shops=shops.AsReadOnly();
             foreach(var b in city.buildings){buildings.Add(b.id,b);IndexType(b);transport.SetEndpointAvailable(b.id,Available(b));}
             foreach(var c in city.trade.connections){if(buildings.ContainsKey(c.id))throw new ArgumentException("Endpoint identity collision");connections.Add(c.id,c);transport.SetEndpointAvailable(c.id,c.active);}
-            foreach(var h in city.society.families){families.Add(h.id,h);foreach(var p in h.people){var m=new CityMember(h,p,nextMemberOrdinal++);people.Add(p.id,m);members.Add(m);BindAttendance(m);}}
+            foreach(var h in city.society.families){families.Add(h.id,h);h.EntityOwner=this;IndexHome(h,h.home);foreach(var p in h.people){var m=new CityMember(h,p,nextMemberOrdinal++);people.Add(p.id,m);members.Add(m);BindAttendance(m);}}
             RebuildJobs();city.entities=this;
         }
         static bool Available(CityBuilding b)=>!b.abandoned&&!b.burned;
@@ -266,17 +308,17 @@ namespace HarborCity
         public void AddBuilding(CityBuilding b)
         {StructuralBoundary();if(b==null||b.id<city.nextBuildingId||b.id>=int.MaxValue||buildings.ContainsKey(b.id))throw new ArgumentException("Building ID must be new and monotonic");if(b is IndustrialBuilding factory&&(factory.factory==null||factory.factory.FundingOwner!=null)||b is CommercialBuilding shop&&(shop.Account==null||shop.Account.FundingOwner!=null))throw new ArgumentException("New building requires its own unbound account");city.buildings.Add(b);buildings.Add(b.id,b);IndexType(b);city.nextBuildingId=b.id+1;transport.SetEndpointAvailable(b.id,Available(b));Revision++;BuildingRevision++;city.SyncJobs();}
         public void ReplaceBuilding(CityBuilding b)
-        {StructuralBoundary();var old=b==null?null:Building(b.id);if(old==null||b.Use!=old.Use||old is IndustrialBuilding)throw new ArgumentException("Replacement preserves identity/use; factory accounts need explicit retirement, not replacement");if(old.garbage!=b.garbage||old is LandfillBuilding landfill&&(!(b is LandfillBuilding nextPlant)||landfill.stored!=nextPlant.stored||landfill.processingRemainder!=nextPlant.processingRemainder))throw new ArgumentException("Replacement cannot discard waste inventory");if(old is CommercialBuilding shop&&b is CommercialBuilding next){if(shop.Stock!=next.Stock||shop.wholesaleCosts!=next.wholesaleCosts)throw new ArgumentException("Replacement cannot discard inventory/finance");next.Account=shop.Account;}int at=city.buildings.IndexOf(old);city.buildings[at]=b;buildings[b.id]=b;ReplaceType(old,b);transport.SetEndpointAvailable(b.id,Available(b));Revision++;BuildingRevision++;city.SyncJobs();transport.RefreshEndpoints();}
+        {StructuralBoundary();var old=b==null?null:Building(b.id);if(old==null||b.Use!=old.Use||old is IndustrialBuilding)throw new ArgumentException("Replacement preserves identity/use; factory accounts need explicit retirement, not replacement");if(old.garbage!=b.garbage||old is LandfillBuilding landfill&&(!(b is LandfillBuilding nextPlant)||landfill.stored!=nextPlant.stored||landfill.processingRemainder!=nextPlant.processingRemainder))throw new ArgumentException("Replacement cannot discard waste inventory");if(old is CommercialBuilding shop&&b is CommercialBuilding next){if(shop.Stock!=next.Stock||shop.wholesaleCosts!=next.wholesaleCosts)throw new ArgumentException("Replacement cannot discard inventory/finance");next.Account=shop.Account;}int at=city.buildings.IndexOf(old);city.buildings[at]=b;buildings[b.id]=b;ReplaceType(old,b);transport.SetEndpointAvailable(b.id,Available(b));Revision++;BuildingRevision++;city.SyncJobs();transport.RefreshEndpoints();if(b is ResidentialBuilding)HousingChanged(b.id);}
         internal CityBuilding RemoveBuilding(int id)
         {StructuralBoundary();var b=Building(id);if(b==null)throw new ArgumentException("Missing building");city.buildings.Remove(b);buildings.Remove(id);UnindexType(b);retired.Add(b);transport.SetEndpointAvailable(id,false);Revision++;BuildingRevision++;city.SyncJobs();transport.RefreshEndpoints();return b;}
         public void SetAvailability(int id,bool abandoned,bool burned)
-        {StructuralBoundary();var b=Building(id);if(b==null)throw new ArgumentException("Missing building");b.abandoned=abandoned;b.burned=burned;transport.SetEndpointAvailable(id,Available(b));Revision++;BuildingRevision++;city.SyncJobs();transport.RefreshEndpoints();}
+        {StructuralBoundary();var b=Building(id);if(b==null)throw new ArgumentException("Missing building");bool changedHome=b is ResidentialBuilding&&(b.abandoned!=abandoned||b.burned!=burned);b.abandoned=abandoned;b.burned=burned;transport.SetEndpointAvailable(id,Available(b));Revision++;BuildingRevision++;city.SyncJobs();transport.RefreshEndpoints();if(changedHome)HousingChanged(id);}
         public void AddFamily(Household h)
-        {StructuralBoundary();if(families.Count>=HouseholdState.MaximumFamilies)throw new InvalidOperationException("Household technical capacity reached");if(h==null||h.id<city.society.nextId||h.id>=int.MaxValue||families.ContainsKey(h.id)||h.people.Count!=0)throw new ArgumentException("Add empty new family first");families.Add(h.id,h);city.society.families.Add(h);city.society.nextId=h.id+1;Revision++;}
+        {StructuralBoundary();if(families.Count>=HouseholdState.MaximumFamilies)throw new InvalidOperationException("Household technical capacity reached");if(h==null||h.id<city.society.nextId||h.id>=int.MaxValue||families.ContainsKey(h.id)||h.people.Count!=0||h.EntityOwner!=null)throw new ArgumentException("Add empty new family first");families.Add(h.id,h);h.EntityOwner=this;IndexHome(h,h.home);city.society.families.Add(h);city.society.nextId=h.id+1;Revision++;}
         public void AddResident(int familyId,CityResident p)
         {StructuralBoundary();var h=Family(familyId);if(h==null||p==null||p.id<city.society.nextCitizenId||p.id>=int.MaxValue||people.ContainsKey(p.id)||p.tripId!=0||p.jobId>=0)throw new ArgumentException("Invalid new resident");p.householdId=h.id;h.people.Add(p);var m=new CityMember(h,p,nextMemberOrdinal++);members.Add(m);people.Add(p.id,m);BindAttendance(m);city.society.nextCitizenId=p.id+1;Revision++;MembersChanged?.Invoke();}
         public void MoveResident(int citizen,int familyId)
-        {StructuralBoundary();var m=Member(citizen);var h=Family(familyId);if(m==null||h==null||m.Person.tripId!=0)throw new InvalidOperationException("Cannot move absent/in-transit resident");if(m.Family==h)return;m.Family.people.Remove(m.Person);h.people.Add(m.Person);m.Family=h;m.Person.householdId=h.id;Revision++;}
+        {StructuralBoundary();var m=Member(citizen);var h=Family(familyId);if(m==null||h==null||m.Person.tripId!=0)throw new InvalidOperationException("Cannot move absent/in-transit resident");if(m.Family==h)return;m.Family.people.Remove(m.Person);h.people.Add(m.Person);m.Family=h;m.Person.householdId=h.id;Revision++;ResidentStateChanged?.Invoke(m,CityResidentStateChange.Membership);}
         public void RemoveResident(int citizen)
         {StructuralBoundary();var m=Member(citizen);if(m==null||m.Person.tripId!=0||m.Person.carriedGoods!=0||m.Person.wageCredit!=0||m.Person.earnedWages!=0)throw new InvalidOperationException("Cannot remove an in-transit resident or discard unclaimed wages");city.ReleaseJob(m.Person);city.society.retiredWagesPaid+=m.Person.wagesPaid;m.Family.people.Remove(m.Person);if(m.Family.people.Count==0){m.Family.resident=false;m.Family.home=m.Family.unit=-1;}workingMembers.Remove(m);m.Person.EntityOwner=null;members.Remove(m);people.Remove(citizen);CompactAttendanceOrdinals();Revision++;MembersChanged?.Invoke();}
         void CompactAttendanceOrdinals()
@@ -289,6 +331,8 @@ namespace HarborCity
         }
         public void Validate()
         {
+            foreach(var family in city.society.families)if(family.EntityOwner!=this)throw new InvalidOperationException("Stale household owner");
+            ValidateHomeIndex();
             ValidateFundingBindings();
             ValidateEmploymentIndex();
             int workingCount=0;long previousOrdinal=-1;

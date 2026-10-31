@@ -1,7 +1,7 @@
 param([string]$Results='Temp/MillionScaleExecution/guard-checks')
 $ErrorActionPreference='Stop';$root=Split-Path $PSScriptRoot -Parent;. (Join-Path $PSScriptRoot 'ProjectLayout.ps1')
 $out=Join-Path $root $Results;if(Test-Path -LiteralPath $out){throw 'Fresh output required'};New-Item -ItemType Directory -Path $out|Out-Null
-$frozen=@{};foreach($relative in @('Core/CityEntities.cs','Residents/CityResidents.cs','Residents/CityJobs.cs','Industry/CityIndustry.cs','Economy/CityShopAccount.cs','Residents/CityCoreResidents.cs')){
+$frozen=@{};foreach($relative in @('Core/CityEntities.cs','Residents/CityResidents.cs','Residents/CityJobs.cs','Industry/CityIndustry.cs','Economy/CityShopAccount.cs','Residents/CityCoreResidents.cs','Residents/CityHouseholds.cs')){
  $name=[IO.Path]::GetFileName($relative);$path=Join-Path $out $name;$source=& git -C $root show ('93d97f2:Assets/Scripts/Runtime/Simulation/'+$relative);if($LASTEXITCODE -ne 0){throw 'Frozen source unavailable'};[IO.File]::WriteAllLines($path,$source);$frozen[$name]=$path
 }
 $save=Join-Path (Split-Path $root -Parent) 'test/Temp/CityScenarios/regenerated30000-20261017/city.hcity'

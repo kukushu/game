@@ -6,15 +6,20 @@ namespace HarborCity
     // Explicit saved facts may use guarded setters without changing their wire name/type.
     [AttributeUsage(AttributeTargets.Property)] internal sealed class CitySavedFactAttribute : Attribute {}
     internal enum CityResidentGuard { Trip, Retry, Visit }
+    internal enum CityResidentStateChange { Ability, Sickness, Death, Location, Attendance, Home, Residence, Membership, HousingAvailability }
     [Serializable] public sealed class CityResident
     {
         public int id, age;
         public double ageProgress;
         public int lastAgeDay;
         public string name;
-        public bool canWork,dead;
+        bool capable,deceased,ill;int currentLocation=-1;
+        [CitySavedFact] public bool canWork {get=>capable;set{if(capable==value)return;capable=value;EntityOwner?.StateChanged(this,CityResidentStateChange.Ability);}}
+        [CitySavedFact] public bool dead {get=>deceased;set{if(deceased==value)return;deceased=value;EntityOwner?.StateChanged(this,CityResidentStateChange.Death);}}
+        [CitySavedFact] public bool sick {get=>ill;set{if(ill==value)return;ill=value;EntityOwner?.StateChanged(this,CityResidentStateChange.Sickness);}}
+        [CitySavedFact] public int location {get=>currentLocation;set{if(currentLocation==value)return;currentLocation=value;EntityOwner?.StateChanged(this,CityResidentStateChange.Location);}}
         public int householdId, skill, wagePaid;
-        public int departureDay=-1, arrivedDay=-1, location=-1, observedHome=-1, observedWork=-1, observedRevision=-1;
+        public int departureDay=-1, arrivedDay=-1, observedHome=-1, observedWork=-1, observedRevision=-1;
         bool working;
         internal CityEntities EntityOwner;
         int trip,assignedJob=-1;float retry;double visit;
@@ -30,7 +35,6 @@ namespace HarborCity
             set {if(working==value)return;working=value;EntityOwner?.WorkAttendanceChanged(this);}
         }
         public float health=100;
-        public bool sick;
         public MedicalStage medicalStage;
         public int medicalClinicId=-1;
         public float treatmentMinutes;
