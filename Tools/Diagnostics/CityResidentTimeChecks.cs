@@ -35,18 +35,18 @@ static class CityResidentTimeChecks {
 #endif
  for(int i=0;i<1200;i++){s.Advance(.05);if(i%100==99)rows.Add(s.Simulation.Tick+","+Hash(s));}var cold=CityCoreSave.Read(CityCoreSave.Write(s));cold.Transport.DepotLaneRoutingEnabled=true;cold.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);for(int i=0;i<80;i++){s.Advance(.05);cold.Advance(.05);}if(Hash(s)!=Hash(cold))throw new Exception("Cold replay differs");rows.Add("cold80,"+Hash(s));File.WriteAllLines(Path.Combine(args[1],"states.csv"),rows);File.WriteAllLines(Path.Combine(args[1],"requests.csv"),calls);
 #if TIME_PLAN
- CityResidentTimeProbe.Finish();Cost(args[1]);File.WriteAllLines(Path.Combine(args[1],"rounding-examples.csv"),Examples);Console.WriteLine("timeProbe="+CityResidentTimeProbe.Samples+",checks="+Checks);
+ CityResidentTimeProbe.Finish();Cost(args[1]);File.WriteAllLines(Path.Combine(args[1],"rounding-examples.csv"),Examples);Console.WriteLine("timeProbe="+CityResidentTimeProbe.Samples+",departures="+CityResidentTimeProbe.Departures+",returns="+CityResidentTimeProbe.Returns+",checks="+Checks);
 #endif
  Console.WriteLine("PASS real30k unchanged requests/full state and cold80; no scheduling activated");}
 }
 #if TIME_PLAN
 internal static class CityResidentTimeProbe {
- internal static bool Enabled;internal static int Samples;static readonly HashSet<int> sampled=new HashSet<int>();static readonly List<Action> pending=new List<Action>();
- internal static void Observe(int citizen,long tick,double offset,float days,float retry,double visit,float shift,float duration,double estimate,bool leaving,bool timedReturn,bool returning){
-  if(!Enabled||Samples>=256||!sampled.Add(citizen))return;Samples++;pending.Add(()=>{CityResidentTimeChecks.Verify(tick,offset,days,retry,visit,shift,duration,estimate,0);if(timedReturn)CityResidentTimeChecks.Verify(tick,offset,days,retry,visit,shift,duration,estimate,1);});
-  var plan=CityResidentRequestTime.Departure(tick,offset,days,retry,visit,shift,duration,estimate);CityResidentTimeChecks.Check(plan.Kind!=ResidentTimeCheckKind.Conservative,"Normal city fell back");CityResidentTimeChecks.Check((plan.Kind==ResidentTimeCheckKind.Predicate&&plan.Tick==tick)==leaving,"Live departure predicate mismatch");
-  if(timedReturn){plan=CityResidentRequestTime.ShiftEnd(tick,offset,days,retry,visit,shift,duration);CityResidentTimeChecks.Check((plan.Kind==ResidentTimeCheckKind.Predicate&&plan.Tick==tick)==returning,"Live return predicate mismatch");}
+ internal static bool Enabled;internal static int Samples,Departures,Returns;static readonly HashSet<int> sampledDeparture=new HashSet<int>(),sampledReturn=new HashSet<int>();static readonly List<Action> pending=new List<Action>();
+ internal static void Observe(int citizen,long tick,double offset,float days,float retry,double visit,float shift,float duration,double estimate,bool eligible,bool leaving,bool timedReturn,bool returning){
+  if(!Enabled)return;
+  if(eligible&&Departures<128&&sampledDeparture.Add(citizen)){Samples++;Departures++;pending.Add(()=>CityResidentTimeChecks.Verify(tick,offset,days,retry,visit,shift,duration,estimate,0));var plan=CityResidentRequestTime.Departure(tick,offset,days,retry,visit,shift,duration,estimate);CityResidentTimeChecks.Check(plan.Kind!=ResidentTimeCheckKind.Conservative,"Normal departure fell back");CityResidentTimeChecks.Check((plan.Kind==ResidentTimeCheckKind.Predicate&&plan.Tick==tick)==leaving,"Live departure predicate mismatch");}
+  if(timedReturn&&Returns<128&&sampledReturn.Add(citizen)){Samples++;Returns++;pending.Add(()=>CityResidentTimeChecks.Verify(tick,offset,days,retry,visit,shift,duration,estimate,1));var plan=CityResidentRequestTime.ShiftEnd(tick,offset,days,retry,visit,shift,duration);CityResidentTimeChecks.Check(plan.Kind!=ResidentTimeCheckKind.Conservative,"Normal return fell back");CityResidentTimeChecks.Check((plan.Kind==ResidentTimeCheckKind.Predicate&&plan.Tick==tick)==returning,"Live return predicate mismatch");}
  }
- internal static void Finish(){foreach(var check in pending)check();pending.Clear();}
+ internal static void Finish(){CityResidentTimeChecks.Check(Departures==128&&Returns==128,"Both live time categories must be sampled");foreach(var check in pending)check();pending.Clear();}
 }
 #endif

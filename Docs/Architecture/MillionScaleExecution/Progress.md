@@ -4,7 +4,7 @@
 
 - 工作树C:/Users/16934/Documents/unity_game/million-scale-execution-20261031，分支codex/million-scale-execution-20261031。
 - 正式基线93d97f2004b3893d3b76bf765e972e21405d19fa；旧独立实验53a9e8c只读参考，不整支集成。用户正式工作树仍d248cf3，有三个cmd修改与.editorconfig；保护快照Temp/MillionScaleExecution/protection.json，不能覆盖这些文件。
-- MS-001..006完成；MS005复查修正791942f保留。MS006实现1d14d05/0f331fe，通知与成本验证通过但CPU增加；当前唯一MS-008 IN_PROGRESS：精确首次合法Tick研究，尚未接管正式居民请求。
+- MS-001..006完成；MS005复查修正791942f保留。MS006实现1d14d05/0f331fe，通知与成本验证通过但CPU增加；当前唯一MS-009 IN_PROGRESS：日切/路网/入口失效审计；正式居民轮询仍未接管。
 - 正式居民请求仍全员轮询；守卫/索引与影子是前置阶段，不是已交付事件调度。完整Player收益、100k/1m长期运行未验收。没有需要恢复的本轮测试子进程。
 
 ## 已提交阶段与证据
@@ -45,6 +45,14 @@ MS008依赖005/006/007；007未通过不得推进班次实际调度。后续008/
 
 原来的old FAIL CSV保留；新MS007-MemberOrder.csv证明当前cold=原warm。真实30k是冻结30ede读取原16档后导出同输入18测试副本，不重新造城、不推断丢失历史顺序、不覆盖玩家文件。原始日志/二进制见Temp/MillionScaleExecution/order-*。无FPS或初始化提速结论；没有合入正式分支。
 
-## 下一项：MS-008 IN_PROGRESS
+## MS-008 已完成：纯时间计算，不是调度激活
 
-仅开始首次合法出发/下班Tick审计，正式全员轮询保留。依据AdvanceRequests的float ResidentMinute、float retryAt、double visitUntil与通勤估算，计算原比较首次成立的Tick；保留同Tick Members序、0.25秒重试、lastCommute和版本规则。不可达、资金/健康变化先依赖已有通知，路网/日切完善仍属009；完整影子010、实际执行011/012、Player验收013不得提前宣布完成。
+实现7d49f9d。保持原float分钟、float重试与double停留比较，当前日内二分找首次成立Tick；返回Predicate/Calendar/Conservative/ClockEnd明确原因。输入为原逻辑已算出的有效通勤时间，无新路由、缓存或居民遍历。MaximumTick仅命名已有常量，数值/固定步/预算不变。正式AdvanceRequests方法未改。
+
+VerifyResidentTime的ms008-balanced：16566独立逐Tick案例，总17335断言；753极端/非法日历保守立即重查（不是精确预测），真实30k预热后128出发+128下班样本无回退。正确计入原重试门槛后仍有210个简单Ceiling反例，24例与两个成本观测CSV已提交。两个模型2400预热+1200步完整状态/请求序一致，cold80一致。Mono23627/10000/1522/83/460474与101预算检查通过。
+
+30000纯时间计划测得16.858/9.1378ms、0分配；不是整体模拟/FPS收益。报告MS008-ResidentTime.md。原始数据/二进制位于Temp/MillionScaleExecution/ms008-*。未调用正式时间调度，未测Player新收益，未合并正式。
+
+## 下一项：MS-009 IN_PROGRESS
+
+先审计CitySimulation.SyncCalendar、CityCoreRoadBindings.RefreshIfChanged、NetworkGeneration/AccessRevision以及日长设置变化的真实写点和已有变更集。要在状态/路网实际改变时使等待计划提前失效；不能假定仅影响道路附近，也不能让不可达居民睡到永远。可证明局部才局部，否则保留正确的全量重新检查。只做失效/影子前置，010完整影子、011/012实际执行、013 Player验收仍未完成。
