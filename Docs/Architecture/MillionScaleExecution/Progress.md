@@ -68,3 +68,9 @@ VerifyResidentTime的ms008-balanced：16566独立逐Tick案例，总17335断言�
 无变化10000次Flush约0.209ms，重复端点变动约2.08ms，全局日变化约1.25ms，各0分配，仅通知维护，不是FPS或未来完整队列成本。缺失目标依赖负控被检出；底层回调故障由修订差异回退全局。重绑仍按全局版本保守处理；道路不能按附近半径截断。旧运动断言误把已到达当成没有活动车，修正为过程峰值+全程零失效通知后通过，保留失败日志。
 
 报告MS009-PlanInvalidation.md。后续只推进MS010完整影子：结合MS003–009通知与MS008时间计划，覆盖缺失/不可达依赖、同轮较后成员及冷恢复、原顺序、负控与维护/常驻峰值成本。在010验收前不替换正式轮询、不激活资金等待、不宣称Player收益。未合并正式或旧百万实验；用户脏文件、原始存档及Python refs受保护。
+
+## MS-010 进行中：完整时间/状态影子，检出补充事实缺口
+
+在26d5600基础上复用CityWakeQueue/ResidentWakeShadow，加入MS008时间计算与MS005–009通知、包含失败目标的home/work/location反向依赖、开发模式政策版本检查。非候选oracle访问禁止重新学习；真实Request仍独立检查候选与原Members序。初轮6920阶段/995814请求0遗漏，增长126状态点相同；不是性能改善声明。
+
+新增直接arrivedDay变更的定向测试真实FAIL（Temp/MillionScaleExecution/ms010-tripday-gap.log），发现旅程日期与通勤观测仍为未通知public字段。沿用CitySavedFact封装departureDay/arrivedDay/observedHome/observedWork/observedRevision/lastCommute，原名字类型/float位模式/计算次序不变，只经原Owner发状态失效。未添加保存字段/版本或兼容器。补充观察通勤使出发提前的正控通过；完整冻结26d5600原CityResidents字段版的状态/字节回归进行中。MS010仍IN_PROGRESS，011未启用。

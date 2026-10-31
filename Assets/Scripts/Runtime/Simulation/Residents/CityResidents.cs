@@ -6,7 +6,7 @@ namespace HarborCity
     // Explicit saved facts may use guarded setters without changing their wire name/type.
     [AttributeUsage(AttributeTargets.Property)] internal sealed class CitySavedFactAttribute : Attribute {}
     internal enum CityResidentGuard { Trip, Retry, Visit }
-    internal enum CityResidentStateChange { Ability, Sickness, Death, Location, Attendance, Home, Residence, Membership, HousingAvailability }
+    internal enum CityResidentStateChange { Ability, Sickness, Death, Location, Attendance, Home, Residence, Membership, HousingAvailability, TripDay, CommuteObservation }
     [Serializable] public sealed class CityResident
     {
         public int id, age;
@@ -19,7 +19,15 @@ namespace HarborCity
         [CitySavedFact] public bool sick {get=>ill;set{if(ill==value)return;ill=value;EntityOwner?.StateChanged(this,CityResidentStateChange.Sickness);}}
         [CitySavedFact] public int location {get=>currentLocation;set{if(currentLocation==value)return;currentLocation=value;EntityOwner?.StateChanged(this,CityResidentStateChange.Location);}}
         public int householdId, skill, wagePaid;
-        public int departureDay=-1, arrivedDay=-1, observedHome=-1, observedWork=-1, observedRevision=-1;
+        int departedDay=-1,reachedDay=-1,seenHome=-1,seenWork=-1,seenRevision=-1;float commute=-1;
+        [CitySavedFact] public int departureDay {get=>departedDay;set{if(departedDay==value)return;departedDay=value;EntityOwner?.StateChanged(this,CityResidentStateChange.TripDay);}}
+        [CitySavedFact] public int arrivedDay {get=>reachedDay;set{if(reachedDay==value)return;reachedDay=value;EntityOwner?.StateChanged(this,CityResidentStateChange.TripDay);}}
+        [CitySavedFact] public int observedHome {get=>seenHome;set{if(seenHome==value)return;seenHome=value;EntityOwner?.StateChanged(this,CityResidentStateChange.CommuteObservation);}}
+        [CitySavedFact] public int observedWork {get=>seenWork;set{if(seenWork==value)return;seenWork=value;EntityOwner?.StateChanged(this,CityResidentStateChange.CommuteObservation);}}
+        [CitySavedFact] public int observedRevision {get=>seenRevision;set{if(seenRevision==value)return;seenRevision=value;EntityOwner?.StateChanged(this,CityResidentStateChange.CommuteObservation);}}
+        // Preserve float bits and operation order. Only invalidate derived plans;
+        // arrival is still settled by the original transaction before evaluation.
+        [CitySavedFact] public float lastCommute {get=>commute;set{commute=value;EntityOwner?.StateChanged(this,CityResidentStateChange.CommuteObservation);}}
         bool working;
         internal CityEntities EntityOwner;
         int trip,assignedJob=-1;float retry;double visit;
@@ -44,7 +52,7 @@ namespace HarborCity
         public double wageCredit;
         public int carriedGoods;
         public int wagesPaid;
-        public float earnedWages, workedMinutes, lastCommute=-1, lastDelay, requestedAt=-1;
+        public float earnedWages, workedMinutes, lastDelay, requestedAt=-1;
         public int accessNode=-1;
     }
     public sealed class ResidentActivity
