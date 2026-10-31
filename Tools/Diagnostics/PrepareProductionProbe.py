@@ -23,7 +23,7 @@ body=replace(body,'            float noiseKeep=', '            var coefficients=
 body=replace(body,'            foreach(var old in residualIndustry)', '            coefficients.Dispose();ProductionPhaseProbe.ResidualCount(residualIndustry.Count);using(ProductionPhaseProbe.Measure(ProductionPhaseProbe.Part.Residual,true)){\n            foreach(var old in residualIndustry)')
 body=replace(body,'            foreach(var b in buildings)', '            }\n            foreach(var b in buildings)')
 body=replace(body,'                var f=(b as IndustrialBuilding)?.factory;', '                ProductionPhaseProbe.Building();var f=(b as IndustrialBuilding)?.factory;')
-body=replace(body,'                    float activity=', '                    var before=ProductionPhaseProbe.BeforeFactory(f);using(ProductionPhaseProbe.Measure(ProductionPhaseProbe.Part.FactoryEnvironment,true)){float activity=')
+body=replace(body,'                    // Normalised worker-equivalents from actual processing, not job occupancy.', '                    var before=ProductionPhaseProbe.BeforeFactory(f);using(ProductionPhaseProbe.Measure(ProductionPhaseProbe.Part.FactoryEnvironment,true)){\n                    // Normalised worker-equivalents from actual processing, not job occupancy.')
 body=replace(body,'                    string state=', '                    }using(ProductionPhaseProbe.Measure(ProductionPhaseProbe.Part.FactoryState,true)){string state=')
 body=replace(body,'                    f.stepAttendance=f.stepProductive=0;', '                    f.stepAttendance=f.stepProductive=0;}ProductionPhaseProbe.AfterFactory(f,before);')
 # Count/timestamp only the original Supply reads, not an extra supply computation.
