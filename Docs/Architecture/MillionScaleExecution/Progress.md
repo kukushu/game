@@ -126,3 +126,11 @@ MS010冻结脚本缺口已明确更正并补跑原字段版，完整和增长仍
 顺序A/B/C/C/B/A，各2400预热+3000观测：模型完整步均值2.9249/2.7141/2.2063ms，C相对B再−18.7%、相对A−24.6%；P95 4.4258/4.2950/3.8866，P99 8.2449/7.9893/7.7529，最长样本36.7635/36.0470/25.391ms。C比B多2.72MiB托管存活，暖分配多约20bytes/步，没有GC降低结论。没有测Unity画面/FPS/实际倍率，不宣称约100ms游戏长帧已解决。
 
 报告MS012-TemporalExecution.md及必要CSV。原始数据/二进制留Temp/MillionScaleExecution/ms012-*。下项MS013进行普通UnityPlayer配对和最终集成判定，区分正常倍率/帧率、欠步、日切集中工作、增长/道路编辑与GC；未验证前不默认启用、不合正式。保持旧档不强适配和保护玩家文件的政策。
+
+## MS-013 进行中：原生Release Player与固定工作量验证
+
+基线da84dfe；只改现有Editor构建/窗口探针/Runner工具。HARBOR_RESIDENT_TIME_SCHEDULE只向临时Player附加编译符号，正常项目默认仍关闭；Player写出实际temporal/polling及development状态并核对期望。未触碰用户Editor（原窗口已最小化）或玩家文件。Release/GPU为Unity6000.6.3f1/Mono/DX11/RTX3090，原三万人18测试副本。
+
+Polling与Temporal Release Player均完成同一2400预热、车道树预热、8秒画面预热，再以每渲染帧一个固定步执行2400步：fixed-start.hcity/fixed-final.hcity/四个状态点完全相同；两侧cold20一致，退出码0。此为脚本固定工作量，不是正常50× FPS。Unity GetAllocatedBytesForCurrentThread不支持，写明未知。出现过基线共有的ZoneBoxTool.Dispose退出清理NRE，发生在已完成验证之后，未写成无异常PASS，未顺带改游戏表现层。
+
+第一轮60秒1×完整采样与冷恢复完成，但Application.Quit后原生退出停滞，240秒由本轮监控终止，记录ms013-a0/1x-resources.json，不作为正常退出通过。保留数据；仅把测量结束后的截图改同步读回。基线15秒短窗重试正常退出0，不能据一次成功断言原生清理根因已查明。新旧均以相同同步截图工具重建Release，正常1×/50× A/B/B/A矩阵ms013-sync-*正在顺序运行，不并行编译/测量。首次1×基线正常退出，约58FPS/实际1×；完整结论待矩阵及长帧归因。MS013仍IN_PROGRESS，不集成、不默认启用。

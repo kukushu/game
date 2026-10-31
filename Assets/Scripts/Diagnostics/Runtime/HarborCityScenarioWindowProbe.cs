@@ -32,7 +32,16 @@ namespace HarborCity
         }
         IEnumerator Measure()
         {
-            Directory.CreateDirectory(output);QualitySettings.vSyncCount=0;Application.targetFrameRate=60;
+            Directory.CreateDirectory(output);
+#if CITY_RESIDENT_TIME_SCHEDULE
+            const string residentMode="temporal";
+#else
+            const string residentMode="polling";
+#endif
+            var featureArgs=Environment.GetCommandLineArgs();int expectedMode=Array.IndexOf(featureArgs,"-harbor-resident-schedule-expect");
+            if(expectedMode>=0&&featureArgs[expectedMode+1]!=residentMode)throw new InvalidOperationException("Resident schedule binary does not match requested experiment");
+            File.WriteAllText(Path.Combine(output,"resident-mode.txt"),residentMode+"; development="+Debug.isDebugBuild+"; gpu="+SystemInfo.graphicsDeviceName+"; camera="+host.ScenarioSession.City.map.buildHalfSize);
+            QualitySettings.vSyncCount=0;Application.targetFrameRate=60;
             yield return null;yield return null;
             bool sharedWarmup=Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-window-shared-warmup")>=0;
             var laneArgs=Environment.GetCommandLineArgs();int laneWarmIndex=Array.IndexOf(laneArgs,"-harbor-window-lane-warm-steps");
@@ -96,6 +105,8 @@ namespace HarborCity
                 using(var sha=SHA256.Create())File.WriteAllText(Path.Combine(output,"warm-state.sha256"),BitConverter.ToString(sha.ComputeHash(warmState)).Replace("-","").ToLowerInvariant());
                 host.ScenarioRate(rate);
             }
+            int fixedFlag=Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-window-fixed-steps");
+            if(fixedFlag>=0){host.ScenarioRate(0);yield return FixedWork(int.Parse(Environment.GetCommandLineArgs()[fixedFlag+1],CultureInfo.InvariantCulture));yield break;}
             var city=host.ScenarioSession;
             bool junctionRouting=Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-depot-junction-routing")>=0;
             city.Transport.DepotLaneRoutingEnabled=Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-depot-lane-routing")>=0;
@@ -227,8 +238,25 @@ namespace HarborCity
                 File.WriteAllText(Path.Combine(output,"Result.txt"),"PASS normal host visible Player, loaded captured city and saved map; not mouse construction acceptance. GC pauses not measured.\n");
             }
             catch(Exception e){File.WriteAllText(Path.Combine(output,"Result.txt"),e.ToString());Application.Quit(1);yield break;}
-            ScreenCapture.CaptureScreenshot(Path.Combine(output,"window.png"));yield return new WaitForEndOfFrame();yield return null;
+            // Complete readback before shutdown; asynchronous CaptureScreenshot
+            // may still own graphics work when the process starts tearing down.
+            yield return new WaitForEndOfFrame();
+            var screenshot=ScreenCapture.CaptureScreenshotAsTexture();
+            try{File.WriteAllBytes(Path.Combine(output,"window.png"),screenshot.EncodeToPNG());}finally{UnityEngine.Object.Destroy(screenshot);}
+            yield return null;
             Debug.Log("Harbor window probe: validation/output complete; requesting Player shutdown");Application.Quit(0);
+        }
+        IEnumerator FixedWork(int steps)
+        {
+            if(steps<1||steps>4000)throw new ArgumentOutOfRangeException(nameof(steps));var city=host.ScenarioSession;
+            var rows=new List<string>{"index,tick,step_ms,allocated_bytes,active_vehicles"};var states=new List<string>{"tick,sha256"};
+            long allocation=GC.GetAllocatedBytesForCurrentThread();GC.KeepAlive(new byte[4096]);bool supported=GC.GetAllocatedBytesForCurrentThread()>allocation;
+            File.WriteAllBytes(Path.Combine(output,"fixed-start.hcity"),CityCoreSave.Write(city));
+            for(int i=0;i<steps;i++){yield return null;long before=GC.GetAllocatedBytesForCurrentThread();var clock=System.Diagnostics.Stopwatch.StartNew();if(city.Simulation.Advance(.05,1,double.PositiveInfinity)!=1)throw new InvalidOperationException("Fixed Player lost step");clock.Stop();long bytes=supported?GC.GetAllocatedBytesForCurrentThread()-before:-1;rows.Add(string.Join(",",i,city.Simulation.Tick,clock.Elapsed.TotalMilliseconds.ToString("R",CultureInfo.InvariantCulture),bytes,city.Transport.ActiveCount));if(i%600==599){using(var sha=SHA256.Create())states.Add(city.Simulation.Tick+","+BitConverter.ToString(sha.ComputeHash(CityCoreSave.Write(city))).Replace("-",""));}}
+            long measuredEnd=city.Simulation.Tick;IndexOracle(city);city.Validate();var saved=CityCoreSave.Write(city);File.WriteAllBytes(Path.Combine(output,"fixed-final.hcity"),saved);
+            var cold=CityCoreSave.Read(saved);cold.Transport.DepotLaneRoutingEnabled=city.Transport.DepotLaneRoutingEnabled;cold.Simulation.Growth.Zoning.SetSurface(host.ScenarioSurface);
+            for(int i=0;i<20;i++){city.Simulation.Advance(.05,1,double.PositiveInfinity);cold.Simulation.Advance(.05,1,double.PositiveInfinity);}IndexOracle(city);IndexOracle(cold);city.Validate();cold.Validate();if(!CityCoreSave.Write(city).SequenceEqual(CityCoreSave.Write(cold)))throw new InvalidOperationException("Fixed Player cold continuation differs");
+            File.WriteAllLines(Path.Combine(output,"fixed-steps.csv"),rows);File.WriteAllLines(Path.Combine(output,"fixed-states.csv"),states);File.WriteAllText(Path.Combine(output,"fixed-summary.csv"),"steps,final_tick,allocation_counter,note\n"+steps+","+measuredEnd+","+supported+",scripted one step per rendered frame; not normal 1x/50x FPS\n");File.WriteAllText(Path.Combine(output,"Result.txt"),"PASS Unity fixed-work complete state and cold20; scripted one step/frame only");Application.Quit(0);
         }
         void RoadMemory(List<string> rows,string phase)
         {
