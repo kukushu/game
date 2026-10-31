@@ -71,6 +71,12 @@ namespace HarborCity
             return tick==long.MaxValue?edge:new ResidentTimeCheck(tick,ResidentTimeCheckKind.Predicate);
         }
     }
+    [Flags] internal enum ResidentPlanChange { Day=1, Calendar=2, Topology=4, Access=8, Availability=16, Untracked=32 }
+    internal readonly struct ResidentPlanInvalidation
+    {
+        internal readonly bool All;internal readonly int Endpoint;internal readonly ResidentPlanChange Reason;
+        internal ResidentPlanInvalidation(bool all,int endpoint,ResidentPlanChange reason){All=all;Endpoint=endpoint;Reason=reason;}
+    }
     // Original citizens, household membership and job assignments remain the facts.
     // This component schedules/settles their real RoadCore vehicles, never old Move.
     public sealed class CityCoreResidents
@@ -78,6 +84,56 @@ namespace HarborCity
 
         readonly CityModel city;readonly World transport;
         readonly double calendarOffset;
+        Action<ResidentPlanInvalidation> plansInvalidated;
+        int planDay,planNetwork;float planDaySeconds;long planAccess,planAvailability,coveredAccess,coveredAvailability;
+        bool untrackedAccess,untrackedAvailability;
+        readonly Dictionary<int,ResidentPlanChange> pendingPlanEndpoints=new Dictionary<int,ResidentPlanChange>();
+        readonly List<int> planEndpoints=new List<int>();
+        internal bool PlansObserved=>plansInvalidated!=null;
+        internal event Action<ResidentPlanInvalidation> PlansInvalidated
+        {
+            add{if(value==null)return;if(plansInvalidated==null){SeedPlanVersions();transport.AccessRegistered+=AccessRegistered;transport.EndpointAvailabilityChanged+=AvailabilityChanged;}plansInvalidated+=value;}
+            remove{plansInvalidated-=value;if(plansInvalidated==null){transport.AccessRegistered-=AccessRegistered;transport.EndpointAvailabilityChanged-=AvailabilityChanged;pendingPlanEndpoints.Clear();planEndpoints.Clear();}}
+        }
+        void SeedPlanVersions()
+        {
+            planDay=city.day;planDaySeconds=city.society.settings.secondsPerDay;planNetwork=transport.NetworkGeneration;
+            planAccess=coveredAccess=transport.AccessRevision;planAvailability=coveredAvailability=transport.EndpointAvailabilityRevision;
+            untrackedAccess=untrackedAvailability=false;pendingPlanEndpoints.Clear();planEndpoints.Clear();
+        }
+        void AccessRegistered(int endpoint,long revision)
+        {
+            // A batch shares one revision across all its endpoint notices.
+            if(revision!=coveredAccess&&revision!=coveredAccess+1)untrackedAccess=true;
+            coveredAccess=revision;RecordPlanEndpoint(endpoint,ResidentPlanChange.Access);
+        }
+        void AvailabilityChanged(int endpoint,long revision)
+        {
+            if(revision!=coveredAvailability+1)untrackedAvailability=true;
+            coveredAvailability=revision;RecordPlanEndpoint(endpoint,ResidentPlanChange.Availability);
+        }
+        void RecordPlanEndpoint(int endpoint,ResidentPlanChange reason)
+        {pendingPlanEndpoints.TryGetValue(endpoint,out var previous);pendingPlanEndpoints[endpoint]=previous|reason;}
+        internal void FlushPlanInvalidations()
+        {
+            var notify=plansInvalidated;if(notify==null)return;
+            ResidentPlanChange global=0;
+            if(planDay!=city.day)global|=ResidentPlanChange.Day;
+            if(!planDaySeconds.Equals(city.society.settings.secondsPerDay))global|=ResidentPlanChange.Calendar;
+            if(planNetwork!=transport.NetworkGeneration)global|=ResidentPlanChange.Topology;
+            if(untrackedAccess||coveredAccess!=transport.AccessRevision)global|=ResidentPlanChange.Access|ResidentPlanChange.Untracked;
+            if(untrackedAvailability||coveredAvailability!=transport.EndpointAvailabilityRevision)global|=ResidentPlanChange.Availability|ResidentPlanChange.Untracked;
+            if(global!=0){if(planAccess!=transport.AccessRevision)global|=ResidentPlanChange.Access;if(planAvailability!=transport.EndpointAvailabilityRevision)global|=ResidentPlanChange.Availability;SeedPlanVersions();notify(new ResidentPlanInvalidation(true,-1,global));return;}
+            // Versions are sampled only at safe request boundaries. Vehicle motion
+            // and EditEpoch are deliberately not plan-invalidating signals.
+            planAccess=transport.AccessRevision;planAvailability=transport.EndpointAvailabilityRevision;
+            if(pendingPlanEndpoints.Count==0)return;
+            planEndpoints.Clear();foreach(int endpoint in pendingPlanEndpoints.Keys)planEndpoints.Add(endpoint);planEndpoints.Sort();
+            // Listeners only mark cached dependencies dirty; no synchronous edits.
+            foreach(int endpoint in planEndpoints)notify(new ResidentPlanInvalidation(false,endpoint,pendingPlanEndpoints[endpoint]));
+            pendingPlanEndpoints.Clear();planEndpoints.Clear();
+        }
+
         readonly CityEntities entities;
         // One derived free-flow scalar per actually queried resident, not a route or
         // a second actual commute observation. Independent of the bounded plan LRU.
@@ -152,7 +208,7 @@ namespace HarborCity
             using var observation=HarborCity.RoadCore.CityCoreProfile.Measure(HarborCity.RoadCore.CityCoreProfile.Part.Residents);
 #endif
 
-            if(!Enabled)return;PruneEstimates();if(entities.FundingObserved)entities.FlushFundingChanges();
+            if(!Enabled)return;PruneEstimates();if(PlansObserved)FlushPlanInvalidations();if(entities.FundingObserved)entities.FlushFundingChanges();
             float minute=city.ResidentMinute;
             foreach(var member in entities.Members)
             {
@@ -170,7 +226,7 @@ namespace HarborCity
                 double estimate=eligible?EstimateCommute(p.id,h.home,workplace)*1440/city.society.settings.secondsPerDay:double.PositiveInfinity;
                 if(p.observedHome==h.home&&p.observedWork==workplace&&p.observedRevision==transport.NetworkGeneration)estimate=Math.Max(estimate,p.lastCommute);
                 bool leaving=eligible&&!double.IsInfinity(estimate)&&minute>=Math.Max(0,shift-estimate)&&minute<end;
-                if(!returning&&!leaving)continue;p.retryAt=(float)(transport.Clock+.25);RequestCommute(p.id,returning?p.location:h.home,returning?h.home:workplace,returning);if(entities.FundingObserved)entities.FlushFundingChanges();
+                if(!returning&&!leaving)continue;p.retryAt=(float)(transport.Clock+.25);RequestCommute(p.id,returning?p.location:h.home,returning?h.home:workplace,returning);if(entities.FundingObserved)entities.FlushFundingChanges();if(PlansObserved)FlushPlanInvalidations();
             }
         }
         public ResidentActivity Observe(int citizen)

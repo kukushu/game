@@ -56,3 +56,7 @@ VerifyResidentTime的ms008-balanced：16566独立逐Tick案例，总17335断言�
 ## 下一项：MS-009 IN_PROGRESS
 
 先审计CitySimulation.SyncCalendar、CityCoreRoadBindings.RefreshIfChanged、NetworkGeneration/AccessRevision以及日长设置变化的真实写点和已有变更集。要在状态/路网实际改变时使等待计划提前失效；不能假定仅影响道路附近，也不能让不可达居民睡到永远。可证明局部才局部，否则保留正确的全量重新检查。只做失效/影子前置，010完整影子、011/012实际执行、013 Player验收仍未完成。
+
+## MS-009 第一阶段：失效来源实现，完整验收进行中
+
+冻结 e7fd202。补端点可用性派生修订号和提交后入口/可用性信号；CityCoreResidents 仅有内部观察者时接收、去重、排序并在原请求安全边界冲刷。日切、日长及任何道路事务修订全局失效；单纯新入口/可用性按端点失效。未知版本覆盖回退全局。监听者只标派生计划，不能执行业务或编辑。未替换轮询、未激活等待队列、未改保存。定向测试初轮53断言通过，真实30k/核心回归正在进行；MS009仍 IN_PROGRESS。

@@ -77,6 +77,9 @@ namespace HarborCity.RoadCore
         public int NetworkGeneration=>data.networkRevision;
         internal long EditEpoch {get;private set;}
         public long AccessRevision {get;private set;}
+        internal long EndpointAvailabilityRevision {get;private set;}
+        // Post-write facts only; subscribers invalidate derived plans, never edit.
+        internal event Action<int,long> AccessRegistered,EndpointAvailabilityChanged;
         readonly Dictionary<long,List<LaneOccupant>> occupancy=new Dictionary<long,List<LaneOccupant>>(CityRoadKeyComparer.Instance);
         readonly JunctionReservations reservations=new JunctionReservations(null);
         readonly Dictionary<int,Depot> depotsById=new Dictionary<int,Depot>();
@@ -316,7 +319,7 @@ namespace HarborCity.RoadCore
             var access=new RoadAccess{endpoint=endpoint,preferredIndex=drivable.LaneIndex,lane=lane,distance=distance,use=use};data.accesses.Add(access);accesses.Add(endpoint,access);
             dispatchRoutes.InvalidateEndpoint(endpoint);
             AccessRevision++;
-            EditEpoch++;
+            EditEpoch++;AccessRegistered?.Invoke(endpoint,AccessRevision);
         }
         public void CheckNewAccess(int endpoint,long lane,double distance,AccessUse use=AccessUse.All)
         {
@@ -327,7 +330,7 @@ namespace HarborCity.RoadCore
             if(registrations==null)throw new ArgumentNullException(nameof(registrations));var ids=new HashSet<int>();
             foreach(var r in registrations){CheckNewAccess(r.endpoint,r.lane,r.distance,r.use);if(!ids.Add(r.endpoint))throw new ArgumentException("Duplicate access registration");}
             foreach(var r in registrations){var d=Network.Get(r.lane);var access=new RoadAccess{endpoint=r.endpoint,preferredIndex=d.LaneIndex,lane=r.lane,distance=r.distance,use=r.use};data.accesses.Add(access);accesses.Add(r.endpoint,access);}
-            if(registrations.Count>0){dispatchRoutes.InvalidateEndpoints(ids);AccessRevision++;EditEpoch++;}
+            if(registrations.Count>0){dispatchRoutes.InvalidateEndpoints(ids);AccessRevision++;EditEpoch++;foreach(var r in registrations)AccessRegistered?.Invoke(r.endpoint,AccessRevision);}
         }
         public bool RebindAccess(int endpoint,long lane,double distance)
         =>RebindAccesses(new[]{new AccessBinding(endpoint,lane,distance)});
@@ -778,7 +781,7 @@ namespace HarborCity.RoadCore
         }
         internal bool EndpointExists(int id)=>data.externalBusiness?availableEndpoints.Contains(id):business.Exists(id);
         internal void SetEndpointAvailable(int id,bool present)
-        {if(!data.externalBusiness)throw new InvalidOperationException("Fixture endpoints are depots");if(present){if(availableEndpoints.Add(id)){data.availableEndpoints.Add(id);indexDirty=true;fullIndexRequired=true;}}else if(availableEndpoints.Remove(id)){data.availableEndpoints.Remove(id);indexDirty=true;fullIndexRequired=true;}}
+        {if(!data.externalBusiness)throw new InvalidOperationException("Fixture endpoints are depots");if(present){if(availableEndpoints.Add(id)){data.availableEndpoints.Add(id);indexDirty=true;fullIndexRequired=true;EndpointAvailabilityRevision++;EndpointAvailabilityChanged?.Invoke(id,EndpointAvailabilityRevision);}}else if(availableEndpoints.Remove(id)){data.availableEndpoints.Remove(id);indexDirty=true;fullIndexRequired=true;EndpointAvailabilityRevision++;EndpointAvailabilityChanged?.Invoke(id,EndpointAvailabilityRevision);}}
         internal void AcknowledgeArrival(int id)
         {var v=FindVehicle(id);if(v==null||v.status!=VehicleStatus.Active||v.cursor!=v.Plan.segments.Count-1||v.distance<EndDistance(v,Network.Get(v.Current))-1e-9)throw new InvalidOperationException("Cannot acknowledge non-arrival");data.delivered+=v.Task.Cargo;if(v.Task.Shipment!=null)v.Task.Shipment.remaining=0;v.Task.state=TripState.Completed;v.status=VehicleStatus.Delivered;ActiveCount--;RemoveIndexedOccupant(v);indexDirty=true;}
         internal void RetireCompleted()
