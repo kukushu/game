@@ -52,7 +52,8 @@ namespace HarborCity
             {
                 var warmCity=host.ScenarioSession;
                 if(laneWarmSteps>0)warmCity.Transport.DepotLaneRoutingEnabled=true;
-                for(int i=0;i<200;i++){warmCity.Simulation.Advance(.05,1,double.PositiveInfinity);if(i%10==9)yield return null;}
+                int baseFlag=Array.IndexOf(laneArgs,"-harbor-window-base-warm-steps"),baseSteps=baseFlag<0?200:int.Parse(laneArgs[baseFlag+1],CultureInfo.InvariantCulture);if(baseSteps<0||baseSteps>20000)throw new ArgumentOutOfRangeException("Base warm steps");
+                for(int i=0;i<baseSteps;i++){warmCity.Simulation.Advance(.05,1,double.PositiveInfinity);if(i%10==9)yield return null;}
                 for(int i=0;i<laneWarmSteps;i++){warmCity.Simulation.Advance(.05,1,double.PositiveInfinity);if(i%10==9)yield return null;}
             }
             var warmArgs=Environment.GetCommandLineArgs();var warmSession=host.ScenarioSession;
@@ -106,12 +107,12 @@ namespace HarborCity
                 using(var sha=SHA256.Create())File.WriteAllText(Path.Combine(output,"warm-state.sha256"),BitConverter.ToString(sha.ComputeHash(warmState)).Replace("-","").ToLowerInvariant());
                 host.ScenarioRate(rate);
             }
-            int fixedFlag=Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-window-fixed-steps");
-            if(fixedFlag>=0){host.ScenarioRate(0);yield return FixedWork(int.Parse(Environment.GetCommandLineArgs()[fixedFlag+1],CultureInfo.InvariantCulture));yield break;}
             var city=host.ScenarioSession;
             bool junctionRouting=Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-depot-junction-routing")>=0;
             city.Transport.DepotLaneRoutingEnabled=Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-depot-lane-routing")>=0;
             city.Transport.DepotJunctionRoutingEnabled=junctionRouting;
+            int fixedFlag=Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-window-fixed-steps");
+            if(fixedFlag>=0){host.ScenarioRate(0);yield return FixedWork(int.Parse(Environment.GetCommandLineArgs()[fixedFlag+1],CultureInfo.InvariantCulture));yield break;}
             if(HarborCity.RoadCore.DepotRoutingTrace.Enabled){HarborCity.RoadCore.DepotRoutingTrace.Write(Path.Combine(output,"routing-warmup.csv"));HarborCity.RoadCore.DepotRoutingTrace.Reset();}
             if(Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-depot-lane-cold")>=0)city.Transport.DepotRoutes.Clear();
             city.Transport.JunctionRoutes.Trace=Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-junction-trace")>=0;
@@ -258,14 +259,42 @@ namespace HarborCity
             if(profile)throw new InvalidOperationException("Fixed profile requires an attribution-enabled binary");
 #endif
             var coreRows=profile?new List<string>{HarborCity.RoadCore.CityCoreProfile.Header()}:null;
+            var pointNetwork=city.Transport.Network;var pointBefore=RouteStats(pointNetwork,city.Transport);
+            int queryFlag=Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-window-query-tick");
+            long queryTick=queryFlag<0?0:long.Parse(Environment.GetCommandLineArgs()[queryFlag+1],CultureInfo.InvariantCulture),observedTick=0,overflow=0;
+            var queries=new Dictionary<(HarborCity.RoadCore.CityCoreProfile.QueryKind kind,HarborCity.RoadCore.CityCoreProfile.QueryResult result,int origin,int destination,bool both,HarborCity.RoadCore.CityCoreProfile.Part context),long>();
+            if(queryTick>0)
+            {
+                if(!profile||queryTick<=city.Simulation.Tick||queryTick>city.Simulation.Tick+steps)throw new ArgumentException("Query tick must be inside the attributed fixed-work window");
+                if(HarborCity.RoadCore.CityCoreProfile.QueryObserver!=null)throw new InvalidOperationException("Query observer already owned");
+                HarborCity.RoadCore.CityCoreProfile.QueryObserver=q=>{if(observedTick!=queryTick)return;var key=(q.Kind,q.Result,q.Origin,q.Destination,q.BothDirections,q.Context);if(queries.TryGetValue(key,out long count))queries[key]=count+1;else if(queries.Count<200000)queries.Add(key,1);else overflow++;};
+            }
             int gc0=GC.CollectionCount(0),gc1=GC.CollectionCount(1),gc2=GC.CollectionCount(2);
             if(profile){HarborCity.RoadCore.CityCoreProfile.Reset();HarborCity.RoadCore.CityCoreProfile.Enabled=true;}
-            for(int i=0;i<steps;i++){yield return null;long before=GC.GetAllocatedBytesForCurrentThread();var clock=System.Diagnostics.Stopwatch.StartNew();if(city.Simulation.Advance(.05,1,double.PositiveInfinity)!=1)throw new InvalidOperationException("Fixed Player lost step");clock.Stop();long bytes=supported?GC.GetAllocatedBytesForCurrentThread()-before:-1;rows.Add(string.Join(",",i,city.Simulation.Tick,clock.Elapsed.TotalMilliseconds.ToString("R",CultureInfo.InvariantCulture),bytes,city.Transport.ActiveCount));if(profile)coreRows.Add(HarborCity.RoadCore.CityCoreProfile.Row(city.Simulation.Tick,city.Transport.ActiveCount,city.Transport.RoutePreparations,GC.CollectionCount(0)-gc0,GC.CollectionCount(1)-gc1,GC.CollectionCount(2)-gc2));if(i%600==599){using(var sha=SHA256.Create())states.Add(city.Simulation.Tick+","+BitConverter.ToString(sha.ComputeHash(CityCoreSave.Write(city))).Replace("-",""));}}
+            try
+            {
+            for(int i=0;i<steps;i++){yield return null;observedTick=city.Simulation.Tick+1;long before=GC.GetAllocatedBytesForCurrentThread();var clock=System.Diagnostics.Stopwatch.StartNew();if(city.Simulation.Advance(.05,1,double.PositiveInfinity)!=1)throw new InvalidOperationException("Fixed Player lost step");clock.Stop();long bytes=supported?GC.GetAllocatedBytesForCurrentThread()-before:-1;rows.Add(string.Join(",",i,city.Simulation.Tick,clock.Elapsed.TotalMilliseconds.ToString("R",CultureInfo.InvariantCulture),bytes,city.Transport.ActiveCount));if(profile)coreRows.Add(HarborCity.RoadCore.CityCoreProfile.Row(city.Simulation.Tick,city.Transport.ActiveCount,city.Transport.RoutePreparations,GC.CollectionCount(0)-gc0,GC.CollectionCount(1)-gc1,GC.CollectionCount(2)-gc2));if(i%600==599){using(var sha=SHA256.Create())states.Add(city.Simulation.Tick+","+BitConverter.ToString(sha.ComputeHash(CityCoreSave.Write(city))).Replace("-",""));}}
+            }
+            finally{if(queryTick>0)HarborCity.RoadCore.CityCoreProfile.QueryObserver=null;if(profile)HarborCity.RoadCore.CityCoreProfile.Enabled=false;}
+            if(queryTick>0){File.WriteAllLines(Path.Combine(output,"fixed-queries.csv"),new[]{"tick,kind,result,origin,destination,both_directions,context,count"}.Concat(queries.OrderBy(q=>q.Key.kind).ThenBy(q=>q.Key.result).ThenBy(q=>q.Key.origin).ThenBy(q=>q.Key.destination).ThenBy(q=>q.Key.both).ThenBy(q=>q.Key.context).Select(q=>string.Join(",",queryTick,q.Key.kind,q.Key.result,q.Key.origin,q.Key.destination,q.Key.both,q.Key.context,q.Value))));File.WriteAllText(Path.Combine(output,"fixed-query-overflow.txt"),overflow.ToString(CultureInfo.InvariantCulture));}
             if(profile){HarborCity.RoadCore.CityCoreProfile.Enabled=false;File.WriteAllLines(Path.Combine(output,"fixed-core-cumulative.csv"),coreRows);}
+            var pointAfter=RouteStats(city.Transport.Network,city.Transport);
+            File.WriteAllLines(Path.Combine(output,"fixed-point-routing.csv"),new[]{"metric,start,end,delta,same_network"}.Concat(pointBefore.Select(p=>string.Join(",",p.Key,p.Value,pointAfter[p.Key],pointAfter[p.Key]-p.Value,ReferenceEquals(pointNetwork,city.Transport.Network)))));
+            if(queryTick>0)
+            {
+                var accesses=new List<string>{"endpoint,valid,lane,distance,other_lane,other_distance"};
+                foreach(int endpoint in queries.Keys.SelectMany(q=>new[]{q.origin,q.destination}).Distinct().OrderBy(x=>x))
+                {
+                    var access=city.Transport.GetAccess(endpoint);HarborCity.RoadCore.RoadAccess other=null;
+                    if(access!=null&&access.valid&&city.Transport.Network.Contains(access.lane))other=HarborCity.RoadCore.AccessRouting.AtDirection(city.Transport.Network,access,!city.Transport.Network.Get(access.lane).Reverse);
+                    accesses.Add(string.Join(",",endpoint,access!=null&&access.valid,access?.lane??0,(access?.distance??0).ToString("R",CultureInfo.InvariantCulture),other?.lane??0,(other?.distance??0).ToString("R",CultureInfo.InvariantCulture)));
+                }
+                File.WriteAllLines(Path.Combine(output,"fixed-query-accesses.csv"),accesses);
+            }
             long measuredEnd=city.Simulation.Tick;IndexOracle(city);city.Validate();var saved=CityCoreSave.Write(city);File.WriteAllBytes(Path.Combine(output,"fixed-final.hcity"),saved);
             var cold=CityCoreSave.Read(saved);cold.Transport.DepotLaneRoutingEnabled=city.Transport.DepotLaneRoutingEnabled;cold.Simulation.Growth.Zoning.SetSurface(host.ScenarioSurface);
             for(int i=0;i<20;i++){city.Simulation.Advance(.05,1,double.PositiveInfinity);cold.Simulation.Advance(.05,1,double.PositiveInfinity);}IndexOracle(city);IndexOracle(cold);city.Validate();cold.Validate();if(!CityCoreSave.Write(city).SequenceEqual(CityCoreSave.Write(cold)))throw new InvalidOperationException("Fixed Player cold continuation differs");
-            File.WriteAllLines(Path.Combine(output,"fixed-steps.csv"),rows);File.WriteAllLines(Path.Combine(output,"fixed-states.csv"),states);File.WriteAllText(Path.Combine(output,"fixed-summary.csv"),"steps,final_tick,allocation_counter,note\n"+steps+","+measuredEnd+","+supported+",scripted one step per rendered frame; not normal 1x/50x FPS\n");File.WriteAllText(Path.Combine(output,"Result.txt"),"PASS Unity fixed-work complete state and cold20; scripted one step/frame only");Application.Quit(0);
+            File.WriteAllLines(Path.Combine(output,"fixed-steps.csv"),rows);File.WriteAllLines(Path.Combine(output,"fixed-states.csv"),states);File.WriteAllText(Path.Combine(output,"fixed-summary.csv"),"steps,final_tick,allocation_counter,note\n"+steps+","+measuredEnd+","+supported+",scripted one step per rendered frame; not normal 1x/50x FPS\n");File.WriteAllText(Path.Combine(output,"Result.txt"),"PASS Unity fixed-work complete state and cold20; scripted one step/frame only");yield return new WaitForEndOfFrame();yield return null;Debug.Log("Fixed window validation/output complete; requesting shutdown");Application.Quit(0);
         }
         void RoadMemory(List<string> rows,string phase)
         {
