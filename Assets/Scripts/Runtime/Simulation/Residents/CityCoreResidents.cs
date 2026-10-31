@@ -1,3 +1,6 @@
+#if CITY_RESIDENT_TIME_SCHEDULE && !CITY_RESIDENT_GUARD_SCHEDULE
+#error Time scheduling requires guard scheduling
+#endif
 using System;
 using System.Collections.Generic;
 using HarborCity.RoadCore;
@@ -182,7 +185,11 @@ namespace HarborCity
         {
             this.city=city;this.transport=transport;this.entities=entities;this.calendarOffset=calendarOffset;Enabled=enabled;
 #if CITY_RESIDENT_GUARD_SCHEDULE
+#if CITY_RESIDENT_TIME_SCHEDULE
+            guardSchedule=new CityResidentGuardSchedule(entities,transport,city,this,calendarOffset);
+#else
             guardSchedule=new CityResidentGuardSchedule(entities,transport,city);
+#endif
 #endif
 
         }
@@ -236,7 +243,12 @@ namespace HarborCity
                 double estimate=eligible?EstimateCommute(p.id,h.home,workplace)*1440/city.society.settings.secondsPerDay:double.PositiveInfinity;
                 if(p.observedHome==h.home&&p.observedWork==workplace&&p.observedRevision==transport.NetworkGeneration)estimate=Math.Max(estimate,p.lastCommute);
                 bool leaving=eligible&&!double.IsInfinity(estimate)&&minute>=Math.Max(0,shift-estimate)&&minute<end;
-                if(!returning&&!leaving)continue;p.retryAt=(float)(transport.Clock+.25);RequestCommute(p.id,returning?p.location:h.home,returning?h.home:workplace,returning);if(entities.FundingObserved)entities.FlushFundingChanges();if(PlansObserved)FlushPlanInvalidations();
+#if CITY_RESIDENT_TIME_SCHEDULE
+                if(!returning&&!leaving){guardSchedule.PlanWait(member,workplace,shift,eligible,estimate,!atHome&&!returning);continue;}
+#else
+                if(!returning&&!leaving)continue;
+#endif
+                p.retryAt=(float)(transport.Clock+.25);RequestCommute(p.id,returning?p.location:h.home,returning?h.home:workplace,returning);if(entities.FundingObserved)entities.FlushFundingChanges();if(PlansObserved)FlushPlanInvalidations();
             }
         }
         public ResidentActivity Observe(int citizen)

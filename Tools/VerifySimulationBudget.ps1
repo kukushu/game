@@ -1,5 +1,5 @@
-param([switch]$GuardScheduling)
-$guardFlags=@();if($GuardScheduling){$guardFlags+='/define:CITY_RESIDENT_GUARD_SCHEDULE'}
+param([switch]$GuardScheduling,[switch]$TemporalScheduling)
+$guardFlags=@();if($GuardScheduling){$guardFlags+='/define:CITY_RESIDENT_GUARD_SCHEDULE'};if($TemporalScheduling){$guardFlags=@('/define:CITY_RESIDENT_GUARD_SCHEDULE,CITY_RESIDENT_TIME_SCHEDULE')}
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'ProjectLayout.ps1')
 $root=Split-Path $PSScriptRoot -Parent

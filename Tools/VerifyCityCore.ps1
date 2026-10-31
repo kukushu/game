@@ -1,6 +1,6 @@
-param([string]$Results='Temp/RoadCore/industry-model.csv',[switch]$Attribution,[switch]$GuardScheduling)
+param([string]$Results='Temp/RoadCore/industry-model.csv',[switch]$Attribution,[switch]$GuardScheduling,[switch]$TemporalScheduling)
 . (Join-Path $PSScriptRoot 'ProjectLayout.ps1')
-$guardFlags=@();if($GuardScheduling){$guardFlags+='/define:CITY_RESIDENT_GUARD_SCHEDULE'}
+$guardFlags=@();if($GuardScheduling){$guardFlags+='/define:CITY_RESIDENT_GUARD_SCHEDULE'};if($TemporalScheduling){$guardFlags=@('/define:CITY_RESIDENT_GUARD_SCHEDULE,CITY_RESIDENT_TIME_SCHEDULE')}
 $ErrorActionPreference='Stop';$root=Split-Path $PSScriptRoot -Parent
 $mono='C:/Program Files/Unity/Hub/Editor/6000.6.3f1/Editor/Data/MonoBleedingEdge/bin/mono.exe'
 $compiler='C:/Program Files/Unity/Hub/Editor/6000.6.3f1/Editor/Data/MonoBleedingEdge/lib/mono/4.5/csc.exe'

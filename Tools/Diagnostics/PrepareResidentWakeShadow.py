@@ -7,7 +7,7 @@ p=root/'Assets/Scripts/Runtime/Simulation/Residents/CityCoreResidents.cs';s=p.re
 s=s.replace('readonly CityModel city;readonly World transport;','readonly CityModel city;readonly World transport;ResidentWakeShadow wakeShadow;')
 s=s.replace('if(!Enabled)return;PruneEstimates();','if(!Enabled)return;PruneEstimates();using var wakeFrame=(wakeShadow??(wakeShadow=new ResidentWakeShadow(entities,transport))).Begin();')
 s=s.replace('var p=member.Person;var h=member.Family;if(!h.resident', 'using var wakeObservation=wakeShadow.Observe(member);var p=member.Person;var h=member.Family;if(!h.resident')
-s=s.replace('if(!returning&&!leaving)continue;p.retryAt=', 'if(!returning&&!leaving)continue;wakeShadow.Request(p.id);p.retryAt=')
+s=s.replace('p.retryAt=(float)(transport.Clock+.25);RequestCommute', 'wakeShadow.Request(p.id);p.retryAt=(float)(transport.Clock+.25);RequestCommute')
 if full:
  s=s.replace('new ResidentWakeShadow(entities,transport)', 'new ResidentWakeShadow(entities,transport,this,city,calendarOffset)')
  marker='if(!returning&&!leaving)continue;'
