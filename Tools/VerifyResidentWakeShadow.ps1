@@ -14,7 +14,7 @@ if($LASTEXITCODE -ne 0){throw 'Shadow patch preparation failed'}
 foreach($version in @('old','shadow')){
  if($ControlsOnly -and $version -eq 'old'){continue}
  $dir=Join-Path $out $version;New-Item -ItemType Directory -Path $dir|Out-Null
- $entry=Join-Path $PSScriptRoot $(if($Growth){'Diagnostics/CityGrowthCandidateChecks.cs'}else{'Diagnostics/ResidentWakeReplay.cs'});$overrides=@{};$defines=''
+ $entry=Join-Path $PSScriptRoot $(if($Growth){'Diagnostics/CityGrowthCandidateChecks.cs'}else{'Diagnostics/ResidentWakeReplay.cs'});$overrides=@{'CityResidents.cs'=$baselineSource};$defines=''
  if($version -eq 'shadow'){$entry=Join-Path $out 'sources/ShadowSupport.cs';$defines='WAKE_SHADOW';if($Full){$defines+=';FULL_WAKE_SHADOW'};$overrides=@{'CityCoreResidents.cs'=(Join-Path $out 'sources/CityCoreResidents.shadow.cs')}}
  $binary=Build-CityDotNetHost -ProjectRoot $root -OutputDirectory $dir -Entry $entry -Defines $defines -SourceOverrides $overrides
  $runArgs=@((Resolve-Path -LiteralPath $Save).Path,$dir);if($ControlsOnly){$runArgs+='negative-control'}

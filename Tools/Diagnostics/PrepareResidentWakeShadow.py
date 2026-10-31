@@ -17,7 +17,7 @@ assert s.count('new ResidentWakeShadow(')==s.count('wakeShadow.Observe(')==s.cou
 (out/'CityCoreResidents.shadow.cs').write_text(s,encoding='utf-8')
 # Put shared usings before all concatenated namespaces; no alternative model implementation.
 parts=[]
-for name in ('CityWakeQueue.cs','ResidentWakeShadow.cs'):
+for name in ('ResidentWakeShadow.cs',):
  s=(root/'Tools/Diagnostics'/name).read_text(encoding='utf-8-sig')
  s=s[s.index('\n')+1:];parts.append(s)
 growth='--growth' in sys.argv[3:]

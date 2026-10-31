@@ -1,6 +1,6 @@
 using System;using System.Collections.Generic;
 namespace HarborCity.Diagnostics {
- // Prototype only: stable ordinal keys, at most one pending wake per entity.
+ // Derived timer primitive: stable ordinal keys, one pending wake per entity.
  // No business state, actor IDs, events, delegates, or save protocol lives here.
  internal sealed class CityWakeQueue {
   readonly long[] due;readonly int[] heap,positions;int count;

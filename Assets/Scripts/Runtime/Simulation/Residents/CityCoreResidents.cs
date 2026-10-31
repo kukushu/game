@@ -84,6 +84,9 @@ namespace HarborCity
 
         readonly CityModel city;readonly World transport;
         readonly double calendarOffset;
+#if CITY_RESIDENT_GUARD_SCHEDULE
+        readonly CityResidentGuardSchedule guardSchedule;
+#endif
         Action<ResidentPlanInvalidation> plansInvalidated;
         int planDay,planNetwork;float planDaySeconds;long planAccess,planAvailability,coveredAccess,coveredAvailability;
         bool untrackedAccess,untrackedAvailability;
@@ -178,6 +181,9 @@ namespace HarborCity
         public CityCoreResidents(CityModel city,World transport,CityEntities entities,bool enabled=true,double calendarOffset=50)
         {
             this.city=city;this.transport=transport;this.entities=entities;this.calendarOffset=calendarOffset;Enabled=enabled;
+#if CITY_RESIDENT_GUARD_SCHEDULE
+            guardSchedule=new CityResidentGuardSchedule(entities,transport);
+#endif
 
         }
         public bool Depart(TripTask v)
@@ -210,7 +216,11 @@ namespace HarborCity
 
             if(!Enabled)return;PruneEstimates();if(PlansObserved)FlushPlanInvalidations();if(entities.FundingObserved)entities.FlushFundingChanges();
             float minute=city.ResidentMinute;
+#if CITY_RESIDENT_GUARD_SCHEDULE
+            foreach(var member in guardSchedule.Begin())
+#else
             foreach(var member in entities.Members)
+#endif
             {
                 var p=member.Person;var h=member.Family;if(!h.resident||p.dead||p.tripId!=0||transport.Clock<p.retryAt||transport.Clock<p.visitUntil)continue;
                 // At home these conditions cannot produce a return or departure.
