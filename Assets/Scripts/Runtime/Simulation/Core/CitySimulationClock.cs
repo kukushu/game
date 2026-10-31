@@ -13,18 +13,19 @@ namespace HarborCity.RoadCore
     public sealed class SimulationClock
     {
         public const double StepSeconds=.05;
+        internal const long MaximumTick=1000000000000L;
         long tick;double pending;
         public long Tick=>tick;public double Seconds=>tick*StepSeconds;public double PendingSeconds=>pending;
         public bool HasStep=>pending+1e-12>=StepSeconds;
         public TimeContext Context=>new TimeContext(tick);
         public SimulationClock(SimulationClockData state=null)
-        {if(state==null)return;if(state.tick<0||state.tick>1000000000000L||state.pendingSeconds<0||double.IsNaN(state.pendingSeconds)||double.IsInfinity(state.pendingSeconds))throw new ArgumentException("Invalid simulation clock");tick=state.tick;pending=state.pendingSeconds;}
+        {if(state==null)return;if(state.tick<0||state.tick>MaximumTick||state.pendingSeconds<0||double.IsNaN(state.pendingSeconds)||double.IsInfinity(state.pendingSeconds))throw new ArgumentException("Invalid simulation clock");tick=state.tick;pending=state.pendingSeconds;}
         public SimulationClockData Snapshot()=>new SimulationClockData{tick=tick,pendingSeconds=pending};
         internal SimulationClock Copy()=>new SimulationClock(Snapshot());
         internal void Request(double seconds)
         {if(seconds<0||double.IsNaN(seconds)||double.IsInfinity(seconds)||double.IsInfinity(pending+seconds))throw new ArgumentException("Invalid simulation time request");pending+=seconds;}
         internal void Commit(bool consumeDebt)
-        {if(consumeDebt&&!HasStep)throw new InvalidOperationException("No fixed-step debt");if(tick>=1000000000000L)throw new InvalidOperationException("Clock exhausted");tick++;if(consumeDebt)pending=Math.Max(0,pending-StepSeconds);}
+        {if(consumeDebt&&!HasStep)throw new InvalidOperationException("No fixed-step debt");if(tick>=MaximumTick)throw new InvalidOperationException("Clock exhausted");tick++;if(consumeDebt)pending=Math.Max(0,pending-StepSeconds);}
         internal void ConsumeDebt(){pending=Math.Max(0,pending-StepSeconds);}
     }
 }

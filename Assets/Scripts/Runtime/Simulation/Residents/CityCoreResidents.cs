@@ -4,6 +4,73 @@ using HarborCity.RoadCore;
 
 namespace HarborCity
 {
+    internal enum ResidentTimeCheckKind { Predicate, Calendar, Conservative, ClockEnd }
+    internal readonly struct ResidentTimeCheck
+    {
+        internal readonly long Tick;internal readonly ResidentTimeCheckKind Kind;
+        internal ResidentTimeCheck(long tick,ResidentTimeCheckKind kind){Tick=tick;Kind=kind;}
+    }
+    // Pure temporal predicates only: no routes, cached citizens, dispatch or clock
+    // mutation. Production polling does not call this until later shadow gates.
+    internal static class CityResidentRequestTime
+    {
+        internal const long ClockLimit=SimulationClock.MaximumTick;
+        const long LastTick=ClockLimit-1;
+        static double Absolute(long tick,double offset)=>offset+tick*SimulationClock.StepSeconds;
+        static double DayIndex(long tick,double offset,float daySeconds)=>Math.Floor(Absolute(tick,offset)/daySeconds);
+        internal static float Minute(long tick,double offset,float daySeconds)
+        {float elapsed=(float)(Absolute(tick,offset)%daySeconds);return elapsed/daySeconds*1440;}
+        static bool Allowed(long tick,float retry,double visit)
+        {double clock=tick*SimulationClock.StepSeconds;return !(clock<retry||clock<visit);}
+        static long FirstGuard(long first,long last,float retry,double visit)
+        {
+            if(first>last||!Allowed(last,retry,visit))return long.MaxValue;
+            while(first<last){long middle=first+(last-first)/2;if(Allowed(middle,retry,visit))last=middle;else first=middle+1;}return first;
+        }
+        static long FirstMinute(long first,long last,double offset,float daySeconds,double threshold)
+        {
+            if(first>last||!(Minute(last,offset,daySeconds)>=threshold))return long.MaxValue;
+            while(first<last){long middle=first+(last-first)/2;if(Minute(middle,offset,daySeconds)>=threshold)last=middle;else first=middle+1;}return first;
+        }
+        static ResidentTimeCheck Window(long minimum,double offset,float daySeconds,out long last)
+        {
+            if(minimum<0||minimum>ClockLimit)throw new ArgumentOutOfRangeException(nameof(minimum));last=LastTick;
+            if(minimum==ClockLimit)return new ResidentTimeCheck(long.MaxValue,ResidentTimeCheckKind.ClockEnd);
+            if(double.IsNaN(offset)||double.IsInfinity(offset)||offset<0||float.IsNaN(daySeconds)||float.IsInfinity(daySeconds)||daySeconds<1)return new ResidentTimeCheck(minimum,ResidentTimeCheckKind.Conservative);
+            double absolute=Absolute(minimum,offset),day=Math.Floor(absolute/daySeconds),remainder=absolute%daySeconds;
+            // Division may round up before modulo wraps at extreme dates. Do not
+            // assume minute monotonicity if its day label/remainder disagree.
+            if(day<0||day>int.MaxValue-1||absolute-day*daySeconds!=remainder)return new ResidentTimeCheck(minimum,ResidentTimeCheckKind.Conservative);
+            if(DayIndex(LastTick,offset,daySeconds)==day)return new ResidentTimeCheck(long.MaxValue,ResidentTimeCheckKind.ClockEnd);
+            long low=minimum+1,high=LastTick;
+            while(low<high){long middle=low+(high-low)/2;if(DayIndex(middle,offset,daySeconds)>day)high=middle;else low=middle+1;}
+            last=low-1;return new ResidentTimeCheck(low,ResidentTimeCheckKind.Calendar);
+        }
+        // minimum is the next not-yet-visited tick. After a request use tick+1,
+        // even when float(clock+.25) rounds down to the current clock.
+        internal static ResidentTimeCheck AfterGuards(long minimum,double offset,float daySeconds,float retry,double visit)
+        {
+            var edge=Window(minimum,offset,daySeconds,out long last);if(edge.Kind==ResidentTimeCheckKind.Conservative||minimum==ClockLimit)return edge;
+            long tick=FirstGuard(minimum,last,retry,visit);return tick==long.MaxValue?edge:new ResidentTimeCheck(tick,ResidentTimeCheckKind.Predicate);
+        }
+        internal static ResidentTimeCheck Departure(long minimum,double offset,float daySeconds,float retry,double visit,float shift,float duration,double effectiveEstimate)
+        {
+            var edge=Window(minimum,offset,daySeconds,out long last);if(edge.Kind==ResidentTimeCheckKind.Conservative||minimum==ClockLimit)return edge;
+            if(double.IsInfinity(effectiveEstimate))return edge;
+            long tick=FirstGuard(minimum,last,retry,visit);if(tick==long.MaxValue)return edge;
+            tick=FirstMinute(tick,last,offset,daySeconds,Math.Max(0,shift-effectiveEstimate));float end=shift+duration;
+            return tick!=long.MaxValue&&Minute(tick,offset,daySeconds)<end?new ResidentTimeCheck(tick,ResidentTimeCheckKind.Predicate):edge;
+        }
+        // For healthy/funded workers still at the same employer on the arrival
+        // day. Other return reasons use AfterGuards; business eligibility stays outside.
+        internal static ResidentTimeCheck ShiftEnd(long minimum,double offset,float daySeconds,float retry,double visit,float shift,float duration)
+        {
+            var edge=Window(minimum,offset,daySeconds,out long last);if(edge.Kind==ResidentTimeCheckKind.Conservative||minimum==ClockLimit)return edge;
+            long tick=FirstGuard(minimum,last,retry,visit);if(tick==long.MaxValue)return edge;
+            float end=shift+duration;tick=FirstMinute(tick,last,offset,daySeconds,end);
+            return tick==long.MaxValue?edge:new ResidentTimeCheck(tick,ResidentTimeCheckKind.Predicate);
+        }
+    }
     // Original citizens, household membership and job assignments remain the facts.
     // This component schedules/settles their real RoadCore vehicles, never old Move.
     public sealed class CityCoreResidents
