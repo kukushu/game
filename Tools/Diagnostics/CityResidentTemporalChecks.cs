@@ -3,14 +3,16 @@ static class CityResidentTemporalChecks {
  static string Hash(CityCoreIndustrySession s)=>Convert.ToHexString(SHA256.HashData(CityCoreSave.Write(s)));
  static CityCoreIndustrySession Alone(bool work=false){var s=CityCoreIndustrySession.Create();foreach(var m in s.Entities.Members)m.Person.retryAt=100000;var p=s.Entities.Members[0].Person;p.retryAt=0;if(work){p.location=1;p.atWork=true;p.arrivedDay=s.City.day;}else s.City.society.settings.secondsPerDay=1000;return s;}
  static void Main(string[] args){var rows=new List<string>{"case,requests,sha256"};
-  foreach(string name in new[]{"observation","elapsed","period","mode","funding","sickness","job","unreachable","road-cost","stale-edit","later-member"}){
+  foreach(string name in new[]{"observation","elapsed","period","mode","funding","sickness","job","unreachable","road-cost","stale-edit","later-member","home"}){
    bool work=name=="funding"||name=="sickness"||name=="job";var s=Alone(work);var p=s.Entities.Members[0].Person;
    if(name=="observation"){p.observedHome=3;p.observedWork=1;p.observedRevision=s.Transport.NetworkGeneration;p.lastCommute=0;}
    if(name=="mode"){s.City.society.settings.secondsPerDay=120;foreach(var h in s.City.society.families)h.openingSavings=h.savings;s.City.development.enabled=true;var a=s.Entities.Shops[0].Account;a.Capital+=100-a.Cash;a.Cash=100;s.City.ReleaseJob(p);if(!s.City.AssignJob(p,s.City.society.jobEntities.First(j=>j.buildingId==2&&j.occupiedCitizenId<0).id))throw new Exception("Commercial assignment failed");}
    if(name=="unreachable"){s.City.society.settings.secondsPerDay=120;s.Transport.SetEndpointAvailable(1,false);}
+   if(name=="home"){s.Entities.AddBuilding(new ResidentialBuilding{id=4,housingUnits=1});s.Transport.RegisterAccess(4,Network.LaneId(2,false),20);}
    var calls=new List<string>();s.Residents.RequestCommute=(id,from,to,back)=>{calls.Add(s.Simulation.Tick+":"+id+":"+back);if(name=="later-member"&&id==s.Entities.Members[0].Person.id){var later=s.Entities.Members[1].Person;later.observedHome=3;later.observedWork=1;later.observedRevision=s.Transport.NetworkGeneration;later.lastCommute=600;later.retryAt=0;}return null;};
    s.Advance(.05);if(calls.Count!=0)throw new Exception("Waiting fixture requested early: "+name);
    if(name=="observation")p.lastCommute=600;
+   if(name=="home")s.Entities.Members[0].Family.home=4;
    if(name=="elapsed"){s.City.society.dayElapsed=600f/1440*1000;s.Residents.AdvanceRequests();}
    if(name=="period")s.City.society.settings.secondsPerDay=120;
    if(name=="mode")s.City.development.enabled=false;
@@ -36,6 +38,6 @@ static class CityResidentTemporalChecks {
 #else
   if(warmCalls!=1||coldCalls!=1)throw new Exception("Original polling oracle invalid");
 #endif
-  Console.WriteLine("PASS 12 temporal cases, first scheduled departure/cold continuation, independent missed-observation negative control");
+  Console.WriteLine("PASS 13 temporal cases, first scheduled departure/cold continuation, independent missed-observation negative control");
  }
 }

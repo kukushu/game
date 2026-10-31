@@ -1,6 +1,7 @@
 param([string]$Results='Temp/MillionScaleExecution/guard-scheduling',[switch]$ControlsOnly,[switch]$Growth,[switch]$Temporal,[switch]$TemporalControls)
 $ErrorActionPreference='Stop'
 if($TemporalControls){$ControlsOnly=$true;$Temporal=$true}
+if($ControlsOnly -and $Growth){throw 'Choose controls or growth replay'}
 $root=Split-Path $PSScriptRoot -Parent
 . (Join-Path $PSScriptRoot 'ProjectLayout.ps1')
 $out=Join-Path $root $Results
@@ -26,5 +27,5 @@ foreach($version in $(if($Temporal -and !$ControlsOnly){@('old','guard','new')}e
  if($LASTEXITCODE -ne 0){throw ($version+' guard execution failed')}
 }
 $names=if($ControlsOnly){@('controls.csv')}elseif($Growth){@('states.csv')}else{@('states.csv','requests.csv','final.hcity')}
-foreach($name in $names){if((Get-FileHash -LiteralPath (Join-Path $out ('old/'+$name))).Hash -ne (Get-FileHash -LiteralPath (Join-Path $out ('new/'+$name))).Hash){throw ('Guard execution differs: '+$name)}}
+foreach($name in $names){$reference=(Get-FileHash -LiteralPath (Join-Path $out ('old/'+$name))).Hash;foreach($variant in $(if($Temporal -and !$ControlsOnly){@('guard','new')}else{@('new')})){if($reference -ne (Get-FileHash -LiteralPath (Join-Path $out ($variant+'/'+$name))).Hash){throw ($variant+' execution differs: '+$name)}}}
 Write-Output 'PASS frozen polling vs actual guard candidate execution: exact paired results'
