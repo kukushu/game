@@ -206,7 +206,7 @@ namespace HarborCity.RoadCore
         {
             internal int id; internal RoadAccess access; internal Network.DepotTree[] forward = new Network.DepotTree[2], backward = new Network.DepotTree[2]; internal long age;
         }
-        readonly Dictionary<int, Entry> entries = new Dictionary<int, Entry>(); Network network; Network.DepotGraph graph; long clock; public const int Capacity = 128;
+        readonly Dictionary<int, Entry> entries = new Dictionary<int, Entry>(); Network network; Network.DepotGraph graph; long clock; public const int Capacity = 256;
         public long Hits, Misses, Evictions, Invalidations, Queries, TreeBuilds, TreeReuses;
         HashSet<int> liveDepots;
         // A full-network tree per depot is useful only while the declared live

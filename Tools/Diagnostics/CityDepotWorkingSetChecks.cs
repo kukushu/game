@@ -42,10 +42,10 @@ static class CityDepotWorkingSetChecks
             if(anchors.Length<=DepotLaneRouting.Capacity)throw new Exception("Insufficient registered stress anchors");
             var stress=new DepotLaneRouting();
             foreach(var anchor in anchors)if(!stress.TryFind(s.Transport,anchor.endpoint,anchor,target,false,out _,out _,out _))throw new Exception("Cache fell back");
-            if(stress.Count!=DepotLaneRouting.Capacity||stress.Evictions==0||stress.ReservedTreeBytes<=64L*1024*1024)throw new Exception("Former byte cap still prevents 128-depot retention");
+            if(stress.Count!=DepotLaneRouting.Capacity||stress.Evictions==0||stress.ReservedTreeBytes<=64L*1024*1024)throw new Exception("Former byte cap or count-cap enforcement regression");
             if(!initial.SequenceEqual(CityCoreSave.Write(s)))throw new Exception("Stress anchors changed city facts");
             File.WriteAllText(a[1]+".count-cap.csv","registered_test_anchors,resident_entries,reserved_tree_bytes,evictions\n"+string.Join(",",anchors.Length,stress.Count,stress.ReservedTreeBytes,stress.Evictions));
-            Console.WriteLine("PASS >64MiB resident estimate, 128 count cap, eviction and unchanged authoritative city; cache-only anchors="+anchors.Length);
+            Console.WriteLine("PASS >64MiB resident estimate, "+DepotLaneRouting.Capacity+" count cap, eviction and unchanged authoritative city; cache-only anchors="+anchors.Length);
         }
     }
 }
