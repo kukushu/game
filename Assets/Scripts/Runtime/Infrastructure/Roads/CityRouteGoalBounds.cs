@@ -13,7 +13,7 @@ namespace HarborCity.RoadCore
         internal long GoalBuildCount,GoalPruned,GoalUses;
         internal double GoalBuildMilliseconds;
         internal long GoalBuildNanoseconds=>(long)(GoalBuildMilliseconds*1000000);
-        internal long GoalReservedBytes=>goalBounds.Count*(depotGraph==null?0:depotGraph.lanes.LongLength*16+256); // tree arrays only; graph is separately shared
+        internal long GoalReservedBytes=>goalBounds.Count*(depotGraph==null?0:depotGraph.lanes.LongLength*32+256); // tree + bound arrays only; graph is separately shared
         internal readonly struct GoalBatch:System.IDisposable
         {
             readonly Network owner;
@@ -24,7 +24,22 @@ namespace HarborCity.RoadCore
         sealed class GoalBound
         {
             internal readonly DepotGraph graph;internal readonly DepotTree tree;internal readonly int root;
-            internal GoalBound(Network n,Lane goal){graph=n.GetDepotGraph();root=graph.index[goal.Id];tree=new DepotTree(graph,new RoadAccess{lane=goal.Id,distance=goal.StartDistance},true);}
+            readonly double[] remaining,scaleBase;readonly double errorFactor;
+            internal GoalBound(Network n,Lane goal)
+            {
+                graph=n.GetDepotGraph();root=graph.index[goal.Id];tree=new DepotTree(graph,new RoadAccess{lane=goal.Id,distance=goal.StartDistance},true);
+                int count=graph.lanes.Length;remaining=new double[count];scaleBase=new double[count];
+                double roundingTerms=(count+1)*8.0*2.2204460492503131e-16;
+                errorFactor=roundingTerms>=.001?double.PositiveInfinity:8*roundingTerms/(1-roundingTerms);
+                // These terms depend only on the immutable Network and target.
+                // Use the existing network-local slots; do not hash/divide per edge.
+                for(int i=0;i<count;i++)
+                {
+                    var lane=(Lane)graph.lanes[i];int slot=lane.RouteSlot;double d=tree.distance[i],own=lane.TravelLength/lane.Speed;
+                    scaleBase[slot]=double.IsInfinity(d)||double.IsNaN(d)?double.NaN:d+own;
+                    remaining[slot]=Math.Max(0,d-own);
+                }
+            }
             internal double Upper(Lane source)
             {
                 int p=graph.index[source.Id];if(p==root)return double.PositiveInfinity;
@@ -36,20 +51,16 @@ namespace HarborCity.RoadCore
                 }
                 throw new InvalidOperationException("Cyclic reverse route hint");
             }
-            internal bool Exclude(long id,double prefix,double upper)
+            internal bool Exclude(Lane lane,double prefix,double upper)
             {
                 if(double.IsInfinity(upper)||double.IsNaN(upper))return false;
-                int p=graph.index[id];double d=tree.distance[p];if(double.IsInfinity(d)||double.IsNaN(d))return false;
-                double own=graph.lanes[p].TravelLength/graph.lanes[p].Speed;
                 // Guard cancellation plus opposite addition orders. All edge terms
                 // are nonnegative. Bound grows with full graph size; unsafe ranges
                 // fall back to unpruned A*. double.Epsilon is NOT machine epsilon.
-                double scale=d+own+prefix+upper+1;
-                double roundingTerms=(graph.lanes.Length+1)*8.0*2.2204460492503131e-16;
-                if(roundingTerms>=.001)return false;
-                double margin=scale*(8*roundingTerms/(1-roundingTerms));
+                int slot=lane.RouteSlot;double scale=scaleBase[slot]+prefix+upper+1;
+                double margin=scale*errorFactor;
                 if(double.IsInfinity(scale)||double.IsNaN(scale)||double.IsInfinity(margin))return false;
-                return prefix+Math.Max(0,d-own)-margin>upper;
+                return prefix+remaining[slot]-margin>upper;
             }
         }
         GoalBound GoalHint(Lane target)

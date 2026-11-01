@@ -41,10 +41,10 @@ $extra=@'
         }
         // Addition-order/cancellation stress. Rules accept finite positive speeds;
         // do not weaken exact comparisons for tiny/huge costs or equal-cost ties.
-        for(int mode=0;mode<4;mode++){
+        for(int mode=0;mode<5;mode++){
             var data=new NetworkData();for(int z=0;z<3;z++)for(int x=0;x<3;x++)data.junctions.Add(new Junction{id=1+x+3*z,position=new Point(x*30,0,z*30)});
             for(int z=0;z<3;z++)for(int x=0;x<3;x++)foreach(int offset in new[]{x<2?1:0,z<2?3:0}){
-                if(offset==0)continue;int from=1+x+3*z,to=from+offset;double speed=mode==3?12:mode==0?1e-100:mode==1?1e100:(data.roads.Count%2==0?1e-100:1e100);
+                if(offset==0)continue;int from=1+x+3*z,to=from+offset;double speed=mode==4?double.Epsilon:mode==3?12:mode==0?1e-100:mode==1?1e100:(data.roads.Count%2==0?1e-100:1e100);
                 data.roads.Add(new PhysicalRoad{id=mode==3?Network.MaximumRoadId-data.roads.Count:data.nextRoad++,from=from,to=to,lanes=2,direction=RoadDirection.Both,speed=speed,points=new[]{data.junctions[from-1].position,data.junctions[to-1].position}});
             }
             data.nextJunction=10;if(mode==3)data.nextRoad=Network.MaximumRoadId+1;var net=new Network(data);var nodes=net.Drivables.Where(d=>!d.IsConnection).ToArray();
@@ -61,9 +61,11 @@ $overrides=@{}
 if($NetworkReference){
     $revision=(& git -C $root rev-parse --verify ($NetworkReference+'^{commit}')).Trim()
     if($LASTEXITCODE -ne 0){throw 'Unknown frozen Network reference'}
-    $source=& git -C $root show ($revision+':Assets/Scripts/Runtime/Infrastructure/Roads/CityRoadCoreNetwork.cs')
-    if($LASTEXITCODE -ne 0){throw 'Frozen Network unavailable'}
-    $frozen=Join-Path $dir 'Network.reference.cs';[IO.File]::WriteAllLines($frozen,$source);$overrides['CityRoadCoreNetwork.cs']=$frozen
+    foreach($name in @('CityRoadCoreNetwork.cs','CityRouteGoalBounds.cs')){
+        $source=& git -C $root show ($revision+':Assets/Scripts/Runtime/Infrastructure/Roads/'+$name)
+        if($LASTEXITCODE -ne 0){throw ('Frozen routing source unavailable: '+$name)}
+        $frozen=Join-Path $dir $name;[IO.File]::WriteAllLines($frozen,$source);$overrides[$name]=$frozen
+    }
     [IO.File]::WriteAllText((Join-Path $dir 'reference.txt'),$revision)
 }
 $answers=Join-Path $dir 'answers.bin'
@@ -74,7 +76,7 @@ if($Runtime -eq 'DotNet64'){
     $mono='C:/Program Files/Unity/Hub/Editor/6000.6.3f1/Editor/Data/MonoBleedingEdge/bin/mono.exe'
     $compiler='C:/Program Files/Unity/Hub/Editor/6000.6.3f1/Editor/Data/MonoBleedingEdge/lib/mono/4.5/csc.exe'
     $binary=Join-Path $dir 'checks.exe'
-    $sources=Get-CityModelSources $root;if($NetworkReference){$sources=@($sources|Where-Object {[IO.Path]::GetFileName($_) -ne 'CityRoadCoreNetwork.cs'})+$frozen}
+    $sources=Get-CityModelSources $root;foreach($name in $overrides.Keys){$sources=@($sources|Where-Object {[IO.Path]::GetFileName($_) -ne $name})+$overrides[$name]}
     & $mono $compiler /nologo /langversion:latest ('/out:'+$binary) $sources $entry
     if($LASTEXITCODE -ne 0){throw 'Goal bounds compile failed'}
     & $mono $binary $answers | Tee-Object (Join-Path $dir 'checks.log')

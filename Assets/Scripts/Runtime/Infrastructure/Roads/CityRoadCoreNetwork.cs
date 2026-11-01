@@ -410,7 +410,7 @@ namespace HarborCity.RoadCore
                         var lane=link.Outgoing;double prefix=item.cost+link.Geometry.Length/link.Speed;
                         if(lane.Id==target.Id){if(prefix<best){best=prefix;before=current;}continue;}
                         double candidate=prefix+lane.TravelLength/lane.Speed;int slot=lane.RouteSlot;
-                        if(hint!=null&&hint.Exclude(lane.Id,candidate,hintUpper)){GoalPruned++;continue;}
+                        if(hint!=null&&hint.Exclude(lane,candidate,hintUpper)){GoalPruned++;continue;}
                         if(seen[slot]!=generation||candidate<costs[slot]){seen[slot]=generation;costs[slot]=candidate;parents[slot]=current;closed[slot]=0;queue.Push(RouteQueueKey(lane),candidate,RouteLowerBound(lane,goal));}
                     }
                 }
