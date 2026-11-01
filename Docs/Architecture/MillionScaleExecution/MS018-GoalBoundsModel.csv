@@ -1,0 +1,3 @@
+"run","runtime","source","warm_steps","start_tick","end_tick","step_ms","consumption_ms","search_ms","search_calls","step_allocated_bytes","final_sha256","scope"
+"baseline","DotNet64","eb2e336","40","13940","13941","647.426500","631.602200","582.830500","7106","21620224","A82F28697679A54183039572DE6C9C5812345E5D4A58A1F86B0AB52F5A51B2AC","diagnostic model, not Player FPS"
+"final-model","DotNet64","7dc509f","40","13940","13941","412.671200","394.946400","325.034400","7106","22750728","A82F28697679A54183039572DE6C9C5812345E5D4A58A1F86B0AB52F5A51B2AC","diagnostic model, not Player FPS"

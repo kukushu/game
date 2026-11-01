@@ -58,3 +58,5 @@ Unity6000.6.3f1/Mono Release（development=False），i5-14600KF、RTX3090/DX11�
 保留实验分支成果，暂不合正式开发分支。下一步应依据独立车道查询工作量评估进一步共享，不能先减少真实出行、变更营业/商品预留或把计算任意拖到后续Tick。
 
 复现：普通配对使用现有RunCityScenarioWindow的SharedWarmup/BaseWarmSteps40/DepotLaneRouting、Rates1、30秒和CheckRestore，两侧不同PlayerPath；30k回归BaseWarmSteps200/PrewarmLaneTrees/Rates1,50。指定Tick归因使用CoreProfile/FixedSteps61/QueryTick13941；原始完整CSV、存档、源覆盖、Player留Temp/MillionScaleExecution/ms018-*，不创建新归档框架。
+
+后续实验：[重复目的地共享搜索界限](MS018-GoalBounds.md)，以eb2e336重新配对，最长均值1123→394ms；不回写或拼接本报告历史基线。
