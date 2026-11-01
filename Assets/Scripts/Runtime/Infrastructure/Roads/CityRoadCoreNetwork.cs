@@ -355,6 +355,7 @@ namespace HarborCity.RoadCore
 #endif
             using var trace=DepotRoutingTrace.Start("lane-astar");PointSearches++;if(DepotJunctionRouting.CountSearches)DepotJunctionRouting.SearchCalls++;
             if(RouteHeuristicEnabled)PrepareRouteMetric();var goal=target.Entry.Position;
+            var hint=GoalHint(target);double hintUpper=hint==null?double.PositiveInfinity:hint.Upper(source);
             var scratch=accessSearch??(accessSearch=new RouteScratch());using(scratch.Acquire())
             {
                 var queue=scratch.queue;var costs=scratch.costs;var parents=scratch.parents;var settled=scratch.settled;
@@ -369,6 +370,7 @@ namespace HarborCity.RoadCore
                         var lane=link.Outgoing;double prefix=item.cost+link.Geometry.Length/link.Speed;
                         if(lane.Id==target.Id){if(prefix<best){best=prefix;before=item.id;}continue;}
                         double candidate=prefix+lane.TravelLength/lane.Speed,old;
+                        if(hint!=null&&hint.Exclude(lane.Id,candidate,hintUpper)){GoalPruned++;continue;}
                         if(!costs.TryGetValue(lane.Id,out old)||candidate<old){costs[lane.Id]=candidate;parents[lane.Id]=item.id;settled.Remove(lane.Id);queue.Push(lane.Id,candidate,RouteLowerBound(lane,goal));}
                     }
                 }

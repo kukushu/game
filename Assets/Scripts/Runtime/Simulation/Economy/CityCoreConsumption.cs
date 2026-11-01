@@ -26,6 +26,7 @@ namespace HarborCity
         {
             if(!city.development.enabled||time.Tick<city.consumption.NextTick)return;city.consumption.NextTick=time.Tick+rules.ShoppingIntervalTicks;
             if(city.ResidentMinute<rules.ShoppingStartMinute)return;index.Begin();for(int i=0;i<entities.Shops.Count;i++){var shop=entities.Shops[i];if(shop.Stock>0&&Open(shop))index.Add(shop);}if(index.Count==0)return;
+            using var routeBatch=world.Network.BeginGoalBatch();
             foreach(var family in city.society.families)
             {
                 if(!family.resident||family.shoppingDay==city.day||family.savings<rules.UnitPrice)continue;

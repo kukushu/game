@@ -17,7 +17,7 @@ namespace HarborCity
         static Dictionary<string,long> RouteStats(object network,object world)
         {
             var result=new Dictionary<string,long>();var type=network.GetType();var flags=System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.Public|System.Reflection.BindingFlags.NonPublic;
-            foreach(string name in new[]{"SharedRouteHits","SharedRouteMisses","SharedRouteEvictions","PointSearches","PointExpanded","SharedRouteCount","SharedRouteBytes","ServicePointQueries"})
+            foreach(string name in new[]{"SharedRouteHits","SharedRouteMisses","SharedRouteEvictions","PointSearches","PointExpanded","SharedRouteCount","SharedRouteBytes","ServicePointQueries","GoalBuildCount","GoalUses","GoalPruned","GoalReservedBytes","GoalBuildNanoseconds"})
             {var owner=name=="ServicePointQueries"?world:network;type=owner.GetType();var field=type.GetField(name,flags);var property=type.GetProperty(name,flags);result[name]=field!=null?Convert.ToInt64(field.GetValue(owner)):property!=null?Convert.ToInt64(property.GetValue(owner)):-1;}return result;
         }
         HarborCityRoadCoreGame host;string savePath,output;float rate;
