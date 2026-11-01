@@ -103,6 +103,7 @@ namespace HarborCity.RoadCore
     public sealed partial class Network
     {
         readonly NetworkData data;
+        readonly List<Lane> routeLanes=new List<Lane>();
         readonly Dictionary<long,Drivable> drivables=new Dictionary<long,Drivable>(CityRoadKeyComparer.Instance);
         readonly Dictionary<int,List<Drivable>> outgoing=new Dictionary<int,List<Drivable>>();
         readonly HashSet<int> conflictJunctions=new HashSet<int>();
@@ -220,6 +221,8 @@ namespace HarborCity.RoadCore
             }
             long id=LaneId(road.id,reverse,index);Drivable previous;Geometry geometry=prior!=null&&prior.drivables.TryGetValue(id,out previous)&&previous.Geometry.Matches(p)?previous.Geometry:new Geometry(p);
             var d=new Lane(id,road.id,reverse?road.to:road.from,reverse?road.from:road.to,reverse,road.speed,geometry);
+            if(d.Id>int.MaxValue)throw new InvalidOperationException("Lane ID exceeds packed route key range");
+            d.RouteSlot=routeLanes.Count;routeLanes.Add(d);
             d.ParallelLaneCount=road.lanes;
             drivables.Add(d.Id,d);List<Drivable> list;if(!outgoing.TryGetValue(d.From,out list))outgoing.Add(d.From,list=new List<Drivable>());list.Add(d);
         }
@@ -249,6 +252,10 @@ namespace HarborCity.RoadCore
             internal readonly Dictionary<long,double> costs=new Dictionary<long,double>(CityRoadKeyComparer.Instance);
             internal readonly Dictionary<long,long> parents=new Dictionary<long,long>(CityRoadKeyComparer.Instance);
             internal readonly HashSet<long> settled=new HashSet<long>(CityRoadKeyComparer.Instance);
+            internal double[] denseCosts;
+            internal int[] denseParents;
+            internal uint[] seen,closed;
+            internal uint generation;
             bool busy;
             internal readonly struct Lease:IDisposable
             {readonly RouteScratch owner;internal Lease(RouteScratch owner){this.owner=owner;}public void Dispose(){owner.busy=false;}}
@@ -256,6 +263,15 @@ namespace HarborCity.RoadCore
             {
                 if(busy)throw new InvalidOperationException("Reentrant network route search");
                 queue.Clear();costs.Clear();parents.Clear();settled.Clear();busy=true;return new Lease(this);
+            }
+            internal Lease AcquireDense(int count)
+            {
+                if(busy)throw new InvalidOperationException("Reentrant network route search");
+                if(denseCosts==null){denseCosts=new double[count];denseParents=new int[count];seen=new uint[count];closed=new uint[count];}
+                if(denseCosts.Length!=count)throw new InvalidOperationException("Route scratch belongs to another network");
+                generation=unchecked(generation+1);
+                if(generation==0){Array.Clear(seen,0,count);Array.Clear(closed,0,count);generation=1;}
+                queue.Clear();busy=true;return new Lease(this);
             }
         }
         RouteScratch accessSearch;
@@ -345,9 +361,25 @@ namespace HarborCity.RoadCore
         }
         List<long> ExpandRoute(Dictionary<long,long> parents,long last,long terminal=0)
         {
+#if CITY_CORE_ATTRIBUTION
+            using var expansion=CityCoreProfile.Measure(CityCoreProfile.Part.RouteExpand);
+#endif
             var lanes=new List<long>();for(long id=last;id!=0;id=parents[id])lanes.Add(id);lanes.Reverse();if(terminal!=0)lanes.Add(terminal);
             var result=new List<long>(lanes.Count*2-1);for(int i=0;i<lanes.Count;i++){if(i>0)result.Add(ConnectionId(lanes[i-1],lanes[i]));result.Add(lanes[i]);}return result;
         }
+        List<long> ExpandDenseRoute(int[] parents,int last,long terminal)
+        {
+#if CITY_CORE_ATTRIBUTION
+            using var expansion=CityCoreProfile.Measure(CityCoreProfile.Part.RouteExpand);
+#endif
+            var lanes=new List<long>();for(int slot=last;slot>=0;slot=parents[slot])lanes.Add(routeLanes[slot].Id);lanes.Reverse();lanes.Add(terminal);
+            var result=new List<long>(lanes.Count*2-1);for(int i=0;i<lanes.Count;i++){if(i>0)result.Add(ConnectionId(lanes[i-1],lanes[i]));result.Add(lanes[i]);}return result;
+        }
+        // Legal Lane IDs fit positive Int32 (MaximumRoadId and LaneId enforce it).
+        // High 32 bits retain EXACT ID tie order; low 32 bits carry the local slot.
+        // Point search alone uses packed keys. Other callers retain ordinary IDs;
+        // Acquire/AcquireDense clears the queue before changing interpretation.
+        static long RouteQueueKey(Lane lane)=>(lane.Id<<32)|(uint)lane.RouteSlot;
         List<long> SearchLanePath(Lane source,Lane target)
         {
 #if CITY_CORE_ATTRIBUTION
@@ -355,26 +387,35 @@ namespace HarborCity.RoadCore
 #endif
             using var trace=DepotRoutingTrace.Start("lane-astar");PointSearches++;if(DepotJunctionRouting.CountSearches)DepotJunctionRouting.SearchCalls++;
             if(RouteHeuristicEnabled)PrepareRouteMetric();var goal=target.Entry.Position;
-            var hint=GoalHint(target);double hintUpper=hint==null?double.PositiveInfinity:hint.Upper(source);
-            var scratch=accessSearch??(accessSearch=new RouteScratch());using(scratch.Acquire())
+            GoalBound hint;double hintUpper;
+#if CITY_CORE_ATTRIBUTION
+            using(CityCoreProfile.Measure(CityCoreProfile.Part.RouteBounds))
+#endif
+            {hint=GoalHint(target);hintUpper=hint==null?double.PositiveInfinity:hint.Upper(source);}
+            var scratch=accessSearch??(accessSearch=new RouteScratch());using(scratch.AcquireDense(routeLanes.Count))
             {
-                var queue=scratch.queue;var costs=scratch.costs;var parents=scratch.parents;var settled=scratch.settled;
-                costs[source.Id]=0;parents[source.Id]=0;queue.Push(source.Id,0,RouteLowerBound(source,goal));double best=double.PositiveInfinity;long before=0;
+                var queue=scratch.queue;var costs=scratch.denseCosts;var parents=scratch.denseParents;var seen=scratch.seen;var closed=scratch.closed;uint generation=scratch.generation;
+                int first=source.RouteSlot;seen[first]=generation;costs[first]=0;parents[first]=-1;queue.Push(RouteQueueKey(source),0,RouteLowerBound(source,goal));double best=double.PositiveInfinity;int before=-1;
+#if CITY_CORE_ATTRIBUTION
+                using(CityCoreProfile.Measure(CityCoreProfile.Part.RouteQueueLoop))
+#endif
+                {
                 while(queue.Count>0)
                 {
-                    var item=queue.Pop();if(item.priority>best)break;if(item.cost!=costs[item.id]||!settled.Add(item.id))continue;
+                    var item=queue.Pop();if(item.priority>best)break;int current=(int)(item.id&uint.MaxValue);if(item.cost!=costs[current]||closed[current]==generation)continue;closed[current]=generation;
                     PointExpanded++;if(trace!=null)trace.expanded++;if(DepotJunctionRouting.CountSearches)DepotJunctionRouting.SearchExpanded++;
-                    var next=AccessConnections(item.id);if(next==null)continue;
+                    var next=AccessConnections(routeLanes[current].Id);if(next==null)continue;
                     foreach(var link in next)
                     {
                         var lane=link.Outgoing;double prefix=item.cost+link.Geometry.Length/link.Speed;
-                        if(lane.Id==target.Id){if(prefix<best){best=prefix;before=item.id;}continue;}
-                        double candidate=prefix+lane.TravelLength/lane.Speed,old;
+                        if(lane.Id==target.Id){if(prefix<best){best=prefix;before=current;}continue;}
+                        double candidate=prefix+lane.TravelLength/lane.Speed;int slot=lane.RouteSlot;
                         if(hint!=null&&hint.Exclude(lane.Id,candidate,hintUpper)){GoalPruned++;continue;}
-                        if(!costs.TryGetValue(lane.Id,out old)||candidate<old){costs[lane.Id]=candidate;parents[lane.Id]=item.id;settled.Remove(lane.Id);queue.Push(lane.Id,candidate,RouteLowerBound(lane,goal));}
+                        if(seen[slot]!=generation||candidate<costs[slot]){seen[slot]=generation;costs[slot]=candidate;parents[slot]=current;closed[slot]=0;queue.Push(RouteQueueKey(lane),candidate,RouteLowerBound(lane,goal));}
                     }
                 }
-                return before==0?null:ExpandRoute(parents,before,target.Id);
+                }
+                return before<0?null:ExpandDenseRoute(parents,before,target.Id);
             }
         }
         // Start/goal offsets cannot alter the interior path between two fixed
@@ -386,6 +427,9 @@ namespace HarborCity.RoadCore
             var source=(Lane)Get(start.lane);var target=(Lane)Get(goal.lane);
             if(source.Id==target.Id&&goal.distance>=start.distance){direct=true;return 0.0+(goal.distance-start.distance)/source.Speed;}
             path=SharedLanePath(source,target);if(path==null)return double.PositiveInfinity;
+#if CITY_CORE_ATTRIBUTION
+            using var offsets=CityCoreProfile.Measure(CityCoreProfile.Part.RouteOffsets);
+#endif
             double cost=0;for(int i=0;i<path.Length;i++){var d=Get(path[i]);cost+=((i==path.Length-1?goal.distance:d.EndDistance)-(i==0?start.distance:d.StartDistance))/d.Speed;}return cost;
         }
         public List<long> Route(RoadAccess start,RoadAccess goal)

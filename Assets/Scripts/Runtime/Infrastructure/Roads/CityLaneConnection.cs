@@ -12,6 +12,8 @@ namespace HarborCity.RoadCore
     }
     public sealed class Lane:Drivable
     {
+        // Assigned once by the owning Network. Derived slot, never a saved ID.
+        internal int RouteSlot;
         public JunctionPort Entry {get;private set;}
         public JunctionPort Exit {get;private set;}
         internal Lane(long id,int road,int from,int to,bool reverse,double speed,Point[] points):base(id,road,from,to,0,reverse,speed,points){}
