@@ -19,15 +19,35 @@ namespace HarborCity
         readonly CityModel city;readonly CityEntities entities;readonly World world;readonly CitySimulation simulation;readonly RetailRules rules;
         readonly CityRetailIndex index=new CityRetailIndex();
         readonly CityCorePayroll payroll;
+#if CITY_HOUSEHOLD_SHOPPING_SCHEDULE
+        internal readonly CityHouseholdShoppingSchedule Schedule;
+#endif
+        internal static bool DemandSchedulingCompiled {
+            get {
+#if CITY_HOUSEHOLD_SHOPPING_SCHEDULE
+                return true;
+#else
+                return false;
+#endif
+            }
+        }
         readonly Dictionary<int,double> wholesaleReserved=new Dictionary<int,double>();
         internal CityCoreConsumption(CityModel city,CityEntities entities,World world,CitySimulation simulation)
-        {this.city=city;this.entities=entities;this.world=world;this.simulation=simulation;rules=simulation.Design.Retail;payroll=simulation.Payroll;}
+        {this.city=city;this.entities=entities;this.world=world;this.simulation=simulation;rules=simulation.Design.Retail;payroll=simulation.Payroll;
+#if CITY_HOUSEHOLD_SHOPPING_SCHEDULE
+            Schedule=new CityHouseholdShoppingSchedule(city,entities,world,rules);
+#endif
+        }
         internal void Step(TimeContext time)
         {
             if(!city.development.enabled||time.Tick<city.consumption.NextTick)return;city.consumption.NextTick=time.Tick+rules.ShoppingIntervalTicks;
             if(city.ResidentMinute<rules.ShoppingStartMinute)return;index.Begin();for(int i=0;i<entities.Shops.Count;i++){var shop=entities.Shops[i];if(shop.Stock>0&&Open(shop))index.Add(shop);}if(index.Count==0)return;
             using var routeBatch=world.Network.BeginGoalBatch();
+#if CITY_HOUSEHOLD_SHOPPING_SCHEDULE
+            foreach(var family in Schedule.Begin())
+#else
             foreach(var family in city.society.families)
+#endif
             {
                 if(!family.resident||family.shoppingDay==city.day||family.savings<rules.UnitPrice)continue;
                 CityResident person=null;foreach(var p in family.people)if(!p.dead&&!p.sick&&p.age>=18&&!p.atWork&&p.tripId==0&&p.location==family.home&&p.carriedGoods==0&&world.Clock>=p.retryAt){person=p;break;}if(person==null)continue;

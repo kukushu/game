@@ -7,7 +7,10 @@ namespace HarborCity
     public enum HousingKind { Apartment, Villa }
     [Serializable] public sealed class Household
     {
-        public int id, unit=-1, savings=600;
+        public int id, unit=-1;
+        int balance=600,shoppedDay=-1;
+        [CitySavedFact] public int savings {get=>balance;set{if(balance==value)return;balance=value;EntityOwner?.ShoppingFactsChanged(this);}}
+        [CitySavedFact] public int shoppingDay {get=>shoppedDay;set{if(shoppedDay==value)return;shoppedDay=value;EntityOwner?.ShoppingFactsChanged(this);}}
         int address=-1;bool active;
         internal CityEntities EntityOwner;
         [CitySavedFact] public int home {get=>address;set{if(address==value)return;int previous=address;address=value;EntityOwner?.HouseholdHomeChanged(this,previous);}}
@@ -16,7 +19,7 @@ namespace HarborCity
         public float spacePreference, privacyPreference, timePreference, savingPreference;
         public float noiseSensitivity, pollutionSensitivity, trafficSensitivity;
         public int wagePaid, rentPaid, livingPaid, travelPaid;
-        public int evaluatedDay,shoppingDay=-1;
+        public int evaluatedDay;
         public int openingSavings,retailPaid;
         public long incomeReceived,taxPaid;
         public string reason="等待住房和工作";

@@ -1,0 +1,13 @@
+run,status,scope,steps,final_sha256,request_sequence_sha256,note,decision_trace_records
+final30k,PASS,30k cross-day,3000,f2ff91c3bed42b4b59cd27994ae2704d731b1704af47163d68942602948d10c7,e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855,Full checkpoint bytes and cold80; DotNet64 only,0
+paired100k,PASS,100k cross-day,3000,06cceb96f2f96bd50a945f264317e0ab0ffdc6d1646712d679845d5e914e7b57,cccc43b664d029434700c9e1a7e7ae93d4076a2999a09e4b02afac90077ec197,Full checkpoint bytes and cold80; DotNet64 only,29160
+shop-transactions100k,PASS,100k shop close/open and failed upgrade; stops before demolition,400,08375b8f9c0acc719e666a6d45dc02e17f2ad92ec1c5a6eddc3736f276f51eea,cccc43b664d029434700c9e1a7e7ae93d4076a2999a09e4b02afac90077ec197,Full checkpoint bytes and cold80; DotNet64 only,29160
+transitions100k,BASELINE_BLOCKED,first road rejected by original reservation guard,400,,,Strict successful-demolition assertion failed; candidate not run; not PASS,
+transitions100k-retry,BASELINE_BLOCKED,eight roads rejected by original guard; each unchanged,400,,,Strict successful-demolition assertion failed; candidate not run; not PASS,
+transitions30k,BASELINE_BLOCKED,eight roads rejected by original guard; each unchanged,400,,,Strict successful-demolition assertion failed; candidate not run; not PASS,
+unit-final-dotnet,PASS,405 checks; missing-notification negative control rejects,,,,400 randomized multiword passes; not 405 cities,
+unit-final-mono,PASS,405 checks; missing-notification negative control rejects,,,,400 randomized multiword passes; not 405 cities,
+core-default,PASS,23627 core / 10000 job / 1522 grid / 83 zoning / 460474 utility,,,,Unity Mono CLI; includes small-fixture road interruption and cold recovery; not large-city successful demolition,
+core-scheduled,PASS,23627 core / 10000 job / 1522 grid / 83 zoning / 460474 utility,,,,Unity Mono CLI; includes small-fixture road interruption and cold recovery; not large-city successful demolition,
+native-fixed,PASS,100k Unity Player fixed61 and cold20,61,3f73656986a097a58543a92f4219b1e3cc1490575f2cd6183992d24bc6a50510,,Full save exact frozen native target; no input normalization,
+unit-dotnet-initial,COMPILE_FAIL_FIXED,test tried setting readonly Enabled,,,,Removed invalid test assignment; logs retained; runtime unaffected,

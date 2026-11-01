@@ -21,6 +21,7 @@ namespace HarborCity
             PlayerSettings.defaultScreenWidth=1440;PlayerSettings.defaultScreenHeight=900;PlayerSettings.fullScreenMode=FullScreenMode.Windowed;
             var defines=new System.Collections.Generic.List<string>();if(Environment.GetEnvironmentVariable("HARBOR_CORE_ATTRIBUTION")=="1")defines.Add("CITY_CORE_ATTRIBUTION");
             if(Environment.GetEnvironmentVariable("HARBOR_RESIDENT_TIME_SCHEDULE")=="1"){defines.Add("CITY_RESIDENT_GUARD_SCHEDULE");defines.Add("CITY_RESIDENT_TIME_SCHEDULE");}
+            if(Environment.GetEnvironmentVariable("HARBOR_HOUSEHOLD_SHOPPING_SCHEDULE")=="1")defines.Add("CITY_HOUSEHOLD_SHOPPING_SCHEDULE");
             var report=BuildPipeline.BuildPlayer(new BuildPlayerOptions{scenes=new[]{"Assets/Scenes/SampleScene.unity"},locationPathName=Environment.GetEnvironmentVariable("HARBOR_TRAFFIC_VALIDATION_PLAYER"),target=BuildTarget.StandaloneWindows64,options=Environment.GetEnvironmentVariable("HARBOR_PLAYER_RELEASE")=="1"?BuildOptions.None:BuildOptions.Development,extraScriptingDefines=defines.ToArray()});
             if(report.summary.result!=UnityEditor.Build.Reporting.BuildResult.Succeeded)throw new Exception("Research validation build failed");
         }

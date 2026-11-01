@@ -1,0 +1,5 @@
+run,side,host,source_baseline,total_steps,excluded_initial_steps,first_step_ms,all_step_mean_ms,post200_mean_ms,post200_p95_ms,post200_max_ms,post200_allocated_mean_bytes,note
+final30k,reference,DotNet64,b91acda,3000,200,921.9588,3.5026567666666666,3.0861095,6.4309,35.7743,52522.72571428571,Same stopwatch and decision trace overhead; controls/serialization outside step timers; not Player FPS
+final30k,candidate,DotNet64,b91acda,3000,200,933.7694,3.6400912333333335,3.192090464285714,6.3986,44.9387,52762.12,Same stopwatch and decision trace overhead; controls/serialization outside step timers; not Player FPS
+shop-transactions100k,reference,DotNet64,b91acda,400,200,76.0079,17.46660175,11.4885125,14.3078,49.8643,230139.28,Same stopwatch and decision trace overhead; controls/serialization outside step timers; not Player FPS
+shop-transactions100k,candidate,DotNet64,b91acda,400,200,77.9198,17.5372725,11.754413,14.7596,44.0696,230136.68,Same stopwatch and decision trace overhead; controls/serialization outside step timers; not Player FPS
