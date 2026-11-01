@@ -2,7 +2,7 @@
 
 本导航核对基线为正式开发 `codex/road-core-20261014` 的 `d248cf3`（2026-10-30）。当前源码和本轮用户要求优先；带日期的报告只证明其注明版本，不等于今天的性能保证或继续开发授权。
 
-本实验分支最新居民执行方式见[统一事件调度](Architecture/MillionScaleExecution/ResidentUnifiedEvents.md)：2026-11-01 起默认事件驱动，保留轮询参考；尚未合入正式分支。
+正式开发当前居民执行方式见[统一事件调度](Architecture/MillionScaleExecution/ResidentUnifiedEvents.md)：2026-11-01 按用户授权集成已验证成果，默认事件驱动，保留轮询参考；[分支集成清单](Integrations/ValidatedBranches-20261101.md)说明历史分支与未采纳实验。
 
 ## 先读什么
 
