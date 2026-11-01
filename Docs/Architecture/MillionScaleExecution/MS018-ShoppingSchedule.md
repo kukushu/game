@@ -78,3 +78,5 @@ Consumption唯一拥有 `CityHouseholdShoppingSchedule`：原序家庭槽位、r
 复现：`Tools/VerifyHouseholdShopping.ps1 -Mode Unit -Runtime DotNet64|Mono`；`-Mode Replay -Save <same-input> -Steps 3000`冻结b91对照；`-Steps 400 -Transitions`只覆盖店营业/失败升级；`-Steps 1000 -Transitions`要求成功删路，当前上述大城会明确失败。普通Player开关 `-HouseholdShoppingScheduling` 选择独立构建并校验实际编译模式，默认仍polling。
 
 三万人自然回放的购物决策追踪为0条（CSV明确列出），只证明该状态未产生额外请求及完整状态不变，不是活跃购物成功案例；十万人两组有实际决策追踪，小型核心测试补正常购物/失败/到达生命周期。不能将两规模的3000步说成同等购物覆盖。
+
+实现及定向/回放测试提交：`b042d8040178f3eced3f13ccc52da173fdb0d607`。普通候选DLL SHA256 `B37DCE99BF0610146760814A6118B44DC1B5E8E2C1FF74C0FED33C24682D9AA6`，基线DLL `61C3B30915346BFC1E1E1952A997AE4D6D8C963452C24FBACA1AD34A2B4339BA`；本次后续提交仅报告/CSV/台账，不改该运行实现。
