@@ -20,6 +20,7 @@ namespace HarborCity.RoadCore
         [NonSerialized] internal World indexOwner;
         [NonSerialized] internal double snapshotLimit;
         [NonSerialized] internal long snapshotEpoch;
+        [NonSerialized] internal int indexedJunction;[NonSerialized] internal long indexedMovement;
         [NonSerialized] internal long indexedLane,indexedShadow; // World-owned derived membership; never saved.
         public Vehicle(){sourceOccupant=new LaneOccupant(this,0);shadowOccupant=new LaneOccupant(this,0,true);}
         public int id {get;internal set;}
@@ -441,7 +442,7 @@ namespace HarborCity.RoadCore
             // Arrival settlement is synchronous. All route checks preceded the domain
             // pickup; retirement has no callback or physics movement in this commit.
             tasksById.Remove(previous.id);vehiclesByTask.Remove(previous.id);previous.state=TripState.Completed; // RetireCompleted compacts once for the whole settlement boundary.
-            v.Task=continuation.task;v.Plan=continuation.plan;v.cursor=0;
+            v.Task=continuation.task;v.Plan=continuation.plan;v.cursor=0;TrackJunctionOccupant(v);
             data.tasks.Add(v.Task);tasksById.Add(v.Task.id,v.Task);vehiclesByTask.Add(v.Task.id,v);data.nextTask++;EditEpoch++;indexDirty=true;
         }
         internal TransportAdmission PrepareTransport(int origin,int destination,int amount,double price,TransportPurpose purpose,int citizen)
@@ -502,7 +503,9 @@ namespace HarborCity.RoadCore
             long movement=reservation==entry.To&&v.Plan.segments.Count>1?v.Plan.segments[1]:0;
             if(!occupancy.TryGetValue(v.Current,out var bucket))occupancy.Add(v.Current,bucket=new List<LaneOccupant>());
             v.sourceOccupant.distance=start;bucket.Insert(InsertionSlot(bucket,start),v.sourceOccupant);v.indexedLane=v.Current;v.indexedShadow=0;
-            if(Network.IsConflictJunction(reservation))reservations.Reserve(reservation,movement,v.id);
+            v.indexedJunction=Network.IsConflictJunction(reservation)?reservation:0;v.indexedMovement=v.indexedJunction==0?0:movement;
+            if(v.indexedJunction!=0)reservations.Reserve(v.indexedJunction,movement,v.id);
+            TrackJunctionOccupant(v);
         }
         // Pending actors are off-road tasks, never obstacles on deleted pavement.
         // Stable saved vehicle order plus normal admission serializes shared exits.
@@ -631,7 +634,7 @@ namespace HarborCity.RoadCore
             using(CityCoreProfile.Measure(CityCoreProfile.Part.OccupancyClear))
 #endif
             {
-                foreach(var b in occupancy.Values)b.Clear();ActiveCount=0;awaitingRestarts=0;reservations.Reset(Network);
+                foreach(var b in occupancy.Values)b.Clear();ActiveCount=0;awaitingRestarts=0;reservations.Reset(Network);pendingJunctionOccupants.Clear();
             }
 #if UNITY_5_3_OR_NEWER
             using(actorsIndexSample.Auto())
@@ -642,7 +645,7 @@ namespace HarborCity.RoadCore
             {
                 foreach(var v in data.vehicles)
                 {
-                    v.indexedLane=v.indexedShadow=0;
+                    v.indexedLane=v.indexedShadow=0;v.indexedJunction=0;v.indexedMovement=0;
                     if(v.status==VehicleStatus.Active&&(!EndpointExists(v.Task.origin)||!EndpointExists(v.Task.destination))){v.Freeze(Position(v));}
                     if(v.status==VehicleStatus.AwaitingRestart){awaitingRestarts++;continue;}
                     if(v.status==VehicleStatus.Delivered)continue;
@@ -661,7 +664,7 @@ namespace HarborCity.RoadCore
                     // Keep reservation until the body has cleared the outgoing lane.
                     if(junction==0&&v.distance<EntryReservationEnd(d)-1e-9)junction=d.From;
                     if(!d.IsConnection&&v.distance>StopDistance(d)+1e-9)junction=d.To;
-                    if(junction!=0&&Network.IsConflictJunction(junction))reservations.Reserve(junction,v.changeTarget!=0?0:Movement(Network,v.Plan.segments,v.cursor,d,junction),v.id);
+                    if(junction!=0&&Network.IsConflictJunction(junction)){v.indexedJunction=junction;v.indexedMovement=v.changeTarget!=0?0:Movement(Network,v.Plan.segments,v.cursor,d,junction);reservations.Reserve(junction,v.indexedMovement,v.id);}
                 }
             }
 #if UNITY_5_3_OR_NEWER
@@ -740,7 +743,7 @@ namespace HarborCity.RoadCore
                                             if(occupancy.TryGetValue(exit.Id,out bucket)&&bucket.Count>0&&bucket[bucket.Count-1].distance<needed)room=false;
                                             if(entries.TryGetValue(exit.Id,out reserved)&&reserved<needed)room=false;
                                         }
-                                        if(room)reservations.Reserve(d.To,movement,v.id);else target=Math.Min(target,StopDistance(d));
+                                        if(room)reservations.ReserveTemporary(d.To,movement,v.id);else target=Math.Min(target,StopDistance(d));
                                     }
                                 }
                                 target=Math.Max(distance,target);time-=Math.Max(0,target-distance)/d.Speed;distance=target;
@@ -757,7 +760,7 @@ namespace HarborCity.RoadCore
                                 if(occupancy.TryGetValue(next.Id,out ahead)&&ahead.Count>0)rear=ahead[ahead.Count-1].distance;
                                 double planned;if(entries.TryGetValue(next.Id,out planned))rear=Math.Min(rear,planned);
                                 if(rear<next.StartDistance+MinimumSpacing)break;
-                                if(next.IsConnection&&Network.IsConflictJunction(next.JunctionId))reservations.Reserve(next.JunctionId,next.Id,v.id);
+                                if(next.IsConnection&&Network.IsConflictJunction(next.JunctionId))reservations.ReserveTemporary(next.JunctionId,next.Id,v.id);
                                 cursor++;drivable=next.Id;distance=next.StartDistance;limit=rear-MinimumSpacing;
                                 // Reserve the entry conservatively for the rest of this step.
                                 entries[next.Id]=next.StartDistance;

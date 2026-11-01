@@ -8,6 +8,32 @@ namespace HarborCity.RoadCore
         // This is derived World state, not another physical position owner.
         bool fullIndexRequired=true;
         internal long FullIndexBuilds,IncrementalIndexUpdates;
+        readonly HashSet<Vehicle> pendingJunctionOccupants=new HashSet<Vehicle>();
+        internal long JunctionClassifications,JunctionChanges,JunctionFlushes;
+        void PhysicalClaim(Vehicle v,out int junction,out long movement)
+        {
+            junction=0;movement=0;
+            if(v.status==VehicleStatus.Delivered||v.status==VehicleStatus.AwaitingRestart)return;
+            if(!Network.Contains(v.Current)){if(v.status!=VehicleStatus.Stranded)throw new InvalidOperationException("Active actor lost its drivable");return;}
+            var d=Network.Get(v.Current);int j=d.JunctionId;
+            if(j==0&&v.distance<EntryReservationEnd(d)-1e-9)j=d.From;
+            if(!d.IsConnection&&v.distance>StopDistance(d)+1e-9)j=d.To;
+            if(j!=0&&Network.IsConflictJunction(j)){junction=j;movement=v.changeTarget!=0?0:Movement(Network,v.Plan.segments,v.cursor,d,j);}
+        }
+        void TrackJunctionOccupant(Vehicle v)
+        {
+            JunctionClassifications++;PhysicalClaim(v,out int junction,out long movement);
+            if(junction!=v.indexedJunction||movement!=v.indexedMovement)pendingJunctionOccupants.Add(v);
+        }
+        void RefreshJunctionOccupants()
+        {
+            // Preserve the old lazy reset boundary. Drop speculative claims, then
+            // remove ALL old changed claims before inserting any final claim.
+            reservations.ClearTemporary();JunctionFlushes++;
+            foreach(var v in pendingJunctionOccupants)if(v.indexedJunction!=0)reservations.RemovePhysical(v.indexedJunction,v.indexedMovement,v.id);
+            foreach(var v in pendingJunctionOccupants){PhysicalClaim(v,out int junction,out long movement);v.indexedJunction=junction;v.indexedMovement=movement;if(junction!=0)reservations.Reserve(junction,movement,v.id);JunctionChanges++;}
+            pendingJunctionOccupants.Clear();
+        }
         readonly HashSet<Vehicle> pendingOccupants=new HashSet<Vehicle>();
         readonly HashSet<List<LaneOccupant>> dirtyOccupancyBuckets=new HashSet<List<LaneOccupant>>();
 
@@ -20,7 +46,7 @@ namespace HarborCity.RoadCore
         void TrackMovedOccupant(Vehicle v)
         {
             if(v.indexedLane!=v.Current||v.sourceOccupant.distance!=v.distance||v.indexedShadow!=v.changeTarget)
-                pendingOccupants.Add(v);
+            {pendingOccupants.Add(v);TrackJunctionOccupant(v);}
         }
         List<LaneOccupant> OccupantBucket(long lane)
         {
@@ -40,7 +66,7 @@ namespace HarborCity.RoadCore
         void RemoveIndexedOccupant(Vehicle v)
         {
             RemoveIndexed(v.indexedLane,v.sourceOccupant);RemoveIndexed(v.indexedShadow,v.shadowOccupant);
-            v.indexedLane=v.indexedShadow=0;pendingOccupants.Remove(v);
+            v.indexedLane=v.indexedShadow=0;pendingOccupants.Remove(v);if(v.indexedJunction!=0)pendingJunctionOccupants.Add(v);
         }
         void EnsureIndex()
         {
@@ -75,34 +101,31 @@ namespace HarborCity.RoadCore
             pendingOccupants.Clear();
             foreach(var bucket in dirtyOccupancyBuckets)if(bucket.Count>1)bucket.Sort(LaneOccupantOrder.Instance);
             dirtyOccupancyBuckets.Clear();
-            // Movement reserves speculative paths during its immutable-input phase.
-            // Keep the original full physical-claim rebuild for this first stage;
-            // carrying those speculative claims across steps is not equivalent.
-            ActiveCount=0;awaitingRestarts=0;reservations.Reset(Network);
+            RefreshJunctionOccupants();
+            indexDirty=false;
+        }
+
+        // Independent frozen-rule oracle. Never repairs buckets/claims after comparison.
+        internal void AssertJunctionIndex()
+        {
+            EnsureIndex();var expected=new JunctionReservations(Network);int active=0,restarts=0;
             foreach(var v in data.vehicles)
             {
-                if(v.status==VehicleStatus.Active&&(!EndpointExists(v.Task.origin)||!EndpointExists(v.Task.destination))){Reindex();return;}
-                if(v.status==VehicleStatus.AwaitingRestart){awaitingRestarts++;continue;}
+                if(v.status==VehicleStatus.AwaitingRestart){restarts++;continue;}
                 if(v.status==VehicleStatus.Delivered)continue;
-                if(!Network.Contains(v.Current))
-                {
-                    if(v.status!=VehicleStatus.Stranded)throw new InvalidOperationException("Active actor lost its drivable");
-                    foreach(var placement in lostOccupancy.Get(Network,v))
-                    {
-                        var road=Network.Get(placement.lane);int junction=road.JunctionId;
-                        if(junction==0&&placement.occupant.distance<EntryReservationEnd(road))junction=road.From;
-                        if(!road.IsConnection&&placement.occupant.distance>StopDistance(road))junction=road.To;
-                        if(Network.IsConflictJunction(junction))reservations.Reserve(junction,0,v.id);
-                    }
-                    continue;
+                if(!Network.Contains(v.Current)){
+                    if(v.status!=VehicleStatus.Stranded)throw new InvalidOperationException("Oracle active actor lost drivable");
+                    foreach(var p in lostOccupancy.Get(Network,v)){var road=Network.Get(p.lane);int j=road.JunctionId;if(j==0&&p.occupant.distance<EntryReservationEnd(road))j=road.From;if(!road.IsConnection&&p.occupant.distance>StopDistance(road))j=road.To;if(Network.IsConflictJunction(j))expected.Reserve(j,0,v.id);}continue;
                 }
-                if(v.status==VehicleStatus.Active)ActiveCount++;
-                var d=Network.Get(v.Current);int j=d.JunctionId;
-                if(j==0&&v.distance<EntryReservationEnd(d)-1e-9)j=d.From;
-                if(!d.IsConnection&&v.distance>StopDistance(d)+1e-9)j=d.To;
-                if(j!=0&&Network.IsConflictJunction(j))reservations.Reserve(j,v.changeTarget!=0?0:Movement(Network,v.Plan.segments,v.cursor,d,j),v.id);
+                if(v.status==VehicleStatus.Active)active++;
+                var d=Network.Get(v.Current);int junction=d.JunctionId;
+                if(junction==0&&v.distance<EntryReservationEnd(d)-1e-9)junction=d.From;
+                if(!d.IsConnection&&v.distance>StopDistance(d)+1e-9)junction=d.To;
+                if(junction!=0&&Network.IsConflictJunction(junction))expected.Reserve(junction,v.changeTarget!=0?0:Movement(Network,v.Plan.segments,v.cursor,d,junction),v.id);
             }
-            indexDirty=false;
+            if(active!=ActiveCount||restarts!=awaitingRestarts)throw new InvalidOperationException("Incremental lifecycle counts differ");
+            var a=reservations.CopyClaims();var b=expected.CopyClaims();if(a.Count!=b.Count)throw new InvalidOperationException("Physical junction count differs");
+            for(int i=0;i<a.Count;i++)if(a[i]!=b[i])throw new InvalidOperationException("Physical junction membership/direction differs");
         }
 
         // Cold test oracle: compare BEFORE the old validator can repair the index.

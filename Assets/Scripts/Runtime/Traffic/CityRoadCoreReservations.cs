@@ -9,18 +9,38 @@ namespace HarborCity.RoadCore
     {
         struct Claim {public long movement;public int owner;}
         readonly Dictionary<int,List<Claim>> claims=new Dictionary<int,List<Claim>>();
+        readonly Dictionary<int,List<Claim>> temporary=new Dictionary<int,List<Claim>>();
+        readonly List<List<Claim>> temporaryTouched=new List<List<Claim>>();
+        internal long PhysicalAdds,PhysicalRemoves,TemporaryAdds,TemporaryClears;
         Network network;
         public JunctionReservations(Network network){this.network=network;}
-        public void Reset(Network network){if(!ReferenceEquals(this.network,network))claims.Clear();this.network=network;foreach(var bucket in claims.Values)bucket.Clear();}
+        public void Reset(Network network){ClearTemporary();if(!ReferenceEquals(this.network,network)){claims.Clear();temporary.Clear();}this.network=network;foreach(var bucket in claims.Values)bucket.Clear();}
+        internal void ClearTemporary(){foreach(var bucket in temporaryTouched)bucket.Clear();temporaryTouched.Clear();TemporaryClears++;}
+        internal void RemovePhysical(int junction,long movement,int owner)
+        {
+            if(!claims.TryGetValue(junction,out var bucket))throw new InvalidOperationException("Missing physical junction bucket");
+            for(int i=0;i<bucket.Count;i++)if(bucket[i].owner==owner&&bucket[i].movement==movement){bucket.RemoveAt(i);PhysicalRemoves++;return;}
+            throw new InvalidOperationException("Missing physical junction occupant");
+        }
+        static bool Contains(List<Claim> bucket,long movement,int owner){foreach(var claim in bucket)if(claim.owner==owner&&claim.movement==movement)return true;return false;}
+        internal void ReserveTemporary(int junction,long movement,int owner)
+        {
+            if(!CanReserve(junction,movement,owner))throw new InvalidOperationException("Conflicting junction occupants");
+            if(claims.TryGetValue(junction,out var physical)&&Contains(physical,movement,owner))return;
+            if(!temporary.TryGetValue(junction,out var bucket))temporary.Add(junction,bucket=new List<Claim>());
+            if(Contains(bucket,movement,owner))return;
+            if(bucket.Count==0)temporaryTouched.Add(bucket);bucket.Add(new Claim{movement=movement,owner=owner});TemporaryAdds++;
+        }
         internal List<(int junction,int owner,long movement)> CopyClaims()
         {
             var result=new List<(int,int,long)>();foreach(var pair in claims)foreach(var claim in pair.Value)result.Add((pair.Key,claim.owner,claim.movement));
+            foreach(var pair in temporary)foreach(var claim in pair.Value)if(!claims.TryGetValue(pair.Key,out var physical)||!Contains(physical,claim.movement,claim.owner))result.Add((pair.Key,claim.owner,claim.movement));
             result.Sort((a,b)=>{int c=a.Item1.CompareTo(b.Item1);if(c!=0)return c;c=a.Item2.CompareTo(b.Item2);return c!=0?c:a.Item3.CompareTo(b.Item3);});return result;
         }
         public bool CanReserve(int junction,long movement,int owner)
         {
-            List<Claim> bucket;if(!claims.TryGetValue(junction,out bucket))return true;
-            foreach(var claim in bucket)if(claim.owner!=owner&&(movement==0||claim.movement==0||network.MovementsConflict(movement,claim.movement)))return false;
+            if(claims.TryGetValue(junction,out var bucket))foreach(var claim in bucket)if(claim.owner!=owner&&(movement==0||claim.movement==0||network.MovementsConflict(movement,claim.movement)))return false;
+            if(temporary.TryGetValue(junction,out var pending))foreach(var claim in pending)if(claim.owner!=owner&&(movement==0||claim.movement==0||network.MovementsConflict(movement,claim.movement)))return false;
             return true;
         }
         public void Reserve(int junction,long movement,int owner)
@@ -28,7 +48,7 @@ namespace HarborCity.RoadCore
             if(!CanReserve(junction,movement,owner))throw new InvalidOperationException("Conflicting junction occupants");
             List<Claim> bucket;if(!claims.TryGetValue(junction,out bucket))claims.Add(junction,bucket=new List<Claim>());
             foreach(var claim in bucket)if(claim.owner==owner&&claim.movement==movement)return;
-            bucket.Add(new Claim{movement=movement,owner=owner});
+            bucket.Add(new Claim{movement=movement,owner=owner});PhysicalAdds++;
         }
     }
     // Immutable-network derived queries. Compute a pair only when requested, and

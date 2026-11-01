@@ -44,9 +44,24 @@ else
 
  Console.WriteLine("PASS "+checks+" funding wait controls and missing-notification negative control");
  }
+#if JUNCTION_OCCUPANCY_TRACE
+ static void TracePhysical(CityCoreIndustrySession s,MemoryStream buffer,BinaryWriter writer,IncrementalHash hash){buffer.SetLength(0);writer.Write(s.Simulation.Tick);writer.Write(s.Transport.ActiveCount);writer.Write(s.Transport.Vehicles.Count);foreach(var v in s.Transport.Vehicles){writer.Write(v.id);writer.Write(v.Task.id);writer.Write((int)v.status);writer.Write(v.Current);writer.Write(v.distance);writer.Write(v.cursor);writer.Write(v.changeTarget);writer.Write(v.changeElapsed);writer.Write(v.Route.Count);foreach(long lane in v.Route)writer.Write(lane);}var field=typeof(World).GetField("reservations",BindingFlags.Instance|BindingFlags.NonPublic);var claims=((JunctionReservations)field.GetValue(s.Transport)).CopyClaims();writer.Write(claims.Count);foreach(var c in claims){writer.Write(c.junction);writer.Write(c.owner);writer.Write(c.movement);}writer.Flush();hash.AppendData(buffer.GetBuffer(),0,(int)buffer.Length);}
+#endif
  static void Replay(string input,string output,int steps){var s=CityCoreSave.Read(File.ReadAllBytes(input));s.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);s.Transport.DepotLaneRoutingEnabled=true;
+
+#if JUNCTION_OCCUPANCY_TRACE
+ using var physicalHash=IncrementalHash.CreateHash(HashAlgorithmName.SHA256);using var physicalBuffer=new MemoryStream();using var physicalWriter=new BinaryWriter(physicalBuffer);
+#endif
  var original=s.Residents.RequestCommute;var trace=new BinaryWriter(File.Create(Path.Combine(output,"requests.bin")));s.Residents.RequestCommute=(id,from,to,back)=>{var v=original(id,from,to,back);trace.Write(s.Simulation.Tick);trace.Write(id);trace.Write(from);trace.Write(to);trace.Write(back);trace.Write(v?.id??0);return v;};
- var cost=new List<string>{"tick,step_ms,allocated_bytes"};var rows=new List<string>{"tick,sha256"};try{for(int i=0;i<steps;i++){long bytes=GC.GetAllocatedBytesForCurrentThread();var clock=System.Diagnostics.Stopwatch.StartNew();Check(s.Simulation.Advance(.05,1,double.PositiveInfinity)==1,"Lost step");clock.Stop();cost.Add(string.Join(",",s.Simulation.Tick,clock.Elapsed.TotalMilliseconds.ToString("R",System.Globalization.CultureInfo.InvariantCulture),GC.GetAllocatedBytesForCurrentThread()-bytes));if(i==199){long retained=GC.GetTotalMemory(true);File.WriteAllText(Path.Combine(output,"managed-after200.csv"),"tick,managed_retained_bytes\n"+s.Simulation.Tick+","+retained);}if(i%400==399||i==steps-1){byte[] data=CityCoreSave.Write(s);rows.Add(s.Simulation.Tick+","+Hash(data));if(i==steps-1)File.WriteAllBytes(Path.Combine(output,"final.hcity"),data);Console.WriteLine("State tick "+s.Simulation.Tick);}}}finally{s.Residents.RequestCommute=original;trace.Dispose();}
+ var cost=new List<string>{"tick,step_ms,allocated_bytes"};var rows=new List<string>{"tick,sha256"};try{for(int i=0;i<steps;i++){long bytes=GC.GetAllocatedBytesForCurrentThread();var clock=System.Diagnostics.Stopwatch.StartNew();Check(s.Simulation.Advance(.05,1,double.PositiveInfinity)==1,"Lost step");clock.Stop();cost.Add(string.Join(",",s.Simulation.Tick,clock.Elapsed.TotalMilliseconds.ToString("R",System.Globalization.CultureInfo.InvariantCulture),GC.GetAllocatedBytesForCurrentThread()-bytes));
+#if JUNCTION_OCCUPANCY_TRACE
+ TracePhysical(s,physicalBuffer,physicalWriter,physicalHash);
+#endif
+ if(i==199){long retained=GC.GetTotalMemory(true);File.WriteAllText(Path.Combine(output,"managed-after200.csv"),"tick,managed_retained_bytes\n"+s.Simulation.Tick+","+retained);}if(i%400==399||i==steps-1){byte[] data=CityCoreSave.Write(s);rows.Add(s.Simulation.Tick+","+Hash(data));if(i==steps-1)File.WriteAllBytes(Path.Combine(output,"final.hcity"),data);Console.WriteLine("State tick "+s.Simulation.Tick);}}}finally{s.Residents.RequestCommute=original;trace.Dispose();}
+
+#if JUNCTION_OCCUPANCY_TRACE
+ File.WriteAllText(Path.Combine(output,"physical-trace.sha256"),Convert.ToHexString(physicalHash.GetHashAndReset()));
+#endif
  File.WriteAllLines(Path.Combine(output,"cost.csv"),cost);File.WriteAllLines(Path.Combine(output,"states.csv"),rows);
  var schedule=(s.Residents.GetType().GetField("schedule",BindingFlags.Instance|BindingFlags.NonPublic)??s.Residents.GetType().GetField("guardSchedule",BindingFlags.Instance|BindingFlags.NonPublic))?.GetValue(s.Residents);if(schedule!=null)File.WriteAllLines(Path.Combine(output,"schedule.csv"),new[]{"metric,value"}.Concat(new[]{"Rebuilds","Changes","FundingChecks","FundingSleeps"}.Select(n=>n+","+schedule.GetType().GetField(n,BindingFlags.Instance|BindingFlags.NonPublic).GetValue(schedule))));var cold=CityCoreSave.Read(File.ReadAllBytes(Path.Combine(output,"final.hcity")));cold.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);cold.Transport.DepotLaneRoutingEnabled=true;for(int i=0;i<80;i++){s.Advance(.05);cold.Advance(.05);}Check(CityCoreSave.Write(s).SequenceEqual(CityCoreSave.Write(cold)),"Funding wait cold80 differs");Console.WriteLine("PASS original fixed steps, full states, request results and cold80; compare all builds");
  }

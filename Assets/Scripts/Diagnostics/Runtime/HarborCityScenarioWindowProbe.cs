@@ -22,6 +22,17 @@ namespace HarborCity
         }
         static void WriteShoppingStats(string output,Dictionary<string,long> before,CityCoreIndustrySession city)
         {var after=ShoppingStats(city);File.WriteAllLines(Path.Combine(output,"household-schedule.csv"),new[]{"metric,start,end,delta"}.Concat(after.Select(p=>string.Join(",",p.Key,before[p.Key],p.Value,p.Value-before[p.Key]))));}
+        static Dictionary<string,long> OccupancyStats(CityCoreIndustrySession city)
+        {
+            const System.Reflection.BindingFlags f=System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic;
+            object world=city.Transport;var type=world.GetType();var result=new Dictionary<string,long>();
+            foreach(var name in new[]{"FullIndexBuilds","IncrementalIndexUpdates","JunctionClassifications","JunctionChanges","JunctionFlushes"})result[name]=Convert.ToInt64(type.GetField(name,f)?.GetValue(world)??-1L);
+            var reservations=type.GetField("reservations",f)?.GetValue(world);
+            foreach(var name in new[]{"PhysicalAdds","PhysicalRemoves","TemporaryAdds","TemporaryClears"})result[name]=reservations==null?-1:Convert.ToInt64(reservations.GetType().GetField(name,f)?.GetValue(reservations)??-1L);
+            return result;
+        }
+        static void WriteOccupancyStats(string output,Dictionary<string,long> before,CityCoreIndustrySession city)
+        {var after=OccupancyStats(city);File.WriteAllLines(Path.Combine(output,"occupancy-index.csv"),new[]{"metric,start,end,delta"}.Concat(after.Select(p=>string.Join(",",p.Key,before[p.Key],p.Value,p.Value<0||before[p.Key]<0?-1:p.Value-before[p.Key]))));}
         static Dictionary<string,long> ResidentStats(CityCoreIndustrySession city)
         {
             var flags=System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic;var r=city.Residents;var type=r.GetType();var result=new Dictionary<string,long>();
@@ -153,7 +164,7 @@ namespace HarborCity
             var roadMemory=new List<string>{"phase,drivables,renderers,vertices,triangles,mesh_runtime_bytes,managed_gc_bytes,unity_allocated_bytes"};
             RoadMemory(roadMemory,"start");
             long startTick=city.Simulation.Tick;
-            var initialPointNetwork=city.Transport.Network;var pointStats=RouteStats(initialPointNetwork,city.Transport);var shoppingBefore=ShoppingStats(city);var residentBefore=ResidentStats(city);
+            var initialPointNetwork=city.Transport.Network;var pointStats=RouteStats(initialPointNetwork,city.Transport);var shoppingBefore=ShoppingStats(city);var residentBefore=ResidentStats(city);var occupancyBefore=OccupancyStats(city);
             double startPending=city.Simulation.PendingSeconds;
             var frames=new List<double>(5000);var rows=new List<Sample>(5000);
             var gc=ProfilerRecorder.StartNew(ProfilerCategory.Memory,"GC Allocated In Frame",1);
@@ -252,7 +263,7 @@ namespace HarborCity
             File.WriteAllText(Path.Combine(output,"attribution.json"),"{\"advance_mean_ms\":"+rows.Average(r=>r.advance).ToString("R",CultureInfo.InvariantCulture)+",\"vehicle_sync_mean_ms\":"+rows.Average(r=>r.vehicles).ToString("R",CultureInfo.InvariantCulture)+",\"structure_sync_mean_ms\":"+rows.Average(r=>r.structure).ToString("R",CultureInfo.InvariantCulture)+",\"max_pending_seconds\":"+rows.Max(r=>r.pending).ToString("R",CultureInfo.InvariantCulture)+",\"note\":\"Stopwatch host scopes are current Update. ProfilerRecorder and GPU timings may lag; unavailable is -1. Main Thread can include waits; GC.Collect marker is not a proven complete pause total. This probe does not budget or discard steps.\"}");
             File.WriteAllText(Path.Combine(output,"summary.csv"),"input_sha256,rate,real_seconds,start_tick,end_tick,sim_ratio,fps,p95_ms,p99_ms,max_ms,gc_bytes_per_frame,gc_samples,gen0,gen1,gen2,peak_vehicles,max_steps_frame,building_views,population,zone_plots,zone_renderers,road_views,utility_views,created_vehicle_views,reused_vehicle_views,inactive_vehicle_views,road_renderers,road_chunk_size\n"+string.Join(",",hash,rate,elapsed,startTick,endTick,(endTick-startTick)*.05/elapsed,frames.Count/elapsed,p95,p99,frames.Last(),gcSamples==frames.Count?(double)allocated/gcSamples:-1,gcSamples,endGen0-gen0,endGen1-gen1,endGen2-gen2,peak,maxSteps,host.ScenarioBuildingViews,city.City.population,host.ScenarioZonePlots,host.ScenarioZoneRenderers,host.ScenarioRoadViews,host.ScenarioUtilityViews,host.ScenarioCreatedVehicleViews,host.ScenarioReusedVehicleViews,host.ScenarioPooledVehicles,host.ScenarioRoadRenderers,host.ScenarioRoadChunkSize));
             RoadMemory(roadMemory,"end");File.WriteAllLines(Path.Combine(output,"road-memory.csv"),roadMemory);
-            WriteShoppingStats(output,shoppingBefore,city);WriteResidentStats(output,residentBefore,city);var endPointStats=RouteStats(city.Transport.Network,city.Transport);bool samePointNetwork=ReferenceEquals(initialPointNetwork,city.Transport.Network);
+            WriteShoppingStats(output,shoppingBefore,city);WriteResidentStats(output,residentBefore,city);WriteOccupancyStats(output,occupancyBefore,city);var endPointStats=RouteStats(city.Transport.Network,city.Transport);bool samePointNetwork=ReferenceEquals(initialPointNetwork,city.Transport.Network);
             File.WriteAllLines(Path.Combine(output,"point-routing.csv"),new[]{"metric,start,end,delta,same_network"}.Concat(pointStats.Select(p=>p.Key+","+p.Value+","+endPointStats[p.Key]+","+(samePointNetwork&&p.Value>=0?endPointStats[p.Key]-p.Value:-1)+","+samePointNetwork)));
             // Validation and disk output are outside the measured window.
             yield return null;
@@ -289,7 +300,7 @@ namespace HarborCity
             if(profile)throw new InvalidOperationException("Fixed profile requires an attribution-enabled binary");
 #endif
             var coreRows=profile?new List<string>{HarborCity.RoadCore.CityCoreProfile.Header()}:null;
-            var pointNetwork=city.Transport.Network;var pointBefore=RouteStats(pointNetwork,city.Transport);var shoppingBefore=ShoppingStats(city);var residentBefore=ResidentStats(city);
+            var pointNetwork=city.Transport.Network;var pointBefore=RouteStats(pointNetwork,city.Transport);var shoppingBefore=ShoppingStats(city);var residentBefore=ResidentStats(city);var occupancyBefore=OccupancyStats(city);
             int queryFlag=Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-window-query-tick");
             long queryTick=queryFlag<0?0:long.Parse(Environment.GetCommandLineArgs()[queryFlag+1],CultureInfo.InvariantCulture),observedTick=0,overflow=0;
             var queries=new Dictionary<(HarborCity.RoadCore.CityCoreProfile.QueryKind kind,HarborCity.RoadCore.CityCoreProfile.QueryResult result,int origin,int destination,bool both,HarborCity.RoadCore.CityCoreProfile.Part context),long>();
@@ -308,7 +319,7 @@ namespace HarborCity
             finally{if(queryTick>0)HarborCity.RoadCore.CityCoreProfile.QueryObserver=null;if(profile)HarborCity.RoadCore.CityCoreProfile.Enabled=false;}
             if(queryTick>0){File.WriteAllLines(Path.Combine(output,"fixed-queries.csv"),new[]{"tick,kind,result,origin,destination,both_directions,context,count"}.Concat(queries.OrderBy(q=>q.Key.kind).ThenBy(q=>q.Key.result).ThenBy(q=>q.Key.origin).ThenBy(q=>q.Key.destination).ThenBy(q=>q.Key.both).ThenBy(q=>q.Key.context).Select(q=>string.Join(",",queryTick,q.Key.kind,q.Key.result,q.Key.origin,q.Key.destination,q.Key.both,q.Key.context,q.Value))));File.WriteAllText(Path.Combine(output,"fixed-query-overflow.txt"),overflow.ToString(CultureInfo.InvariantCulture));}
             if(profile){HarborCity.RoadCore.CityCoreProfile.Enabled=false;File.WriteAllLines(Path.Combine(output,"fixed-core-cumulative.csv"),coreRows);}
-            WriteShoppingStats(output,shoppingBefore,city);WriteResidentStats(output,residentBefore,city);var pointAfter=RouteStats(city.Transport.Network,city.Transport);
+            WriteShoppingStats(output,shoppingBefore,city);WriteResidentStats(output,residentBefore,city);WriteOccupancyStats(output,occupancyBefore,city);var pointAfter=RouteStats(city.Transport.Network,city.Transport);
             File.WriteAllLines(Path.Combine(output,"fixed-point-routing.csv"),new[]{"metric,start,end,delta,same_network"}.Concat(pointBefore.Select(p=>string.Join(",",p.Key,p.Value,pointAfter[p.Key],pointAfter[p.Key]-p.Value,ReferenceEquals(pointNetwork,city.Transport.Network)))));
             if(queryTick>0)
             {

@@ -38,7 +38,7 @@ function Sync-CityWorkspaceProject([string]$SourceRoot,[string]$ProjectRoot) {
 function Set-CityTrafficReference([string]$SourceRoot,[string]$ProjectRoot,[string]$Reference) {
     $source=[IO.Path]::GetFullPath($SourceRoot);$project=[IO.Path]::GetFullPath($ProjectRoot)
     if(-not $project.StartsWith(([IO.Path]::GetFullPath((Join-Path $source 'Temp'))+[IO.Path]::DirectorySeparatorChar),[StringComparison]::OrdinalIgnoreCase)){throw 'Reference injection is restricted to Temp'}
-    foreach($name in @('CityRoadCoreWorld.cs','CityRoadCoreLaneChanges.cs','CityRoadCoreOccupancy.cs')){
+    foreach($name in @('CityRoadCoreWorld.cs','CityRoadCoreLaneChanges.cs','CityRoadCoreOccupancy.cs','CityRoadCoreReservations.cs')){
         $relative='Assets/Scripts/Runtime/Traffic/'+$name;$target=Join-Path $project $relative
         & git -C $source cat-file -e ($Reference+':'+$relative) 2>$null
         if($LASTEXITCODE -ne 0){
