@@ -8,17 +8,17 @@ namespace HarborCity
     // remain authoritative. Shift plans consume original-loop inputs only; no routing or dispatch lives here.
     internal sealed class CityResidentGuardSchedule
     {
-        readonly bool temporal;readonly double offset;bool mode,calendarOk;float daySeconds,sampledElapsed;double sampledClock=double.NaN;
+        readonly bool temporal,fundingWait;readonly double offset;bool mode,calendarOk;float daySeconds,sampledElapsed;double sampledClock=double.NaN;
         bool[] planned;readonly HashSet<int> livePlans=new HashSet<int>();readonly List<int> invalidPlans=new List<int>();
         readonly Dictionary<int,HashSet<int>> dependencies=new Dictionary<int,HashSet<int>>();int[][] dependencyKeys;
         readonly CityEntities owner;readonly World world;readonly CityModel city;int day;readonly HashSet<int> dayBlocked=new HashSet<int>();readonly List<int> dayWake=new List<int>();
         CityMember[] members;readonly Dictionary<int,int> slots=new Dictionary<int,int>();
         HarborCity.Diagnostics.CityWakeQueue timers;
         ulong[] ready;int[] next,previous;int head=-1,scan=-1,cursor=-1;bool inPass;readonly List<int> due=new List<int>();bool structureDirty=true;
-        internal long Rebuilds,Changes;
-        internal CityResidentGuardSchedule(CityEntities owner,World world,CityModel city,CityCoreResidents requests=null,double offset=50)
-        {this.owner=owner;this.world=world;this.city=city;day=city.day;this.offset=offset;temporal=requests!=null;mode=city.development.enabled;daySeconds=city.society.settings.secondsPerDay;
-            if(temporal){owner.JobAssignmentsChanged+=Changed;owner.FundingEligibilityChanged+=Changed;requests.PlansInvalidated+=Invalidate;}
+        internal long Rebuilds,Changes,FundingChecks,FundingSleeps;
+        internal CityResidentGuardSchedule(CityEntities owner,World world,CityModel city,CityCoreResidents requests=null,double offset=50,bool fundingWait=false)
+        {this.fundingWait=fundingWait;this.owner=owner;this.world=world;this.city=city;day=city.day;this.offset=offset;temporal=requests!=null;mode=city.development.enabled;daySeconds=city.society.settings.secondsPerDay;
+            if(temporal||fundingWait){owner.JobAssignmentsChanged+=Changed;owner.FundingEligibilityChanged+=Changed;}if(temporal)requests.PlansInvalidated+=Invalidate;
             owner.ResidentStateChanged+=(m,r)=>{if(temporal||r!=CityResidentStateChange.CommuteObservation)Changed(m);};owner.MembersChanged+=()=>structureDirty=true;owner.RequestGuardsChanged+=(m,g)=>Changed(m);}
         void Changed(CityMember member)
         {
@@ -46,6 +46,9 @@ namespace HarborCity
             if(!m.Family.resident||p.dead||(p.location==m.Family.home&&(p.atWork||!city.CanAttendWork(p)))){SetReady(i,false);timers.Cancel(i);return;}
             if(p.tripId==0&&p.location==m.Family.home&&p.departureDay==city.day){dayBlocked.Add(i);SetReady(i,false);timers.Cancel(i);return;}
             if(p.tripId!=0){SetReady(i,false);timers.Cancel(i);return;}
+            // Only home/work eligibility is sleeping, never a return trip. The
+            // existing funding flush runs before Begin and after every dispatch.
+            if(fundingWait&&p.location==m.Family.home&&UnfundedTrackedEmployer(p)){SetReady(i,false);timers.Cancel(i);return;}
             if(temporal&&planned[i]){SetReady(i,false);return;}
             // Match the original two '<' comparisons separately. NaN does not
             // block its own guard and must not swallow the other finite guard.
@@ -54,6 +57,16 @@ namespace HarborCity
             if(world.Clock<p.visitUntil&&p.visitUntil>deadline)deadline=p.visitUntil;
             if(deadline>world.Clock){SetReady(i,false);timers.Schedule(i,double.IsPositiveInfinity(deadline)?long.MaxValue:HarborCity.Diagnostics.CityWakeQueue.FirstTick(deadline,owner.Simulation.Tick,SimulationClock.StepSeconds));}
             else{timers.Cancel(i);SetReady(i,true);}
+        }
+        bool UnfundedTrackedEmployer(CityResident person)
+        {
+            var job=city.ResidentJob(person);if(job==null)return false;
+            var employer=owner.Building(job.buildingId);
+            // Other/legacy employer types have no owned balance notification:
+            // keep them on the original polling path rather than guess a wake.
+            bool tracked=employer is IndustrialBuilding f&&ReferenceEquals(f.factory.FundingOwner,owner)||employer is CommercialBuilding shop&&ReferenceEquals(shop.Account.FundingOwner,owner);
+            if(!tracked)return false;FundingChecks++;
+            if(city.JobFunded(job))return false;FundingSleeps++;return true;
         }
         void ClearPlan(int i){if(!temporal)return;planned[i]=false;livePlans.Remove(i);}
         void Invalidate(ResidentPlanInvalidation change)

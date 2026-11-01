@@ -1,5 +1,8 @@
-#if CITY_RESIDENT_TIME_SCHEDULE && !CITY_RESIDENT_GUARD_SCHEDULE
+#if (CITY_RESIDENT_TIME_SCHEDULE || CITY_RESIDENT_FUNDING_SCHEDULE) && !CITY_RESIDENT_GUARD_SCHEDULE
 #error Time scheduling requires guard scheduling
+#endif
+#if CITY_RESIDENT_TIME_SCHEDULE && CITY_RESIDENT_FUNDING_SCHEDULE
+#error Evaluate temporal plans and funding wait independently
 #endif
 using System;
 using System.Collections.Generic;
@@ -187,6 +190,8 @@ namespace HarborCity
 #if CITY_RESIDENT_GUARD_SCHEDULE
 #if CITY_RESIDENT_TIME_SCHEDULE
             guardSchedule=new CityResidentGuardSchedule(entities,transport,city,this,calendarOffset);
+#elif CITY_RESIDENT_FUNDING_SCHEDULE
+            guardSchedule=new CityResidentGuardSchedule(entities,transport,city,fundingWait:true);
 #else
             guardSchedule=new CityResidentGuardSchedule(entities,transport,city);
 #endif

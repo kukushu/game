@@ -48,18 +48,22 @@ if variant=='latest':
     body=body.replace('p.retryAt=(float)', 'ResidentRequestProbe.Next(ResidentRequestProbe.Phase.Dispatch);p.retryAt=(float)')
     for old_read,new_read in [('city.ResidentJob(p)','ResidentRequestProbe.Job(city,p)'),('city.GetBuilding(','ResidentRequestProbe.Building(city,'),('entities.Employment.ShiftStart(','ResidentRequestProbe.Shift(entities.Employment,'),('entities.Employment.ShiftMinutes','ResidentRequestProbe.Minutes(entities.Employment)'),('city.CanAttendWork(p)','ResidentRequestProbe.Attend(city,p)'),('city.JobFunded(','ResidentRequestProbe.Funded(city,')]:body=body.replace(old_read,new_read)
     jobs=project/'Assets/Scripts/Runtime/Simulation/Residents/CityJobs.cs';j=jobs.read_text(encoding='utf-8-sig');i=j.index('{',j.index('public CityJob Job(int id)'))+1;j=j[:i]+'\n            ResidentRequestProbe.Lookup(id);'+j[i:];jobs.write_text(j,encoding='utf-8')
-if variant=='retry':
+if variant in ('retry','latest'):
     assert 'int workplace=job?.buildingId??-1;' in body
-    body=body.replace('if(!returning&&!leaving)continue;', 'ResidentDispatchTrace.Qualification(city,transport,p,h,workplace,minute,shift,end,estimate,eligible,returning,leaving);if(!returning&&!leaving)continue;')
+    if variant=='retry':body=body.replace('if(!returning&&!leaving)continue;', 'ResidentDispatchTrace.Qualification(city,transport,p,h,workplace,minute,shift,end,estimate,eligible,returning,leaving);if(!returning&&!leaving)continue;')
     simulation=project/'Assets/Scripts/Runtime/Simulation/Core/CitySimulation.cs'
     sim=simulation.read_text(encoding='utf-8-sig')
     old='var admission=transport.PrepareTransport(origin,destination,cargo,price,purpose,citizen);if(admission==null)return null;transport.CheckAdmission(admission);if(admission.vehicle.Task.Shipment!=null)admission.vehicle.Task.Shipment.kind=kind;if(!business.Depart(admission.vehicle.Task))return null;return transport.CommitAdmission(admission);'
     new='long traceStarted=ResidentDispatchTrace.Start(purpose);var admission=transport.PrepareTransport(origin,destination,cargo,price,purpose,citizen,out var rejection);if(admission==null){ResidentDispatchTrace.Record(city,transport,citizen,purpose,origin,destination,rejection,false,false,traceStarted);return null;}transport.CheckAdmission(admission);if(admission.vehicle.Task.Shipment!=null)admission.vehicle.Task.Shipment.kind=kind;if(!business.Depart(admission.vehicle.Task)){ResidentDispatchTrace.Record(city,transport,citizen,purpose,origin,destination,TransportRejection.None,false,true,traceStarted);return null;}var result=transport.CommitAdmission(admission);ResidentDispatchTrace.Record(city,transport,citizen,purpose,origin,destination,TransportRejection.None,true,false,traceStarted);return result;'
     assert old in sim
     simulation.write_text(sim.replace(old,new),encoding='utf-8')
-    world=project/'Assets/Scripts/Runtime/Traffic/CityRoadCoreWorld.cs'
-    w=world.read_text(encoding='utf-8-sig');needle='        void Reindex()\n        {';assert needle in w
+    world=project/'Assets/Scripts/Runtime/Traffic/CityRoadCoreOccupancy.cs'
+    w=world.read_text(encoding='utf-8-sig');needle='            if(!indexDirty)return;';assert w.count(needle)==1
+    # Time the actual shared flush, including incremental updates. Full Reindex
+    # alone misses current warm-step work. Labels of historical CSV stay intact;
+    # the extra scope note below makes this new observation explicit.
     world.write_text(w.replace(needle,needle+'\n            using var indexTrace=ResidentDispatchTrace.Index();'),encoding='utf-8')
+    (project/'Assets/Scripts/Diagnostics/Runtime/ResidentIndexScope.txt').write_text('EnsureIndex after dirty guard; includes incremental flush or full fallback. Historical reindex CSV names denote this scope in this build.',encoding='utf-8')
 path.write_text(text[:a]+body+text[b:],encoding='utf-8')
 if variant in ('occupancy','occupancy-census','occupancy-trim','occupancy-active'):
     from PrepareOccupancyProbe import instrument

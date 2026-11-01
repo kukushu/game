@@ -7,7 +7,8 @@ namespace HarborCity {
   static string N(double x)=>x.ToString("R",CultureInfo.InvariantCulture);
   IEnumerator Run(){Directory.CreateDirectory(output);long allocationStart=GC.GetAllocatedBytesForCurrentThread();GC.KeepAlive(new byte[4096]);bool allocationSupported=GC.GetAllocatedBytesForCurrentThread()>allocationStart;File.WriteAllText(Path.Combine(output,"allocation-counter.txt"),allocationSupported?"supported":"unsupported; do not interpret zero as zero GC");host.ScenarioRate(0);Application.runInBackground=true;QualitySettings.vSyncCount=0;Application.targetFrameRate=60;yield return null;
    var s=host.ScenarioSession;s.Transport.DepotLaneRoutingEnabled=true;CityCoreProfile.Enabled=false;
-   for(int i=0;i<2400;i++){if(s.Simulation.Advance(.05,1,double.PositiveInfinity)!=1)throw new Exception("Warm step lost");if(i%10==9)yield return null;}
+   var args=Environment.GetCommandLineArgs();int warmFlag=Array.IndexOf(args,"-resident-warm-steps");int warmSteps=warmFlag<0?2400:int.Parse(args[warmFlag+1]);if(warmSteps<0||warmSteps>20000)throw new ArgumentOutOfRangeException("warmSteps");
+   for(int i=0;i<warmSteps;i++){if(s.Simulation.Advance(.05,1,double.PositiveInfinity)!=1)throw new Exception("Warm step lost");if(i%10==9)yield return null;}
    double t=Time.realtimeSinceStartupAsDouble;while(Time.realtimeSinceStartupAsDouble-t<8)yield return null;
    File.WriteAllBytes(Path.Combine(output,"start.hcity"),CityCoreSave.Write(s));
    Func<string,long> indexCounter=name=>{var field=s.Transport.GetType().GetField(name,System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic);return field==null?-1:Convert.ToInt64(field.GetValue(s.Transport));};long fullBefore=indexCounter("FullIndexBuilds"),deltaBefore=indexCounter("IncrementalIndexUpdates");
@@ -32,7 +33,7 @@ namespace HarborCity {
    s.Transport.GetType().GetMethod("AssertIncrementalIndex",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic)?.Invoke(s.Transport,null);
    s.Validate();byte[] final=CityCoreSave.Write(s);File.WriteAllBytes(Path.Combine(output,"final.hcity"),final);var cold=CityCoreSave.Read(final);cold.Transport.DepotLaneRoutingEnabled=true;cold.Simulation.Growth.Zoning.SetSurface(host.ScenarioSurface);
    for(int i=0;i<20;i++){s.Simulation.Advance(.05,1,double.PositiveInfinity);cold.Simulation.Advance(.05,1,double.PositiveInfinity);}s.Validate();cold.Validate();if(!CityCoreSave.Write(s).SequenceEqual(CityCoreSave.Write(cold)))throw new Exception("Cold continuation differs");
-   ResidentRequestProbe.Bench(s,output);File.WriteAllText(Path.Combine(output,"Result.txt"),"PASS 2400 warm steps + 8s display warm; actual fixed steps (count in steps.csv), city safety/economy/waste validation, 20-step exact hot/cold continuation. Scripted one step/frame; these are not normal 50x FPS results. Mode="+mode);Application.Quit(0);
+   ResidentRequestProbe.Bench(s,output);File.WriteAllText(Path.Combine(output,"Result.txt"),"PASS "+warmSteps+" warm steps + 8s display warm; actual fixed steps (count in steps.csv), city safety/economy/waste validation, 20-step exact hot/cold continuation. Scripted one step/frame; these are not normal 50x FPS results. Mode="+mode);Application.Quit(0);
   }
  }
 }

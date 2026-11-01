@@ -1,0 +1,9 @@
+purpose,result,home_reason,count,measured_ms,shared_index_flush_calls,shared_index_flush_ms,exclusive_after_index_ms
+Work,SourceOccupied,Work,6180,206.2312,44,198.9097,7.3215000000000146
+Work,Success,Work,1193,653.0851,140,640.3067,12.778400000000033
+Home,SourceOccupied,NotAtWork,707,16.1158,3,14.2795,1.8362999999999996
+Home,SourceOccupied,PriorDay,86297,1694.8524,368,1636.554,58.2983999999999
+Home,SourceOccupied,ShiftEnded,31951,619.0334,125,593.9264,25.107000000000085
+Home,Success,NotAtWork,99,90.6248,19,86.5104,4.114399999999989
+Home,Success,PriorDay,316,28.4788,6,25.3182,3.1605999999999987
+Home,Success,ShiftEnded,493,221.513,44,210.0327,11.4803

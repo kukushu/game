@@ -44,6 +44,10 @@ namespace HarborCity
             Directory.CreateDirectory(output);
 #if CITY_RESIDENT_TIME_SCHEDULE
             const string residentMode="temporal";
+#elif CITY_RESIDENT_FUNDING_SCHEDULE
+            string residentMode="funding";
+#elif CITY_RESIDENT_GUARD_SCHEDULE
+            string residentMode="guard";
 #else
             const string residentMode="polling";
 #endif
