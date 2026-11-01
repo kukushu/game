@@ -1,0 +1,7 @@
+﻿run,scale,variant,attribution,status,exit_code,steps,mean_ms,p95_ms,p99_ms,max_ms,final_sha256,raw_folder
+native100k-attribution,100k,events,True,PASS,0,800,11.733663625,13.7415,45.3292,73.6212,1ed7adf3a41fde9d740b74bec70888da9ce456749d7389d3b541c693a29a889a,Temp\UnifiedResidents\native100k-attribution\0x
+native100k-fixed-Events,100k,events,False,PASS,0,800,11.640293125000001,13.9634,42.029900000000005,66.6275,1ed7adf3a41fde9d740b74bec70888da9ce456749d7389d3b541c693a29a889a,Temp\UnifiedResidents\native100k-fixed-Events\0x
+native100k-fixed-Polling,100k,polling,False,PASS,0,800,21.041792375,23.2408,53.696600000000004,73.36410000000001,1ed7adf3a41fde9d740b74bec70888da9ce456749d7389d3b541c693a29a889a,Temp\UnifiedResidents\native100k-fixed-Polling\0x
+native30k-fixed-Events,30k,events,False,EXIT_FAILED,-1073740771,800,4.22319825,5.9208,7.6917,16.625700000000002,dfe3c558d6b9f37b27798d25c4e88cf8013afe6fab2506aeb692a87b3972c412,Temp\UnifiedResidents\native30k-fixed-Events\0x
+native30k-fixed-Events-retry,30k,events,False,PASS,0,800,4.404457375,6.5171,11.1569,27.102,dfe3c558d6b9f37b27798d25c4e88cf8013afe6fab2506aeb692a87b3972c412,Temp\UnifiedResidents\native30k-fixed-Events-retry\0x
+native30k-fixed-Polling,30k,polling,False,PASS,0,800,7.472167125,9.01,13.4885,20.0946,dfe3c558d6b9f37b27798d25c4e88cf8013afe6fab2506aeb692a87b3972c412,Temp\UnifiedResidents\native30k-fixed-Polling\0x

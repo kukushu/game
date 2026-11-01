@@ -45,6 +45,15 @@ $resolvedRoadViewReference=$null
 if($RoadViewReference){if($SkipBuild -or $HostSource){throw 'Road-view reference requires its own build and no HostSource'};$resolvedRoadViewReference=(& git rev-parse --verify ($RoadViewReference+'^{commit}')).Trim();if($LASTEXITCODE -ne 0){throw 'Invalid road-view reference'}}
 if(-not $SkipBuild){
  Sync-CityWorkspaceProject $root $project
+ if($CoreProfile -and -not $resolvedTrafficReference){
+  # Reuse the legacy resident probe's incremental-index attribution in Temp only.
+  # World.Reindex already measures full builds; a warm increment must not vanish.
+  $occupancyFile=Join-Path $project 'Assets/Scripts/Runtime/Traffic/CityRoadCoreOccupancy.cs'
+  $occupancyText=[IO.File]::ReadAllText($occupancyFile);$needle='            IncrementalIndexUpdates++;'
+  if(($occupancyText.Split(@($needle),[StringSplitOptions]::None).Length-1) -ne 1){throw 'Incremental occupancy attribution anchor changed'}
+  [IO.File]::WriteAllText($occupancyFile,$occupancyText.Replace($needle,'using var incrementalAttribution=CityCoreProfile.Measure(CityCoreProfile.Part.Occupancy);'+$needle))
+  'Occupancy includes actual EnsureIndex incremental flushes and existing full Reindex scopes. Review OccupancyActors calls and the per-Tick delta for full builds; do not assume zero rebuilds or add overlapping scopes.'|Set-Content (Join-Path $resultsPath 'occupancy-scope.txt')
+ }
  if($WasteRoutingCensus){& python (Join-Path $PSScriptRoot 'Diagnostics/PrepareWasteRoutingProbe.py') $root $project;if($LASTEXITCODE -ne 0){throw 'Waste routing probe preparation failed'}}
  if($ProductionProfile -ne 'none'){& python (Join-Path $PSScriptRoot 'Diagnostics/PrepareProductionProbe.py') $root $project $ProductionProfile;if($LASTEXITCODE -ne 0){throw 'Production probe preparation failed'}}
  if($resolvedTrafficReference){Set-CityTrafficReference $root $project $resolvedTrafficReference}

@@ -1,5 +1,7 @@
 # 百万级引擎执行清单
 
+当前补充（2026-11-01）：用户已授权在独立 `codex/resident-event-scheduler-20261101` 统一并默认启用居民事件路径，冻结基线 e2429c5。见[统一架构](ResidentUnifiedEvents.md)与最新[进度](Progress.md)。下文“正常构建仍轮询/默认不开”属于先前阶段结论，不代表该新分支；不借此改动任何任务目标、状态、依赖或宣布 MS018/MS022 完成。
+
 执行分支 `codex/million-scale-execution-20261031`；正式基线 `93d97f2004b3893d3b76bf765e972e21405d19fa`；历史实验只读参考 `53a9e8c`，不整支合并。规范以本分支新版AGENTS为准。状态仅 TODO / IN_PROGRESS / DONE / BLOCKED / SKIPPED；同时至多一个主要IN_PROGRESS。
 
 恢复顺序：读本文件与[进度](Progress.md)→核对Git/工作树/未提交文件→按依赖推进。ID简写依赖001即MS-001。`S/`代表Assets/Scripts/Runtime/Simulation/，居民/经济/工业等目录见下表真实文件；`Tools/`相对仓库根。所有未来预期都是假设，验收前不算成果。

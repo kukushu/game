@@ -17,4 +17,9 @@ foreach($variant in @('frozen','events')){
 foreach($entry in $entries){foreach($file in $(if($Mode -eq 'Controls'){@('controls.csv')}else{@('states.csv','requests.bin','final.hcity')})){
  if((Get-FileHash (Join-Path $out ('frozen/'+$entry+'/'+$file))).Hash -ne (Get-FileHash (Join-Path $out ('events/'+$entry+'/'+$file))).Hash){throw ('Unified/frozen mismatch '+$entry+'/'+$file)}
 }}
+if($Mode -eq 'Controls'){
+ $dir=Join-Path $out 'index-checks';New-Item -ItemType Directory $dir|Out-Null
+ $binary=Build-CityDotNetHost $root $dir (Join-Path $PSScriptRoot 'Diagnostics/CityResidentScheduleChecks.cs') ''
+ & dotnet $binary | Tee-Object (Join-Path $dir 'stdout.log');if($LASTEXITCODE -ne 0){throw 'Unified sparse index/lifecycle checks failed'}
+}
 'PASS frozen polling vs default unified events: exact state/order/results and negative controls'

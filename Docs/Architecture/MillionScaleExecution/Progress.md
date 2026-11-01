@@ -1,6 +1,13 @@
 # 执行进度
 
-## 当前恢复点（2026-10-31）
+## 当前恢复点（2026-11-01，统一居民事件调度）
+
+- 用户新授权以事件驱动作为默认路径；从干净 e2429c5 新建独立 `codex/resident-event-scheduler-20261101`，实现 `3e7f9ab`。原百万级执行分支、正式/main/Python 分支未改，未合并。
+- [当前架构与依赖审计](ResidentUnifiedEvents.md)：统一时间堆、资金/状态/端点失效、稳定顺序就绪链和安全边界去重；新成员增删增量维护。默认 events，保留冻结轮询及内部健康边界回退。
+- 30k/100k 各3000步请求序列、全状态检查点、保存字节和冷续80精确一致；定向、负控、生命周期、核心回归通过。真实Release Player同800步30k7.472→4.404ms、100k21.042→11.640ms，最终保存精确同。普通100k50×两对FPS24.07→31.98、实际1.203→1.599×；30k单对3.290→5.452×。三次普通退出超时和一次原生退出崩溃保留，重跑正常；长帧未消除。见[完整性能与限制](../../Performance/ResidentUnifiedEvents-20261101/Report.md)。
+- 原30任务状态/依赖不改变；MS018仍唯一IN_PROGRESS（家庭按需购物候选未获净收益），MS022仍为预备性能调查。居民通勤事件接管不等于家庭消费、择业或整个城市完全事件化。
+
+## 历史恢复点（2026-10-31）
 
 - 工作树C:/Users/16934/Documents/unity_game/million-scale-execution-20261031，分支codex/million-scale-execution-20261031。
 - 正式基线93d97f2004b3893d3b76bf765e972e21405d19fa；旧独立实验53a9e8c只读参考，不整支集成。用户正式工作树仍d248cf3，有三个cmd修改与.editorconfig；保护快照Temp/MillionScaleExecution/protection.json，不能覆盖这些文件。
