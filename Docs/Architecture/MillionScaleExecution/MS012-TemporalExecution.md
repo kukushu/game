@@ -76,3 +76,6 @@ Tools/VerifyResidentWakeShadow.ps1 -Full -ControlsOnly -Results Temp/MillionScal
 原始日志、测试副本和二进制留 `Temp/MillionScaleExecution/ms012-*`；独立六次成绩在ms012-paired/isolated-*。必要材料：[成本](MS012-Cost.csv)、[三方状态](MS012-State.csv)、[时间定向](MS012-Controls.csv)。没有新建归档管理框架。
 
 MS012完成已证明类别的实际时间接管；未覆盖资格类别保守轮询是明确边界。MS013为唯一IN_PROGRESS：真实普通Unity Player配对，区分FPS/倍率/欠步，检查约100ms长帧、日切与施工、增长、GC和内存；只有完整游戏收益可靠才判断默认启用或选择性集成。尚未进行Player验收，不宣称达到了50×或百万城市目标。
+
+
+2026-11-01补充：[资金资格等待实验](ResidentFundingWait.md)复用原守卫与MS006通知，仅增加在家零资金等待；不启用本文件的时间计划，不扩大本项历史DONE的验收范围，也不默认启用/合正式。

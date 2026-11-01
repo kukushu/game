@@ -1,0 +1,3 @@
+run,reference,matched_ticks,active_count_mismatches,note
+player-C1,player-A0,1491,0,C2 first frame two steps so tick14162 is not sampled; fixed city equality is stronger evidence
+player-C2,player-A0,1490,0,C2 first frame two steps so tick14162 is not sampled; fixed city equality is stronger evidence
