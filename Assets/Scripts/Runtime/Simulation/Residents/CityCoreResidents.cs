@@ -1,8 +1,5 @@
-#if (CITY_RESIDENT_TIME_SCHEDULE || CITY_RESIDENT_FUNDING_SCHEDULE) && !CITY_RESIDENT_GUARD_SCHEDULE
-#error Time scheduling requires guard scheduling
-#endif
-#if CITY_RESIDENT_TIME_SCHEDULE && CITY_RESIDENT_FUNDING_SCHEDULE
-#error Evaluate temporal plans and funding wait independently
+﻿#if CITY_RESIDENT_POLLING_REFERENCE && (CITY_RESIDENT_GUARD_SCHEDULE || CITY_RESIDENT_TIME_SCHEDULE || CITY_RESIDENT_FUNDING_SCHEDULE)
+#error Polling reference cannot enable event scheduler test variants
 #endif
 using System;
 using System.Collections.Generic;
@@ -17,7 +14,7 @@ namespace HarborCity
         internal ResidentTimeCheck(long tick,ResidentTimeCheckKind kind){Tick=tick;Kind=kind;}
     }
     // Pure temporal predicates only: no routes, cached citizens, dispatch or clock
-    // mutation. Production polling does not call this until later shadow gates.
+    // mutation. The unified scheduler uses it; reference polling keeps its predicates.
     internal static class CityResidentRequestTime
     {
         internal const long ClockLimit=SimulationClock.MaximumTick;
@@ -90,9 +87,27 @@ namespace HarborCity
 
         readonly CityModel city;readonly World transport;
         readonly double calendarOffset;
-#if CITY_RESIDENT_GUARD_SCHEDULE
-        readonly CityResidentGuardSchedule guardSchedule;
+        readonly CityResidentSchedule schedule;
+        internal CityResidentSchedule Schedule=>schedule;
+        internal bool ReferencePolling {get;private set;}
+        internal static string CompiledSchedulingMode {
+            get {
+#if CITY_RESIDENT_POLLING_REFERENCE
+                return "polling";
+#elif CITY_RESIDENT_TIME_SCHEDULE
+                return "temporal";
+#elif CITY_RESIDENT_FUNDING_SCHEDULE
+                return "funding";
+#elif CITY_RESIDENT_GUARD_SCHEDULE
+                return "guard";
+#else
+                return "events";
 #endif
+            }
+        }
+        // Healthy-boundary diagnostic/recovery switch. No saved rule or second world.
+        internal void SetReferencePolling(bool value)
+        {entities.StructuralBoundary();if(!value&&schedule==null&&Enabled)throw new InvalidOperationException("Reference-only build");if(ReferencePolling==value)return;ReferencePolling=value;schedule?.Reset();}
         Action<ResidentPlanInvalidation> plansInvalidated;
         int planDay,planNetwork;float planDaySeconds;long planAccess,planAvailability,coveredAccess,coveredAvailability;
         bool untrackedAccess,untrackedAvailability;
@@ -148,14 +163,7 @@ namespace HarborCity
         // a second actual commute observation. Independent of the bounded plan LRU.
         struct CommuteEstimate {internal int home,work,network;internal long access;internal double seconds;}
         readonly Dictionary<int,CommuteEstimate> estimates=new Dictionary<int,CommuteEstimate>();
-        readonly List<int> retiredEstimates=new List<int>();int estimateEntityRevision=-1;
         internal int CachedCommuteEstimates=>estimates.Count;
-        void PruneEstimates()
-        {
-            if(estimateEntityRevision==entities.Revision)return;
-            retiredEstimates.Clear();foreach(var pair in estimates)if(entities.Member(pair.Key)==null)retiredEstimates.Add(pair.Key);
-            foreach(int id in retiredEstimates)estimates.Remove(id);estimateEntityRevision=entities.Revision;
-        }
         double EstimateCommute(int citizen,int home,int work)
         {
 #if CITY_CORE_ATTRIBUTION
@@ -187,14 +195,21 @@ namespace HarborCity
         public CityCoreResidents(CityModel city,World transport,CityEntities entities,bool enabled=true,double calendarOffset=50)
         {
             this.city=city;this.transport=transport;this.entities=entities;this.calendarOffset=calendarOffset;Enabled=enabled;
-#if CITY_RESIDENT_GUARD_SCHEDULE
-#if CITY_RESIDENT_TIME_SCHEDULE
-            guardSchedule=new CityResidentGuardSchedule(entities,transport,city,this,calendarOffset);
-#elif CITY_RESIDENT_FUNDING_SCHEDULE
-            guardSchedule=new CityResidentGuardSchedule(entities,transport,city,fundingWait:true);
+            entities.MemberStructureChanged+=(member,added)=>{if(!added)estimates.Remove(member.Person.id);};
+#if CITY_RESIDENT_POLLING_REFERENCE
+            ReferencePolling=true;
 #else
-            guardSchedule=new CityResidentGuardSchedule(entities,transport,city);
+            if(enabled){
+#if CITY_RESIDENT_TIME_SCHEDULE
+                schedule=new CityResidentSchedule(entities,transport,city,this,calendarOffset);
+#elif CITY_RESIDENT_FUNDING_SCHEDULE
+                schedule=new CityResidentSchedule(entities,transport,city,fundingWait:true);
+#elif CITY_RESIDENT_GUARD_SCHEDULE
+                schedule=new CityResidentSchedule(entities,transport,city);
+#else
+                schedule=new CityResidentSchedule(entities,transport,city,this,calendarOffset,fundingWait:true);
 #endif
+            }
 #endif
 
         }
@@ -220,40 +235,47 @@ namespace HarborCity
             if(p.atWork){double seconds=city.society.settings.secondsPerDay,absolute=calendarOffset+v.arrivedAt;p.arrivedDay=1+(int)Math.Floor(absolute/seconds);p.lastCommute=(float)Math.Max(0,(v.arrivedAt-v.departedAt)*1440/seconds);p.lastDelay=(float)Math.Max(0,(p.arrivedDay-p.departureDay)*1440+absolute%seconds*1440/seconds-entities.Employment.ShiftStart(p.id,city.development.enabled&&city.GetBuilding(v.destination) is CommercialBuilding));p.observedHome=h.home;p.observedWork=v.destination;p.observedRevision=transport.NetworkGeneration;}
             return true;
         }
+        // Wake selection and resident decisions are separate. Only this decision
+        // routine interprets current business rules; notifications never dispatch.
+        readonly struct Decision
+        {
+            internal readonly bool request,returning,plan,eligible,timedReturn;
+            internal readonly int workplace;internal readonly float shift;internal readonly double estimate;
+            internal Decision(bool request,bool returning,int workplace,float shift,bool eligible,double estimate,bool timedReturn)
+            {this.request=request;this.returning=returning;this.workplace=workplace;this.shift=shift;this.eligible=eligible;this.estimate=estimate;this.timedReturn=timedReturn;plan=true;}
+        }
+        Decision Evaluate(CityMember member,float minute)
+        {
+            var p=member.Person;var h=member.Family;
+            if(!h.resident||p.dead||p.tripId!=0||transport.Clock<p.retryAt||transport.Clock<p.visitUntil)return default;
+            bool atHome=p.location==h.home;
+            if(atHome&&(p.atWork||p.departureDay==city.day||!city.CanAttendWork(p)))return default;
+            var job=city.ResidentJob(p);int workplace=job?.buildingId??-1;
+            bool eligible=atHome&&city.JobFunded(job);
+            if(atHome&&!eligible)return default;
+            float shift=entities.Employment.ShiftStart(p.id,city.development.enabled&&city.GetBuilding(workplace) is CommercialBuilding),end=shift+entities.Employment.ShiftMinutes;
+            bool returning=!atHome&&(!p.atWork||p.sick||workplace!=p.location||p.arrivedDay<city.day||minute>=end||!city.JobFunded(job));
+            double estimate=eligible?EstimateCommute(p.id,h.home,workplace)*1440/city.society.settings.secondsPerDay:double.PositiveInfinity;
+            if(p.observedHome==h.home&&p.observedWork==workplace&&p.observedRevision==transport.NetworkGeneration)estimate=Math.Max(estimate,p.lastCommute);
+            bool leaving=eligible&&!double.IsInfinity(estimate)&&minute>=Math.Max(0,shift-estimate)&&minute<end;
+            return new Decision(returning||leaving,returning,workplace,shift,eligible,estimate,!atHome&&!returning);
+        }
+        internal long DecisionEvaluations {get;private set;}
         public void AdvanceRequests()
         {
 #if CITY_CORE_ATTRIBUTION
-            using var observation=HarborCity.RoadCore.CityCoreProfile.Measure(HarborCity.RoadCore.CityCoreProfile.Part.Residents);
+            using var observation=CityCoreProfile.Measure(CityCoreProfile.Part.Residents);
 #endif
-
-            if(!Enabled)return;PruneEstimates();if(PlansObserved)FlushPlanInvalidations();if(entities.FundingObserved)entities.FlushFundingChanges();
+            if(!Enabled)return;if(PlansObserved)FlushPlanInvalidations();if(entities.FundingObserved)entities.FlushFundingChanges();
             float minute=city.ResidentMinute;
-#if CITY_RESIDENT_GUARD_SCHEDULE
-            foreach(var member in guardSchedule.Begin())
-#else
-            foreach(var member in entities.Members)
-#endif
+            var pass=ReferencePolling?CityResidentSchedule.Pass.Reference(entities.Members):schedule.Begin();
+            foreach(var member in pass)
             {
-                var p=member.Person;var h=member.Family;if(!h.resident||p.dead||p.tripId!=0||transport.Clock<p.retryAt||transport.Clock<p.visitUntil)continue;
-                // At home these conditions cannot produce a return or departure.
-                // Check them before reading job/shift data; every pass still observes
-                // current health, assignment and employer funds in member order.
-                bool atHome=p.location==h.home;
-                if(atHome&&(p.atWork||p.departureDay==city.day||!city.CanAttendWork(p)))continue;
-                var job=city.ResidentJob(p);int workplace=job?.buildingId??-1;
-                bool eligible=atHome&&city.JobFunded(job);
-                if(atHome&&!eligible)continue;
-                float shift=entities.Employment.ShiftStart(p.id,city.development.enabled&&city.GetBuilding(workplace) is CommercialBuilding),end=shift+entities.Employment.ShiftMinutes;
-                bool returning=!atHome&&(!p.atWork||p.sick||workplace!=p.location||p.arrivedDay<city.day||minute>=end||!city.JobFunded(job));
-                double estimate=eligible?EstimateCommute(p.id,h.home,workplace)*1440/city.society.settings.secondsPerDay:double.PositiveInfinity;
-                if(p.observedHome==h.home&&p.observedWork==workplace&&p.observedRevision==transport.NetworkGeneration)estimate=Math.Max(estimate,p.lastCommute);
-                bool leaving=eligible&&!double.IsInfinity(estimate)&&minute>=Math.Max(0,shift-estimate)&&minute<end;
-#if CITY_RESIDENT_TIME_SCHEDULE
-                if(!returning&&!leaving){guardSchedule.PlanWait(member,workplace,shift,eligible,estimate,!atHome&&!returning);continue;}
-#else
-                if(!returning&&!leaving)continue;
-#endif
-                p.retryAt=(float)(transport.Clock+.25);RequestCommute(p.id,returning?p.location:h.home,returning?h.home:workplace,returning);if(entities.FundingObserved)entities.FlushFundingChanges();if(PlansObserved)FlushPlanInvalidations();
+                DecisionEvaluations++;var decision=Evaluate(member,minute);
+                if(!decision.request){if(!ReferencePolling&&decision.plan)schedule.PlanWait(member,decision.workplace,decision.shift,decision.eligible,decision.estimate,decision.timedReturn);continue;}
+                var p=member.Person;var h=member.Family;
+                p.retryAt=(float)(transport.Clock+.25);RequestCommute(p.id,decision.returning?p.location:h.home,decision.returning?h.home:decision.workplace,decision.returning);
+                if(entities.FundingObserved)entities.FlushFundingChanges();if(PlansObserved)FlushPlanInvalidations();
             }
         }
         public ResidentActivity Observe(int citizen)

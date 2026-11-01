@@ -14,7 +14,10 @@ path=project/'Assets/Scripts/Runtime/Simulation/Residents/CityCoreResidents.cs'
 if len(sys.argv)>4 and sys.argv[4]:
     frozen=subprocess.check_output(['git','-C',str(root),'show',sys.argv[4]+':Assets/Scripts/Runtime/Simulation/Residents/CityCoreResidents.cs'])
     path.write_bytes(frozen)
-text=path.read_text(encoding='utf-8-sig');a=text.index('        public void AdvanceRequests()');b=text.index('        public ResidentActivity Observe(',a)
+text=path.read_text(encoding='utf-8-sig')
+if 'Decision Evaluate(' in text and variant in ('detail','memo','retry','latest'):
+    raise SystemExit('Historical resident predicate attribution requires -SourceReference e2429c5 (or its original older baseline). For current unified events use RunCityScenarioWindow -CoreProfile and resident-schedule.csv; do not label old-anchor counters as current.')
+a=text.index('        public void AdvanceRequests()');b=text.index('        public ResidentActivity Observe(',a)
 body=text[a:b].replace('            if(!Enabled)return;','            using var residentDiagnostic=ResidentRequestProbe.Advance();\n            if(!Enabled)return;')
 body=body.replace('RequestCommute(p.id,','using var dispatchDiagnostic=ResidentRequestProbe.Dispatch();RequestCommute(p.id,')
 if variant=='memo':

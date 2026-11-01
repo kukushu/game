@@ -1,4 +1,4 @@
-param([string]$Results='Temp/MillionScaleExecution/guard-scheduling',[switch]$ControlsOnly,[switch]$Growth,[switch]$Temporal,[switch]$TemporalControls)
+﻿param([string]$Results='Temp/MillionScaleExecution/guard-scheduling',[switch]$ControlsOnly,[switch]$Growth,[switch]$Temporal,[switch]$TemporalControls)
 $ErrorActionPreference='Stop'
 if($TemporalControls){$ControlsOnly=$true;$Temporal=$true}
 if($ControlsOnly -and $Growth){throw 'Choose controls or growth replay'}
@@ -18,7 +18,7 @@ foreach($version in $(if($Temporal -and !$ControlsOnly){@('old','guard','new')}e
  $defines='';$overrides=@{'CityCoreResidents.cs'=$baseline}
  if($version -eq 'guard'){
   $defines='CITY_RESIDENT_GUARD_SCHEDULE'
-  foreach($name in @('CityCoreResidents','CityResidentGuardSchedule')){$path=Join-Path $out ($name+'.guard.cs');$body=& git -C $root show ('45877170494a5fc99b82408c920b6460605f1b69:Assets/Scripts/Runtime/Simulation/Residents/'+$name+'.cs');if($LASTEXITCODE -ne 0){throw 'Frozen guard baseline missing'};[IO.File]::WriteAllLines($path,$body);$overrides[($name+'.cs')]=$path}
+  foreach($name in @('CityCoreResidents','CityResidentGuardSchedule')){$path=Join-Path $out ($name+'.guard.cs');$body=& git -C $root show ('45877170494a5fc99b82408c920b6460605f1b69:Assets/Scripts/Runtime/Simulation/Residents/'+$name+'.cs');if($LASTEXITCODE -ne 0){throw 'Frozen guard baseline missing'};[IO.File]::WriteAllText($path,(($body -join "`n").Replace('CityResidentGuardSchedule','CityResidentSchedule')));$overrides[($name.Replace('CityResidentGuardSchedule','CityResidentSchedule')+'.cs')]=$path}
  }
  if($version -eq 'new'){$defines='CITY_RESIDENT_GUARD_SCHEDULE';if($Temporal){$defines+=';CITY_RESIDENT_TIME_SCHEDULE'};$overrides=@{}}
  $entry=if($TemporalControls){'CityResidentTemporalChecks.cs'}elseif($ControlsOnly){'CityResidentGuardSchedulingChecks.cs'}elseif($Growth){'CityGrowthCandidateChecks.cs'}else{'ResidentWakeReplay.cs'}

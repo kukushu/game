@@ -3,11 +3,13 @@ namespace HarborCity.Diagnostics {
  // Derived timer primitive: stable ordinal keys, one pending wake per entity.
  // No business state, actor IDs, events, delegates, or save protocol lives here.
  internal sealed class CityWakeQueue {
-  readonly long[] due;readonly int[] heap,positions;int count;
+  long[] due;int[] heap,positions;int count;
   internal long ScheduleCalls,Changes,Cancellations,Wakes;
   internal int Count=>count;
   internal long LogicalBytes=>due.LongLength*8+heap.LongLength*4+positions.LongLength*4;
   internal CityWakeQueue(int capacity){if(capacity<1)throw new ArgumentOutOfRangeException(nameof(capacity));due=new long[capacity];heap=new int[capacity];positions=new int[capacity];for(int i=0;i<capacity;i++)positions[i]=-1;}
+  // Stable slots can grow without dropping or re-sorting pending deadlines.
+  internal void EnsureCapacity(int capacity){if(capacity<=due.Length)return;int old=due.Length;Array.Resize(ref due,capacity);Array.Resize(ref heap,capacity);Array.Resize(ref positions,capacity);for(int i=old;i<capacity;i++)positions[i]=-1;}
   void Check(int ordinal){if((uint)ordinal>=(uint)due.Length)throw new ArgumentOutOfRangeException(nameof(ordinal));}
   bool Less(int a,int b)=>due[a]<due[b]||due[a]==due[b]&&a<b;
   void Swap(int a,int b){int x=heap[a];heap[a]=heap[b];heap[b]=x;positions[heap[a]]=a;positions[heap[b]]=b;}

@@ -3,7 +3,7 @@ static class CityResidentGuardSchedulingChecks {
  static string Hash(CityCoreIndustrySession s)=>Convert.ToHexString(SHA256.HashData(CityCoreSave.Write(s)));
  static void IndexOracle(){
   var a=CityCoreIndustrySession.Create();var b=CityCoreIndustrySession.Create();foreach(var session in new[]{a,b})for(int i=0;i<164;i++)session.Entities.AddResident(1,new CityResident{id=session.City.society.nextCitizenId,age=20,canWork=true,location=3});
-  var index=new CityResidentGuardSchedule(a.Entities,a.Transport,a.City);var random=new Random(11031);var actual=new List<int>();var expected=new List<int>();
+  var index=new CityResidentSchedule(a.Entities,a.Transport,a.City);var random=new Random(11031);var actual=new List<int>();var expected=new List<int>();
   for(int step=0;step<1000;step++){
    for(int k=0;k<20;k++){int who=random.Next(a.Entities.Members.Count),choice=random.Next(6);foreach(var session in new[]{a,b}){var p=session.Entities.Members[who].Person;p.tripId=choice==0?1:0;p.retryAt=choice==1?1:choice==2?float.NaN:0;p.visitUntil=choice==3?1:choice==4?double.NaN:0;}}
    actual.Clear();expected.Clear();foreach(var m in index.Begin()){actual.Add(m.Person.id);if(m.Person.id%17==0){var p=a.Entities.Members[(m.Person.id*31+step)%a.Entities.Members.Count].Person;p.tripId=0;p.retryAt=0;p.visitUntil=0;}}
@@ -36,11 +36,11 @@ static class CityResidentGuardSchedulingChecks {
   var bad=CityCoreIndustrySession.Create();foreach(var m in bad.Entities.Members)m.Person.retryAt=100000;bad.Residents.AdvanceRequests();var citizen=bad.Entities.Members[0].Person;
   typeof(CityResident).GetField("retry",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(citizen,0f);
   var oracle=CityCoreSave.Read(CityCoreSave.Write(bad));int warm=0,cold=0;bad.Residents.RequestCommute=(a,b,c,d)=>{warm++;return null;};oracle.Residents.RequestCommute=(a,b,c,d)=>{cold++;return null;};bad.Residents.AdvanceRequests();oracle.Residents.AdvanceRequests();
-#if CITY_RESIDENT_GUARD_SCHEDULE
-  if(warm!=0||cold!=1)throw new Exception("Independent cold oracle did not expose bypassed guard notification");
-#else
-  if(warm!=1||cold!=1)throw new Exception("Frozen polling oracle fixture invalid");
-#endif
+if(((string)typeof(CityCoreResidents).GetProperty("CompiledSchedulingMode",BindingFlags.Static|BindingFlags.NonPublic)?.GetValue(null)??"polling")!="polling")
+  {if(warm!=0||cold!=1)throw new Exception("Independent cold oracle did not expose bypassed guard notification");}
+else
+  {if(warm!=1||cold!=1)throw new Exception("Frozen polling oracle fixture invalid");}
+
   Console.WriteLine("PASS 18 paired guard cases; deliberately bypassed notification checked against independent cold oracle");
  }
 }

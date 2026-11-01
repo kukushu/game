@@ -33,11 +33,11 @@ static class CityResidentTemporalChecks {
   // Bypass the observation setter deliberately. An independently cold-built
   // oracle must disagree, before any validator can repair a derived schedule.
   var bad=Alone();var person=bad.Entities.Members[0].Person;person.observedHome=3;person.observedWork=1;person.observedRevision=bad.Transport.NetworkGeneration;person.lastCommute=0;bad.Advance(.05);typeof(CityResident).GetField("commute",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(person,600f);var oracle=CityCoreSave.Read(CityCoreSave.Write(bad));int warmCalls=0,coldCalls=0;bad.Residents.RequestCommute=(a,b,c,d)=>{warmCalls++;return null;};oracle.Residents.RequestCommute=(a,b,c,d)=>{coldCalls++;return null;};bad.Residents.AdvanceRequests();oracle.Residents.AdvanceRequests();
-#if CITY_RESIDENT_TIME_SCHEDULE
-  if(warmCalls!=0||coldCalls!=1)throw new Exception("Missed observation negative control not exposed");
-#else
-  if(warmCalls!=1||coldCalls!=1)throw new Exception("Original polling oracle invalid");
-#endif
+if(((string)typeof(CityCoreResidents).GetProperty("CompiledSchedulingMode",BindingFlags.Static|BindingFlags.NonPublic)?.GetValue(null)) is "events" or "temporal")
+  {if(warmCalls!=0||coldCalls!=1)throw new Exception("Missed observation negative control not exposed");}
+else
+  {if(warmCalls!=1||coldCalls!=1)throw new Exception("Original polling oracle invalid");}
+
   Console.WriteLine("PASS 13 temporal cases, first scheduled departure/cold continuation, independent missed-observation negative control");
  }
 }
