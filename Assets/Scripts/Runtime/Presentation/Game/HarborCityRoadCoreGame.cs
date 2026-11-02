@@ -91,6 +91,8 @@ namespace HarborCity
         internal Camera ScenarioCamera=>cameraView;
         internal Material ScenarioDisplayMaterial=>roadMaterial;
         internal long ScenarioPoseSamples=>vehicleViews?.PoseSamples??0;
+        internal long ScenarioIndexPoseSamples=>vehicleViews?.IndexPoseSamples??0;
+        internal double ScenarioBuildingIndexMs=>buildingViews?.IndexMs??0;
         internal double ScenarioDisplayIndexMs=>vehicleViews?.IndexMs??0;
         internal int ScenarioVehicleRepresented=>vehicleViews?.Represented??0;
         internal int ScenarioVehicleSummaries=>vehicleViews?.SummaryVehicles??0;

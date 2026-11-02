@@ -8,6 +8,7 @@ namespace HarborCity
         readonly Dictionary<int,Pose> poses=new Dictionary<int,Pose>();readonly HashSet<int> near=new HashSet<int>();readonly List<int> stale=new List<int>();
         readonly HashSet<CityVehicleDisplayIndex.Node> visibleSummaries=new HashSet<CityVehicleDisplayIndex.Node>();
         readonly Dictionary<CityVehicleDisplayIndex.Node,bool> summaries=new Dictionary<CityVehicleDisplayIndex.Node,bool>();
+        internal long IndexPoseSamples=>index.PreciseIndexSamples;
         internal long PoseSamples;internal int Represented,SummaryVehicles,SummaryRegions,Batched;internal double IndexMs;
         internal HarborCityLayeredVehicles(HarborCityVehicleViews owner,World world,Material[] materials){this.owner=owner;this.world=world;index=new CityVehicleDisplayIndex(world);batch=new HarborCityDisplayBatch(materials);}
         internal void Sync(Camera camera,HarborCityDisplaySettings settings)

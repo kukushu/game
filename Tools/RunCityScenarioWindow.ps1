@@ -86,7 +86,7 @@ if(-not $SkipBuild){
   $frozen=($source -join "`n").Replace('HarborCityRoadViews','HarborCityRoadViewsReference').Replace('public HarborCityRoadViewsReference(Material material)','public HarborCityRoadViewsReference(Material material,int chunkSize=64)').Replace('public int Count=>views.Count;','public int RendererCount=>views.Count;public int ChunkSize=>0;public int Count=>views.Count;')
   [IO.File]::WriteAllText((Join-Path $project 'Assets/Scripts/Diagnostics/Runtime/HarborCityRoadViewsReference.cs'),$frozen)
   $hostFile=Join-Path $project 'Assets/Scripts/Runtime/Presentation/Game/HarborCityRoadCoreGame.cs'
-  [IO.File]::WriteAllText($hostFile,([IO.File]::ReadAllText($hostFile).Replace('HarborCityRoadViews','HarborCityRoadViewsReference')))
+  [IO.File]::WriteAllText($hostFile,([IO.File]::ReadAllText($hostFile).Replace('HarborCityRoadViews','HarborCityRoadViewsReference').Replace('roadViews?.UpdateVisibility(cameraView,displaySettings.layered);','')))
  }
  $env:HARBOR_RESIDENT_POLLING_REFERENCE=$(if($ResidentPollingReference -or $resolvedResidentReference){'1'}else{'0'});$env:HARBOR_RESIDENT_GUARD_SCHEDULE=$(if($ResidentGuardScheduling){'1'}else{'0'});$env:HARBOR_RESIDENT_FUNDING_SCHEDULE=$(if($ResidentFundingScheduling){'1'}else{'0'});$env:HARBOR_RESIDENT_TIME_SCHEDULE=$(if($ResidentTimeScheduling){'1'}else{'0'});$env:HARBOR_HOUSEHOLD_SHOPPING_SCHEDULE=$(if($HouseholdShoppingScheduling){'1'}else{'0'});
  $env:HARBOR_TRAFFIC_VALIDATION_PLAYER=$player;$env:HARBOR_CORE_ATTRIBUTION=$(if($CoreProfile){'1'}else{'0'})

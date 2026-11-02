@@ -12,8 +12,9 @@ namespace HarborCity
     {
         const int RetainedInactiveLimit=4096;
         static readonly ProfilerMarker sample=new ProfilerMarker("City.Views.Vehicles.Sync");
-        HarborCityLayeredVehicles layered;
-        public long PoseSamples=>layered?.PoseSamples??0;public int Represented=>layered?.Represented??Count;public int SummaryVehicles=>layered?.SummaryVehicles??0;public int Batched=>layered?.Batched??0;public double IndexMs=>layered?.IndexMs??0;
+        HarborCityLayeredVehicles layered;long legacyPoseSamples;
+        public long PoseSamples=>layered?.PoseSamples??legacyPoseSamples;
+        public long IndexPoseSamples=>layered?.IndexPoseSamples??0;public int Represented=>layered?.Represented??Count;public int SummaryVehicles=>layered?.SummaryVehicles??0;public int Batched=>layered?.Batched??0;public double IndexMs=>layered?.IndexMs??0;
         readonly Material material;
         readonly Material residential,commercial,industrial;
         readonly Dictionary<int,Transform> cars=new Dictionary<int,Transform>();
@@ -65,6 +66,9 @@ namespace HarborCity
                 foreach(int id in removed){var car=cars[id];cars.Remove(id);car.gameObject.SetActive(false);Released++;if(pool.Count<RetainedInactiveLimit)pool.Push(car);else Release(car.gameObject);}
                 foreach(var v in world.Vehicles)
                 {
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
+                    legacyPoseSamples++;
+#endif
                     if(!cars.TryGetValue(v.id,out var car))
                     {
                         if(pool.Count>0){car=pool.Pop();Reused++;car.rotation=Quaternion.identity;}
@@ -81,7 +85,7 @@ namespace HarborCity
                 }
             }
         }
-        public void Clear(){layered?.Dispose();layered=null;foreach(var car in cars.Values)if(car!=null)Release(car.gameObject);foreach(var car in pool)if(car!=null)Release(car.gameObject);cars.Clear();pool.Clear();removed.Clear();bound=null;}
+        public void Clear(){layered?.Dispose();layered=null;legacyPoseSamples=0;foreach(var car in cars.Values)if(car!=null)Release(car.gameObject);foreach(var car in pool)if(car!=null)Release(car.gameObject);cars.Clear();pool.Clear();removed.Clear();bound=null;}
         public void Dispose(){Clear();if(residential!=null)Release(residential);if(commercial!=null)Release(commercial);if(industrial!=null)Release(industrial);}
     }
 }

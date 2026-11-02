@@ -136,7 +136,7 @@ public static class HarborCityZoningViewDeltaChecks
                 {
                     bool runOld=(pass+sample)%2==0;timer.Restart();if(runOld)old.Sync(cells,null);else current.Sync(cells,null);timer.Stop();if(runOld)a=timer.Elapsed.TotalMilliseconds;else b=timer.Elapsed.TotalMilliseconds;
                 }
-                check(old.PlotCount==current.PlotCount&&old.RendererCount==current.RendererCount&&old.RebuiltChunks==current.RebuiltChunks,"Stable-path benchmark changed display counts");
+                check(old.PlotCount==current.PlotCount&&old.RendererCount==Objects(current).Count&&current.RendererCount==Objects(current).Count*2&&old.RebuiltChunks==current.RebuiltChunks,"Stable-path benchmark changed display counts");
                 rows.Add(string.Join(",",label,sample,a.ToString("R",System.Globalization.CultureInfo.InvariantCulture),b.ToString("R",System.Globalization.CultureInfo.InvariantCulture),old.RebuiltChunks,current.RebuiltChunks));
             }
             StableBenchmark=string.Join("\n",rows)+"\n";

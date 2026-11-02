@@ -10,7 +10,7 @@ namespace HarborCity
         static void Geometry(HarborCityZoningViews view,List<ZoneCell> cells,Func<float,float,float> height,Material[] palette)
         {
             var groups=cells.Where(c=>c.occupiedBuilding<0).GroupBy(c=>((int)Math.Floor(c.pose.x/64),(int)Math.Floor(c.pose.z/64),Use(c))).ToArray();
-            Check(view.PlotCount==cells.Count(c=>c.occupiedBuilding<0)&&view.RendererCount==groups.Length,"All true display cells and chunks retained");
+            Check(view.PlotCount==cells.Count(c=>c.occupiedBuilding<0)&&Objects(view).Count==groups.Length&&view.RendererCount==groups.Length*2,"All true display cells and chunks retained");
             for(int i=0;i<groups.Length;i++)
             {
                 var expectedVertices=new List<Vector3>();var expectedIndices=new List<int>();
@@ -35,7 +35,10 @@ namespace HarborCity
                 cells[3].use=LandUse.Residential;cells[4].occupiedBuilding=4;cells[5].pose.x+=64;view.Sync(cells,height);Geometry(view,cells,height,palette);
                 old=Objects(view).ToDictionary(go=>go.name);bool failed=false;try{view.Sync(cells,(x,z)=>throw new InvalidOperationException("intentional terrain failure"));}catch(InvalidOperationException){failed=true;}
                 Check(failed&&Objects(view).All(go=>ReferenceEquals(old[go.name],go)),"Failure discarded old chunks");
-                view.InvalidateSurface();view.Sync(cells,height);Check(view.RebuiltChunks==view.RendererCount,"Explicit terrain invalidation missed chunks");Geometry(view,cells,height,palette);
+                view.InvalidateSurface();view.Sync(cells,height);Check(view.RebuiltChunks==Objects(view).Count,"Explicit terrain invalidation missed chunks");Geometry(view,cells,height,palette);
+                var cameraObject=new GameObject("Zoning LOD test camera");var camera=cameraObject.AddComponent<Camera>();camera.enabled=false;camera.farClipPlane=10000;camera.pixelRect=new Rect(0,0,1440,900);camera.transform.position=new Vector3(0,2500,0);camera.transform.LookAt(Vector3.zero);var quality=new HarborCityDisplaySettings();
+                view.UpdateVisibility(camera,quality,false);Check(view.SummaryPlots==view.PlotCount&&Objects(view).All(go=>!go.GetComponent<Renderer>().enabled),"Far summary omitted true counts or also showed full cells");
+                view.UpdateVisibility(camera,quality,true);Check(view.SummaryPlots==0&&Objects(view).All(go=>go.GetComponent<Renderer>().enabled),"Active tool lost full detail");UnityEngine.Object.DestroyImmediate(cameraObject);
                 view.Sync(null,height);Check(view.PlotCount==0&&view.RendererCount==0,"Clear retained orphan chunks");view.Dispose();Check(palette.All(m=>m!=null),"Borrowed materials destroyed");
                 File.WriteAllText(Environment.GetEnvironmentVariable("HARBOR_ZONING_VIEW_RESULT"),"PASS "+checks+" exact group vertices/triangles/normals/colours and chunk retention, painting, occupancy, cross-boundary move, terrain invalidation, failure atomicity, clear and borrowed materials.\n");
             }
