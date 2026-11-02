@@ -5,6 +5,7 @@ namespace HarborCity
     {
         internal static IEnumerator Run(Material material,string output)
         {
+            if(HarborCityRoadCoreGame.SimulationDiagnosticArgument("-harbor-legacy-views")||HarborCityRoadCoreGame.SimulationDiagnosticArgument("-logFile")||!HarborCityRoadCoreGame.SimulationDiagnosticArgument("-harbor-city-scenario-window"))throw new Exception("Display-only switch changed simulation launch mode");
             var city=CityCoreIndustrySession.Create();var settings=new HarborCityDisplaySettings();var go=new GameObject("Display test camera");var camera=go.AddComponent<Camera>();camera.enabled=false;camera.farClipPlane=10000;camera.pixelRect=new Rect(0,0,1440,900);var views=new HarborCityBuildingViews(material);
             try{
                 camera.transform.position=new Vector3(0,20,-10);camera.transform.LookAt(Vector3.zero);

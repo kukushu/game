@@ -46,11 +46,12 @@ namespace HarborCity
         }
         readonly Dictionary<(int x,int z,int use),Chunk> chunks=new Dictionary<(int,int,int),Chunk>();
         Func<float,float,float> surface;bool surfaceDirty;
+        readonly bool legacyComparison=Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-legacy-views")>=0;
         readonly Material[] materials;
         List<GameObject> objects=new List<GameObject>();
         List<Mesh> meshes=new List<Mesh>();
         public int PlotCount {get;private set;}
-        public int RendererCount=>objects.Count*2; // Full and summary renderers; only one is enabled.
+        public int RendererCount=>objects.Count*(legacyComparison?1:2); // Full and summary renderers; only one is enabled.
         public int RebuiltChunks {get;private set;}
         readonly HarborCityDisplayCamera displayQuery=new HarborCityDisplayCamera();
         Matrix4x4 lastDisplayCamera;int lastPixelHeight;float lastEnter,lastExit;bool displayDirty=true,displayFull,displayLayered;
@@ -59,7 +60,7 @@ namespace HarborCity
         {
             if(camera==null)return;var matrix=camera.projectionMatrix*camera.worldToCameraMatrix;if(!displayDirty&&matrix==lastDisplayCamera&&displayFull==fullDetail&&displayLayered==settings.layered&&lastPixelHeight==camera.pixelHeight&&lastEnter==settings.zoneSummaryEnter&&lastExit==settings.zoneSummaryExit)return;
             lastPixelHeight=camera.pixelHeight;lastEnter=settings.zoneSummaryEnter;lastExit=settings.zoneSummaryExit;displayDirty=false;lastDisplayCamera=matrix;displayFull=fullDetail;displayLayered=settings.layered;displayQuery.Update(camera);SummaryPlots=0;
-            foreach(var pair in chunks){var chunk=pair.Value;var renderer=chunk.instance.GetComponent<Renderer>();bool visible=!settings.layered||displayQuery.Visible(renderer.bounds);bool summary=visible&&settings.layered&&!fullDetail&&displayQuery.Pixels(renderer.bounds,1)<(chunk.summarized?settings.zoneSummaryExit:settings.zoneSummaryEnter);chunk.summarized=summary;renderer.enabled=visible&&!summary;chunk.summaryObject.GetComponent<Renderer>().enabled=summary;if(summary)SummaryPlots+=chunk.plots.Count;}
+            foreach(var pair in chunks){var chunk=pair.Value;var renderer=chunk.instance.GetComponent<Renderer>();bool visible=!settings.layered||displayQuery.Visible(renderer.bounds);bool summary=visible&&!legacyComparison&&settings.layered&&!fullDetail&&displayQuery.Pixels(renderer.bounds,1)<(chunk.summarized?settings.zoneSummaryExit:settings.zoneSummaryEnter);chunk.summarized=summary;renderer.enabled=visible&&!summary;if(chunk.summaryObject!=null)chunk.summaryObject.GetComponent<Renderer>().enabled=summary;if(summary)SummaryPlots+=chunk.plots.Count;}
         }
         public HarborCityZoningViews(Material[] materials)
         {if(materials==null||materials.Length!=4)throw new ArgumentException("Four display materials required");this.materials=(Material[])materials.Clone();}
@@ -116,6 +117,7 @@ namespace HarborCity
                 if(vertices.Count>ushort.MaxValue)mesh.indexFormat=IndexFormat.UInt32;
                 mesh.SetVertices(vertices);mesh.SetTriangles(indices,0);mesh.RecalculateNormals();
                 var go=new GameObject(mesh.name);chunk.instance=go;go.AddComponent<MeshFilter>().sharedMesh=mesh;go.AddComponent<MeshRenderer>().sharedMaterial=materials[key.use];
+                if(legacyComparison)return chunk;
                 // A density symbol, not invented land: one marker per real chunk/use,
                 // area scaled by the actual unoccupied cell count. Full detail is
                 // retained whenever a zoning or construction tool is active.

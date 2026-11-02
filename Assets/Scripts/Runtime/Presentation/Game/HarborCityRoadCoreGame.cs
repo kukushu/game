@@ -128,6 +128,8 @@ namespace HarborCity
         string notice="";
         string SavePath=>Path.Combine(Application.persistentDataPath,session==null?"harbor-road-core-v15.hcrc":CityCoreSave.DefaultFileName);
         static Vector3 V(Point p)=>new Vector3((float)p.x,(float)p.y,(float)p.z);
+        internal static bool SimulationDiagnosticArgument(string argument)
+            =>argument.StartsWith("-harbor-",StringComparison.Ordinal)&&argument!="-harbor-legacy-views";
         void Start()
         {
             if(Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-legacy-views")>=0)displaySettings.layered=false;
@@ -159,7 +161,7 @@ namespace HarborCity
                 RenderBuildings();RenderZones();RenderUtilities();notice=localization.Get("ui.stage.current");speed=0;Application.runInBackground=true;
                 if(!inspecting){var probe=gameObject.AddComponent<HarborCityScenarioWindowProbe>();probe.Configure(this,args[index+1],args[index+2],float.Parse(args[index+3],System.Globalization.CultureInfo.InvariantCulture));}
             }
-            else if(args.Any(a=>a.StartsWith("-harbor-",StringComparison.Ordinal)&&a!="-harbor-city-construction-validate"&&a!="-harbor-city-trade-validate"&&a!="-harbor-city-growing-profile")){session=CityCoreIndustrySession.Create();world=session.Transport;origin=1;destination=2;RenderBuildings();}
+            else if(args.Any(a=>SimulationDiagnosticArgument(a)&&a!="-harbor-city-construction-validate"&&a!="-harbor-city-trade-validate"&&a!="-harbor-city-growing-profile")){session=CityCoreIndustrySession.Create();world=session.Transport;origin=1;destination=2;RenderBuildings();}
             else
             {
                 // Keep existing original-terrain validation inputs comparable; normal Play starts flat.
@@ -168,7 +170,7 @@ namespace HarborCity
                 world=session.Transport;BindLandscape();notice=localization.Get(originalTerrainCheck?"ui.stage.current":"ui.template.ready");
                 if(!originalTerrainCheck){RenderBuildings();RenderZones();}
             }
-            bool playerSession=!args.Any(a=>a.StartsWith("-harbor-",StringComparison.Ordinal))||Array.IndexOf(args,"-harbor-city-inspect")>=0;
+            bool playerSession=!args.Any(SimulationDiagnosticArgument)||Array.IndexOf(args,"-harbor-city-inspect")>=0;
             if(session!=null){session.Simulation.Finance.UnlimitedFunds=playerSession;if(playerSession){world.DepotLaneRoutingEnabled=true;session.City.utilities.roadConduits=true;session.Simulation.Utilities.Refresh();}}
             RenderRoads();
             previousTick=System.Diagnostics.Stopwatch.GetTimestamp();
