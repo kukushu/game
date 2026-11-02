@@ -20,6 +20,7 @@ namespace HarborCity.RoadCore
         [NonSerialized] internal World indexOwner;
         [NonSerialized] internal double snapshotLimit;
         [NonSerialized] internal long snapshotEpoch;
+        [NonSerialized] internal long displayStamp;
         [NonSerialized] internal int indexedJunction;[NonSerialized] internal long indexedMovement;
         [NonSerialized] internal long indexedLane,indexedShadow; // World-owned derived membership; never saved.
         public Vehicle(){sourceOccupant=new LaneOccupant(this,0);shadowOccupant=new LaneOccupant(this,0,true);}
@@ -40,9 +41,11 @@ namespace HarborCity.RoadCore
         internal void CommitPosition(long drivable,double distance,int navigationCursor)
         {
             if(Plan==null||navigationCursor<0||navigationCursor>=Plan.segments.Count||Plan.segments[navigationCursor]!=drivable)throw new ArgumentException("Navigation does not match physical drivable");
+            bool changed=Position.Drivable!=drivable||Position.Distance!=distance||Position.IsFrozen!=(status==VehicleStatus.Stranded||status==VehicleStatus.AwaitingRestart);
             Position.Commit(drivable,distance,status==VehicleStatus.Stranded||status==VehicleStatus.AwaitingRestart);cursor=navigationCursor;
+            if(changed)indexOwner?.MarkDisplay(this);
         }
-        internal void Freeze(Point point){Position.Freeze(point);status=VehicleStatus.Stranded;indexOwner?.InvalidateOccupantState();}
+        internal void Freeze(Point point){Position.Freeze(point);status=VehicleStatus.Stranded;indexOwner?.InvalidateOccupantState();indexOwner?.MarkDisplay(this);}
     }
     [Serializable] public sealed class WorldData
     {
@@ -136,6 +139,10 @@ namespace HarborCity.RoadCore
             if(origin==destination||!EndpointExists(origin)||!EndpointExists(destination)||source==null||target==null||!source.valid||!target.valid||(source.use&AccessUse.Freight)==0||(target.use&AccessUse.Freight)==0||!Network.CanReach(source,target))return double.PositiveInfinity;
             return dispatchRoutes.Get(Network,origin,destination,source,target,false,business as IJunctionEndpointProvider).seconds;
         }
+        CityPresentationJournal displayJournal;bool displayObserved;
+        internal CityPresentationJournal ObserveDisplay(){if(displayObserved)throw new InvalidOperationException("One presentation consumer per world");displayJournal=displayJournal??new CityPresentationJournal();displayJournal.Clear();displayObserved=true;return displayJournal;}
+        internal void ReleaseDisplay(CityPresentationJournal journal){if(!ReferenceEquals(displayJournal,journal))throw new InvalidOperationException("Foreign presentation reader");displayObserved=false;journal.Clear();}
+        internal void MarkDisplay(Vehicle v){if(displayObserved)displayJournal.Vehicle(v.id,ref v.displayStamp);}
         bool indexDirty=true;
         int awaitingRestarts;
         internal bool HasDemolishedVehicles=>awaitingRestarts>0;
@@ -442,7 +449,7 @@ namespace HarborCity.RoadCore
             // Arrival settlement is synchronous. All route checks preceded the domain
             // pickup; retirement has no callback or physics movement in this commit.
             tasksById.Remove(previous.id);vehiclesByTask.Remove(previous.id);previous.state=TripState.Completed; // RetireCompleted compacts once for the whole settlement boundary.
-            v.Task=continuation.task;v.Plan=continuation.plan;v.cursor=0;TrackJunctionOccupant(v);
+            v.Task=continuation.task;v.Plan=continuation.plan;v.cursor=0;TrackJunctionOccupant(v);MarkDisplay(v);
             data.tasks.Add(v.Task);tasksById.Add(v.Task.id,v.Task);vehiclesByTask.Add(v.Task.id,v);data.nextTask++;EditEpoch++;indexDirty=true;
         }
         internal TransportAdmission PrepareTransport(int origin,int destination,int amount,double price,TransportPurpose purpose,int citizen)
@@ -494,7 +501,7 @@ namespace HarborCity.RoadCore
         }
         internal Vehicle CommitAdmission(TransportAdmission admission)
         {
-            CheckAdmission(admission);var v=admission.vehicle;v.indexOwner=this;data.nextVehicle++;data.nextTask++;data.tasks.Add(v.Task);tasksById.Add(v.Task.id,v.Task);vehiclesByTask.Add(v.Task.id,v);data.vehicles.Add(v);motionOrder.Add(v);vehiclesById.Add(v.id,v);ActiveCount++;EditEpoch++;IndexDeparture(v);return v;
+            CheckAdmission(admission);var v=admission.vehicle;v.indexOwner=this;data.nextVehicle++;data.nextTask++;data.tasks.Add(v.Task);tasksById.Add(v.Task.id,v.Task);vehiclesByTask.Add(v.Task.id,v);data.vehicles.Add(v);motionOrder.Add(v);vehiclesById.Add(v.id,v);ActiveCount++;EditEpoch++;IndexDeparture(v);MarkDisplay(v);return v;
         }
         void IndexDeparture(Vehicle v)
         {
@@ -774,7 +781,7 @@ namespace HarborCity.RoadCore
                 foreach(var intent in intents)
                 {
                     var v=intent.vehicle;v.CommitPosition(intent.drivable,intent.distance,intent.cursor);
-                    if(v.changeTarget!=0){v.changeElapsed+=StepSeconds;if(v.changeElapsed>=1-1e-9){var lane=Network.Get(v.Current);var target=Network.Get(v.changeTarget);var route=new List<long>();if(!LaneChanges.Route(Network,v,target.Id,route))throw new InvalidOperationException("Lane-change route became invalid");double mapped=lane.Geometry.MapDistance(target.Geometry,v.distance);v.Plan.segments=route;v.CommitPosition(target.Id,mapped,0);v.changeTarget=0;v.changeElapsed=0;}}
+                    if(v.changeTarget!=0){MarkDisplay(v);v.changeElapsed+=StepSeconds;if(v.changeElapsed>=1-1e-9){var lane=Network.Get(v.Current);var target=Network.Get(v.changeTarget);var route=new List<long>();if(!LaneChanges.Route(Network,v,target.Id,route))throw new InvalidOperationException("Lane-change route became invalid");double mapped=lane.Geometry.MapDistance(target.Geometry,v.distance);v.Plan.segments=route;v.CommitPosition(target.Id,mapped,0);v.changeTarget=0;v.changeElapsed=0;}}
                     TrackMovedOccupant(v);if(v.cursor!=v.Plan.segments.Count-1||v.distance<EndDistance(v,Network.Get(v.Current))-1e-9)continue;
                     arrivals.Add(new TransportArrival(v,context.End));
                 }
@@ -788,7 +795,7 @@ namespace HarborCity.RoadCore
         internal void AcknowledgeArrival(int id)
         {var v=FindVehicle(id);if(v==null||v.status!=VehicleStatus.Active||v.cursor!=v.Plan.segments.Count-1||v.distance<EndDistance(v,Network.Get(v.Current))-1e-9)throw new InvalidOperationException("Cannot acknowledge non-arrival");data.delivered+=v.Task.Cargo;if(v.Task.Shipment!=null)v.Task.Shipment.remaining=0;v.Task.state=TripState.Completed;v.status=VehicleStatus.Delivered;ActiveCount--;RemoveIndexedOccupant(v);indexDirty=true;}
         internal void RetireCompleted()
-        {int retained=0;for(int i=0;i<data.vehicles.Count;i++)if(data.vehicles[i].status!=VehicleStatus.Delivered)data.vehicles[retained++]=data.vehicles[i];else {var actor=data.vehicles[i];actor.indexOwner=null;vehiclesById.Remove(actor.id);tasksById.Remove(actor.Task.id);vehiclesByTask.Remove(actor.Task.id);}if(retained<data.vehicles.Count){data.vehicles.RemoveRange(retained,data.vehicles.Count-retained);PruneMotionOrder();}data.tasks.RemoveAll(CompletedTask);arrivals.Clear();}
+        {int retained=0;for(int i=0;i<data.vehicles.Count;i++)if(data.vehicles[i].status!=VehicleStatus.Delivered)data.vehicles[retained++]=data.vehicles[i];else {var actor=data.vehicles[i];MarkDisplay(actor);actor.indexOwner=null;vehiclesById.Remove(actor.id);tasksById.Remove(actor.Task.id);vehiclesByTask.Remove(actor.Task.id);}if(retained<data.vehicles.Count){data.vehicles.RemoveRange(retained,data.vehicles.Count-retained);PruneMotionOrder();}data.tasks.RemoveAll(CompletedTask);arrivals.Clear();}
         public int SplitRoad(int roadId,int sample)
         {
             return SplitCandidate(CopyNetwork(),roadId,sample);
