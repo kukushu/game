@@ -48,7 +48,7 @@ namespace HarborCity.RoadCore
         readonly Dictionary<long,LaneMap> lanes=new Dictionary<long,LaneMap>(CityRoadKeyComparer.Instance);
         readonly Dictionary<long,HashSet<int>> byLane=new Dictionary<long,HashSet<int>>(CityRoadKeyComparer.Instance);
         readonly HashSet<int> affected=new HashSet<int>();readonly List<long> changedLanes=new List<long>();
-        internal long Updates,PreciseIndexSamples,Rebuilds;internal double MinY=-1,MaxY=2;
+        internal long Updates,PreciseIndexSamples,Rebuilds,LaneBuilds;internal double MinY=-1,MaxY=2;
         internal CityVehicleDisplayIndex(World world){this.world=world;journal=world.ObserveDisplay();network=world.Network;foreach(var v in world.Vehicles)Update(v.id);journal.Clear();Rebuilds++;}
         internal static int Purpose(TransportPurpose p)=>p==TransportPurpose.Freight?2:p==TransportPurpose.Shopping?1:p==TransportPurpose.Work||p==TransportPurpose.Home?0:3;
         static bool Drawable(Vehicle v)=>v!=null&&v.status!=VehicleStatus.Delivered&&v.status!=VehicleStatus.AwaitingRestart;
@@ -70,7 +70,7 @@ namespace HarborCity.RoadCore
         {
             if(v.Position.IsFrozen){var p=v.strandedPosition;MinY=Math.Min(MinY,p.y-1);MaxY=Math.Max(MaxY,p.y+2);return CityDisplayCell.At(p);}
             if(v.changeTarget!=0){PreciseIndexSamples++;var p=world.Position(v);MinY=Math.Min(MinY,p.y-1);MaxY=Math.Max(MaxY,p.y+2);return CityDisplayCell.At(p);}
-            if(!lanes.TryGetValue(v.Current,out var map)){var g=world.Network.Get(v.Current).Geometry;lanes.Add(v.Current,map=new LaneMap(g));for(int i=0;i<g.Count;i++){MinY=Math.Min(MinY,g[i].y-1);MaxY=Math.Max(MaxY,g[i].y+2);}}
+            if(!lanes.TryGetValue(v.Current,out var map)){var g=world.Network.Get(v.Current).Geometry;lanes.Add(v.Current,map=new LaneMap(g));LaneBuilds++;for(int i=0;i<g.Count;i++){MinY=Math.Min(MinY,g[i].y-1);MaxY=Math.Max(MaxY,g[i].y+2);}}
             return map.Cell(v.distance,ref PreciseIndexSamples);
         }
         // Store only the indexed lane identity, never a second actor position.
@@ -85,13 +85,19 @@ namespace HarborCity.RoadCore
             if(prior!=null)Remove(id,prior);Leaf(cell,true);var record=new Record{Actor=v,Cell=cell,Purpose=purpose,Version=version};Records.Add(id,record);indexedLanes.Add(id,v.Current);
             if(!byLane.TryGetValue(v.Current,out var actors))byLane.Add(v.Current,actors=new HashSet<int>());actors.Add(id);Count(record,1);
         }
+        static bool SameGeometry(Geometry a,Geometry b)
+        {
+            if(ReferenceEquals(a,b))return true;if(a.Count!=b.Count||a.Length!=b.Length)return false;
+            for(int i=0;i<a.Count;i++)if(a[i].x!=b[i].x||a[i].y!=b[i].y||a[i].z!=b[i].z)return false;return true;
+        }
         internal void Sync()
         {
             if(!ReferenceEquals(network,world.Network)){
-                affected.Clear();changedLanes.Clear();foreach(var pair in lanes)if(!world.Network.Contains(pair.Key)||!ReferenceEquals(pair.Value.Geometry,world.Network.Get(pair.Key).Geometry)){changedLanes.Add(pair.Key);if(byLane.TryGetValue(pair.Key,out var ids))foreach(int id in ids)affected.Add(id);}
-                foreach(long id in changedLanes)lanes.Remove(id);network=world.Network;foreach(int id in affected)Update(id);
-            }
-            foreach(int id in journal.Ids)Update(id);journal.Clear();
+                affected.Clear();changedLanes.Clear();foreach(var pair in lanes)if(!world.Network.Contains(pair.Key)||!SameGeometry(pair.Value.Geometry,world.Network.Get(pair.Key).Geometry)){changedLanes.Add(pair.Key);if(byLane.TryGetValue(pair.Key,out var ids))foreach(int id in ids)affected.Add(id);}
+                foreach(long id in changedLanes)lanes.Remove(id);network=world.Network;
+                foreach(int id in journal.Ids)affected.Add(id);foreach(int id in affected)Update(id);
+            }else foreach(int id in journal.Ids)Update(id);
+            journal.Clear();
         }
         internal void AssertExact()
         {int count=0;foreach(var v in world.Vehicles)if(Drawable(v)){count++;if(!Records.TryGetValue(v.id,out var r)||!r.Cell.Equals(CityDisplayCell.At(world.Position(v)))||r.Purpose!=Purpose(v.Task.purpose))throw new InvalidOperationException("Display spatial membership differs");}if(count!=Records.Count)throw new InvalidOperationException("Display population differs");int total=0;foreach(var node in Roots.Values)total+=node.Count;if(total!=count)throw new InvalidOperationException("Display summary count differs");}
