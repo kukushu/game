@@ -252,6 +252,9 @@ namespace HarborCity
         internal int RoadRevision=>transport.NetworkGeneration;
         public int Revision {get;private set;}
         public int BuildingRevision {get;private set;}
+        // Derived ordered shop collection only. Residents, households and other
+        // building types do not invalidate freight's shop-to-lane candidates.
+        internal int ShopRevision {get;private set;}
         CityPresentationJournal displayJournal;
         internal CityPresentationJournal ObserveBuildings(){if(displayJournal!=null)throw new InvalidOperationException("One building display reader");return displayJournal=new CityPresentationJournal();}
         internal void ReleaseBuildings(CityPresentationJournal journal){if(!ReferenceEquals(journal,displayJournal))throw new InvalidOperationException("Foreign building display reader");journal.Clear();displayJournal=null;}
@@ -285,8 +288,8 @@ namespace HarborCity
             RebuildJobs();city.entities=this;
         }
         static bool Available(CityBuilding b)=>!b.abandoned&&!b.burned;
-        void IndexType(CityBuilding b){BindFunding(b);if(b is IndustrialBuilding f)factories.Add(f);if(b is CommercialBuilding s)shops.Add(s);}
-        void UnindexType(CityBuilding b){UnbindFunding(b);if(b is IndustrialBuilding f)factories.Remove(f);if(b is CommercialBuilding s)shops.Remove(s);}
+        void IndexType(CityBuilding b){BindFunding(b);if(b is IndustrialBuilding f)factories.Add(f);if(b is CommercialBuilding s){shops.Add(s);ShopRevision++;}}
+        void UnindexType(CityBuilding b){UnbindFunding(b);if(b is IndustrialBuilding f)factories.Remove(f);if(b is CommercialBuilding s){shops.Remove(s);ShopRevision++;}}
         void ReplaceType(CityBuilding old,CityBuilding next)
         {
             funding.TryGetValue(old.id,out var previous);bool pending=dirtyFunding.Contains(old.id);

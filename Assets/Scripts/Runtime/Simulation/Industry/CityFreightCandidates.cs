@@ -15,12 +15,14 @@ namespace HarborCity
         {internal static readonly OriginalOrder Instance=new OriginalOrder();public int Compare(Entry a,Entry b)=>a.order.CompareTo(b.order);}
         readonly Dictionary<long,List<Entry>> lanes=new Dictionary<long,List<Entry>>(CityRoadKeyComparer.Instance);
         readonly List<Entry> scratch=new List<Entry>();
-        Network network;int revision=-1;long accessRevision=-1;
+        Network network;int revision=-1,networkGeneration=-1;long accessRevision=-1;
         internal CityFreightCandidates(CityEntities entities,World world){this.entities=entities;this.world=world;}
         void Refresh()
         {
-            if(ReferenceEquals(network,world.Network)&&revision==entities.Revision&&accessRevision==world.AccessRevision)return;
-            lanes.Clear();network=world.Network;revision=entities.Revision;accessRevision=world.AccessRevision;
+            // Access-only edit commits may reuse Network but replace RoadAccess
+            // objects. Their existing edit generation must invalidate old entries.
+            if(ReferenceEquals(network,world.Network)&&networkGeneration==world.NetworkGeneration&&revision==entities.ShopRevision&&accessRevision==world.AccessRevision)return;
+            lanes.Clear();network=world.Network;networkGeneration=world.NetworkGeneration;revision=entities.ShopRevision;accessRevision=world.AccessRevision;
             for(int i=0;i<entities.Shops.Count;i++)
             {
                 var shop=entities.Shops[i];var access=world.GetAccess(shop.id);
