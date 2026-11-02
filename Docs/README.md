@@ -12,6 +12,8 @@
 4. [稀疏劳动正式报告](Performance/SparseAttendance-20261030/Report.md)：截至本基线最近的代码与真实 Player 证据，不能把局部 CPU 收益称为 FPS 改善。
 5. [分支分类与保留建议](Repository/BranchReview-20261030.md)：本轮不删除分支，不据此自动合并。
 
+最新交通派生索引见[路口占用生命周期](Architecture/JunctionOccupancy-20261102.md)及[真实Player结果](Performance/JunctionOccupancy-20261102/Report.md)：物理占用跨步增量维护，临时预约保持原刷新边界，不改变交通规则。
+
 ## 当前运行结构：从源码确认
 
 |边界|权威入口/事实|

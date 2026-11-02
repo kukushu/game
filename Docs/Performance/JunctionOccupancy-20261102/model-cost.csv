@@ -1,0 +1,3 @@
+﻿variant,total_steps,steady_steps,steady_mean_ms,steady_mean_allocated_bytes,retained_bytes,retained_tick,first_step_ms,first_step_allocated
+frozen,1000,800,4.102912125,143308.92,495877760,14161,131.6297,21082056
+incremental,1000,800,3.8273995,143327.74,496154624,14161,140.549,21098840
