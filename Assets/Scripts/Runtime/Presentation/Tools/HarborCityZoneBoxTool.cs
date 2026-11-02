@@ -74,6 +74,6 @@ namespace HarborCity
                 double z=edge==0?anchor.z:edge==1?anchor.z+(point.z-anchor.z)*t:edge==2?point.z:point.z+(anchor.z-point.z)*t;
                 outline.SetPosition(edge*16+i,new Vector3((float)x,land.Height((float)x,(float)z)+.28f,(float)z));}
         }
-        public void Dispose(){UnityEngine.Object.Destroy(outline.gameObject);UnityEngine.Object.Destroy(material);}
+        public void Dispose(){if(outline!=null)UnityEngine.Object.Destroy(outline.gameObject);UnityEngine.Object.Destroy(material);}
     }
 }

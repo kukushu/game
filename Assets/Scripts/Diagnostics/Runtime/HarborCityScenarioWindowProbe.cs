@@ -65,6 +65,7 @@ namespace HarborCity
         IEnumerator Measure()
         {
             Directory.CreateDirectory(output);
+            if(Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-display-checks")>=0)yield return HarborCityPresentationChecks.Run(host.ScenarioDisplayMaterial,output);
 #if CITY_RESIDENT_TIME_SCHEDULE
             string residentMode="temporal";
 #elif CITY_RESIDENT_FUNDING_SCHEDULE
@@ -315,7 +316,7 @@ namespace HarborCity
             if(profile){HarborCity.RoadCore.CityCoreProfile.Reset();HarborCity.RoadCore.CityCoreProfile.Enabled=true;}
             try
             {
-            for(int i=0;i<steps;i++){yield return null;observedTick=city.Simulation.Tick+1;long before=GC.GetAllocatedBytesForCurrentThread();var clock=System.Diagnostics.Stopwatch.StartNew();if(city.Simulation.Advance(.05,1,double.PositiveInfinity)!=1)throw new InvalidOperationException("Fixed Player lost step");clock.Stop();long bytes=supported?GC.GetAllocatedBytesForCurrentThread()-before:-1;rows.Add(string.Join(",",i,city.Simulation.Tick,clock.Elapsed.TotalMilliseconds.ToString("R",CultureInfo.InvariantCulture),bytes,city.Transport.ActiveCount));if(profile)coreRows.Add(HarborCity.RoadCore.CityCoreProfile.Row(city.Simulation.Tick,city.Transport.ActiveCount,city.Transport.RoutePreparations,GC.CollectionCount(0)-gc0,GC.CollectionCount(1)-gc1,GC.CollectionCount(2)-gc2));if(i%600==599){using(var sha=SHA256.Create())states.Add(city.Simulation.Tick+","+BitConverter.ToString(sha.ComputeHash(CityCoreSave.Write(city))).Replace("-",""));}}
+            for(int i=0;i<steps;i++){yield return null;if(Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-display-checks")>=0)host.ScenarioCheckDisplay();observedTick=city.Simulation.Tick+1;long before=GC.GetAllocatedBytesForCurrentThread();var clock=System.Diagnostics.Stopwatch.StartNew();if(city.Simulation.Advance(.05,1,double.PositiveInfinity)!=1)throw new InvalidOperationException("Fixed Player lost step");clock.Stop();long bytes=supported?GC.GetAllocatedBytesForCurrentThread()-before:-1;rows.Add(string.Join(",",i,city.Simulation.Tick,clock.Elapsed.TotalMilliseconds.ToString("R",CultureInfo.InvariantCulture),bytes,city.Transport.ActiveCount));if(profile)coreRows.Add(HarborCity.RoadCore.CityCoreProfile.Row(city.Simulation.Tick,city.Transport.ActiveCount,city.Transport.RoutePreparations,GC.CollectionCount(0)-gc0,GC.CollectionCount(1)-gc1,GC.CollectionCount(2)-gc2));if(i%600==599){using(var sha=SHA256.Create())states.Add(city.Simulation.Tick+","+BitConverter.ToString(sha.ComputeHash(CityCoreSave.Write(city))).Replace("-",""));}}
             }
             finally{if(queryTick>0)HarborCity.RoadCore.CityCoreProfile.QueryObserver=null;if(profile)HarborCity.RoadCore.CityCoreProfile.Enabled=false;}
             if(queryTick>0){File.WriteAllLines(Path.Combine(output,"fixed-queries.csv"),new[]{"tick,kind,result,origin,destination,both_directions,context,count"}.Concat(queries.OrderBy(q=>q.Key.kind).ThenBy(q=>q.Key.result).ThenBy(q=>q.Key.origin).ThenBy(q=>q.Key.destination).ThenBy(q=>q.Key.both).ThenBy(q=>q.Key.context).Select(q=>string.Join(",",queryTick,q.Key.kind,q.Key.result,q.Key.origin,q.Key.destination,q.Key.both,q.Key.context,q.Value))));File.WriteAllText(Path.Combine(output,"fixed-query-overflow.txt"),overflow.ToString(CultureInfo.InvariantCulture));}
@@ -343,6 +344,8 @@ namespace HarborCity
             var roads=UnityEngine.Object.FindObjectsByType<MeshFilter>(FindObjectsInactive.Include,FindObjectsSortMode.None).Where(r=>r.name.StartsWith("Road chunk ",StringComparison.Ordinal)||r.name.StartsWith("Shared lane geometry ",StringComparison.Ordinal));long vertices=0,triangles=0,bytes=0;int count=0;
             foreach(var r in roads){var mesh=r.sharedMesh;if(mesh==null)continue;vertices+=mesh.vertexCount;triangles+=(long)mesh.GetIndexCount(0)/3;bytes+=UnityEngine.Profiling.Profiler.GetRuntimeMemorySizeLong(mesh);count++;}
             if(count!=host.ScenarioRoadRenderers)throw new InvalidOperationException("Actual chunk renderer count does not match ownership");
+            var allMeshes=Resources.FindObjectsOfTypeAll<Mesh>();long allBytes=0;foreach(var mesh in allMeshes)allBytes+=UnityEngine.Profiling.Profiler.GetRuntimeMemorySizeLong(mesh);
+            File.AppendAllText(Path.Combine(output,"presentation-memory.csv"),(phase=="start"?"phase,all_mesh_count,all_mesh_bytes,renderer_objects,managed_gc_bytes,unity_allocated_bytes\n":"")+string.Join(",",phase,allMeshes.Length,allBytes,UnityEngine.Object.FindObjectsByType<Renderer>(FindObjectsInactive.Include,FindObjectsSortMode.None).Length,GC.GetTotalMemory(false),UnityEngine.Profiling.Profiler.GetTotalAllocatedMemoryLong())+"\n");
             rows.Add(string.Join(",",phase,host.ScenarioRoadViews,count,vertices,triangles,bytes,GC.GetTotalMemory(false),UnityEngine.Profiling.Profiler.GetTotalAllocatedMemoryLong()));
         }
         static void IndexOracle(CityCoreIndustrySession city)

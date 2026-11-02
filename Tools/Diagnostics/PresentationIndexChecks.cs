@@ -8,6 +8,7 @@ static class PresentationIndexChecks
   using(var index=new CityVehicleDisplayIndex(w))for(int i=0;i<700;i++){if(i%15==0)w.Dispatch(src,dst);w.Step();index.Sync();index.AssertExact();if(i==100){w.SplitRoad(r,1);index.Sync();index.AssertExact();}}
   using(var index=new CityVehicleDisplayIndex(w)){w.RemoveRoad(1);index.Sync();index.AssertExact();}
   using(var index=new CityVehicleDisplayIndex(SaveCodec.Read(SaveCodec.Write(w))))index.AssertExact();
+  var broken=new World();int p=broken.AddJunction(new Point(-150,0,0)),q=broken.AddJunction(new Point(150,0,0));broken.AddRoad(p,q,new[]{broken.JunctionPosition(p),broken.JunctionPosition(q)});var displaced=broken.Dispatch(broken.AddDepot(p),broken.AddDepot(q,0));using(var index=new CityVehicleDisplayIndex(broken)){displaced.Position.Commit(displaced.Current,displaced.distance+80,false);bool caught=false;try{index.AssertExact();}catch(InvalidOperationException){caught=true;}if(!caught)throw new Exception("Independent vehicle oracle missed an intentionally bypassed notification");}
   foreach(string path in args){var bytes=File.ReadAllBytes(path);var observed=CityCoreSave.Read(bytes);var reference=CityCoreSave.Read(bytes);using(var index=new CityVehicleDisplayIndex(observed.Transport)){
    for(int tick=0;tick<300;tick++){observed.Advance(.05);reference.Advance(.05);if(tick%3==0){index.Sync();index.AssertExact();}}
    index.Sync();index.AssertExact();if(!CityCoreSave.Write(observed).SequenceEqual(CityCoreSave.Write(reference)))throw new Exception("Display observation changed full simulation state");

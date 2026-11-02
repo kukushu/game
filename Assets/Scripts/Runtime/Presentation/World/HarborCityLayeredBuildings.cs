@@ -32,19 +32,19 @@ namespace HarborCity
             foreach(var mesh in node.Meshes.Values)UnityEngine.Object.Destroy(mesh);node.Meshes.Clear();foreach(var pair in replacements)node.Meshes.Add(pair.Key,pair.Value);
             node.Valid=true;
         }
-        void Rebuild(bool cold=false)
+        void Rebuild(bool cold=false,double budgetMilliseconds=1)
         {
             completed.Clear();long start=System.Diagnostics.Stopwatch.GetTimestamp();
             // Changed leaves are immediate. Stale parents are never drawn: the
-            // current child batches bridge their bounded asynchronous preparation.
+            // current child batches bridge their bounded deferred preparation.
             foreach(var node in dirty)if(cold||node.Level==0){Build(node);completed.Add(node);}
             foreach(var node in completed)dirty.Remove(node);completed.Clear();
-            if(!cold)foreach(var node in dirty){if((System.Diagnostics.Stopwatch.GetTimestamp()-start)*1000.0/System.Diagnostics.Stopwatch.Frequency>=1)break;Build(node);completed.Add(node);}
+            if(!cold)foreach(var node in dirty){if((System.Diagnostics.Stopwatch.GetTimestamp()-start)*1000.0/System.Diagnostics.Stopwatch.Frequency>=budgetMilliseconds)break;Build(node);completed.Add(node);}
             foreach(var node in completed)dirty.Remove(node);
         }
         internal void Sync(Camera camera,HarborCityDisplaySettings settings)
         {
-            long at=System.Diagnostics.Stopwatch.GetTimestamp();foreach(int id in journal.Ids)Update(id);journal.Clear();Rebuild();IndexMs=(System.Diagnostics.Stopwatch.GetTimestamp()-at)*1000.0/System.Diagnostics.Stopwatch.Frequency;
+            long at=System.Diagnostics.Stopwatch.GetTimestamp();foreach(int id in journal.Ids)Update(id);journal.Clear();Rebuild(false,settings.buildingParentMilliseconds);IndexMs=(System.Diagnostics.Stopwatch.GetTimestamp()-at)*1000.0/System.Diagnostics.Stopwatch.Frequency;
             query.Update(camera);near.Clear();Represented=Batched=Summary=0;foreach(var root in roots.Values)Visit(root,settings);owner.RetireExcept(near);
         }
         void Visit(Node node,HarborCityDisplaySettings settings)

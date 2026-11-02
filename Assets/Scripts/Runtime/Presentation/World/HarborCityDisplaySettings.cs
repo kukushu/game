@@ -11,6 +11,8 @@ namespace HarborCity
         public float zoneSummaryEnter=1,zoneSummaryExit=1.5f;
         public int creationsPerFrame=64;public double creationMilliseconds=1;
         public float edgePadding=8;
+        public double buildingParentMilliseconds=1;
+        public float densityCountScale=.3f,vehicleDensityMinRadius=1,vehicleDensityMaxFraction=.12f;
     }
     internal sealed class HarborCityDisplayCamera
     {

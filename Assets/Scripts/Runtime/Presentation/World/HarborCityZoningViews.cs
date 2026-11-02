@@ -50,15 +50,15 @@ namespace HarborCity
         List<GameObject> objects=new List<GameObject>();
         List<Mesh> meshes=new List<Mesh>();
         public int PlotCount {get;private set;}
-        public int RendererCount=>objects.Count;
+        public int RendererCount=>objects.Count*2; // Full and summary renderers; only one is enabled.
         public int RebuiltChunks {get;private set;}
         readonly HarborCityDisplayCamera displayQuery=new HarborCityDisplayCamera();
-        Matrix4x4 lastDisplayCamera;bool displayDirty=true,displayFull,displayLayered;
+        Matrix4x4 lastDisplayCamera;int lastPixelHeight;float lastEnter,lastExit;bool displayDirty=true,displayFull,displayLayered;
         public int SummaryPlots {get;private set;}
         public void UpdateVisibility(Camera camera,HarborCityDisplaySettings settings,bool fullDetail)
         {
-            if(camera==null)return;var matrix=camera.projectionMatrix*camera.worldToCameraMatrix;if(!displayDirty&&matrix==lastDisplayCamera&&displayFull==fullDetail&&displayLayered==settings.layered)return;
-            displayDirty=false;lastDisplayCamera=matrix;displayFull=fullDetail;displayLayered=settings.layered;displayQuery.Update(camera);SummaryPlots=0;
+            if(camera==null)return;var matrix=camera.projectionMatrix*camera.worldToCameraMatrix;if(!displayDirty&&matrix==lastDisplayCamera&&displayFull==fullDetail&&displayLayered==settings.layered&&lastPixelHeight==camera.pixelHeight&&lastEnter==settings.zoneSummaryEnter&&lastExit==settings.zoneSummaryExit)return;
+            lastPixelHeight=camera.pixelHeight;lastEnter=settings.zoneSummaryEnter;lastExit=settings.zoneSummaryExit;displayDirty=false;lastDisplayCamera=matrix;displayFull=fullDetail;displayLayered=settings.layered;displayQuery.Update(camera);SummaryPlots=0;
             foreach(var pair in chunks){var chunk=pair.Value;var renderer=chunk.instance.GetComponent<Renderer>();bool visible=!settings.layered||displayQuery.Visible(renderer.bounds);bool summary=visible&&settings.layered&&!fullDetail&&displayQuery.Pixels(renderer.bounds,1)<(chunk.summarized?settings.zoneSummaryExit:settings.zoneSummaryEnter);chunk.summarized=summary;renderer.enabled=visible&&!summary;chunk.summaryObject.GetComponent<Renderer>().enabled=summary;if(summary)SummaryPlots+=chunk.plots.Count;}
         }
         public HarborCityZoningViews(Material[] materials)
@@ -124,7 +124,7 @@ namespace HarborCity
             catch{Release(chunk);throw;}
         }
         static void Release(Chunk chunk)
-        {if(chunk.instance!=null){var renderer=chunk.instance.GetComponent<Renderer>();if(renderer!=null)renderer.enabled=false;DestroyOwned(chunk.instance);}DestroyOwned(chunk.mesh);DestroyOwned(chunk.summaryMesh);DestroyOwned(chunk.summaryObject);}
+        {if(chunk.summaryObject!=null){var summaryRenderer=chunk.summaryObject.GetComponent<Renderer>();if(summaryRenderer!=null)summaryRenderer.enabled=false;}if(chunk.instance!=null){var renderer=chunk.instance.GetComponent<Renderer>();if(renderer!=null)renderer.enabled=false;DestroyOwned(chunk.instance);}DestroyOwned(chunk.mesh);DestroyOwned(chunk.summaryMesh);DestroyOwned(chunk.summaryObject);}
         static void DestroyOwned(UnityEngine.Object value){if(value==null)return;if(Application.isPlaying)UnityEngine.Object.Destroy(value);else UnityEngine.Object.DestroyImmediate(value);}
         public void InvalidateSurface(){surfaceDirty=true;}
         public void Dispose(){foreach(var chunk in chunks.Values)Release(chunk);chunks.Clear();objects.Clear();meshes.Clear();surface=null;surfaceDirty=false;PlotCount=RebuiltChunks=0;}

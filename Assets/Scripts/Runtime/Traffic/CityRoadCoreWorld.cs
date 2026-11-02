@@ -542,7 +542,7 @@ namespace HarborCity.RoadCore
         {
             CheckDemolishedService(vehicle,task);if(delivered<0)throw new ArgumentOutOfRangeException(nameof(delivered));var v=FindVehicle(vehicle);
             data.delivered+=delivered;if(v.Task.Shipment!=null)v.Task.Shipment.remaining=0;
-            v.Task.state=TripState.Completed;v.status=VehicleStatus.Delivered;
+            v.Task.state=TripState.Completed;v.status=VehicleStatus.Delivered;MarkDisplay(v);
             awaitingRestarts--;lostOccupancy.Forget(v.id);RemoveIndexedOccupant(v);EditEpoch++;indexDirty=true;
         }
         internal void CheckAdmission(TransportAdmission admission)
@@ -793,7 +793,7 @@ namespace HarborCity.RoadCore
         internal void SetEndpointAvailable(int id,bool present)
         {if(!data.externalBusiness)throw new InvalidOperationException("Fixture endpoints are depots");if(present){if(availableEndpoints.Add(id)){data.availableEndpoints.Add(id);indexDirty=true;fullIndexRequired=true;EndpointAvailabilityRevision++;EndpointAvailabilityChanged?.Invoke(id,EndpointAvailabilityRevision);}}else if(availableEndpoints.Remove(id)){data.availableEndpoints.Remove(id);indexDirty=true;fullIndexRequired=true;EndpointAvailabilityRevision++;EndpointAvailabilityChanged?.Invoke(id,EndpointAvailabilityRevision);}}
         internal void AcknowledgeArrival(int id)
-        {var v=FindVehicle(id);if(v==null||v.status!=VehicleStatus.Active||v.cursor!=v.Plan.segments.Count-1||v.distance<EndDistance(v,Network.Get(v.Current))-1e-9)throw new InvalidOperationException("Cannot acknowledge non-arrival");data.delivered+=v.Task.Cargo;if(v.Task.Shipment!=null)v.Task.Shipment.remaining=0;v.Task.state=TripState.Completed;v.status=VehicleStatus.Delivered;ActiveCount--;RemoveIndexedOccupant(v);indexDirty=true;}
+        {var v=FindVehicle(id);if(v==null||v.status!=VehicleStatus.Active||v.cursor!=v.Plan.segments.Count-1||v.distance<EndDistance(v,Network.Get(v.Current))-1e-9)throw new InvalidOperationException("Cannot acknowledge non-arrival");data.delivered+=v.Task.Cargo;if(v.Task.Shipment!=null)v.Task.Shipment.remaining=0;v.Task.state=TripState.Completed;v.status=VehicleStatus.Delivered;MarkDisplay(v);ActiveCount--;RemoveIndexedOccupant(v);indexDirty=true;}
         internal void RetireCompleted()
         {int retained=0;for(int i=0;i<data.vehicles.Count;i++)if(data.vehicles[i].status!=VehicleStatus.Delivered)data.vehicles[retained++]=data.vehicles[i];else {var actor=data.vehicles[i];MarkDisplay(actor);actor.indexOwner=null;vehiclesById.Remove(actor.id);tasksById.Remove(actor.Task.id);vehiclesByTask.Remove(actor.Task.id);}if(retained<data.vehicles.Count){data.vehicles.RemoveRange(retained,data.vehicles.Count-retained);PruneMotionOrder();}data.tasks.RemoveAll(CompletedTask);arrivals.Clear();}
         public int SplitRoad(int roadId,int sample)

@@ -89,6 +89,7 @@ namespace HarborCity
         internal int ScenarioSteps=>lastSteps;
         internal float ScenarioCurrentRate=>speed;
         internal Camera ScenarioCamera=>cameraView;
+        internal Material ScenarioDisplayMaterial=>roadMaterial;
         internal long ScenarioPoseSamples=>vehicleViews?.PoseSamples??0;
         internal double ScenarioDisplayIndexMs=>vehicleViews?.IndexMs??0;
         internal int ScenarioVehicleRepresented=>vehicleViews?.Represented??0;
@@ -194,7 +195,7 @@ namespace HarborCity
 #endif
         void Update()
         {
-            observation?.Bind(session);roadEditor?.Bind(session);roadEditor?.Sync();buildingViews?.Select(observation?.Selected??0);
+            observation?.Bind(session);roadEditor?.Bind(session);roadEditor?.Sync();
             if(world==null)return;long now=System.Diagnostics.Stopwatch.GetTimestamp();double elapsed=(now-previousTick)/(double)System.Diagnostics.Stopwatch.Frequency,seconds=elapsed*speed;
             if(ScenarioMeasuring)ScenarioRequestedSeconds=seconds;
             double clockBefore=world.Clock;
@@ -222,6 +223,7 @@ namespace HarborCity
             long sampleAt=ScenarioMeasuring?System.Diagnostics.Stopwatch.GetTimestamp():0;
             if(ScenarioMeasuring)ScenarioAdvanceMs=(sampleAt-now)*1000.0/System.Diagnostics.Stopwatch.Frequency;
             if(!ScenarioMeasuring&&constructionCamera!=null&&(Mouse.current==null||!BlocksWorldInput(Mouse.current.position.ReadValue())))constructionCamera.Step(Time.deltaTime);
+            if(displaySettings.layered&&session!=null)cameraView.farClipPlane=Mathf.Max(3000,cameraView.transform.position.magnitude+session.City.map.buildHalfSize*1.5f+128);
             if(outsideViews==null)outsideViews=new HarborCityOutsideViews(roadMaterial,localization);outsideViews.Sync(session);
             if(session!=null&&session.City.development.enabled)
             {
@@ -230,6 +232,7 @@ namespace HarborCity
                 if(changed||shownZones!=session.City.zoning.revision||shownNetwork!=world.NetworkGeneration){RenderZones();shownZones=session.City.zoning.revision;shownNetwork=world.NetworkGeneration;}
             }
             if(displaySettings.layered&&buildingViews!=null)buildingViews.Sync(session?.Entities,cameraView,displaySettings);
+            buildingViews?.Select(observation?.Selected??0);
             roadViews?.UpdateVisibility(cameraView,displaySettings.layered);zoningViews?.UpdateVisibility(cameraView,displaySettings,zoneTool!=LandUse.Empty||building||roadEditor.IsSelecting);
             if(ScenarioMeasuring){long end=System.Diagnostics.Stopwatch.GetTimestamp();ScenarioStructureMs=(end-sampleAt)*1000.0/System.Diagnostics.Stopwatch.Frequency;sampleAt=end;}
             using(viewsSample.Auto())
