@@ -24,6 +24,7 @@ flowchart LR
 
 - HarborCityDisplaySettings 集中屏幕像素阈值、滞回、预取边缘、个体创建预算和父网格准备预算。
 - 车辆近景池化个体，中景共享立方体网格按用途实例绘制，远景区域用途密度标记来自真实计数。远景不逐车采样姿态或更新Transform。姿态缓存仅保留当前候选范围，摄像机不动且事实没变时复用。
+- 批量车辆和摘要共用 RoadCore Shader，必须保留 `multi_compile_instancing`、顶点实例ID及 `UNITY_SETUP_INSTANCE_ID`。材质在运行时创建，GraphicsSettings 的 Instancing Variants 使用 Keep All（值2）；自动剔除不能从静态场景推断这些变体的需求。Editor与Release都必须通过实际像素测试，CPU代表数量不能证明已绘制。
 - 建筑近景保留现有立方体外观，中景64单位块内按用途合批，远景父块使用真实位置与旋转的屋顶占地网格，保留道路空隙。镜头切换不重建这些网格。
 - 个体准备受共享每帧64个/约1ms软预算约束。待准备车辆直接用批量表示，建筑整叶块准备齐才替换批量；主体互斥。选中建筑优先准备，其轮廓注释与稳定身份不依赖主体GO。
 - 建筑变化立即更新叶块，失效父块禁用、回退当前子块；父块在单线程软预算内延后准备。单个Mesh构建不可中断，因此软预算不保证严格最大帧时长，需持续测量。
@@ -34,6 +35,7 @@ flowchart LR
 ## 验证入口与边界
 
 - Tools/Diagnostics/PresentationIndexChecks.cs：区域准确位置独立对照、故意漏通知负控、完整业务/交通保存字节、冷恢复。
+- Tools/VerifyVehicleViews.ps1：个体生命周期及带真实图形设备的实例像素检查；后者调用 Tools/Diagnostics/HarborCityInstancedVehiclePixels.cs，验证非对称世界位置实际绘出、空白中心不出现重叠实例。实例化/Shader改动需同时验证Release，不能用 `-nographics` 代替。
 - HarborCityPresentationChecks：真实Unity里的近远切换、静态复用、无GO选择、暂停业务不变、跨块、替换删除、负控与换城。
 - Tools/RunCityScenarioWindow.ps1：复用现有窗口采样，新增 LegacyViews、DisplayCamera(near/middle/far/sweep)、DisplayChecks。检查模式扫描属于正确性测试，不作为普通FPS成绩。
 - 帧CSV分别记录实际个体绑定、批量/摘要代表实体数量、索引维护耗时和准确姿态采样累计次数；这些不是GPU Draw Call的替代口径。
