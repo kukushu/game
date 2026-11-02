@@ -2,6 +2,17 @@
 
 正式事实仍由 CityEntities、World、Network 拥有；显示不调用交通 EnsureIndex，不改变预约、固定步或保存协议。实现从19e0c31开始，数据与性能证据见[本轮报告](../Performance/LayeredPresentation-20261102/Report.md)。
 
+```mermaid
+flowchart LR
+    Facts[World / CityEntities 唯一事实] -->|提交后仅标记ID| Journal[可选变更日志]
+    Journal --> Index[只读派生网格64 / 256 / 1024]
+    Camera[相机 / 分辨率] --> Query[可见块与屏幕大小查询]
+    Index --> Query
+    Query --> Near[池化个体]
+    Query --> Middle[共享批量网格]
+    Query --> Far[真实区域计数 / 屋顶轮廓]
+```
+
 ## 变更传播
 
 - World 已有位置提交、冻结、出发、任务继续、完成和清退入口只向可选 CityPresentationJournal 标记 ID；每个观察周期去重，没有消费者不积累。实例换城解绑。
@@ -27,3 +38,5 @@
 - Tools/RunCityScenarioWindow.ps1：复用现有窗口采样，新增 LegacyViews、DisplayCamera(near/middle/far/sweep)、DisplayChecks。检查模式扫描属于正确性测试，不作为普通FPS成绩。
 - 帧CSV分别记录实际个体绑定、批量/摘要代表实体数量、索引维护耗时和准确姿态采样累计次数；这些不是GPU Draw Call的替代口径。
 - 当前仍保留既有公共设施与对外连接表现，不在本轮改变它们的业务或另做显示重构。未通过百万真实城市验收；显示索引处理成本仍与实际移动/变化的实体数量有关，不声称模拟本身变成视野相关。
+
+源码导航：[变更日志](../../Assets/Scripts/Runtime/Simulation/Core/CityPresentationJournal.cs)、[车辆区域索引](../../Assets/Scripts/Runtime/Traffic/CityVehicleDisplayIndex.cs)、[车辆表示](../../Assets/Scripts/Runtime/Presentation/World/HarborCityLayeredVehicles.cs)、[建筑表示](../../Assets/Scripts/Runtime/Presentation/World/HarborCityLayeredBuildings.cs)、[质量配置](../../Assets/Scripts/Runtime/Presentation/World/HarborCityDisplaySettings.cs)。

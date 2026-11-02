@@ -14,6 +14,8 @@
 
 最新交通派生索引见[路口占用生命周期](Architecture/JunctionOccupancy-20261102.md)及[真实Player结果](Performance/JunctionOccupancy-20261102/Report.md)：物理占用跨步增量维护，临时预约保持原刷新边界，不改变交通规则。
 
+分层显示的所有权、空间索引及三种表示见[架构说明](Architecture/LayeredPresentation.md)，Player配对和完整状态检查见[2026-11-02报告](Performance/LayeredPresentation-20261102/Report.md)。
+
 ## 当前运行结构：从源码确认
 
 |边界|权威入口/事实|

@@ -1,0 +1,2 @@
+case,legacy_png_sha256,layered_png_sha256,mean_abs_r,mean_abs_g,mean_abs_b,same_final_save,local_legacy,local_layered
+30k_paused_near,b04e9e845421b522498a921ae9fd2fdedc0ed854eb1c9c66acd04681f9f38800,b04e9e845421b522498a921ae9fd2fdedc0ed854eb1c9c66acd04681f9f38800,0.0,0.0,0.0,True,C:\Users\16934\Documents\unity_game\million-scale-execution-20261031\Temp\LayeredPresentation\perf-30k-near-legacy\0x\window.png,C:\Users\16934\Documents\unity_game\million-scale-execution-20261031\Temp\LayeredPresentation\perf-30k-near-layered\0x\window.png
