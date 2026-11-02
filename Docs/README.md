@@ -16,6 +16,8 @@
 
 分层显示的所有权、空间索引及三种表示见[架构说明](Architecture/LayeredPresentation.md)，Player配对和完整状态检查见[2026-11-02报告](Performance/LayeredPresentation-20261102/Report.md)。
 
+求职归属查询与货运候选失效的独立第一阶段见[2026-11-03报告](Performance/MatchingIndexes-20261103/Report.md)：分项收益及入口重绑修复已验证，现有100k普通Player无可靠整体提速；尚未整合持续求职/补货集合，不据此标记MS-016/MS-019完成或自动集成。
+
 ## 当前运行结构：从源码确认
 
 |边界|权威入口/事实|

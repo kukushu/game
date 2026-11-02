@@ -1,5 +1,9 @@
 # 执行进度
 
+## 2026-11-03 匹配入口第一阶段（独立候选）
+
+从正式b2a333d在 `codex/optimize-matching-indexes-20261102` 实施岗位归属索引查询a7d664c、货运ShopRevision/提交代次失效c0fff65；工具e04114f。详见[报告与CSV](../../Performance/MatchingIndexes-20261103/Report.md)。正常案例30k/100k各800步完整状态及冷续同；旧同Network入口重绑漏失效被独立oracle复现并修复。局部分配/无关重建有明确收益，但实际800步里没有AssignJob/货运Collect，普通100k FPS56.88→56.97不算整体提速；暂不强行合正式。待求职、空缺岗位和补货需求持续集合未完成，原30任务状态/依赖保持，MS-018仍原状态。
+
 ## 当前恢复点（2026-11-01，统一居民事件调度）
 
 - 用户新授权以事件驱动作为默认路径；从干净 e2429c5 新建独立 `codex/resident-event-scheduler-20261101`，实现 `3e7f9ab`。后续用户明确授权集成；正式开发已收敛该成果及原百万级执行链，默认events。源实验引用、main/Python保持，见[正式集成清单](../../Integrations/ValidatedBranches-20261101.md)。
