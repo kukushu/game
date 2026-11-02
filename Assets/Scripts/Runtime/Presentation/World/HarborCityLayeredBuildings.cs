@@ -66,8 +66,11 @@ namespace HarborCity
         internal void AssertExact()
         {
             int total=0;foreach(var root in roots.Values)total+=root.Count;if(total!=entities.Buildings.Count||total!=items.Count)throw new InvalidOperationException("Building summary count differs");
-            foreach(var b in entities.Buildings){if(!items.TryGetValue(b.id,out var item)||item.Use!=b.Use||Vector3.Distance(item.Matrix.GetColumn(3),new Vector3(b.x,b.groundY+1.5f,b.z))>.001f)throw new InvalidOperationException("Building display identity/pose differs");}
+            foreach(var b in entities.Buildings){var expected=Matrix4x4.TRS(new Vector3(b.x,b.groundY+1.5f,b.z),Quaternion.Euler(0,b.yaw,0),new Vector3(b.width,3,b.depth));if(!items.TryGetValue(b.id,out var item)||item.Use!=b.Use||!item.Matrix.Equals(expected))throw new InvalidOperationException("Building display identity/pose differs");}
+            foreach(var root in roots.Values)AssertMeshCounts(root);
         }
+        void AssertMeshCounts(Node node)
+        {if(node.Valid){ulong indices=0;foreach(var mesh in node.Meshes.Values)indices+=mesh.GetIndexCount(0);if(indices!=(ulong)node.Count*(node.Level==0?36u:6u))throw new InvalidOperationException("Building batch omitted/duplicated geometry");}foreach(var child in node.Children.Values)AssertMeshCounts(child);}
         public void Dispose(){entities.ReleaseBuildings(journal);foreach(var root in roots.Values)Release(root);UnityEngine.Object.Destroy(roof);items.Clear();roots.Clear();}
         void Release(Node node){foreach(var mesh in node.Meshes.Values)UnityEngine.Object.Destroy(mesh);foreach(var child in node.Children.Values)Release(child);}
     }
