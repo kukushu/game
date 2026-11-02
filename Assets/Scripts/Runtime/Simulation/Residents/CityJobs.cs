@@ -44,7 +44,7 @@ namespace HarborCity
         }
         public bool AssignJob(CityResident p,int jobId)
         {
-            if(p==null || !society.families.Any(h=>h.resident && h.id==p.householdId && h.people.Contains(p))) return false;
+            if(p==null || !RegisteredJobApplicant(p)) return false;
             var job=Job(jobId);
             if(!JobFunded(job) || !p.canWork || p.age<18 || p.skill<job.requiredSkill ||
                 (job.occupiedCitizenId!=-1 && job.occupiedCitizenId!=p.id)) return false;
@@ -54,6 +54,21 @@ namespace HarborCity
             if(p.tripId>0 || p.atWork) return false;
             ReleaseJob(p); p.jobId=job.id; job.occupiedCitizenId=p.id;
             Trace("job.assigned","居民占用岗位",job,household:p.householdId,citizen:p.id,job:job.id,building:job.buildingId); return true;
+        }
+        bool RegisteredJobApplicant(CityResident p)
+        {
+            if(entities!=null)
+            {
+                var member=entities.Member(p.id);var family=entities.Family(p.householdId);
+                // Keep exact identity and local membership checks. The entity
+                // owner supplies the family directly, never a whole-city search.
+                return member!=null&&ReferenceEquals(member.Person,p)&&family!=null&&
+                    ReferenceEquals(member.Family,family)&&family.resident&&family.people.Contains(p);
+            }
+            // Fixtures/initial construction assign jobs before attaching indexes.
+            foreach(var family in society.families)
+                if(family.resident&&family.id==p.householdId&&family.people.Contains(p))return true;
+            return false;
         }
         public void SyncJobs()
         {
