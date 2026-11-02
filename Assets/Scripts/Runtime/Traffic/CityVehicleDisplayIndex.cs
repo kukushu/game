@@ -12,7 +12,7 @@ namespace HarborCity.RoadCore
     // moving actor's world pose merely to update its coarse cell membership.
     internal sealed class CityVehicleDisplayIndex:IDisposable
     {
-        internal sealed class Record {internal Vehicle Actor;internal CityDisplayCell Cell;internal int Purpose,Version;}
+        internal sealed class Record {internal Vehicle Actor;internal CityDisplayCell Cell;internal int Purpose,Version;internal long Shadow;}
         internal sealed class Node
         {
             internal CityDisplayCell Key;internal int Level,Count;internal readonly int[] Purposes=new int[4];
@@ -66,24 +66,30 @@ namespace HarborCity.RoadCore
             if(delta>0)leaf.Ids.Add(record.Actor.id);else leaf.Ids.Remove(record.Actor.id);
             if(leaf.Count==0)middle.Children.Remove(key);if(middle.Count==0)root.Children.Remove(key.Parent);if(root.Count==0)Roots.Remove(key.Parent.Parent);
         }
+        LaneMap Map(long id)
+        {
+            if(!lanes.TryGetValue(id,out var map)){var g=world.Network.Get(id).Geometry;lanes.Add(id,map=new LaneMap(g));LaneBuilds++;for(int i=0;i<g.Count;i++){MinY=Math.Min(MinY,g[i].y-1);MaxY=Math.Max(MaxY,g[i].y+2);}}return map;
+        }
         CityDisplayCell Locate(Vehicle v)
         {
             if(v.Position.IsFrozen){var p=v.strandedPosition;MinY=Math.Min(MinY,p.y-1);MaxY=Math.Max(MaxY,p.y+2);return CityDisplayCell.At(p);}
-            if(v.changeTarget!=0){PreciseIndexSamples++;var p=world.Position(v);MinY=Math.Min(MinY,p.y-1);MaxY=Math.Max(MaxY,p.y+2);return CityDisplayCell.At(p);}
-            if(!lanes.TryGetValue(v.Current,out var map)){var g=world.Network.Get(v.Current).Geometry;lanes.Add(v.Current,map=new LaneMap(g));LaneBuilds++;for(int i=0;i<g.Count;i++){MinY=Math.Min(MinY,g[i].y-1);MaxY=Math.Max(MaxY,g[i].y+2);}}
+            var map=Map(v.Current);
+            if(v.changeTarget!=0){Map(v.changeTarget);PreciseIndexSamples++;var p=world.Position(v);MinY=Math.Min(MinY,p.y-1);MaxY=Math.Max(MaxY,p.y+2);return CityDisplayCell.At(p);}
             return map.Cell(v.distance,ref PreciseIndexSamples);
         }
+        void Link(long lane,int id){if(!byLane.TryGetValue(lane,out var ids))byLane.Add(lane,ids=new HashSet<int>());ids.Add(id);}
+        void Unlink(long lane,int id){if(byLane.TryGetValue(lane,out var ids)){ids.Remove(id);if(ids.Count==0)byLane.Remove(lane);}}
         // Store only the indexed lane identity, never a second actor position.
         readonly Dictionary<int,long> indexedLanes=new Dictionary<int,long>();
-        void Remove(int id,Record record){Count(record,-1);long lane=indexedLanes[id];if(byLane.TryGetValue(lane,out var ids)){ids.Remove(id);if(ids.Count==0)byLane.Remove(lane);}indexedLanes.Remove(id);Records.Remove(id);}
+        void Remove(int id,Record record){Count(record,-1);Unlink(indexedLanes[id],id);if(record.Shadow!=0)Unlink(record.Shadow,id);indexedLanes.Remove(id);Records.Remove(id);}
         void Update(int id)
         {
             Updates++;var v=world.FindVehicle(id);Records.TryGetValue(id,out var prior);
             if(!Drawable(v)){if(prior!=null)Remove(id,prior);return;}
-            var cell=Locate(v);int purpose=Purpose(v.Task.purpose);int version=(prior?.Version??0)+1;
-            if(prior!=null&&prior.Cell.Equals(cell)&&prior.Purpose==purpose&&indexedLanes[id]==v.Current){prior.Actor=v;prior.Version=version;return;}
-            if(prior!=null)Remove(id,prior);Leaf(cell,true);var record=new Record{Actor=v,Cell=cell,Purpose=purpose,Version=version};Records.Add(id,record);indexedLanes.Add(id,v.Current);
-            if(!byLane.TryGetValue(v.Current,out var actors))byLane.Add(v.Current,actors=new HashSet<int>());actors.Add(id);Count(record,1);
+            long shadow=v.Position.IsFrozen?0:v.changeTarget;var cell=Locate(v);int purpose=Purpose(v.Task.purpose);int version=(prior?.Version??0)+1;
+            if(prior!=null&&prior.Cell.Equals(cell)&&prior.Purpose==purpose&&prior.Shadow==shadow&&indexedLanes[id]==v.Current){prior.Actor=v;prior.Version=version;return;}
+            if(prior!=null)Remove(id,prior);Leaf(cell,true);var record=new Record{Actor=v,Cell=cell,Purpose=purpose,Version=version,Shadow=shadow};Records.Add(id,record);indexedLanes.Add(id,v.Current);
+            Link(v.Current,id);if(shadow!=0)Link(shadow,id);Count(record,1);
         }
         static bool SameGeometry(Geometry a,Geometry b)
         {
@@ -100,7 +106,7 @@ namespace HarborCity.RoadCore
             journal.Clear();
         }
         internal void AssertExact()
-        {int count=0;foreach(var v in world.Vehicles)if(Drawable(v)){count++;if(!Records.TryGetValue(v.id,out var r)||!r.Cell.Equals(CityDisplayCell.At(world.Position(v)))||r.Purpose!=Purpose(v.Task.purpose))throw new InvalidOperationException("Display spatial membership differs");}if(count!=Records.Count)throw new InvalidOperationException("Display population differs");int total=0;foreach(var node in Roots.Values)total+=node.Count;if(total!=count)throw new InvalidOperationException("Display summary count differs");}
+        {int count=0;foreach(var v in world.Vehicles)if(Drawable(v)){count++;if(!Records.TryGetValue(v.id,out var r)||!r.Cell.Equals(CityDisplayCell.At(world.Position(v)))||r.Purpose!=Purpose(v.Task.purpose))throw new InvalidOperationException("Display spatial membership differs");if(v.status==VehicleStatus.Active&&v.changeTarget!=0&&(!lanes.ContainsKey(v.Current)||!lanes.ContainsKey(v.changeTarget)||!byLane.TryGetValue(v.changeTarget,out var changing)||!changing.Contains(v.id)))throw new InvalidOperationException("Changing actor lost a geometry dependency");}if(count!=Records.Count)throw new InvalidOperationException("Display population differs");int total=0;foreach(var node in Roots.Values)total+=node.Count;if(total!=count)throw new InvalidOperationException("Display summary count differs");}
         public void Dispose(){world.ReleaseDisplay(journal);Records.Clear();Roots.Clear();lanes.Clear();byLane.Clear();indexedLanes.Clear();}
     }
 }
