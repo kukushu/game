@@ -6,7 +6,7 @@ public static class HarborCityInstancedVehiclePixels {
 public static void Run(){try{Check(Environment.GetEnvironmentVariable("HARBOR_PIXEL_RESULTS"));UnityEditor.EditorApplication.Exit(0);}catch(Exception e){Debug.LogException(e);UnityEditor.EditorApplication.Exit(1);}}
 #endif
 [RuntimeInitializeOnLoadMethod]
-static void Start(){var args=Environment.GetCommandLineArgs();int at=Array.IndexOf(args,"-harbor-instanced-vehicle-pixels");if(at<0)return;try{Check(args[at+1]);Application.Quit(0);}catch(Exception e){Debug.LogException(e);Application.Quit(1);}}
+static void Start(){var args=Environment.GetCommandLineArgs();int at=Array.IndexOf(args,"-harbor-instanced-vehicle-pixels");if(at<0)return;new GameObject("Pixel oracle runner").AddComponent<HarborCityVehiclePixelRunner>().Output=args[at+1];}
         // Check actual shader output, independently of CPU representation counters.
         public static void Check(string output)
         {
@@ -29,3 +29,8 @@ static void Start(){var args=Environment.GetCommandLineArgs();int at=Array.Index
         }
         static void Release(UnityEngine.Object value){if(Application.isPlaying)UnityEngine.Object.Destroy(value);else UnityEngine.Object.DestroyImmediate(value);}
 }}
+public sealed class HarborCityVehiclePixelRunner:MonoBehaviour
+{
+    public string Output;
+    System.Collections.IEnumerator Start(){yield return null;yield return null;try{HarborCity.HarborCityInstancedVehiclePixels.Check(Output);Application.Quit(0);}catch(Exception e){Debug.LogException(e);Application.Quit(1);}}
+}
