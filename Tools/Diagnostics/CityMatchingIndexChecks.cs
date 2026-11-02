@@ -88,7 +88,7 @@ static class CityMatchingIndexChecks
         object stable=Tag(cache);bool rejected=false;try{s.Transport.RegisterAccess(shopId,s.Transport.GetAccess(1).lane,-1);}catch(ArgumentException){rejected=true;}
         Check(rejected,"Invalid access fixture accepted");collect();Check(ReferenceEquals(stable,Tag(cache)),"Failed access registration invalidated/mutated cache");
         var shops=(List<CommercialBuilding>)typeof(CityEntities).GetField("shops",Private).GetValue(s.Entities);shops.Reverse();
-        cache.Collect(s.Transport.GetAccess(1),list);bool caught=false;try{Oracle(s,s.Transport.GetAccess(1),list);}catch(Exception){caught=true;}
+        cache.Collect(s.Transport.GetAccess(1),list);bool caught=false;try{Oracle(s,s.Transport.GetAccess(1),list);}catch(Exception e)when(e.Message=="Candidate identity/order differs from independent live-shop reachability scan"){caught=true;}
         Check(caught,"Independent order oracle missed bypassed structural notification");shops.Reverse();collect();
         change("shop-remove",()=>s.Entities.RemoveBuilding(shopId),true);s.Validate();
         var cold=CityCoreSave.Read(CityCoreSave.Write(s));var coldCache=new CityFreightCandidates(cold.Entities,cold.Transport);coldCache.Collect(cold.Transport.GetAccess(1),list);Oracle(cold,cold.Transport.GetAccess(1),list);
