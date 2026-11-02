@@ -155,6 +155,10 @@ namespace HarborCity
             city.Transport.DepotJunctionRoutingEnabled=junctionRouting;
             int fixedFlag=Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-window-fixed-steps");
             if(fixedFlag>=0){host.ScenarioRate(0);yield return FixedWork(int.Parse(Environment.GetCommandLineArgs()[fixedFlag+1],CultureInfo.InvariantCulture));yield break;}
+            HarborCity.RoadCore.Point editSite=default;
+            if(Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-window-road-edit")>=0){
+                host.ScenarioRate(0);try{editSite=FindEditSite(city,host.ScenarioSurface,output);}catch(Exception e){File.WriteAllText(Path.Combine(output,"Result.txt"),"FAIL edit fixture preparation: "+e);Application.Quit(1);yield break;}host.ScenarioRate(rate);
+            }
             if(HarborCity.RoadCore.DepotRoutingTrace.Enabled){HarborCity.RoadCore.DepotRoutingTrace.Write(Path.Combine(output,"routing-warmup.csv"));HarborCity.RoadCore.DepotRoutingTrace.Reset();}
             if(Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-depot-lane-cold")>=0)city.Transport.DepotRoutes.Clear();
             city.Transport.JunctionRoutes.Trace=Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-junction-trace")>=0;
@@ -205,8 +209,8 @@ namespace HarborCity
                     var watch=System.Diagnostics.Stopwatch.StartNew();
                     try
                     {
-                        float half=city.City.map.buildHalfSize,x=half-32,z=half-40;
-                        var plan=city.Transport.PlanConnectedRoad(new[]{new HarborCity.RoadCore.Point(x,host.ScenarioSurface(x,z),z),new HarborCity.RoadCore.Point(x,host.ScenarioSurface(x,z+12),z+12)},lanes:2);
+                        double x=editSite.x,z=editSite.z;
+                        var plan=city.Transport.PlanConnectedRoad(new[]{new HarborCity.RoadCore.Point(x,host.ScenarioSurface((float)x,(float)z),z),new HarborCity.RoadCore.Point(x,host.ScenarioSurface((float)x,(float)z+12),z+12)},lanes:2);
                         city.Construction.CheckRoadPlacement(plan);accepted=city.Construction.Commit(plan,out paid);watch.Stop();
                         if(accepted)
                         {
@@ -217,7 +221,7 @@ namespace HarborCity
                     }
                     catch(Exception e){error=e.Message.Replace(",",";").Replace("\n"," ").Replace("\r"," ");watch.Stop();}
                     roadEditRows.Add(string.Join(",",city.Simulation.Tick,accepted,paid,watch.Elapsed.TotalMilliseconds.ToString("R",CultureInfo.InvariantCulture),syncMs.ToString("R",CultureInfo.InvariantCulture),made,removed,host.ScenarioRoadViews,host.ScenarioRoadRenderers,auditDisplay,error));
-                    if(!accepted||error.Length>0){File.WriteAllLines(Path.Combine(output,"road-edit.csv"),roadEditRows);throw new InvalidOperationException("Road-view edit probe did not complete: "+error);}
+                    if(!accepted||error.Length>0){File.WriteAllLines(Path.Combine(output,"road-edit.csv"),roadEditRows);File.WriteAllText(Path.Combine(output,"Result.txt"),"FAIL Road-view edit probe: "+error);Application.Quit(1);yield break;}
                 }
                 if(routingEdit&&!editSucceeded&&editAttempts<3&&Time.realtimeSinceStartupAsDouble-start>=nextEdit)
                 {
@@ -291,6 +295,22 @@ namespace HarborCity
             try{File.WriteAllBytes(Path.Combine(output,"window.png"),screenshot.EncodeToPNG());}finally{UnityEngine.Object.Destroy(screenshot);}
             yield return null;
             Debug.Log("Harbor window probe: validation/output complete; requesting Player shutdown");Application.Quit(0);
+        }
+        static HarborCity.RoadCore.Point FindEditSite(CityCoreIndustrySession city,Func<float,float,float> surface,string output)
+        {
+            var before=CityCoreSave.Write(city);var watch=System.Diagnostics.Stopwatch.StartNew();
+            for(int attempt=0;attempt<66;attempt++){
+                float x=attempt==0?12:attempt==1?20:((attempt-2)%8-4)*24+12;
+                float z=attempt==0?6:attempt==1?10:((attempt-2)/8-4)*24+6;
+                if(Math.Abs(x)>city.City.map.buildHalfSize-16||Math.Abs(z+12)>city.City.map.buildHalfSize-16)continue;
+                var a=new HarborCity.RoadCore.Point(x,surface(x,z),z);var b=new HarborCity.RoadCore.Point(x,surface(x,z+12),z+12);
+                var plan=city.Transport.PlanConnectedRoad(new[]{a,b},lanes:2);
+                if(plan.Preview.RoadCount!=city.Transport.Network.RoadCount+1||plan.Preview.JunctionCount!=city.Transport.Network.JunctionCount+2)continue;
+                int quote;try{quote=city.Construction.CheckRoadPlacement(plan);}catch(CityRuleException e) when(e.Key=="road.build_obstructed"){continue;}
+                if(!before.SequenceEqual(CityCoreSave.Write(city)))throw new InvalidOperationException("Cold edit-site planning changed city state");
+                File.WriteAllText(Path.Combine(output,"road-site.csv"),"x,z,length,attempts,quoted_price,preparation_ms,inside_timed_window\n"+string.Join(",",x,z,12,attempt+1,quote,watch.Elapsed.TotalMilliseconds,false));return a;
+            }
+            throw new InvalidOperationException("No legal isolated-road fixture found; no timed edit result");
         }
         IEnumerator FixedWork(int steps)
         {

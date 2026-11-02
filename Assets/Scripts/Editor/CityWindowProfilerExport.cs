@@ -11,8 +11,10 @@ namespace HarborCity
     // Offline raw-Player trace analysis. Never attaches to or changes the live city.
     public static class CityWindowProfilerExport
     {
+        static bool exportAll;
         public static void Run()
         {
+            exportAll=Environment.GetEnvironmentVariable("HARBOR_WINDOW_EXPORT_ALL")=="1";
             string directory=Environment.GetEnvironmentVariable("HARBOR_WINDOW_CAPTURE");
             if(string.IsNullOrEmpty(directory))throw new ArgumentException("Explicit capture directory required");
             var history=typeof(ProfilerDriver).GetMethod("SetMaxFrameHistoryLength",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.Public|System.Reflection.BindingFlags.NonPublic);
@@ -37,7 +39,7 @@ namespace HarborCity
         static void Visit(HierarchyFrameDataView data,int id,string parent,int frame,string thread,StringBuilder rows)
         {
             string name=data.GetItemName(id),path=parent.Length==0?name:parent+"/"+name;double self=data.GetItemColumnDataAsDouble(id,HierarchyFrameDataView.columnSelfTime);
-            if(name.StartsWith("City.",StringComparison.Ordinal)||name=="PlayerLoop"||name=="GC.Collect"||name=="DrawBuffersBatchMode"||name=="ExecuteRenderQueueJob"||name=="CullObjectsWithoutUmbra"||self>=.2)
+            if(exportAll||name.StartsWith("City.",StringComparison.Ordinal)||name=="PlayerLoop"||name=="GC.Collect"||name=="DrawBuffersBatchMode"||name=="ExecuteRenderQueueJob"||name=="CullObjectsWithoutUmbra"||self>=.2)
             {
                 rows.Append(frame).Append(',').Append(Quote(thread)).Append(',').Append(Quote(path));
                 foreach(int column in new[]{HierarchyFrameDataView.columnTotalTime,HierarchyFrameDataView.columnSelfTime,HierarchyFrameDataView.columnCalls,HierarchyFrameDataView.columnGcMemory})rows.Append(',').Append(N(data.GetItemColumnDataAsDouble(id,column)));rows.AppendLine();
