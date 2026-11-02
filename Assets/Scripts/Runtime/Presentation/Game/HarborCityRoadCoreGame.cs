@@ -19,6 +19,7 @@ namespace HarborCity
         {
             if(FindAnyObjectByType<HarborCityRoadCoreGame>()==null)new GameObject("Harbor City Road Core").AddComponent<HarborCityRoadCoreGame>();
         }
+        [SerializeField] HarborCityDisplaySettings displaySettings=new HarborCityDisplaySettings();
         World world;CityCoreIndustrySession session;Camera cameraView; Material roadMaterial,carMaterial,waterLineMaterial;
         CityLandscape landscape;LandUse zoneTool=LandUse.Empty;int shownBuildings=-1,shownZones=-1,shownNetwork=-1;
         LandUse facilityTool=LandUse.Empty;UtilityKind? utilityTool;float facilityYaw;
@@ -87,6 +88,16 @@ namespace HarborCity
         internal float ScenarioSurface(float x,float z)=>scenarioSavedMap?landscape.Height(x,z):CityScenarioBuilder.Flat(x,z);
         internal int ScenarioSteps=>lastSteps;
         internal float ScenarioCurrentRate=>speed;
+        internal Camera ScenarioCamera=>cameraView;
+        internal long ScenarioPoseSamples=>vehicleViews?.PoseSamples??0;
+        internal double ScenarioDisplayIndexMs=>vehicleViews?.IndexMs??0;
+        internal int ScenarioVehicleRepresented=>vehicleViews?.Represented??0;
+        internal int ScenarioVehicleSummaries=>vehicleViews?.SummaryVehicles??0;
+        internal int ScenarioVehicleBatched=>vehicleViews?.Batched??0;
+        internal int ScenarioBuildingRepresented=>buildingViews?.Represented??0;
+        internal int ScenarioBuildingSummaries=>buildingViews?.Summary??0;
+        internal int ScenarioBuildingBatched=>buildingViews?.Batched??0;
+        internal void ScenarioCheckDisplay(){vehicleViews?.AssertDisplayIndex();buildingViews?.AssertDisplayIndex();}
         internal int ScenarioVehicleViews=>vehicleViews?.Count??0;
         internal int ScenarioPooledVehicles=>vehicleViews?.Pooled??0;
         internal int ScenarioCreatedVehicleViews=>vehicleViews?.Created??0;
@@ -116,6 +127,7 @@ namespace HarborCity
         static Vector3 V(Point p)=>new Vector3((float)p.x,(float)p.y,(float)p.z);
         void Start()
         {
+            if(Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-legacy-views")>=0)displaySettings.layered=false;
             Application.targetFrameRate=60;
             var language=Resources.Load<TextAsset>("GameData/Localization/zh-CN");if(language==null)throw new InvalidOperationException("Missing localization resource");localization=new CityLocalization(JsonUtility.FromJson<TranslationData>(language.text));notice=localization.Get("ui.hud.welcome");financePanel=new HarborCityFinancePanel(localization);observation=new HarborCityObservationPanel(localization);observation.Focus=(x,z)=>{if(constructionCamera!=null)constructionCamera.Focus(x,z);else{cameraView.transform.position=new Vector3(x,90,z-65);cameraView.transform.LookAt(new Vector3(x,0,z));}};
             foreach(var c in FindObjectsByType<Camera>(FindObjectsSortMode.None))c.gameObject.SetActive(false);
@@ -209,6 +221,7 @@ namespace HarborCity
             }
             long sampleAt=ScenarioMeasuring?System.Diagnostics.Stopwatch.GetTimestamp():0;
             if(ScenarioMeasuring)ScenarioAdvanceMs=(sampleAt-now)*1000.0/System.Diagnostics.Stopwatch.Frequency;
+            if(!ScenarioMeasuring&&constructionCamera!=null&&(Mouse.current==null||!BlocksWorldInput(Mouse.current.position.ReadValue())))constructionCamera.Step(Time.deltaTime);
             if(outsideViews==null)outsideViews=new HarborCityOutsideViews(roadMaterial,localization);outsideViews.Sync(session);
             if(session!=null&&session.City.development.enabled)
             {
@@ -216,16 +229,18 @@ namespace HarborCity
                 if(changed){RenderBuildings();shownBuildings=session.Entities.BuildingRevision;}
                 if(changed||shownZones!=session.City.zoning.revision||shownNetwork!=world.NetworkGeneration){RenderZones();shownZones=session.City.zoning.revision;shownNetwork=world.NetworkGeneration;}
             }
+            if(displaySettings.layered&&buildingViews!=null)buildingViews.Sync(session?.Entities,cameraView,displaySettings);
+            roadViews?.UpdateVisibility(cameraView,displaySettings.layered);zoningViews?.UpdateVisibility(cameraView,displaySettings,zoneTool!=LandUse.Empty||building||roadEditor.IsSelecting);
             if(ScenarioMeasuring){long end=System.Diagnostics.Stopwatch.GetTimestamp();ScenarioStructureMs=(end-sampleAt)*1000.0/System.Diagnostics.Stopwatch.Frequency;sampleAt=end;}
             using(viewsSample.Auto())
             {
-                if(vehicleViews==null)vehicleViews=new HarborCityVehicleViews(carMaterial);vehicleViews.Sync(world);
+                if(vehicleViews==null)vehicleViews=new HarborCityVehicleViews(carMaterial);vehicleViews.Sync(world,cameraView,displaySettings);
             }
             if(ScenarioMeasuring)ScenarioVehicleMs=(System.Diagnostics.Stopwatch.GetTimestamp()-sampleAt)*1000.0/System.Diagnostics.Stopwatch.Frequency;
             // A scripted timing run observes normal simulation/views but must not
             // accept incidental clicks or camera keys. Manual inspect is separate.
             if(ScenarioMeasuring)return;
-            if(constructionCamera!=null&&(Mouse.current==null||!(BlocksWorldInput(Mouse.current.position.ReadValue()))))constructionCamera.Step(Time.deltaTime);
+
             if(Keyboard.current!=null)
             {
                 var k=Keyboard.current;if(constructionCamera==null){Vector3 move=new Vector3((k.dKey.isPressed?1:0)-(k.aKey.isPressed?1:0),0,(k.wKey.isPressed?1:0)-(k.sKey.isPressed?1:0));cameraView.transform.position+=move*Time.deltaTime*35;}
@@ -287,7 +302,7 @@ namespace HarborCity
         void RenderBuildings()
         {
             if(buildingViews==null)buildingViews=new HarborCityBuildingViews(roadMaterial);
-            buildingViews.Sync(session?.Entities.Buildings);
+            if(displaySettings.layered)buildingViews.Bind(session?.Entities);else buildingViews.Sync(session?.Entities.Buildings);
         }
         void RenderZones()
         {
@@ -368,7 +383,7 @@ namespace HarborCity
             }
             catch(Exception e){File.WriteAllText(Path.Combine(path,"IndustryResult.txt"),"FAIL "+e);Application.Quit(1);yield break;}
             yield return null;
-            var visible=world.Vehicles.FirstOrDefault();Transform rendered=visible==null?null:vehicleViews?.Instance(visible.id);
+            var visible=world.Vehicles.FirstOrDefault();if(visible!=null&&displaySettings.layered){var point=V(world.Position(visible));cameraView.transform.position=point+new Vector3(0,12,-5);cameraView.transform.LookAt(point);for(int wait=0;wait<120&&vehicleViews.Instance(visible.id)==null;wait++)yield return null;vehicleViews.AssertDisplayIndex();}Transform rendered=visible==null?null:vehicleViews?.Instance(visible.id);
             if(rendered==null){File.WriteAllText(Path.Combine(path,"IndustryResult.txt"),"FAIL no actual vehicle view");Application.Quit(1);yield break;}
             Vector3 previous=rendered.position;session.Advance(.1);yield return null;
             if(Vector3.Distance(previous,rendered.position)<.5f||Vector3.Distance(rendered.position,V(world.Position(visible))+Vector3.up*.4f)>.001f){File.WriteAllText(Path.Combine(path,"IndustryResult.txt"),"FAIL vehicle view did not track actual movement");Application.Quit(1);yield break;}

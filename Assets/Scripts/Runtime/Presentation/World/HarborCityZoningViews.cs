@@ -22,7 +22,7 @@ namespace HarborCity
             public bool Equals(Plot b)=>Same(x,b.x)&&Same(z,b.z)&&Same(yaw,b.yaw)&&Same(width,b.width)&&Same(depth,b.depth)&&Same(groundY,b.groundY);
             internal CityBuilding Pose()=>new ResidentialBuilding{x=x,z=z,yaw=yaw,width=width,depth=depth,groundY=groundY};
         }
-        sealed class Chunk {internal List<Plot> plots;internal GameObject instance;internal Mesh mesh;internal int first;}
+        sealed class Chunk {internal List<Plot> plots;internal GameObject instance;internal Mesh mesh;internal int first;internal GameObject summaryObject;internal Mesh summaryMesh;internal bool summarized;}
         // One temporary cursor per displayed chunk, never one list per unchanged
         // chunk. The committed immutable Plot lists are the comparison snapshot.
         sealed class Scan
@@ -52,12 +52,22 @@ namespace HarborCity
         public int PlotCount {get;private set;}
         public int RendererCount=>objects.Count;
         public int RebuiltChunks {get;private set;}
+        readonly HarborCityDisplayCamera displayQuery=new HarborCityDisplayCamera();
+        Matrix4x4 lastDisplayCamera;bool displayDirty=true,displayFull,displayLayered;
+        public int SummaryPlots {get;private set;}
+        public void UpdateVisibility(Camera camera,HarborCityDisplaySettings settings,bool fullDetail)
+        {
+            if(camera==null)return;var matrix=camera.projectionMatrix*camera.worldToCameraMatrix;if(!displayDirty&&matrix==lastDisplayCamera&&displayFull==fullDetail&&displayLayered==settings.layered)return;
+            displayDirty=false;lastDisplayCamera=matrix;displayFull=fullDetail;displayLayered=settings.layered;displayQuery.Update(camera);SummaryPlots=0;
+            foreach(var pair in chunks){var chunk=pair.Value;var renderer=chunk.instance.GetComponent<Renderer>();bool visible=!settings.layered||displayQuery.Visible(renderer.bounds);bool summary=visible&&settings.layered&&!fullDetail&&displayQuery.Pixels(renderer.bounds,1)<(chunk.summarized?settings.zoneSummaryExit:settings.zoneSummaryEnter);chunk.summarized=summary;renderer.enabled=visible&&!summary;chunk.summaryObject.GetComponent<Renderer>().enabled=summary;if(summary)SummaryPlots+=chunk.plots.Count;}
+        }
         public HarborCityZoningViews(Material[] materials)
         {if(materials==null||materials.Length!=4)throw new ArgumentException("Four display materials required");this.materials=(Material[])materials.Clone();}
         public void Sync(IReadOnlyList<ZoneCell> cells,Func<float,float,float> height)
         {
             using(buildSample.Auto())
             {
+                displayDirty=true;
                 bool invalidate=surfaceDirty||!Equals(surface,height);
                 var scans=new Dictionary<(int x,int z,int use),Scan>(chunks.Count);
                 var order=new List<Scan>(chunks.Count);int count=0;Scan active=null;
@@ -105,12 +115,16 @@ namespace HarborCity
                 var mesh=new Mesh{name="Zoning chunk "+key.x+","+key.z+" use "+key.use};chunk.mesh=mesh;
                 if(vertices.Count>ushort.MaxValue)mesh.indexFormat=IndexFormat.UInt32;
                 mesh.SetVertices(vertices);mesh.SetTriangles(indices,0);mesh.RecalculateNormals();
-                var go=new GameObject(mesh.name);chunk.instance=go;go.AddComponent<MeshFilter>().sharedMesh=mesh;go.AddComponent<MeshRenderer>().sharedMaterial=materials[key.use];return chunk;
+                var go=new GameObject(mesh.name);chunk.instance=go;go.AddComponent<MeshFilter>().sharedMesh=mesh;go.AddComponent<MeshRenderer>().sharedMaterial=materials[key.use];
+                // A density symbol, not invented land: one marker per real chunk/use,
+                // area scaled by the actual unoccupied cell count. Full detail is
+                // retained whenever a zoning or construction tool is active.
+                var bounds=mesh.bounds;float radius=Mathf.Min(8,Mathf.Sqrt(plots.Count)*.3f);var centre=bounds.center;centre.y=bounds.max.y+.02f;var summary=new Mesh{name=mesh.name+" density"};summary.vertices=new[]{centre+new Vector3(-radius,0,-radius),centre+new Vector3(-radius,0,radius),centre+new Vector3(radius,0,radius),centre+new Vector3(radius,0,-radius)};summary.triangles=new[]{0,1,2,0,2,3};summary.RecalculateNormals();summary.RecalculateBounds();chunk.summaryMesh=summary;chunk.summaryObject=new GameObject(summary.name);chunk.summaryObject.AddComponent<MeshFilter>().sharedMesh=summary;chunk.summaryObject.AddComponent<MeshRenderer>().sharedMaterial=materials[key.use];chunk.summaryObject.GetComponent<Renderer>().enabled=false;return chunk;
             }
             catch{Release(chunk);throw;}
         }
         static void Release(Chunk chunk)
-        {if(chunk.instance!=null){var renderer=chunk.instance.GetComponent<Renderer>();if(renderer!=null)renderer.enabled=false;DestroyOwned(chunk.instance);}DestroyOwned(chunk.mesh);}
+        {if(chunk.instance!=null){var renderer=chunk.instance.GetComponent<Renderer>();if(renderer!=null)renderer.enabled=false;DestroyOwned(chunk.instance);}DestroyOwned(chunk.mesh);DestroyOwned(chunk.summaryMesh);DestroyOwned(chunk.summaryObject);}
         static void DestroyOwned(UnityEngine.Object value){if(value==null)return;if(Application.isPlaying)UnityEngine.Object.Destroy(value);else UnityEngine.Object.DestroyImmediate(value);}
         public void InvalidateSurface(){surfaceDirty=true;}
         public void Dispose(){foreach(var chunk in chunks.Values)Release(chunk);chunks.Clear();objects.Clear();meshes.Clear();surface=null;surfaceDirty=false;PlotCount=RebuiltChunks=0;}

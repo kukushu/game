@@ -46,6 +46,13 @@ namespace HarborCity
         public int LastChangedDrivables {get;private set;}public int LastRebuiltChunks {get;private set;}
         public double LastSyncMilliseconds {get;private set;}
         public IEnumerable<GameObject> RenderObjects {get{foreach(var c in chunks.Values)yield return c.instance;}}
+        readonly HarborCityDisplayCamera displayQuery=new HarborCityDisplayCamera();Matrix4x4 lastDisplayCamera;bool displayDirty=true;bool displayLayered;
+        public void UpdateVisibility(Camera camera,bool layered)
+        {
+            if(camera==null)return;var matrix=camera.projectionMatrix*camera.worldToCameraMatrix;if(!displayDirty&&matrix==lastDisplayCamera&&displayLayered==layered)return;
+            displayDirty=false;lastDisplayCamera=matrix;displayLayered=layered;displayQuery.Update(camera);
+            foreach(var chunk in chunks.Values){var renderer=chunk.instance.GetComponent<Renderer>();renderer.enabled=!layered||displayQuery.Visible(renderer.bounds);}
+        }
         public HarborCityRoadViews(Material material,int chunkSize=64)
         {if(material==null)throw new ArgumentNullException(nameof(material));if(chunkSize<16||chunkSize>256)throw new ArgumentOutOfRangeException(nameof(chunkSize));this.material=material;ChunkSize=chunkSize;}
         internal IEnumerable<Piece> Pieces(long id)=>ribbons[id].pieces;
@@ -81,6 +88,7 @@ namespace HarborCity
         }
         Chunk Build((int x,int z) key,HashSet<long> members,Buffer buffer)
         {
+            displayDirty=true;
             var c=new Chunk{members=members};
             try
             {

@@ -12,6 +12,8 @@ namespace HarborCity
     {
         const int RetainedInactiveLimit=4096;
         static readonly ProfilerMarker sample=new ProfilerMarker("City.Views.Vehicles.Sync");
+        HarborCityLayeredVehicles layered;
+        public long PoseSamples=>layered?.PoseSamples??0;public int Represented=>layered?.Represented??Count;public int SummaryVehicles=>layered?.SummaryVehicles??0;public int Batched=>layered?.Batched??0;public double IndexMs=>layered?.IndexMs??0;
         readonly Material material;
         readonly Material residential,commercial,industrial;
         readonly Dictionary<int,Transform> cars=new Dictionary<int,Transform>();
@@ -33,6 +35,24 @@ namespace HarborCity
         static void Release(UnityEngine.Object value){if(Application.isPlaying)UnityEngine.Object.Destroy(value);else UnityEngine.Object.DestroyImmediate(value);}
         public Transform Instance(int id)=>cars.TryGetValue(id,out var car)?car:null;
         static Vector3 V(Point p)=>new Vector3((float)p.x,(float)p.y,(float)p.z);
+        public void Sync(World world,Camera camera,HarborCityDisplaySettings settings)
+        {
+            if(!settings.layered||camera==null){if(layered!=null){Clear();}Sync(world);return;}
+            using(sample.Auto()){
+                if(!ReferenceEquals(bound,world)||layered==null){Clear();bound=world;if(world!=null)layered=new HarborCityLayeredVehicles(this,world,new[]{residential,commercial,industrial,material});}
+                layered?.Sync(camera,settings);
+            }
+        }
+        internal bool Prepare(int id,TransportPurpose purpose,HarborCityDisplaySettings settings,out Transform car)
+        {
+            if(cars.TryGetValue(id,out car)){car.GetComponent<Renderer>().sharedMaterial=ForPurpose(purpose);return true;}
+            if(pool.Count>0){car=pool.Pop();Reused++;}
+            else{if(!HarborCityDisplayBudget.Available(settings))return false;long at=System.Diagnostics.Stopwatch.GetTimestamp();var go=GameObject.CreatePrimitive(PrimitiveType.Cube);car=go.transform;car.localScale=new Vector3(.65f,.5f,1);Created++;HarborCityDisplayBudget.Charge(at);}
+            car.name="Vehicle "+id;car.GetComponent<Renderer>().sharedMaterial=ForPurpose(purpose);car.gameObject.SetActive(true);cars.Add(id,car);return true;
+        }
+        internal void RetireExcept(HashSet<int> keep)
+        {removed.Clear();foreach(var pair in cars)if(!keep.Contains(pair.Key))removed.Add(pair.Key);foreach(int id in removed){var car=cars[id];cars.Remove(id);car.gameObject.SetActive(false);Released++;if(pool.Count<RetainedInactiveLimit)pool.Push(car);else Release(car.gameObject);}}
+        internal void AssertDisplayIndex()=>layered?.AssertExact();
         public void Sync(World world)
         {
             using(sample.Auto())
@@ -61,7 +81,7 @@ namespace HarborCity
                 }
             }
         }
-        public void Clear(){foreach(var car in cars.Values)if(car!=null)Release(car.gameObject);foreach(var car in pool)if(car!=null)Release(car.gameObject);cars.Clear();pool.Clear();removed.Clear();bound=null;}
+        public void Clear(){layered?.Dispose();layered=null;foreach(var car in cars.Values)if(car!=null)Release(car.gameObject);foreach(var car in pool)if(car!=null)Release(car.gameObject);cars.Clear();pool.Clear();removed.Clear();bound=null;}
         public void Dispose(){Clear();if(residential!=null)Release(residential);if(commercial!=null)Release(commercial);if(industrial!=null)Release(industrial);}
     }
 }
