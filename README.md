@@ -1,4 +1,4 @@
-> **当前开发入口（2026-10-30）**：正式分支为 `codex/road-core-20261014`，正式运行系统为 RoadCore/CityCore。请先读[工程导航](Docs/README.md)和[长期规范](AGENTS.md)。
+> **当前开发入口（2026-11-03）**：正式分支为 `develop`（原 `codex/road-core-20261014`），正式运行系统为 RoadCore/CityCore。请先读[工程导航](Docs/README.md)和[长期规范](AGENTS.md)。旧远端分支暂留作历史引用；GitHub默认分支设置尚待登录后调整。
 > 下方正文保留旧版完整原型的历史说明；格式 29、旧 UI/功能清单、旧菜单及运行限制不能作为当前实现。当前保存协议以 CityCoreSave 源码为准。
 
 # 湾岸 / Harbor City

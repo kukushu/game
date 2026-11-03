@@ -1,6 +1,6 @@
 # HarborCity 工程导航
 
-本导航核对基线为正式开发 `codex/road-core-20261014` 的 `d248cf3`（2026-10-30）。当前源码和本轮用户要求优先；带日期的报告只证明其注明版本，不等于今天的性能保证或继续开发授权。
+当前正式开发主线是 `develop`（2026-11-03由 `codex/road-core-20261014` 改名），改名基点为 `09fd9f8`。旧远端名称暂留作历史引用；GitHub默认分支设置尚待登录后调整。本导航原始核对基线是 `d248cf3`（2026-10-30）；当前源码和本轮用户要求优先，历史报告不等于今天的性能保证或继续开发授权。
 
 正式开发当前居民执行方式见[统一事件调度](Architecture/MillionScaleExecution/ResidentUnifiedEvents.md)：2026-11-01 按用户授权集成已验证成果，默认事件驱动，保留轮询参考；[分支集成清单](Integrations/ValidatedBranches-20261101.md)说明历史分支与未采纳实验。
 
@@ -16,7 +16,7 @@
 
 分层显示的所有权、空间索引及三种表示见[架构说明](Architecture/LayeredPresentation.md)，Player配对和完整状态检查见[2026-11-02报告](Performance/LayeredPresentation-20261102/Report.md)。
 
-求职归属查询与货运候选失效的独立第一阶段见[2026-11-03报告](Performance/MatchingIndexes-20261103/Report.md)：分项收益及入口重绑修复已验证，现有100k普通Player无可靠整体提速；尚未整合持续求职/补货集合，不据此标记MS-016/MS-019完成或自动集成。
+求职归属查询与货运候选失效的第一阶段见[2026-11-03报告](Performance/MatchingIndexes-20261103/Report.md)：已按用户授权于 `09fd9f8` 快进集成，现归属 `develop`。分项收益及入口重绑修复已验证，现有100k普通Player无可靠整体提速；持续求职/补货集合尚未完成，不据此标记MS-016/MS-019完成。
 
 ## 当前运行结构：从源码确认
 
