@@ -7,7 +7,7 @@ namespace HarborCity
 {
     [Serializable] public sealed class CityCoreBusinessData
     {
-        public int version=9,money,day,nextBuilding;
+        public int version=10,money,day,nextBuilding;
         public int[] memberOrder; // Saved execution order, references existing residents only.
         public CityUtilityState utilities;
         public CityTradeData trade;

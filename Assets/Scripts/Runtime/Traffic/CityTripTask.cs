@@ -6,10 +6,13 @@ namespace HarborCity.RoadCore
     // not copies of cargo, citizen, endpoints or accounting values.
     [Serializable] public sealed class Shipment
     {
-        public CargoKind kind {get;internal set;}
-        public int remaining {get;internal set;}
+        CargoKind category;
+        public CargoKind kind {get=>category;internal set{if(category==value)return;int n=remaining;category=value;if(category==CargoKind.Goods){Products=GoodsAmounts.Of(ProductKind.DailyGoods,n);scalar=0;}else{scalar=n;Products=default;}}}
+        int scalar;
+        public GoodsAmounts Products {get;internal set;}
+        public int remaining {get=>kind==CargoKind.Goods?Products.Total:scalar;internal set{if(value<0)throw new ArgumentOutOfRangeException(nameof(value));if(kind==CargoKind.Goods)Products=GoodsAmounts.Of(ProductKind.DailyGoods,value);else scalar=value;}}
         public double unitPrice {get;internal set;}
-        internal Shipment Copy()=>new Shipment{kind=kind,remaining=remaining,unitPrice=unitPrice};
+        internal Shipment Copy()=>new Shipment{kind=kind,remaining=remaining,unitPrice=unitPrice,Products=Products};
     }
     public enum TripState { InTransit,Completed }
     [Serializable] public sealed class TripTask

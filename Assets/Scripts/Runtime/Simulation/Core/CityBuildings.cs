@@ -8,6 +8,7 @@ namespace HarborCity
     public abstract class CityBuilding
     {
         public int id;
+        internal CityEntities EntityOwner;
         public float x, z, yaw, entranceX, entranceZ;
         public float groundY,entranceY;
         public float width = 2.9f, depth = 2.9f;
@@ -55,22 +56,27 @@ namespace HarborCity
         public float heavyTraffic;
         public List<int> interestedFamilies=new List<int>();
     }
-    public interface IGoodsBuilding { int Stock {get; set;} }
+    public interface IGoodsBuilding { int Stock {get; set;} GoodsAmounts Products {get;set;} }
     [Serializable] public sealed class CommercialBuilding : CityBuilding, IGoodsBuilding
     {
         public override LandUse Use => LandUse.Commercial;
-        public int stock,customers,retailSold,retailSoldToday;
+        GoodsAmounts products;
+        public GoodsAmounts Products {get=>products;set{value.Validate();if(products.Equals(value))return;products=value;EntityOwner?.ProductInventoryChanged(this);}}
+        public int stock {get=>Stock;set=>Stock=value;}
+        public int customers,retailSold,retailSoldToday;
         public int retailDay=-1;
         public double wholesaleCosts;
         public CityShopAccount Account {get;internal set;}=new CityShopAccount();
-        public int Stock {get=>stock; set=>stock=value;}
+        public int Stock {get=>Products.Total;set=>Products=GoodsAmounts.Of(ProductKind.DailyGoods,value);}
     }
     [Serializable] public sealed class IndustrialBuilding : CityBuilding, IGoodsBuilding
     {
         public override LandUse Use => LandUse.Industrial;
         public FactoryState factory=new FactoryState();
-        public int goodsStock;
-        public int Stock {get=>goodsStock; set=>goodsStock=value;}
+        GoodsAmounts products;
+        public GoodsAmounts Products {get=>products;set{value.Validate();if(products.Equals(value))return;products=value;EntityOwner?.ProductInventoryChanged(this);}}
+        public int goodsStock {get=>Stock;set=>Stock=value;}
+        public int Stock {get=>Products.Total;set=>Products=GoodsAmounts.Of(factory.product,value);}
     }
     [Serializable] public sealed class PowerBuilding : CityBuilding {public override LandUse Use=>LandUse.Power;}
     [Serializable] public sealed class WaterBuilding : CityBuilding {public override LandUse Use=>LandUse.Water;}

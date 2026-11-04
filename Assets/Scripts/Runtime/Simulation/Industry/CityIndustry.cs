@@ -9,6 +9,7 @@ namespace HarborCity
         public const int RawCapacity=24, GoodsCapacity=24;
         public const float LabourPerItem=60;
         public const int StartingCash=1200, RawPrice=8, SalePrice=45, ProcessingCost=2;
+        public ProductKind product=ProductKind.DailyGoods;
         public double capital, salesRevenue, rawCosts, wageCosts, productionCosts, unpaidWages,taxCosts;
         double balance;
         internal CityEntities FundingOwner;internal int FundingBuilding=-1;

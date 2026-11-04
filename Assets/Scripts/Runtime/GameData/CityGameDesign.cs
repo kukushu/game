@@ -14,9 +14,10 @@ namespace HarborCity
     [Serializable]
     public sealed class GameDesignData
     {
-        public int schemaVersion=4,contentVersion=4;
+        public int schemaVersion=5,contentVersion=5;
         public string profile="core-economy";
         public EconomyDefinition economy=new EconomyDefinition();
+        public ProductDefinition[] products=ProductCatalog.Defaults();
         public EmploymentDefinition employment=new EmploymentDefinition();
         public RetailDefinition retail=new RetailDefinition();
         public ProductionDefinition production=new ProductionDefinition();
@@ -54,6 +55,7 @@ namespace HarborCity
         readonly int contentVersion;
         readonly string profile;
         public EconomyRules Economy {get;}
+        public ProductCatalog Products {get;}
         public EmploymentRules Employment {get;}
         public RetailRules Retail {get;}
         public ProductionRules Production {get;}
@@ -61,11 +63,11 @@ namespace HarborCity
         public WasteRules Waste {get;}
         public CityGameDesign(GameDesignData definition)
         {
-            if(definition==null||definition.schemaVersion!=4||definition.contentVersion<1||string.IsNullOrWhiteSpace(definition.profile))throw new ArgumentException("Unsupported design profile");
-            contentVersion=definition.contentVersion;profile=definition.profile;Economy=new EconomyRules(definition.economy);
+            if(definition==null||definition.schemaVersion!=5||definition.contentVersion<1||string.IsNullOrWhiteSpace(definition.profile))throw new ArgumentException("Unsupported design profile");
+            Products=new ProductCatalog(definition.products);contentVersion=definition.contentVersion;profile=definition.profile;Economy=new EconomyRules(definition.economy);
             Employment=new EmploymentRules(definition.employment);Retail=new RetailRules(definition.retail);Production=new ProductionRules(definition.production);Finance=new FinanceRules(definition.finance);Waste=new WasteRules(definition.waste);
         }
-        public GameDesignData Snapshot()=>new GameDesignData{schemaVersion=4,contentVersion=contentVersion,profile=profile,economy=Economy.Snapshot(),employment=Employment.Snapshot(),retail=Retail.Snapshot(),production=Production.Snapshot(),finance=Finance.Snapshot(),waste=Waste.Snapshot()};
+        public GameDesignData Snapshot()=>new GameDesignData{schemaVersion=5,products=Products.Snapshot(),contentVersion=contentVersion,profile=profile,economy=Economy.Snapshot(),employment=Employment.Snapshot(),retail=Retail.Snapshot(),production=Production.Snapshot(),finance=Finance.Snapshot(),waste=Waste.Snapshot()};
     }
 
     public sealed class CityRuleException:InvalidOperationException

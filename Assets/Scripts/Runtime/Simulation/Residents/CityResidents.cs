@@ -50,7 +50,8 @@ namespace HarborCity
         public bool atSchool,schoolReturning;
         public float studyMinutes,schoolMinutesToday,highSchoolStudyMinutes,universityStudyMinutes;
         public double wageCredit;
-        public int carriedGoods;
+        [CitySavedFact] public GoodsAmounts carriedProducts {get;set;}
+        public int carriedGoods {get=>carriedProducts.Total;set=>carriedProducts=GoodsAmounts.Of(ProductKind.DailyGoods,value);}
         public int wagesPaid;
         public float earnedWages, workedMinutes, lastDelay, requestedAt=-1;
         public int accessNode=-1;

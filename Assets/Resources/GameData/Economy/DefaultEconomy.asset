@@ -13,9 +13,28 @@ MonoBehaviour:
   m_Name: DefaultEconomy
   m_EditorClassIdentifier:
   definition:
-    schemaVersion: 4
-    contentVersion: 4
+    schemaVersion: 5
+    contentVersion: 5
     profile: core-economy
+    products:
+    - kind: 0
+      retailPrice: 20
+      wholesalePrice: 15
+      rawPrice: 8
+      processingCost: 2
+      labourMinutes: 15
+      consumptionDays: 1
+      refillBelowDays: 1
+      targetDays: 3
+    - kind: 1
+      retailPrice: 60
+      wholesalePrice: 45
+      rawPrice: 8
+      processingCost: 2
+      labourMinutes: 60
+      consumptionDays: 7
+      refillBelowDays: 2
+      targetDays: 14
     economy:
       rawUnitPrice: 8
       goodsWholesalePrice: 45

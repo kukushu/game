@@ -288,8 +288,10 @@ namespace HarborCity
             RebuildJobs();city.entities=this;
         }
         static bool Available(CityBuilding b)=>!b.abandoned&&!b.burned;
-        void IndexType(CityBuilding b){BindFunding(b);if(b is IndustrialBuilding f)factories.Add(f);if(b is CommercialBuilding s){shops.Add(s);ShopRevision++;}}
-        void UnindexType(CityBuilding b){UnbindFunding(b);if(b is IndustrialBuilding f)factories.Remove(f);if(b is CommercialBuilding s){shops.Remove(s);ShopRevision++;}}
+        internal event Action<CityBuilding> ProductsChanged;
+        internal void ProductInventoryChanged(CityBuilding b)=>ProductsChanged?.Invoke(b);
+        void IndexType(CityBuilding b){b.EntityOwner=this;BindFunding(b);if(b is IndustrialBuilding f)factories.Add(f);if(b is CommercialBuilding s){shops.Add(s);ShopRevision++;}}
+        void UnindexType(CityBuilding b){b.EntityOwner=null;UnbindFunding(b);if(b is IndustrialBuilding f)factories.Remove(f);if(b is CommercialBuilding s){shops.Remove(s);ShopRevision++;}}
         void ReplaceType(CityBuilding old,CityBuilding next)
         {
             funding.TryGetValue(old.id,out var previous);bool pending=dirtyFunding.Contains(old.id);

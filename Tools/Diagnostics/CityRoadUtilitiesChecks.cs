@@ -99,7 +99,7 @@ static class CityRoadUtilitiesChecks
         CheckSupplyTotals(s.City);
         Check(s.City.utilities.electricity.edges.Count==0&&s.City.utilities.water.edges.Count==0,"Automatic roads wrote duplicate manual networks");
         s.Simulation.Utilities.SetBudget(CityServiceKind.Water,50);Check(s.City.water==80&&s.City.SewageCapacity==80,"Road utilities bypassed service capacity/budget");CheckSupplyTotals(s.City);s.Simulation.Utilities.SetBudget(CityServiceKind.Water,100);
-        var bytes=CityCoreSave.Write(s);Check(BitConverter.ToInt32(bytes,4)==18,"Current save requires explicit city format 18");var restored=CityCoreSave.Read(bytes);restored.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);
+        var bytes=CityCoreSave.Write(s);Check(BitConverter.ToInt32(bytes,4)==19,"Current save requires explicit city format 19");var restored=CityCoreSave.Read(bytes);restored.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);
         Check(restored.City.utilities.roadConduits&&Supplies(s)==Supplies(restored)&&bytes.SequenceEqual(CityCoreSave.Write(restored)),"Road conduit rule or supply topology lost on cold restore");
         CheckSupplyTotals(restored.City);
         var repaired=CityCoreSave.Read(bytes);repaired.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);

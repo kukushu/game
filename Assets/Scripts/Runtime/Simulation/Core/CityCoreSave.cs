@@ -13,7 +13,7 @@ namespace HarborCity
     // Save is a cold path; reflection preserves every original business scalar's exact bits.
     public static class CityCoreSave
     {
-        const int Magic=0x48434932,Version=18,MaximumCount=1000000;
+        const int Magic=0x48434932,Version=19,MaximumCount=1000000;
         public static string DefaultFileName=>"harbor-city-core-v"+Version+".hcity";
         // Only explicitly opted-in properties are business facts; derived properties stay out.
         // Field/property representation is not part of the wire schema: name/type/order are.
@@ -77,11 +77,11 @@ namespace HarborCity
         }
         public static CityCoreIndustrySession Read(byte[] bytes)
         {
-            if(bytes==null||bytes.Length<40||BitConverter.ToInt32(bytes,0)!=Magic||BitConverter.ToInt32(bytes,4)!=Version)throw new InvalidDataException("Unsupported city-core save. Format 18 with member execution order is required; start a new city.");
+            if(bytes==null||bytes.Length<40||BitConverter.ToInt32(bytes,0)!=Magic||BitConverter.ToInt32(bytes,4)!=Version)throw new InvalidDataException("Unsupported city-core save. Format 19 with member execution order is required; start a new city.");
             byte[] digest;using(var sha=SHA256.Create())digest=sha.ComputeHash(bytes,0,bytes.Length-32);for(int i=0;i<32;i++)if(digest[i]!=bytes[bytes.Length-32+i])throw new InvalidDataException("Corrupted city-core save");
             using(var stream=new MemoryStream(bytes,0,bytes.Length-32,false))using(var reader=new BinaryReader(stream))
             {
-                reader.ReadInt32();reader.ReadInt32();var data=(CityCoreBusinessData)Get(reader,typeof(CityCoreBusinessData));if(data.version!=9)throw new InvalidDataException("Unsupported business version");
+                reader.ReadInt32();reader.ReadInt32();var data=(CityCoreBusinessData)Get(reader,typeof(CityCoreBusinessData));if(data.version!=10)throw new InvalidDataException("Unsupported business version");
                 if(data.memberOrder==null)throw new InvalidDataException("Missing saved member execution order");
                 if(data.waste==null||data.waste.totals==null)throw new InvalidDataException("Missing waste facts");
                 if(data.treasury==null||data.loans==null)throw new InvalidDataException("Missing fiscal facts");
