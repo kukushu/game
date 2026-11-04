@@ -27,7 +27,7 @@ namespace HarborCity
                 float shift=design.Employment.ShiftStart(worker.id,city.development.enabled&&city.GetBuilding(worker.location) is CommercialBuilding),worked=Math.Max(0,Math.Min(minute+minutes,shift+design.Employment.ShiftMinutes)-Math.Max(minute,shift));double credit=worker.wageCredit;worker.workedMinutes+=worked;float paid;
                 if(city.development.enabled)paid=payroll.PayAttendance(worker,worked);
                 else{city.PayAttendance(worker,worked);int wage=city.ResidentWage(worker);paid=city.Factory(worker.location)==null?worked:wage==0?0:(float)((worker.wageCredit-credit)*480/wage);}
-                city.ProcessFactoryWork(worker,Math.Min(worked,paid),worked,city.development.enabled?design.Production:null);
+                city.ProcessFactoryWork(worker,Math.Min(worked,paid),worked,city.development.enabled?design.Production:null,city.development.enabled&&city.Factory(worker.location)!=null?design.Products[city.Factory(worker.location).product]:null);
         }
     }
 }

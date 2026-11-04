@@ -15,6 +15,8 @@ namespace HarborCity
         internal int Count {get;private set;}
         internal void Begin(){foreach(var key in occupied)buckets[key].Clear();occupied.Clear();Count=0;}
         internal void Add(CommercialBuilding shop){var key=((int)Math.Floor(shop.x/BucketSize),(int)Math.Floor(shop.z/BucketSize));if(!buckets.TryGetValue(key,out var list))buckets.Add(key,list=new List<CommercialBuilding>());if(list.Count==0)occupied.Add(key);list.Add(shop);Count++;}
+        internal void Remove(CommercialBuilding shop)
+        {var key=((int)Math.Floor(shop.x/BucketSize),(int)Math.Floor(shop.z/BucketSize));if(!buckets.TryGetValue(key,out var list)||!list.Remove(shop))return;Count--;if(list.Count==0)occupied.Remove(key);}
         internal List<Candidate> Collect(float x,float z,float radius)
         {
             candidates.Clear();int ax=(int)Math.Floor((x-radius)/BucketSize),bx=(int)Math.Floor((x+radius)/BucketSize),az=(int)Math.Floor((z-radius)/BucketSize),bz=(int)Math.Floor((z+radius)/BucketSize);double limit=(double)radius*radius;

@@ -36,6 +36,7 @@ namespace HarborCity
         public CityCoreResidents Residents {get;internal set;}
         internal CityCoreTrade Trade;
         internal EconomyRules Economy;
+        internal ProductCatalog Products;
         public CityCoreIndustryBusiness(CityModel city){this.city=city;}
         public bool Exists(int id)=>city.GetBuilding(id)!=null&&!city.GetBuilding(id).abandoned&&!city.GetBuilding(id).burned;
         // A read-only local-goods gate. Depart still owns and rechecks payment;
@@ -47,7 +48,7 @@ namespace HarborCity
             if(v.purpose!=TransportPurpose.Freight)return Residents!=null&&Residents.Depart(v);
             if(v.Shipment==null||v.Shipment.kind!=CargoKind.Goods&&v.Shipment.kind!=CargoKind.RawMaterial)return false;
             if(v.Shipment?.kind==CargoKind.RawMaterial||city.entities.Connection(v.destination)!=null)return Trade!=null&&Trade.Depart(v);
-            if(!(city.GetBuilding(v.origin) is IndustrialBuilding factory)||!(city.GetBuilding(v.destination) is CommercialBuilding shop)||!Exists(v.origin)||!Exists(v.destination)||factory.Stock<v.Cargo||shop.Stock+v.Cargo>32||v.Price!=(Economy?.GoodsWholesalePrice??FactoryState.SalePrice))return false;
+            if(!(city.GetBuilding(v.origin) is IndustrialBuilding factory)||!(city.GetBuilding(v.destination) is CommercialBuilding shop)||!Exists(v.origin)||!Exists(v.destination)||factory.Stock<v.Cargo||shop.Stock+v.Cargo>32||v.Price!=(city.development.enabled?Products[factory.factory.product].WholesalePrice:(Economy?.GoodsWholesalePrice??FactoryState.SalePrice))||!v.Shipment.Products.Equals(GoodsAmounts.Of(factory.factory.product,v.Cargo)))return false;
             if(city.development.enabled){double payment=v.Cargo*v.Price;if(!CanFundLocalFreight(shop,v.Cargo,v.Price))return false;shop.Account.Cash-=payment;shop.Account.WholesaleFunded+=payment;}
             factory.Stock-=v.Cargo;factory.factory.shipped+=v.Cargo;return true;
         }
@@ -61,7 +62,7 @@ namespace HarborCity
             if(source==null||target==null||target.Stock+v.cargo>32)return false;
             // Called after physics has committed every vehicle; successful receipt is
             // acknowledged and retired in the same city boundary, never saved mid-step.
-            target.Stock+=v.cargo;target.wholesaleCosts+=v.cargo*v.price;
+            target.Products+=v.products;target.wholesaleCosts+=v.cargo*v.price;
             city.RecordFactorySale(v.origin,v.cargo,v.taskId,v.destination,notify:false,unitPrice:v.price);return true;
         }
     }
@@ -82,7 +83,7 @@ namespace HarborCity
             Residents=new CityCoreResidents(city,Transport,Entities,commuteEnabled,calendarOffset);Business.Residents=Residents;
             Simulation=new CitySimulation(city,Transport,timeline,Entities,Residents,Business,calendarOffset,nextDispatchTick,rules,payrollDay,treasury,waste);
             Entities.Simulation=Simulation;
-            Business.Economy=Simulation.Design.Economy;Business.Trade=Simulation.Trade;Construction=new CityCoreConstruction(city,Entities,Transport,Simulation.Finance,Simulation.Design.Waste,Simulation.Utilities);
+            Business.Economy=Simulation.Design.Economy;Business.Products=Simulation.Design.Products;Business.Trade=Simulation.Trade;Construction=new CityCoreConstruction(city,Entities,Transport,Simulation.Finance,Simulation.Design.Waste,Simulation.Utilities);
         }
         public int Advance(double seconds)=>Simulation.Advance(seconds);
         public static CityCoreIndustrySession CreateEmpty(GameDesignData design=null,NetworkData initialRoads=null)

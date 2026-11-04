@@ -11,6 +11,9 @@ namespace HarborCity
         readonly CityCoreResidents residents;readonly CityCoreIndustryBusiness business;readonly CityCoreRoadBindings bindings;
         readonly CityProductionSystem production;
         public CityLogisticsSystem Logistics {get;}
+        internal bool DevelopmentEnabled=>city.development.enabled;
+        internal float MapHalfSize=>city.map.buildHalfSize;
+        internal CityShipmentIndex Shipments {get;}
         public CityCoreGrowth Growth {get;}
         public CityCoreUtilities Utilities {get;}
         public CityCorePopulation Population {get;}
@@ -32,7 +35,7 @@ namespace HarborCity
         static readonly ProfilerMarker stepSample=new ProfilerMarker("City.Simulation.Step"),growthSample=new ProfilerMarker("City.Simulation.GrowthBoundary"),utilitySample=new ProfilerMarker("City.Simulation.UtilitiesBoundary"),populationSample=new ProfilerMarker("City.Simulation.PopulationBoundary"),requestsSample=new ProfilerMarker("City.Simulation.ResidentRequests"),productionSample=new ProfilerMarker("City.Simulation.Production"),consumptionSample=new ProfilerMarker("City.Simulation.Consumption"),payrollSample=new ProfilerMarker("City.Simulation.PayrollBoundary"),financeSample=new ProfilerMarker("City.Simulation.FinanceBoundary"),financeAccrualSample=new ProfilerMarker("City.Simulation.FinanceAccrual"),logisticsSample=new ProfilerMarker("City.Simulation.Logistics"),tradeSample=new ProfilerMarker("City.Simulation.ExternalTrade"),settleSample=new ProfilerMarker("City.Simulation.Settlement");
 #endif
         internal CitySimulation(CityModel city,World transport,SimulationClock clock,CityEntities entities,CityCoreResidents residents,CityCoreIndustryBusiness business,double offset,long nextDispatch,CityGameDesign design=null,int payrollDay=-1,TreasuryData treasury=null,WasteServiceData waste=null)
-        {if(double.IsNaN(offset)||double.IsInfinity(offset)||offset<0||city.society.settings.secondsPerDay<1)throw new ArgumentException("Invalid calendar");Design=design??new CityGameDesign(new GameDesignData());this.city=city;this.transport=transport;this.clock=clock;this.residents=residents;this.business=business;CalendarOffset=offset;bindings=new CityCoreRoadBindings(city,transport);Payroll=new CityCorePayroll(city,entities,Design.Employment,payrollDay);production=new CityProductionSystem(city,entities,Payroll,Design);Logistics=new CityLogisticsSystem(entities,transport,this,nextDispatch,business);Growth=new CityCoreGrowth(city,entities,transport,Design.Production,Design.Retail);Utilities=new CityCoreUtilities(city,entities,transport);Finance=new CityCoreFinance(city,entities,transport,Design.Finance,treasury);Waste=new CityCoreWaste(city,entities,transport,Design.Waste,waste);Utilities.Finance=Finance;Population=new CityCorePopulation(city,entities,transport,Utilities);Consumption=new CityCoreConsumption(city,entities,transport,this);residents.Consumption=Consumption;residents.RequestCommute=RequestCommute;SyncCalendar(clock.Seconds);Trade=new CityCoreTrade(city,entities,transport,this);Utilities.Refresh();}
+        {if(double.IsNaN(offset)||double.IsInfinity(offset)||offset<0||city.society.settings.secondsPerDay<1)throw new ArgumentException("Invalid calendar");Design=design??new CityGameDesign(new GameDesignData());this.city=city;this.transport=transport;Shipments=new CityShipmentIndex(transport);this.clock=clock;this.residents=residents;this.business=business;CalendarOffset=offset;bindings=new CityCoreRoadBindings(city,transport);Payroll=new CityCorePayroll(city,entities,Design.Employment,payrollDay);production=new CityProductionSystem(city,entities,Payroll,Design);Growth=new CityCoreGrowth(city,entities,transport,Design.Production,Design.Retail);Utilities=new CityCoreUtilities(city,entities,transport);Finance=new CityCoreFinance(city,entities,transport,Design.Finance,treasury);Waste=new CityCoreWaste(city,entities,transport,Design.Waste,waste);Utilities.Finance=Finance;Population=new CityCorePopulation(city,entities,transport,Utilities);Consumption=new CityCoreConsumption(city,entities,transport,this);Logistics=new CityLogisticsSystem(entities,transport,this,nextDispatch,business);residents.Consumption=Consumption;residents.RequestCommute=RequestCommute;SyncCalendar(clock.Seconds);Trade=new CityCoreTrade(city,entities,transport,this);Utilities.Refresh();}
         void SyncCalendar(double seconds)
         {double absolute=CalendarOffset+seconds,daySeconds=city.society.settings.secondsPerDay;city.day=1+(int)Math.Floor(absolute/daySeconds);city.society.dayElapsed=(float)(absolute%daySeconds);}
         // Queue elapsed player time even when this rendered frame is not yet
@@ -155,7 +158,7 @@ namespace HarborCity
             }
         }
         public Vehicle RequestFreight(int origin,int destination,int cargo=1,double? price=null)
-        =>Dispatch(origin,destination,cargo,price??Design.Economy.GoodsWholesalePrice,TransportPurpose.Freight,0);
+        =>Dispatch(origin,destination,cargo,price??(city.entities.Building(origin) is IndustrialBuilding f?Design.Products[f.factory.product].WholesalePrice:Design.Economy.GoodsWholesalePrice),TransportPurpose.Freight,0);
         public Vehicle RequestMaterial(int origin,int destination,int amount,CargoKind kind,double price)
         =>Dispatch(origin,destination,amount,price,TransportPurpose.Freight,0,kind);
         public Vehicle RequestCommute(int citizen,int origin,int destination,bool returning=false)
@@ -167,7 +170,7 @@ namespace HarborCity
 #if CITY_CORE_ATTRIBUTION
             using var observation=HarborCity.RoadCore.CityCoreProfile.Measure(HarborCity.RoadCore.CityCoreProfile.Part.Dispatch);
 #endif
-if(Fault!=null)throw new InvalidOperationException("Cannot dispatch into a faulted simulation",Fault);var admission=transport.PrepareTransport(origin,destination,cargo,price,purpose,citizen);if(admission==null)return null;transport.CheckAdmission(admission);if(admission.vehicle.Task.Shipment!=null)admission.vehicle.Task.Shipment.kind=kind;if(!business.Depart(admission.vehicle.Task))return null;return transport.CommitAdmission(admission);}
+if(Fault!=null)throw new InvalidOperationException("Cannot dispatch into a faulted simulation",Fault);var admission=transport.PrepareTransport(origin,destination,cargo,price,purpose,citizen);if(admission==null)return null;transport.CheckAdmission(admission);if(admission.vehicle.Task.Shipment!=null)admission.vehicle.Task.Shipment.kind=kind;if(kind==CargoKind.Goods&&admission.vehicle.Task.Shipment!=null){if(purpose==TransportPurpose.Home)admission.vehicle.Task.Shipment.Products=city.entities.Member(citizen).Person.carriedProducts;else if(city.entities.Building(origin) is IndustrialBuilding source)admission.vehicle.Task.Shipment.Products=GoodsAmounts.Of(source.factory.product,cargo);}if(!business.Depart(admission.vehicle.Task))return null;return transport.CommitAdmission(admission);}
         internal void AssertSaveBoundary(){if(IsStepping||IsApplyingBoundary||Fault!=null)throw new InvalidOperationException("Cannot save a partial/faulted simulation step");}
     }
 }

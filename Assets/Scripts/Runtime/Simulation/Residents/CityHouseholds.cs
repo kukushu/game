@@ -8,6 +8,15 @@ namespace HarborCity
     [Serializable] public sealed class Household
     {
         public int id, unit=-1;
+        GoodsAmounts pantry;
+        [CitySavedFact] public GoodsAmounts goods {get=>pantry;internal set{value.Validate();if(pantry.Equals(value))return;pantry=value;EntityOwner?.ShoppingFactsChanged(this);}}
+        public GoodsAmounts broughtGoods,consumedProducts,unmetProducts;
+        public bool goodsInitialized;
+        public long consumptionEpoch,foodUsedAtEpoch,dailyUsedAtEpoch;
+        public double foodFraction,dailyFraction;
+        public int consumptionPeople,shoppingMember;
+        public int goodsSupplier=-1;
+        [NonSerialized] public string goodsProblem="";
         int balance=600,shoppedDay=-1;
         [CitySavedFact] public int savings {get=>balance;set{if(balance==value)return;balance=value;EntityOwner?.ShoppingFactsChanged(this);}}
         [CitySavedFact] public int shoppingDay {get=>shoppedDay;set{if(shoppedDay==value)return;shoppedDay=value;EntityOwner?.ShoppingFactsChanged(this);}}

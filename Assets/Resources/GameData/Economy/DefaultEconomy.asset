@@ -57,7 +57,7 @@ MonoBehaviour:
       staggerGroups: 3
     retail:
       unitPrice: 60
-      itemsPerVisit: 3
+      itemsPerVisit: 32
       shoppingStartMinute: 1020
       initialShopCash: 2000
       shoppingIntervalSeconds: 1

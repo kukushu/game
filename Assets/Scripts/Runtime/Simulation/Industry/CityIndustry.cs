@@ -62,7 +62,7 @@ namespace HarborCity
             if(notify)Trace("factory.sale","商品实际交付；买方简化外部经营资金支付货款",f,building:id,trip:trip);
         }
         // Called only with the minutes actually credited by the resident attendance system.
-        public void ProcessFactoryWork(CityResident person,float minutes,float actualAttendance=-1,ProductionRules rules=null)
+        public void ProcessFactoryWork(CityResident person,float minutes,float actualAttendance=-1,ProductionRules rules=null,ProductRules productRules=null)
         {
             int id=Workplace(person); var f=Factory(id);
             float attendance=actualAttendance<0?minutes:actualAttendance;
@@ -78,14 +78,14 @@ namespace HarborCity
                     if(f.raw==0) {rawLost=minutes; break;}
                     if(!development.enabled||rules!=null)
                     {
-                        double cost=rules?.UnitProcessingCost??FactoryState.ProcessingCost;if(f.cash<cost) {fundsLost+=minutes; break;}
+                        double cost=productRules?.ProcessingCost??rules?.UnitProcessingCost??FactoryState.ProcessingCost;if(f.cash<cost) {fundsLost+=minutes; break;}
                         f.cash-=cost; f.productionCosts+=cost;
                     }
                     f.raw--; f.consumed++; f.processing=true; f.progress=0;
                     Trace("factory.input","领用一份原料开始加工",f,building:id,citizen:person.id,job:person.jobId,household:person.householdId);
                 }
                 float rate=FactoryProcessingRate(id);
-                float required=rules?.LabourMinutesPerItem??FactoryState.LabourPerItem;float work=Math.Min(minutes,(required-f.progress)/rate);
+                float required=productRules?.LabourMinutes??rules?.LabourMinutesPerItem??FactoryState.LabourPerItem;float work=Math.Min(minutes,(required-f.progress)/rate);
                 f.progress+=work*rate; f.productiveMinutes+=work; f.stepProductive+=work; minutes-=work;
                 if(f.progress>=required-.00001f)
                 {

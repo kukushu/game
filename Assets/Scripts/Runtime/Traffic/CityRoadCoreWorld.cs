@@ -89,6 +89,8 @@ namespace HarborCity.RoadCore
         readonly Dictionary<int,Depot> depotsById=new Dictionary<int,Depot>();
         readonly Dictionary<int,TripTask> tasksById=new Dictionary<int,TripTask>();
         readonly Dictionary<int,Vehicle> vehiclesByTask=new Dictionary<int,Vehicle>();
+        internal event Action<TripTask> TaskCommitted;
+        internal event Action<int> TaskRetired;
         public IReadOnlyList<TripTask> Tasks=>taskView;
         readonly IReadOnlyList<TripTask> taskView;
         public TripTask FindTask(int id)=>tasksById.TryGetValue(id,out var t)?t:null;
@@ -501,7 +503,7 @@ namespace HarborCity.RoadCore
         }
         internal Vehicle CommitAdmission(TransportAdmission admission)
         {
-            CheckAdmission(admission);var v=admission.vehicle;v.indexOwner=this;data.nextVehicle++;data.nextTask++;data.tasks.Add(v.Task);tasksById.Add(v.Task.id,v.Task);vehiclesByTask.Add(v.Task.id,v);data.vehicles.Add(v);motionOrder.Add(v);vehiclesById.Add(v.id,v);ActiveCount++;EditEpoch++;IndexDeparture(v);MarkDisplay(v);return v;
+            CheckAdmission(admission);var v=admission.vehicle;v.indexOwner=this;data.nextVehicle++;data.nextTask++;data.tasks.Add(v.Task);tasksById.Add(v.Task.id,v.Task);vehiclesByTask.Add(v.Task.id,v);data.vehicles.Add(v);motionOrder.Add(v);vehiclesById.Add(v.id,v);ActiveCount++;EditEpoch++;IndexDeparture(v);MarkDisplay(v);TaskCommitted?.Invoke(v.Task);return v;
         }
         void IndexDeparture(Vehicle v)
         {
@@ -795,7 +797,7 @@ namespace HarborCity.RoadCore
         internal void AcknowledgeArrival(int id)
         {var v=FindVehicle(id);if(v==null||v.status!=VehicleStatus.Active||v.cursor!=v.Plan.segments.Count-1||v.distance<EndDistance(v,Network.Get(v.Current))-1e-9)throw new InvalidOperationException("Cannot acknowledge non-arrival");data.delivered+=v.Task.Cargo;if(v.Task.Shipment!=null)v.Task.Shipment.remaining=0;v.Task.state=TripState.Completed;v.status=VehicleStatus.Delivered;MarkDisplay(v);ActiveCount--;RemoveIndexedOccupant(v);indexDirty=true;}
         internal void RetireCompleted()
-        {int retained=0;for(int i=0;i<data.vehicles.Count;i++)if(data.vehicles[i].status!=VehicleStatus.Delivered)data.vehicles[retained++]=data.vehicles[i];else {var actor=data.vehicles[i];MarkDisplay(actor);actor.indexOwner=null;vehiclesById.Remove(actor.id);tasksById.Remove(actor.Task.id);vehiclesByTask.Remove(actor.Task.id);}if(retained<data.vehicles.Count){data.vehicles.RemoveRange(retained,data.vehicles.Count-retained);PruneMotionOrder();}data.tasks.RemoveAll(CompletedTask);arrivals.Clear();}
+        {int retained=0;for(int i=0;i<data.vehicles.Count;i++)if(data.vehicles[i].status!=VehicleStatus.Delivered)data.vehicles[retained++]=data.vehicles[i];else {var actor=data.vehicles[i];MarkDisplay(actor);actor.indexOwner=null;TaskRetired?.Invoke(actor.Task.id);vehiclesById.Remove(actor.id);tasksById.Remove(actor.Task.id);vehiclesByTask.Remove(actor.Task.id);}if(retained<data.vehicles.Count){data.vehicles.RemoveRange(retained,data.vehicles.Count-retained);PruneMotionOrder();}data.tasks.RemoveAll(CompletedTask);arrivals.Clear();}
         public int SplitRoad(int roadId,int sample)
         {
             return SplitCandidate(CopyNetwork(),roadId,sample);

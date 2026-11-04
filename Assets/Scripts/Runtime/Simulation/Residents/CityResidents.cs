@@ -9,7 +9,9 @@ namespace HarborCity
     internal enum CityResidentStateChange { Ability, Sickness, Death, Location, Attendance, Home, Residence, Membership, HousingAvailability, TripDay, CommuteObservation }
     [Serializable] public sealed class CityResident
     {
-        public int id, age;
+        public int id;
+        int years;
+        [CitySavedFact] public int age {get=>years;set{if(years==value)return;years=value;EntityOwner?.StateChanged(this,CityResidentStateChange.Ability);}}
         public double ageProgress;
         public int lastAgeDay;
         public string name;
@@ -50,7 +52,8 @@ namespace HarborCity
         public bool atSchool,schoolReturning;
         public float studyMinutes,schoolMinutesToday,highSchoolStudyMinutes,universityStudyMinutes;
         public double wageCredit;
-        [CitySavedFact] public GoodsAmounts carriedProducts {get;set;}
+        GoodsAmounts carried;
+        [CitySavedFact] public GoodsAmounts carriedProducts {get=>carried;set{value.Validate();if(carried.Equals(value))return;carried=value;EntityOwner?.RequestGuardChanged(this,CityResidentGuard.Visit);}}
         public int carriedGoods {get=>carriedProducts.Total;set=>carriedProducts=GoodsAmounts.Of(ProductKind.DailyGoods,value);}
         public int wagesPaid;
         public float earnedWages, workedMinutes, lastDelay, requestedAt=-1;

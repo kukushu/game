@@ -3,7 +3,7 @@ namespace HarborCity
 {
     [Serializable] public sealed class RetailDefinition
     {
-        public int unitPrice=60,itemsPerVisit=3,shoppingStartMinute=1020;
+        public int unitPrice=60,itemsPerVisit=32,shoppingStartMinute=1020;
         public double initialShopCash=2000,shoppingIntervalSeconds=1,visitSeconds=2;
         public float initialSearchRadius=64;
     }

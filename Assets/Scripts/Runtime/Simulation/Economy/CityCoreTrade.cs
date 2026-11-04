@@ -19,7 +19,7 @@ namespace HarborCity
     {
         public List<OutsideConnectionData> connections=new List<OutsideConnectionData>();
         public long nextDispatchTick;
-        public int factoryCursor,rawDispatched,rawDelivered,goodsExported;
+        public int factoryCursor,rawDispatched,rawDelivered,goodsExported;public GoodsAmounts exportedProducts;
         public double rawReceipts,exportFunded,exportPayments,openingCash,cash;
     }
     // Domain facts are externally read-only. Public writable fields exist only
@@ -33,6 +33,7 @@ namespace HarborCity
         public int rawDispatched {get;internal set;}
         public int rawDelivered {get;internal set;}
         public int goodsExported {get;internal set;}
+        public GoodsAmounts ExportedProducts {get;internal set;}
         public double rawReceipts {get;internal set;}
         public double exportFunded {get;internal set;}
         public double exportPayments {get;internal set;}
@@ -44,12 +45,12 @@ namespace HarborCity
         {
             if(data.connections==null)throw new ArgumentException("Missing outside endpoints");
             foreach(var c in data.connections){if(c==null)throw new ArgumentException("Invalid outside endpoint");ports.Add(new CityOutsideConnection{id=c.id,x=c.x,y=c.y,z=c.z,active=c.active,flow=c.flow});}
-            nextDispatchTick=data.nextDispatchTick;factoryCursor=data.factoryCursor;rawDispatched=data.rawDispatched;rawDelivered=data.rawDelivered;goodsExported=data.goodsExported;rawReceipts=data.rawReceipts;exportFunded=data.exportFunded;exportPayments=data.exportPayments;cash=data.cash;
+            nextDispatchTick=data.nextDispatchTick;factoryCursor=data.factoryCursor;rawDispatched=data.rawDispatched;rawDelivered=data.rawDelivered;goodsExported=data.goodsExported;ExportedProducts=data.exportedProducts;rawReceipts=data.rawReceipts;exportFunded=data.exportFunded;exportPayments=data.exportPayments;cash=data.cash;
         }
         internal void AddConnection(CityOutsideConnection connection)=>ports.Add(connection);
         public CityTradeData Snapshot()
         {
-            var data=new CityTradeData{nextDispatchTick=nextDispatchTick,factoryCursor=factoryCursor,rawDispatched=rawDispatched,rawDelivered=rawDelivered,goodsExported=goodsExported,rawReceipts=rawReceipts,exportFunded=exportFunded,exportPayments=exportPayments,openingCash=openingCash,cash=cash};
+            var data=new CityTradeData{nextDispatchTick=nextDispatchTick,factoryCursor=factoryCursor,rawDispatched=rawDispatched,rawDelivered=rawDelivered,goodsExported=goodsExported,exportedProducts=ExportedProducts,rawReceipts=rawReceipts,exportFunded=exportFunded,exportPayments=exportPayments,openingCash=openingCash,cash=cash};
             foreach(var c in ports)data.connections.Add(new OutsideConnectionData{id=c.id,x=c.x,y=c.y,z=c.z,active=c.active,flow=c.flow});return data;
         }
     }
@@ -101,13 +102,7 @@ namespace HarborCity
         {
             if(!city.development.enabled||city.trade.connections.Count==0||time.Tick<city.trade.nextDispatchTick)return;
             city.trade.nextDispatchTick=time.Tick+rules.TradeIntervalTicks;
-            incomingRaw.Clear();gateTrucks.Clear();
-            foreach(var task in transport.Tasks)
-            {
-                if(task.Shipment?.kind==CargoKind.RawMaterial){incomingRaw.TryGetValue(task.destination,out int n);incomingRaw[task.destination]=n+task.Cargo;}
-                if(entities.Connection(task.origin)!=null){gateTrucks.TryGetValue(task.origin,out int n);gateTrucks[task.origin]=n+1;}
-                else if(entities.Connection(task.destination)!=null){gateTrucks.TryGetValue(task.destination,out int n);gateTrucks[task.destination]=n+1;}
-            }
+            gateTrucks.Clear();foreach(var port in city.trade.connections)gateTrucks[port.id]=simulation.Shipments.Trucks(port.id);
             int count=entities.Factories.Count;
             if(count==0){city.trade.factoryCursor=0;return;}
             int start=city.trade.factoryCursor%count;
@@ -116,7 +111,7 @@ namespace HarborCity
             {
                 var factory=entities.Factories[(start+offset)%count];
                 if(!city.BuildingAccess(factory.id)||!city.Supply(factory.id).Complete)continue;
-                incomingRaw.TryGetValue(factory.id,out int reserved);
+                int reserved=simulation.Shipments.Raw(factory.id);
                 int amount=Math.Min(rules.FreightBatch,rules.RawReorderTarget-factory.factory.raw-reserved);
                 amount=Math.Min(amount,(int)Math.Min(rules.FreightBatch,Math.Floor(factory.factory.cash/rules.RawUnitPrice)));
                 if(amount>0)
@@ -136,8 +131,8 @@ namespace HarborCity
                 foreach(var gate in city.trade.connections)
                 {
                     gateTrucks.TryGetValue(gate.id,out int trucks);
-                    if(!gate.active||gate.flow!=OutsideFlow.Export||trucks>=rules.MaxGateTrucks||city.trade.cash<rules.FreightBatch*rules.GoodsWholesalePrice)continue;
-                    var vehicle=simulation.RequestMaterial(factory.id,gate.id,rules.FreightBatch,CargoKind.Goods,rules.GoodsWholesalePrice);
+                    if(!gate.active||gate.flow!=OutsideFlow.Export||trucks>=rules.MaxGateTrucks||city.trade.cash<rules.FreightBatch*simulation.Design.Products[factory.factory.product].WholesalePrice)continue;
+                    var vehicle=simulation.RequestMaterial(factory.id,gate.id,rules.FreightBatch,CargoKind.Goods,simulation.Design.Products[factory.factory.product].WholesalePrice);
                     if(vehicle==null)continue;gateTrucks[gate.id]=trucks+1;break;
                 }
             }
@@ -149,8 +144,8 @@ namespace HarborCity
             if(task.Shipment?.kind==CargoKind.Goods)
             {
                 var destination=entities.Connection(task.destination);var source=entities.Building(task.origin) as IndustrialBuilding;
-                double funded=task.Cargo*rules.GoodsWholesalePrice;
-                if(destination==null||!destination.active||destination.flow!=OutsideFlow.Export||source==null||source.abandoned||source.burned||task.Cargo<=0||source.Stock<task.Cargo||task.Price!=rules.GoodsWholesalePrice||city.trade.cash<funded)return false;
+                double funded=task.Cargo*simulation.Design.Products[source?.factory.product??ProductKind.DailyGoods].WholesalePrice;
+                if(destination==null||!destination.active||destination.flow!=OutsideFlow.Export||source==null||source.abandoned||source.burned||task.Cargo<=0||source.Stock<task.Cargo||!task.Shipment.Products.Equals(GoodsAmounts.Of(source.factory.product,task.Cargo))||task.Price!=simulation.Design.Products[source.factory.product].WholesalePrice||city.trade.cash<funded)return false;
                 source.Stock-=task.Cargo;source.factory.shipped+=task.Cargo;city.trade.cash-=funded;city.trade.exportFunded+=funded;return true;
             }
             var gate=entities.Connection(task.origin);
@@ -170,7 +165,7 @@ namespace HarborCity
             {
                 var destination=entities.Connection(arrival.destination);var source=entities.Building(arrival.origin) as IndustrialBuilding;
                 if(destination==null||!destination.active||destination.flow!=OutsideFlow.Export||source==null||source.abandoned||source.burned)return false;
-                city.RecordFactorySale(arrival.origin,arrival.cargo,arrival.taskId,arrival.destination,notify:false,unitPrice:arrival.price);city.trade.goodsExported+=arrival.cargo;city.trade.exportPayments+=arrival.cargo*arrival.price;return true;
+                city.RecordFactorySale(arrival.origin,arrival.cargo,arrival.taskId,arrival.destination,notify:false,unitPrice:arrival.price);city.trade.goodsExported+=arrival.cargo;city.trade.ExportedProducts+=arrival.products;city.trade.exportPayments+=arrival.cargo*arrival.price;return true;
             }
             var gate=entities.Connection(arrival.origin);
             var factory=entities.Building(arrival.destination) as IndustrialBuilding;
