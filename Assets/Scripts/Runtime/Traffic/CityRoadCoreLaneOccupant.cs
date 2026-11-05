@@ -15,5 +15,13 @@ namespace HarborCity.RoadCore
     {
         public static readonly LaneOccupantOrder Instance=new LaneOccupantOrder();
         public int Compare(LaneOccupant a,LaneOccupant b){int c=b.distance.CompareTo(a.distance);return c!=0?c:a.vehicle.id.CompareTo(b.vehicle.id);}
+        // Distance updates usually preserve front-to-back order. Check the exact
+        // comparator, including equal-distance ID ties; structural changes and
+        // shadow projections retain the original general-sort fallback.
+        internal static bool SortIfNeeded(List<LaneOccupant> bucket)
+        {
+            for(int i=1;i<bucket.Count;i++)if(Instance.Compare(bucket[i-1],bucket[i])>0){bucket.Sort(Instance);return true;}
+            return false;
+        }
     }
 }

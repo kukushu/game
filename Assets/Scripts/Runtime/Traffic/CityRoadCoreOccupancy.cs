@@ -8,6 +8,9 @@ namespace HarborCity.RoadCore
         // This is derived World state, not another physical position owner.
         bool fullIndexRequired=true;
         internal long FullIndexBuilds,IncrementalIndexUpdates;
+#if TRAFFIC_HOTPATH_CENSUS
+        internal long CensusRegistrations,CensusUniqueRegistrations,CensusBuckets,CensusAlreadyOrdered,CensusUnordered,CensusOccupants,CensusOrderComparisons;
+#endif
         readonly HashSet<Vehicle> pendingJunctionOccupants=new HashSet<Vehicle>();
         internal long JunctionClassifications,JunctionChanges,JunctionFlushes;
         void PhysicalClaim(Vehicle v,out int junction,out long movement)
@@ -46,7 +49,14 @@ namespace HarborCity.RoadCore
         void TrackMovedOccupant(Vehicle v)
         {
             if(v.indexedLane!=v.Current||v.sourceOccupant.distance!=v.distance||v.indexedShadow!=v.changeTarget)
-            {pendingOccupants.Add(v);TrackJunctionOccupant(v);}
+            {
+#if TRAFFIC_HOTPATH_CENSUS
+                CensusRegistrations++;if(pendingOccupants.Add(v))CensusUniqueRegistrations++;
+#else
+                pendingOccupants.Add(v);
+#endif
+                TrackJunctionOccupant(v);
+            }
         }
         List<LaneOccupant> OccupantBucket(long lane)
         {
@@ -99,7 +109,19 @@ namespace HarborCity.RoadCore
                 }
             }
             pendingOccupants.Clear();
-            foreach(var bucket in dirtyOccupancyBuckets)if(bucket.Count>1)bucket.Sort(LaneOccupantOrder.Instance);
+            foreach(var bucket in dirtyOccupancyBuckets)if(bucket.Count>1)
+            {
+#if TRAFFIC_HOTPATH_CENSUS
+                CensusBuckets++;CensusOccupants+=bucket.Count;bool ordered=true;
+                for(int i=1;i<bucket.Count;i++){CensusOrderComparisons++;if(LaneOccupantOrder.Instance.Compare(bucket[i-1],bucket[i])>0){ordered=false;break;}}
+                if(ordered)CensusAlreadyOrdered++;else CensusUnordered++;
+#endif
+#if TRAFFIC_HOTPATH_REFERENCE
+                bucket.Sort(LaneOccupantOrder.Instance);
+#else
+                LaneOccupantOrder.SortIfNeeded(bucket);
+#endif
+            }
             dirtyOccupancyBuckets.Clear();
             RefreshJunctionOccupants();
             indexDirty=false;
