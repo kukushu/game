@@ -1,5 +1,7 @@
 # 交通热路径优化（2026-11-05）
 
+本轮验证完成于 2026-11-06 凌晨。
+
 实验分支：`codex/traffic-hotpaths-20261105`，基于 `develop` 的 `0342fde1caf5991611e35798561f8b386f0bc275`。独立工作树，不包含两类商品实验，不改日常 Unity `test` 目录或原始存档，不合并 develop。
 
 ## 已完成的第一阶段
@@ -30,10 +32,57 @@
 - `Tools/Verify.ps1`：150937 条道路核心、23627 条城市集成，以及岗位、网格、分区、市政、预算和施工回归通过；布局和 PowerShell 解析通过。没有删除或放宽断言。
 - `Tools/VerifyTrafficHotpaths.ps1 -Mode checks`：直接从 Git 冻结 0342fde 源码，与候选对照十万人完整起终状态及每 200 步状态、独立增量索引 oracle（先于全量验证）、冷恢复后续模拟，全部一致。
 - 小城 1200 步包含通勤、拆路、分路、重建和冷恢复；随机占用桶与独立距离/ID 排序 oracle 一致。
-- `-Mode census` 和 `-Mode benchmark` 完整状态也相同；十万人固定终态 SHA256 `FF1EBD284FF1EC64D17A3E941349429BFB7A2F3266EA320ED751F8CA2C416E9B`。
+- `-Mode census` 和 `-Mode benchmark` 完整状态也相同；.NET64 十万人固定终态 SHA256 `FF1EBD284FF1EC64D17A3E941349429BFB7A2F3266EA320ED751F8CA2C416E9B`。
 
 复现入口：`Tools/VerifyTrafficHotpaths.ps1 -Save <原始输入> -Results Temp/<新目录> -Mode checks|census|benchmark`。原始日志、逐步耗时、存档、冻结源码与 Player 留在本工作树 `Temp/TrafficHotpaths-20261105`，不入库。
 
-## 当前验收范围
+## 普通 Release Player 对照
 
-真实普通 Release Player 对照尚在进行。以上通过不能代替 FPS、实际倍率或完整 Player 验收；三万人、鼠标交互长时间游玩和全部城市形态尚未验证。本阶段没有证据支持整体 CPU 提速结论。
+源码阶段提交 `b962bc99037f50e916750c538d1dd6508fc5fd75`，参考版通过已有 `-TrafficReference 0342fde...` 只在临时 Unity 工程冻结交通源码，候选版使用本分支实现。两份独立二进制均确认 `development=False`，没有 census 或归因插桩。[构建身份](Builds.csv)记录程序集 SHA256。[模型原始摘要](Model.csv)单列，不混入 Player 成绩；其中 population/active 是冷恢复核验 20 步后的统计，final_sha256 对应 800 步测量终点。
+
+环境：Windows 11（10.0.26200）、i5-14600KF、RTX 3090、Unity 6000.6.3f1；1440×900、中距离相机、正常显示全部对象、目标 60 FPS、VSync 关闭。两版使用同一原始输入、相同地表/车道寻路模式、200 步共享预热；普通窗口另有现成工具的 8 秒呈现预热。时间预算 8 ms、单帧最多 32 步、固定步长 0.05 秒均未修改。顺序为参考1→候选1→候选2→参考2，每组先固定步，再分别运行 1 倍、50 倍各 20 秒；没有同时构建或运行其他本任务性能测试。
+
+### 固定工作量（模拟 CPU，不是普通 FPS）
+
+每次在真实有画面的 Player 中执行完整 800 步，每渲染帧脚本调用一完整步，Tick 14161→14961；计时包括整个模拟 Advance，不包括存档和全量验证。均通过独立增量索引 oracle、完整城市校验及冷恢复后续 20 步。四轮 `fixed-start.hcity`、`fixed-final.hcity`、`fixed-states.csv` 的 SHA256 全部相同；Player 终态为 `1ED7ADF3A41FDE9D740B74BEC70888DA9CE456749D7389D3B541C693A29A889A`。这与不同运行时的模型哈希分别记录，不跨宿主宣称字节一致。
+
+| 顺序 | 平均 ms/步 | P95 ms | P99 ms | 最长 ms |
+|---|---:|---:|---:|---:|
+| 参考1 | 10.903 | 12.630 | 41.413 | 65.637 |
+| 候选1 | 8.899 | 10.374 | 39.187 | 64.390 |
+| 候选2 | 8.953 | 10.393 | 38.645 | 63.884 |
+| 参考2 | 10.897 | 12.561 | 40.196 | 67.147 |
+
+两轮均值平均：10.900→8.926 ms/步，减少 **18.1%**。这是本次可重复的主要性能证据，仍存在约 64 ms 的长步骤，不能称为已解决长帧。[完整固定步摘要](Player-fixed.csv)。
+
+### 正常游玩窗口
+
+| 顺序 | 目标倍率 | 实际倍率 | FPS | P95 帧 ms | P99 帧 ms | 最长帧 ms |
+|---|---:|---:|---:|---:|---:|---:|
+| 参考1 | 1 | 0.999 | 58.36 | 32.51 | 35.07 | 86.93 |
+| 候选1 | 1 | 0.998 | 59.01 | 29.61 | 34.15 | 86.35 |
+| 候选2 | 1 | 0.998 | 59.02 | 29.68 | 33.93 | 82.96 |
+| 参考2 | 1 | 0.996 | 52.53 | 45.59 | 53.97 | 149.49 |
+| 参考1 | 50 | 2.864 | 57.23 | 19.31 | 49.72 | 73.49 |
+| 候选1 | 50 | 3.627 | 54.00 | 24.66 | 51.89 | 72.92 |
+| 候选2 | 50 | 3.347 | 55.04 | 24.25 | 49.89 | 73.92 |
+| 参考2 | 50 | 2.374 | 47.49 | 37.51 | 56.46 | 127.11 |
+
+候选 50 倍窗口实际推进更多，但没有跑满 50 倍；相对首轮参考，FPS 下降、P95 变长。末轮参考两个窗口明显变慢，原因尚未归因，不排除运行环境波动；**普通窗口不能给出可靠的整体百分比收益，也不能声称 FPS 稳定提升**。没有删除较慢样本。[完整正常窗口摘要](Player-normal.csv)保留原始精度、Tick、显示数量和 GC 次数。
+
+每个普通窗口均通过原生冷恢复检查，包含欠步及全部城市/资金/货物/交通状态；时钟账平衡误差在约 1e-11 秒，没有丢弃待补步。1 倍各轮完成 400 步；50 倍会按真实工作能力产生不同结束 Tick，不能直接比较这些不同终点的存档。
+
+Player 的逐线程分配计数不受支持（`allocation_counter=False`，正常窗口 `gc_bytes_per_frame=-1`），分配量标为未知，GC 暂停时间也未测量；不能把模型分配收益或 GC 次数当作 Player 内存/暂停收益。原始运行目录保留呈现/道路内存、资源峰值、截图及完整日志，本阶段不对加载速度、内存峰值或 GPU 提升作结论。
+
+复现普通 Player：先设置 `$env:HARBOR_PLAYER_RELEASE='1'`，分别运行 `Tools/RunCityScenarioWindow.ps1 -BuildOnly`（参考版额外传 `-TrafficReference 0342fde...`），指定两个独立 `-PlayerPath`。随后配对运行：
+
+```powershell
+./Tools/RunCityScenarioWindow.ps1 -Save <原始输入> -Results Temp/<新目录> -PlayerPath Temp/<对应Player>/HarborCity.exe -SkipBuild -Rates 0 -FixedSteps 800 -SharedWarmup -BaseWarmSteps 200 -DepotLaneRouting -DisplayCamera middle -CheckRestore -TimeoutSeconds 900
+./Tools/RunCityScenarioWindow.ps1 -Save <原始输入> -Results Temp/<另一个新目录> -PlayerPath Temp/<对应Player>/HarborCity.exe -SkipBuild -Rates 1,50 -MeasureSeconds 20 -SharedWarmup -BaseWarmSteps 200 -DepotLaneRouting -DisplayCamera middle -CheckRestore -TimeoutSeconds 900
+```
+
+## 验收范围与后续
+
+已验证本次十万人输入、核心回归、正常窗口及冷恢复；尚未验证三万人、长期鼠标交互和全部城市形态。本分支保留实验，不合并 develop。本阶段可以交付“减少等价排序工作及固定工作量成本”，不能称为全部性能问题或完整玩法验收完成。
+
+后续优先对占用维护中的逐车查表和登记继续独立归因，再决定数据结构改动；当前登记全部唯一，直接去掉去重机制缺乏充分安全证据。变道路径缓存仍待真实尝试量和路径长度证据，不因专项少走 39 段就声称十万人整体收益来自变道优化。
