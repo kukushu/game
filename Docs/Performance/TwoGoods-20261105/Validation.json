@@ -1,0 +1,177 @@
+{
+  "runtimeSourceCommit": "d518e1a96b18bbb2099b121d526c34a4265ce2cc",
+  "releaseManagedSha256": "22c009d90052c749a404d1fd699029d186d3159561f6ab89e898dcab2f18656c",
+  "validatedPlayerProcesses": 20,
+  "normalWindows": 16,
+  "fixedWorkRuns": 4,
+  "equalStateArtifacts": 6,
+  "twoGoodsChecks": 1232,
+  "matchedBusinessAndTransportEvents": 3446,
+  "duplicateImportDebitNegativeControl": "PASS",
+  "invalidSamplesExcluded": [
+    "resume-final-30k-window-B2"
+  ],
+  "runs": [
+    {
+      "run": "resume-final-30k-fixed-scheduled",
+      "rate": 0,
+      "mode": "scheduled",
+      "wallSeconds": 98.1587111,
+      "inputSha256": "A08BBD6F3958B18C180383FBDA725B1A227E9DF2DE0FEB1F97C6A7A4598C04C2",
+      "managedSha256": "22C009D90052C749A404D1FD699029D186D3159561F6AB89E898DCAB2F18656C"
+    },
+    {
+      "run": "resume-final-30k-fixed-reference",
+      "rate": 0,
+      "mode": "reference",
+      "wallSeconds": 103.5286169,
+      "inputSha256": "A08BBD6F3958B18C180383FBDA725B1A227E9DF2DE0FEB1F97C6A7A4598C04C2",
+      "managedSha256": "22C009D90052C749A404D1FD699029D186D3159561F6AB89E898DCAB2F18656C"
+    },
+    {
+      "run": "resume-final-30k-window-A1",
+      "rate": 1,
+      "mode": "scheduled",
+      "wallSeconds": 53.9884114,
+      "inputSha256": "CCE48946482E12C1F61E628A7A4EF5C250566B667D5B64CDB5481B178D0065B6",
+      "managedSha256": "22C009D90052C749A404D1FD699029D186D3159561F6AB89E898DCAB2F18656C"
+    },
+    {
+      "run": "resume-final-30k-window-A1",
+      "rate": 50,
+      "mode": "scheduled",
+      "wallSeconds": 52.8572498,
+      "inputSha256": "CCE48946482E12C1F61E628A7A4EF5C250566B667D5B64CDB5481B178D0065B6",
+      "managedSha256": "22C009D90052C749A404D1FD699029D186D3159561F6AB89E898DCAB2F18656C"
+    },
+    {
+      "run": "resume-final-30k-window-B1",
+      "rate": 1,
+      "mode": "reference",
+      "wallSeconds": 54.2789887,
+      "inputSha256": "CCE48946482E12C1F61E628A7A4EF5C250566B667D5B64CDB5481B178D0065B6",
+      "managedSha256": "22C009D90052C749A404D1FD699029D186D3159561F6AB89E898DCAB2F18656C"
+    },
+    {
+      "run": "resume-final-30k-window-B1",
+      "rate": 50,
+      "mode": "reference",
+      "wallSeconds": 53.2898121,
+      "inputSha256": "CCE48946482E12C1F61E628A7A4EF5C250566B667D5B64CDB5481B178D0065B6",
+      "managedSha256": "22C009D90052C749A404D1FD699029D186D3159561F6AB89E898DCAB2F18656C"
+    },
+    {
+      "run": "resume-final-30k-window-B2r",
+      "rate": 1,
+      "mode": "reference",
+      "wallSeconds": 54.1446583,
+      "inputSha256": "CCE48946482E12C1F61E628A7A4EF5C250566B667D5B64CDB5481B178D0065B6",
+      "managedSha256": "22C009D90052C749A404D1FD699029D186D3159561F6AB89E898DCAB2F18656C"
+    },
+    {
+      "run": "resume-final-30k-window-B2r",
+      "rate": 50,
+      "mode": "reference",
+      "wallSeconds": 53.0422686,
+      "inputSha256": "CCE48946482E12C1F61E628A7A4EF5C250566B667D5B64CDB5481B178D0065B6",
+      "managedSha256": "22C009D90052C749A404D1FD699029D186D3159561F6AB89E898DCAB2F18656C"
+    },
+    {
+      "run": "resume-final-30k-window-A2",
+      "rate": 1,
+      "mode": "scheduled",
+      "wallSeconds": 53.7253698,
+      "inputSha256": "CCE48946482E12C1F61E628A7A4EF5C250566B667D5B64CDB5481B178D0065B6",
+      "managedSha256": "22C009D90052C749A404D1FD699029D186D3159561F6AB89E898DCAB2F18656C"
+    },
+    {
+      "run": "resume-final-30k-window-A2",
+      "rate": 50,
+      "mode": "scheduled",
+      "wallSeconds": 53.8763567,
+      "inputSha256": "CCE48946482E12C1F61E628A7A4EF5C250566B667D5B64CDB5481B178D0065B6",
+      "managedSha256": "22C009D90052C749A404D1FD699029D186D3159561F6AB89E898DCAB2F18656C"
+    },
+    {
+      "run": "resume-final-100k-fixed-scheduled",
+      "rate": 0,
+      "mode": "scheduled",
+      "wallSeconds": 473.7384675,
+      "inputSha256": "B6998FB3977F6964D8D3BF91AD8295412F2178FBD0D6BEF113184091D28A9933",
+      "managedSha256": "22C009D90052C749A404D1FD699029D186D3159561F6AB89E898DCAB2F18656C"
+    },
+    {
+      "run": "resume-final-100k-fixed-reference",
+      "rate": 0,
+      "mode": "reference",
+      "wallSeconds": 523.5017473,
+      "inputSha256": "B6998FB3977F6964D8D3BF91AD8295412F2178FBD0D6BEF113184091D28A9933",
+      "managedSha256": "22C009D90052C749A404D1FD699029D186D3159561F6AB89E898DCAB2F18656C"
+    },
+    {
+      "run": "resume-final-100k-window-A1",
+      "rate": 1,
+      "mode": "scheduled",
+      "wallSeconds": 104.3393237,
+      "inputSha256": "A852596F4397B233A56E773ED15EFBFECB489DB6CF5C9B762EC16F19888B5A33",
+      "managedSha256": "22C009D90052C749A404D1FD699029D186D3159561F6AB89E898DCAB2F18656C"
+    },
+    {
+      "run": "resume-final-100k-window-A1",
+      "rate": 50,
+      "mode": "scheduled",
+      "wallSeconds": 100.2928089,
+      "inputSha256": "A852596F4397B233A56E773ED15EFBFECB489DB6CF5C9B762EC16F19888B5A33",
+      "managedSha256": "22C009D90052C749A404D1FD699029D186D3159561F6AB89E898DCAB2F18656C"
+    },
+    {
+      "run": "resume-final-100k-window-B1",
+      "rate": 1,
+      "mode": "reference",
+      "wallSeconds": 106.1037836,
+      "inputSha256": "A852596F4397B233A56E773ED15EFBFECB489DB6CF5C9B762EC16F19888B5A33",
+      "managedSha256": "22C009D90052C749A404D1FD699029D186D3159561F6AB89E898DCAB2F18656C"
+    },
+    {
+      "run": "resume-final-100k-window-B1",
+      "rate": 50,
+      "mode": "reference",
+      "wallSeconds": 102.6651172,
+      "inputSha256": "A852596F4397B233A56E773ED15EFBFECB489DB6CF5C9B762EC16F19888B5A33",
+      "managedSha256": "22C009D90052C749A404D1FD699029D186D3159561F6AB89E898DCAB2F18656C"
+    },
+    {
+      "run": "resume-final-100k-window-B2r",
+      "rate": 1,
+      "mode": "reference",
+      "wallSeconds": 105.9814283,
+      "inputSha256": "A852596F4397B233A56E773ED15EFBFECB489DB6CF5C9B762EC16F19888B5A33",
+      "managedSha256": "22C009D90052C749A404D1FD699029D186D3159561F6AB89E898DCAB2F18656C"
+    },
+    {
+      "run": "resume-final-100k-window-B2r",
+      "rate": 50,
+      "mode": "reference",
+      "wallSeconds": 102.0581266,
+      "inputSha256": "A852596F4397B233A56E773ED15EFBFECB489DB6CF5C9B762EC16F19888B5A33",
+      "managedSha256": "22C009D90052C749A404D1FD699029D186D3159561F6AB89E898DCAB2F18656C"
+    },
+    {
+      "run": "resume-final-100k-window-A2",
+      "rate": 1,
+      "mode": "scheduled",
+      "wallSeconds": 104.3146779,
+      "inputSha256": "A852596F4397B233A56E773ED15EFBFECB489DB6CF5C9B762EC16F19888B5A33",
+      "managedSha256": "22C009D90052C749A404D1FD699029D186D3159561F6AB89E898DCAB2F18656C"
+    },
+    {
+      "run": "resume-final-100k-window-A2",
+      "rate": 50,
+      "mode": "scheduled",
+      "wallSeconds": 101.0778435,
+      "inputSha256": "A852596F4397B233A56E773ED15EFBFECB489DB6CF5C9B762EC16F19888B5A33",
+      "managedSha256": "22C009D90052C749A404D1FD699029D186D3159561F6AB89E898DCAB2F18656C"
+    }
+  ],
+  "limits": "See Report.md; no claim of complete economy balance, all stress cases, or comprehensive UI acceptance."
+}

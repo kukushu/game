@@ -16,17 +16,34 @@ static class CityTwoGoodsChecks
         foreach(var p in t.GetProperties())if(p.IsDefined(typeof(CitySavedFactAttribute),false)&&GoodsDiff(p.GetValue(a),p.GetValue(b),path+"."+p.Name))return true;
         return false;
     }
-    static void ScheduleChecks()
+    static string EventData(object value)
+    {
+        if(value==null)return "null";var type=value.GetType();
+        if(type.IsPrimitive||type.IsEnum||value is string||value is decimal)return type.FullName+":"+Convert.ToString(value,System.Globalization.CultureInfo.InvariantCulture);
+        if(value is System.Collections.IEnumerable items){var entries=new System.Collections.Generic.List<string>();foreach(var item in items)entries.Add(EventData(item));return "["+string.Join(";",entries)+"]";}
+        var parts=new System.Collections.Generic.List<string>();
+        foreach(var field in type.GetFields(System.Reflection.BindingFlags.Public|System.Reflection.BindingFlags.Instance).Where(f=>!f.IsNotSerialized).OrderBy(f=>f.Name))parts.Add(field.Name+"="+EventData(field.GetValue(value)));
+        foreach(var property in type.GetProperties().Where(p=>p.IsDefined(typeof(CitySavedFactAttribute),false)).OrderBy(p=>p.Name))parts.Add(property.Name+"="+EventData(property.GetValue(value)));
+        return type.FullName+"{"+string.Join(";",parts)+"}";
+    }
+    static string EventState(CityLogEvent e)=>string.Join("|",e.tick,e.type,e.level,e.message,e.day,e.minute.ToString("R",System.Globalization.CultureInfo.InvariantCulture),e.householdId,e.citizenId,e.jobId,e.buildingId,e.tripId,e.roadRevision,EventData(e.data));
+    static string TaskState(TripTask t)=>string.Join("|",t.id,t.origin,t.destination,t.purpose,t.citizenId,t.departedAt.ToString("R",System.Globalization.CultureInfo.InvariantCulture),t.state,t.Shipment?.kind,t.Cargo,t.Price.ToString("R",System.Globalization.CultureInfo.InvariantCulture),t.Shipment?.Products.food??0,t.Shipment?.Products.dailyGoods??0);
+    static void ScheduleChecks(bool observeEvents)
     {
         var live=CityGrowingGridFixture.Create();var cold=CityCoreSave.Read(CityCoreSave.Write(live));cold.Simulation.Growth.Zoning.SetSurface((x,z)=>2);cold.Simulation.Consumption.ReferencePolling=true;
+        var liveEvents=new System.Collections.Generic.List<string>();var referenceEvents=new System.Collections.Generic.List<string>();long eventCount=0;bool eventError=false;
+        Action<TripTask> liveCommit=t=>liveEvents.Add("transport.commit|"+live.Simulation.Tick+"|"+TaskState(t)),referenceCommit=t=>referenceEvents.Add("transport.commit|"+cold.Simulation.Tick+"|"+TaskState(t));
+        Action<int> liveRetire=id=>liveEvents.Add("transport.retire|"+live.Simulation.Tick+"|"+id),referenceRetire=id=>referenceEvents.Add("transport.retire|"+cold.Simulation.Tick+"|"+id);
+        if(observeEvents){live.City.logSink=e=>{try{liveEvents.Add(EventState(e));}catch{eventError=true;}};cold.City.logSink=e=>{try{referenceEvents.Add(EventState(e));}catch{eventError=true;}};live.Transport.TaskCommitted+=liveCommit;cold.Transport.TaskCommitted+=referenceCommit;live.Transport.TaskRetired+=liveRetire;cold.Transport.TaskRetired+=referenceRetire;}
         for(int t=0;t<40000;t++)
         {
             if(t==12000||t==15000){int budget=t==12000?50:100;live.Simulation.Utilities.SetBudget(CityServiceKind.Water,budget);cold.Simulation.Utilities.SetBudget(CityServiceKind.Water,budget);}
             live.Advance(.05);cold.Advance(.05);
             string da=string.Join(";",live.Simulation.Consumption.ShopDemand.OrderBy(x=>x.Key).Select(x=>x.Key+":"+x.Value.food+":"+x.Value.dailyGoods)),db=string.Join(";",cold.Simulation.Consumption.ShopDemand.OrderBy(x=>x.Key).Select(x=>x.Key+":"+x.Value.food+":"+x.Value.dailyGoods));
             if(da!=db){Console.WriteLine("DEMAND "+live.Simulation.Tick+" "+da+" vs "+db);foreach(var h in live.City.society.families)Console.WriteLine("H "+h.id+" supplier "+h.goodsSupplier+" store "+h.goods.food+"/"+h.goods.dailyGoods+" incoming actor "+h.shoppingMember+" needs "+live.Simulation.Consumption.Need(h,ProductKind.Food)+"/"+live.Simulation.Consumption.Need(h,ProductKind.DailyGoods));throw new Exception("Derived demand mismatch");}
-            if(t%100==99){if(!CityCoreSave.Write(live).SequenceEqual(CityCoreSave.Write(cold))){GoodsDiff(live.SnapshotBusiness(),cold.SnapshotBusiness(),"city");GoodsDiff(live.Transport.Snapshot(),cold.Transport.Snapshot(),"world");Console.WriteLine("event visits="+live.Simulation.Consumption.FamilyVisits+" oracle="+cold.Simulation.Consumption.FamilyVisits);}Check(CityCoreSave.Write(live).SequenceEqual(CityCoreSave.Write(cold)),"Reference scheduling differs at "+live.Simulation.Tick);}
+            if(t%100==99){if(!CityCoreSave.Write(live).SequenceEqual(CityCoreSave.Write(cold))){GoodsDiff(live.SnapshotBusiness(),cold.SnapshotBusiness(),"city");GoodsDiff(live.Transport.Snapshot(),cold.Transport.Snapshot(),"world");Console.WriteLine("event visits="+live.Simulation.Consumption.FamilyVisits+" oracle="+cold.Simulation.Consumption.FamilyVisits);}Check(CityCoreSave.Write(live).SequenceEqual(CityCoreSave.Write(cold)),"Reference scheduling differs at "+live.Simulation.Tick);if(observeEvents){Check(!eventError&&liveEvents.SequenceEqual(referenceEvents),"Reference business event data/order differs at "+live.Simulation.Tick);eventCount+=liveEvents.Count;liveEvents.Clear();referenceEvents.Clear();}}
         }
+        if(observeEvents){Check(eventCount>0,"Business event comparison observed no events");Console.WriteLine("EVENTS matched="+eventCount);live.City.logSink=null;cold.City.logSink=null;live.Transport.TaskCommitted-=liveCommit;cold.Transport.TaskCommitted-=referenceCommit;live.Transport.TaskRetired-=liveRetire;cold.Transport.TaskRetired-=referenceRetire;}
         Check(live.City.development.externalInvestment>0&&live.Entities.Factories.Any(f=>f.externalCapital>0&&f.factory.firstDelivery),"Autonomous investment did not deliver goods");
         Check(live.Simulation.Consumption.FamilyVisits<cold.Simulation.Consumption.FamilyVisits,"No candidate reduction");
         Console.WriteLine("ECONOMY bought="+live.City.consumption.Bought.food+"/"+live.City.consumption.Bought.dailyGoods+" consumed="+live.City.consumption.Consumed.food+"/"+live.City.consumption.Consumed.dailyGoods+" external="+live.City.development.externalInvestment+" visits="+live.Simulation.Consumption.FamilyVisits+"/"+cold.Simulation.Consumption.FamilyVisits);
@@ -92,6 +109,6 @@ static class CityTwoGoodsChecks
         var raw=new Shipment{remaining=8};raw.kind=CargoKind.RawMaterial;Check(raw.remaining==8&&raw.Products.Total==0,"Raw admission amount");var waste=new Shipment{kind=CargoKind.Waste,remaining=7};Check(waste.Copy().remaining==7,"Waste copy");
         var building=BuildingSaveData.FromBuilding(new CommercialBuilding{Products=a});Check(((CommercialBuilding)building.ToBuilding()).Products.Equals(a),"Building mixed inventory persistence");
         var old=(byte[])bytes.Clone();Buffer.BlockCopy(BitConverter.GetBytes(15),0,old,4,4);bool refused=false;try{SaveCodec.Read(old);}catch(System.IO.InvalidDataException){refused=true;}Check(refused,"Old traffic format accepted");
-        InvestmentChecks();ScheduleChecks();MixedPurchaseChecks();Console.WriteLine("PASS "+checks+" two-product checks");
+        InvestmentChecks();ScheduleChecks(false);ScheduleChecks(true);MixedPurchaseChecks();Console.WriteLine("PASS "+checks+" two-product checks");
     }
 }

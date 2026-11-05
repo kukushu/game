@@ -1,0 +1,1 @@
+{"schema": 1, "name": "two-goods-30000-initial", "mode": "mature", "layout": "grid", "population": 30000, "seed": 7919, "gridRadius": 9, "streetSpacing": 48, "days": 1, "warmupDays": 0, "openingPublicGrant": 30000000, "householdsPerResidentialBuilding": 8, "diagnosticBuildHalfSize": 456, "seedRoadNetwork": true}

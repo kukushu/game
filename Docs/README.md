@@ -1,5 +1,7 @@
 # HarborCity 工程导航
 
+当前两类商品实验分支的入口：[玩法规则](Gameplay/CoreLoop.md)、[两类商品实施与所有权](Architecture/TwoGoods-20261104.md)、[2026-11-05验证报告](Performance/TwoGoods-20261105/Report.md)。这批改动位于codex/gameplay-two-goods-20261104，未合入develop；报告明确区分模型、真实Player、平衡异常与未验证项目。
+
 当前正式开发主线是 `develop`（2026-11-03由 `codex/road-core-20261014` 改名），改名基点为 `09fd9f8`。旧远端名称暂留作历史引用；GitHub默认分支设置尚待登录后调整。本导航原始核对基线是 `d248cf3`（2026-10-30）；当前源码和本轮用户要求优先，历史报告不等于今天的性能保证或继续开发授权。
 
 正式开发当前居民执行方式见[统一事件调度](Architecture/MillionScaleExecution/ResidentUnifiedEvents.md)：2026-11-01 按用户授权集成已验证成果，默认事件驱动，保留轮询参考；[分支集成清单](Integrations/ValidatedBranches-20261101.md)说明历史分支与未采纳实验。
