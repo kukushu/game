@@ -35,7 +35,7 @@ namespace HarborCity
             var market=simulation.Consumption;
             if(use==LandUse.Commercial)
             {
-                foreach(var pair in market.UnservedDemand){int amount=pair.Value.Total;var home=entities.Building(pair.Key);if(home==null||!city.BuildingAccess(home.id))continue;if(amount>reserve||amount==reserve&&focus!=null&&home.id<focus.id){reserve=amount;focus=home;}}
+                foreach(var pair in market.UnservedDemand){int amount=pair.Value.Total;var home=entities.Building(pair.Key);if(home==null||!city.BuildingAccess(home.id)||market.FindReachableSupplier(home)!=null)continue;if(amount>reserve||amount==reserve&&focus!=null&&home.id<focus.id){reserve=amount;focus=home;}}
                 return reserve>0;
             }
             // Search actual gaps in descending upper-bound order. A covered
@@ -62,6 +62,16 @@ namespace HarborCity
                 }
             }
             return reserve>0;
+        }
+        bool CanImportAt(SpatialHit entrance)
+        {
+            foreach(var port in city.trade.connections)
+            {
+                if(!port.active||port.flow!=OutsideFlow.Import)continue;
+                var access=world.GetAccess(port.id);
+                if(access!=null&&access.valid&&world.Network.CanReach(access.lane,access.distance,entrance.drivable,entrance.distance))return true;
+            }
+            return false;
         }
         static void CheckCapital(CityBuilding b){if(double.IsNaN(b.externalCapital)||double.IsInfinity(b.externalCapital)||b.externalCapital<0||b.externalCapital>0&&!(b is IndustrialBuilding)&&!(b is CommercialBuilding))throw new InvalidOperationException("Invalid external startup capital");}
         internal void ValidateInvestment()

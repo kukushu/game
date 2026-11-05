@@ -9,7 +9,7 @@ namespace HarborCity
     // real map profile in Unity; headless checks explicitly use flat terrain.
     public static class CityGrowingGridFixture
     {
-        public static CityCoreIndustrySession Create(Func<float,float,float> surface=null,GameDesignData design=null,bool commerce=true)
+        public static CityCoreIndustrySession Create(Func<float,float,float> surface=null,GameDesignData design=null,bool commerce=true,bool connectOutside=true)
         {
             surface=surface??((x,z)=>2);
             var session=CityCoreIndustrySession.CreateEmpty(design);
@@ -18,7 +18,7 @@ namespace HarborCity
             Build(session,surface,-135,-25,-55,-25,1);
             Build(session,surface,-135,25,-55,25,1);
             foreach(float x in new[]{-135f,-95f,-55f})Build(session,surface,x,-25,x,25,1);
-            session.Simulation.Trade.ConnectBorder(new Point(-167,surface(-167,0),0));
+            if(connectOutside)session.Simulation.Trade.ConnectBorder(new Point(-167,surface(-167,0),0));
             foreach(var use in new[]{LandUse.Power,LandUse.Water,LandUse.Sewage})
             {
                 bool placed=false;

@@ -45,17 +45,23 @@ namespace HarborCity
             foreach(var h in city.society.families)Register(h);
             foreach(var shop in entities.Shops){index.Add(shop);dirtyStores.Add(shop.id);}
             simulation.Utilities.SuppliesRebuilt+=()=>{foreach(int id in supplyBlocked)dirtyStores.Add(id);};
-            world.EndpointAvailabilityChanged+=(id,revision)=>{if(entities.Building(id) is CommercialBuilding)dirtyStores.Add(id);};
+            world.EndpointAvailabilityChanged+=(id,revision)=>{if(entities.Building(id) is CommercialBuilding){dirtyStores.Add(id);WakeSupplier(id);}};
+            entities.BusinessFundingBoundaryChanged+=id=>
+            {
+                if(!(entities.Building(id) is CommercialBuilding shop))return;
+                WakeSupplier(id);
+                if(shop.Account.Cash>0)foreach(int slot in noStore)shopping.Schedule(slot,tick);
+            };
             entities.ShoppingFamilyFactsChanged+=FamilyChanged;
             entities.MemberStructureChanged+=(m,added)=>Mark(m.Family,true);
             entities.ResidentStateChanged+=(m,why)=>{Mark(m.Family,why==CityResidentStateChange.Death||why==CityResidentStateChange.Membership);int work=city.Workplace(m.Person);if(work>=0)dirtyStores.Add(work);};
             entities.RequestGuardsChanged+=(m,g)=>Mark(m.Family,false);
             entities.FundingEligibilityChanged+=m=>{int work=city.Workplace(m.Person);if(work>=0)dirtyStores.Add(work);};
             entities.ProductsChanged+=b=>{if(b is CommercialBuilding)dirtyStores.Add(b.id);};
-            entities.BusinessStructureChanged+=(b,added)=>{if(b is CommercialBuilding shop){if(added)index.Add(shop);else{index.Remove(shop);for(int n=0;n<ProductCatalog.Count;n++){saleIndex[n].Remove(shop);saleListed[n].Remove(shop.id);}}dirtyStores.Add(b.id);layoutChanges.Add(b.id);}foreach(int i in noStore)shopping.Schedule(i,tick);};
+            entities.BusinessStructureChanged+=(b,added)=>{if(b is CommercialBuilding shop){if(added)index.Add(shop);else{index.Remove(shop);for(int n=0;n<ProductCatalog.Count;n++){saleIndex[n].Remove(shop);saleListed[n].Remove(shop.id);}}dirtyStores.Add(b.id);layoutChanges.Add(b.id);WakeSupplier(b.id);}foreach(int i in noStore)shopping.Schedule(i,tick);};
         }
         int Register(Household h)
-        {if(slots.TryGetValue(h.id,out int at))return at;at=families.Count;families.Add(h);slots.Add(h.id,at);if(families.Count>slotCapacity){slotCapacity=checked(slotCapacity*2);consumption.EnsureCapacity(slotCapacity);shopping.EnsureCapacity(slotCapacity);}dirty.Add(at);if(h.goodsSupplier>=0)supplier[at]=h.goodsSupplier;UpdateDemand(at);return at;}
+        {if(slots.TryGetValue(h.id,out int at))return at;at=families.Count;families.Add(h);slots.Add(h.id,at);if(families.Count>slotCapacity){slotCapacity=checked(slotCapacity*2);consumption.EnsureCapacity(slotCapacity);shopping.EnsureCapacity(slotCapacity);}dirty.Add(at);if(h.goodsSupplier>=0)BindSupplier(at,h.goodsSupplier);UpdateDemand(at);return at;}
         void FamilyChanged(Household h)=>Mark(h,true);
         void Mark(Household h,bool count)
         {Notifications++;int i=Register(h);if(count)dirty.Add(i);shopping.Schedule(i,tick);}
@@ -90,7 +96,7 @@ namespace HarborCity
         {
             tick=time.Tick;if(!city.development.enabled){enabled=false;return;}
             if(!enabled){enabled=true;for(int i=0;i<families.Count;i++){dirty.Add(i);shopping.Schedule(i,tick);}}
-            if(network!=world.NetworkGeneration){for(int n=0;n<ProductCatalog.Count;n++)foreach(int i in productWaiters[n])shopping.Schedule(i,tick);}
+            if(network!=world.NetworkGeneration){for(int n=0;n<ProductCatalog.Count;n++)foreach(int i in productWaiters[n])shopping.Schedule(i,tick);foreach(int i in supplier.Keys)shopping.Schedule(i,tick);}
             if(network!=world.NetworkGeneration||buildings!=entities.BuildingRevision)
             {network=world.NetworkGeneration;buildings=entities.BuildingRevision;foreach(var id in waiting.Keys){dirtyStores.Add(id);}foreach(int i in noStore)shopping.Schedule(i,tick);}
             buffer.Clear();foreach(int i in dirty)buffer.Add(i);dirty.Clear();buffer.Sort();foreach(int i in buffer)Settle(i,true);
@@ -124,17 +130,36 @@ namespace HarborCity
             return Math.Max(0,(int)Math.Ceiling(h.consumptionPeople*(double)r.TargetDays/r.ConsumptionDays)-h.goods[k]);
         }
         public double DaysAvailable(Household h,ProductKind k)=>h.consumptionPeople==0?double.PositiveInfinity:h.goods[k]*(double)products[k].ConsumptionDays/h.consumptionPeople;
+        internal CommercialBuilding FindReachableSupplier(CityBuilding home)
+        {
+            if(home==null||index.Count==0)return null;
+            for(float radius=rules.InitialSearchRadius;;radius*=2)
+            {
+                foreach(var candidate in index.Collect(home.x,home.z,radius))
+                {
+                    var shop=candidate.shop;
+                    if(shop.Account.Cash>0&&!shop.abandoned&&!shop.burning&&!shop.burned&&
+                        city.BuildingAccess(shop.id)&&world.CanReachResident(home.id,shop.id))return shop;
+                }
+                if(radius>=city.map.buildHalfSize*3)return null;
+            }
+        }
         void Request(int i)
         {
             FamilyVisits++;var h=families[i];Unwait(i);int food=Need(h,ProductKind.Food),daily=Need(h,ProductKind.DailyGoods);
             if(!h.resident||food+daily==0){h.goodsProblem="";return;}
             if(h.shoppingMember!=0){h.goodsProblem="goods.status.returning";return;}
+            var home=entities.Building(h.home);
+            if(home==null){h.goodsProblem="goods.status.no_home";return;}
+            var assigned=entities.Building(h.goodsSupplier) as CommercialBuilding;
+            if(assigned==null||assigned.Account.Cash<=0||assigned.abandoned||assigned.burning||assigned.burned||
+                !world.CanReachResident(home.id,assigned.id))AssignSupplier(i,FindReachableSupplier(home));
+            if(h.goodsSupplier<0)noStore.Add(i);
             int minimum=products[food>0?ProductKind.Food:ProductKind.DailyGoods].RetailPrice;if(h.savings<minimum){h.goodsProblem="goods.status.no_money";return;}
             CityResident person=null;double retry=double.PositiveInfinity;
             foreach(var p in h.people)if(!p.dead&&!p.sick&&p.age>=18&&!p.atWork&&p.tripId==0&&p.location==h.home&&p.carriedGoods==0){retry=Math.Min(retry,p.retryAt);if(world.Clock>=p.retryAt){person=p;break;}}
             if(person==null){h.goodsProblem="goods.status.no_member";if(!double.IsInfinity(retry))shopping.Schedule(i,Math.Max(tick+1,(long)Math.Ceiling(retry/SimulationClock.StepSeconds)));return;}
-            var home=entities.Building(h.home);if(home==null){h.goodsProblem="goods.status.no_home";return;}
-            CommercialBuilding best=null,reachable=null;bool route=false;var kind=food>0?ProductKind.Food:ProductKind.DailyGoods;
+            CommercialBuilding best=null;var kind=food>0?ProductKind.Food:ProductKind.DailyGoods;
             var available=saleIndex[(int)kind];
             if(available.Count>0)for(float radius=rules.InitialSearchRadius;best==null;radius*=2)
             {
@@ -142,11 +167,14 @@ namespace HarborCity
                 {SearchCandidates++;var shop=c.shop;if(shop.Products[kind]<=0||!Open(shop)||!world.CanReachResident(home.id,shop.id))continue;best=shop;break;}
                 if(radius>=city.map.buildHalfSize*3)break;
             }
-            reachable=best;
-            if(reachable==null&&index.Count>0)for(float radius=rules.InitialSearchRadius;reachable==null;radius*=2)
-            {foreach(var c in index.Collect(home.x,home.z,radius)){SearchCandidates++;if(city.BuildingAccess(c.shop.id)&&world.CanReachResident(home.id,c.shop.id)){reachable=c.shop;break;}}if(radius>=city.map.buildHalfSize*3)break;}
-            route=reachable!=null;
-            AssignSupplier(i,best??reachable);if(best==null){h.goodsProblem=route?"goods.status.no_stock":"goods.status.no_store";Wait(i,reachable);return;}
+            if(best==null)
+            {
+                var supplier=entities.Building(h.goodsSupplier) as CommercialBuilding;
+                h.goodsProblem=supplier!=null?"goods.status.no_stock":"goods.status.no_store";
+                Wait(i,supplier);
+                return;
+            }
+            AssignSupplier(i,best);
             person.retryAt=(float)(world.Clock+.5);var vehicle=simulation.RequestShopping(person.id,h.home,best.id);
             h.goodsProblem=vehicle==null?"goods.status.blocked":"goods.status.shopping";if(vehicle==null)shopping.Schedule(i,tick+rules.ShoppingIntervalTicks);
         }

@@ -9,6 +9,29 @@ namespace HarborCity
         readonly Dictionary<int,int> demandHomes=new Dictionary<int,int>();
         readonly Dictionary<int,GoodsAmounts> demand=new Dictionary<int,GoodsAmounts>();
         readonly Dictionary<int,int> supplier=new Dictionary<int,int>();
+        readonly Dictionary<int,HashSet<int>> supplierMembers=new Dictionary<int,HashSet<int>>();
+        void BindSupplier(int slot,int id)
+        {
+            if(supplier.TryGetValue(slot,out int old))
+            {
+                var previous=supplierMembers[old];
+                previous.Remove(slot);
+                if(previous.Count==0)supplierMembers.Remove(old);
+                supplier.Remove(slot);
+            }
+            if(id>=0)
+            {
+                supplier[slot]=id;
+                if(!supplierMembers.TryGetValue(id,out var members))supplierMembers.Add(id,members=new HashSet<int>());
+                members.Add(slot);
+            }
+            families[slot].goodsSupplier=id;
+        }
+        void WakeSupplier(int id)
+        {
+            if(supplierMembers.TryGetValue(id,out var members))
+                foreach(int slot in members)shopping.Schedule(slot,tick);
+        }
         readonly Dictionary<int,GoodsAmounts> shopDemand=new Dictionary<int,GoodsAmounts>();
         readonly Dictionary<int,GoodsAmounts> homelessDemand=new Dictionary<int,GoodsAmounts>();
         internal IReadOnlyDictionary<int,GoodsAmounts> UnservedDemand=>homelessDemand;
@@ -21,11 +44,11 @@ namespace HarborCity
         void AssignSupplier(int slot,CommercialBuilding shop)
         {
             int id=shop?.id??-1;bool before=supplier.TryGetValue(slot,out int old);if(before&&old==id||!before&&id<0)return;
-            demand.TryGetValue(slot,out var current);AccountDemand(slot,current,true);if(id<0)supplier.Remove(slot);else supplier[slot]=id;families[slot].goodsSupplier=id;AccountDemand(slot,current,false);
+            demand.TryGetValue(slot,out var current);AccountDemand(slot,current,true);BindSupplier(slot,id);AccountDemand(slot,current,false);
         }
         void UpdateDemand(int slot)
         {
-            var h=families[slot];demand.TryGetValue(slot,out var oldDemand);if(demandHomes.TryGetValue(slot,out int oldHome)&&oldHome!=h.home){AccountDemand(slot,oldDemand,true);supplier.Remove(slot);demandHomes[slot]=h.home;AccountDemand(slot,oldDemand,false);}else demandHomes[slot]=h.home;GoodsAmounts incoming=default;
+            var h=families[slot];demand.TryGetValue(slot,out var oldDemand);if(demandHomes.TryGetValue(slot,out int oldHome)&&oldHome!=h.home){AccountDemand(slot,oldDemand,true);BindSupplier(slot,-1);demandHomes[slot]=h.home;AccountDemand(slot,oldDemand,false);}else demandHomes[slot]=h.home;GoodsAmounts incoming=default;
             if(h.shoppingMember!=0){var member=entities.Member(h.shoppingMember);if(member!=null){incoming=member.Person.carriedProducts;var task=world.FindTask(member.Person.tripId);if(task?.purpose==RoadCore.TransportPurpose.Home)incoming+=task.Shipment?.Products??default;}}
             GoodsAmounts next=default;for(int i=0;i<ProductCatalog.Count;i++){var k=(ProductKind)i;next=next.With(k,Math.Max(0,Need(h,k)-incoming[k]));}
             demand.TryGetValue(slot,out var previous);if(previous.Equals(next))return;AccountDemand(slot,previous,true);Requested=Requested-previous+next;demand[slot]=next;AccountDemand(slot,next,false);

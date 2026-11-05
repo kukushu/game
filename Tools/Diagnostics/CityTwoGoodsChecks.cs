@@ -93,6 +93,18 @@ static class CityTwoGoodsChecks
         demands[2]=GoodsAmounts.Of(ProductKind.Food,6);demands[farShop.id]=GoodsAmounts.Of(ProductKind.DailyGoods,6);
         Check(growth.InvestmentOpportunity(LandUse.Industrial,out kind,out reserve,out focus)&&kind==ProductKind.Food&&reserve==6&&focus.id==2,"Equal investment gaps did not prefer food");
     }
+    static void ImportBeforeFactoryOpening()
+    {
+        var city=CityGrowingGridFixture.Create(connectOutside:false);
+        for(int i=0;i<12000;i++)city.Advance(.05);
+        Check(city.Entities.Shops.Count>0,"Missing-import control never created demand at a shop");
+        Check(city.Simulation.Consumption.ShopDemand.Count>0,"Missing-import control has no shop procurement demand");
+        Check(city.Entities.Factories.Count==0&&!city.City.development.projects.Any(p=>p.building.type==LandUse.Industrial),"Industrial project opened without an import route");
+        city.Simulation.Trade.ConnectBorder(new Point(-167,2,0));
+        for(int i=0;i<9600;i++)city.Advance(.05);
+        Check(city.Entities.Factories.Any(f=>f.factory.imported>0),"Connecting a reachable import did not enable industrial production");
+        city.Validate();
+    }
     static void Main()
     {
         var catalog=new CityGameDesign(new GameDesignData()).Products;
@@ -109,6 +121,6 @@ static class CityTwoGoodsChecks
         var raw=new Shipment{remaining=8};raw.kind=CargoKind.RawMaterial;Check(raw.remaining==8&&raw.Products.Total==0,"Raw admission amount");var waste=new Shipment{kind=CargoKind.Waste,remaining=7};Check(waste.Copy().remaining==7,"Waste copy");
         var building=BuildingSaveData.FromBuilding(new CommercialBuilding{Products=a});Check(((CommercialBuilding)building.ToBuilding()).Products.Equals(a),"Building mixed inventory persistence");
         var old=(byte[])bytes.Clone();Buffer.BlockCopy(BitConverter.GetBytes(15),0,old,4,4);bool refused=false;try{SaveCodec.Read(old);}catch(System.IO.InvalidDataException){refused=true;}Check(refused,"Old traffic format accepted");
-        InvestmentChecks();ScheduleChecks(false);ScheduleChecks(true);MixedPurchaseChecks();Console.WriteLine("PASS "+checks+" two-product checks");
+        InvestmentChecks();ImportBeforeFactoryOpening();ScheduleChecks(false);ScheduleChecks(true);MixedPurchaseChecks();Console.WriteLine("PASS "+checks+" two-product checks");
     }
 }
