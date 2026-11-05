@@ -1396,6 +1396,14 @@
     {
       "key": "ui.hud.calendar_clock",
       "text": "Day {0} {1}"
+    },
+    {
+      "key": "ui.feedback.household_food",
+      "text": "Home food: {0} units"
+    },
+    {
+      "key": "ui.feedback.stock_title",
+      "text": "City alerts · Home food: {0} units"
     }
   ]
 }

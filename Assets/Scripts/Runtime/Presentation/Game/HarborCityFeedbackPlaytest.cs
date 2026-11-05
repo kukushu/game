@@ -47,17 +47,21 @@ namespace HarborCity
             GUI.contentColor=unavailable?Muted:summary!=null&&summary.Critical?new Color(1,.55f,.48f):summary!=null&&summary.Count>0?new Color(1,.82f,.38f):Muted;
             if(GUI.Button(r,HudContent(r,"",localization.Get("ui.feedback.bar_help")),GUIStyle.none))OpenFeedbackIssues();
             if(unavailable||summary==null)GUI.Label(new Rect(r.x+8,r.y+5,r.width-16,r.height-8),localization.Get("ui.feedback.unavailable"),wrapped);
-            else if(r.height<40)GUI.Label(new Rect(r.x+8,r.y+6,r.width-16,20),localization.Get("ui.feedback.bar_short",summary.foodEmpty,summary.dailyEmpty,summary.cashShops+summary.cashFactories),small);
+            else if(r.height<40)
+            {
+                GUI.Label(new Rect(r.x+8,r.y+1,r.width-16,14),localization.Get("ui.feedback.stock_title",summary.householdFood.ToString("N0")),small);
+                GUI.Label(new Rect(r.x+8,r.y+15,r.width-16,14),localization.Get("ui.feedback.bar_short",summary.foodEmpty,summary.dailyEmpty,summary.cashShops+summary.cashFactories),small);
+            }
             else if(r.width<420)
             {
-                GUI.Label(new Rect(r.x+8,r.y+5,r.width-16,18),localization.Get("ui.feedback.title"),small);
+                GUI.Label(new Rect(r.x+8,r.y+5,r.width-16,18),localization.Get("ui.feedback.household_food",summary.householdFood.ToString("N0")),small);
                 GUI.Label(new Rect(r.x+8,r.y+23,r.width-16,17),localization.Get("ui.feedback.food_short",summary.foodEmpty,summary.foodLow),small);
                 GUI.Label(new Rect(r.x+8,r.y+40,r.width-16,17),localization.Get("ui.feedback.daily_short",summary.dailyEmpty,summary.dailyLow),small);
                 GUI.Label(new Rect(r.x+8,r.y+57,r.width-16,17),localization.Get("ui.feedback.business_short",summary.cashShops+summary.cashFactories,summary.infrastructure),small);
             }
             else
             {
-                GUI.Label(new Rect(r.x+10,r.y+6,r.width-20,20),localization.Get("ui.feedback.title"),heading);
+                GUI.Label(new Rect(r.x+10,r.y+6,r.width-20,20),localization.Get("ui.feedback.stock_title",summary.householdFood.ToString("N0")),heading);
                 GUI.Label(new Rect(r.x+10,r.y+31,(r.width-20)/2,20),localization.Get("ui.feedback.food_short",summary.foodEmpty,summary.foodLow),small);
                 GUI.Label(new Rect(r.center.x,r.y+31,(r.width-20)/2,20),localization.Get("ui.feedback.daily_short",summary.dailyEmpty,summary.dailyLow),small);
                 GUI.Label(new Rect(r.x+10,r.y+53,r.width-20,20),summary.Count==0?localization.Get("ui.feedback.no_issues_short"):localization.Get("ui.feedback.business_long",summary.cashShops,summary.cashFactories,summary.infrastructure),small);

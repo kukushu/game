@@ -5,7 +5,7 @@ namespace HarborCity
     public enum CityFeedbackKind {FoodEmpty,DailyEmpty,Cash,Road,Electricity,Water,Sewage,Garbage,Abandoned,FoodLow,DailyLow}
     [Serializable] public sealed class CityFeedbackSummary
     {
-        public long tick;
+        public long tick,householdFood;
         public int households;
         public int foodEmpty,foodLow,dailyEmpty,dailyLow,cashShops,cashFactories,infrastructure;
         public bool Critical=>foodEmpty+dailyEmpty+cashShops+cashFactories+infrastructure>0;
@@ -23,7 +23,7 @@ namespace HarborCity
     {
         readonly CityCoreIndustrySession session;readonly CityCoreObservation query;
         readonly HashSet<int> dirtyFamilies=new HashSet<int>(),dirtyBuildings=new HashSet<int>();
-        readonly HashSet<int> residentFamilies=new HashSet<int>();
+        readonly Dictionary<int,int> residentFood=new Dictionary<int,int>();
         readonly Dictionary<int,int> familyFlags=new Dictionary<int,int>();
         readonly Dictionary<int,int> familyHomes=new Dictionary<int,int>();
         readonly Dictionary<int,CityObservedProblem> buildingFlags=new Dictionary<int,CityObservedProblem>();
@@ -57,7 +57,12 @@ namespace HarborCity
         {
             int next=0;var h=session.Entities.Family(id);bool occupied=false;
             if(h!=null&&h.resident&&h.home>=0)foreach(var person in h.people)if(!person.dead){occupied=true;break;}
-            if(occupied){if(residentFamilies.Add(id))Summary.households++;}else if(residentFamilies.Remove(id))Summary.households--;
+            bool wasOccupied=residentFood.TryGetValue(id,out int previousFood);
+            int food=occupied?h.goods.food:0;
+            Summary.householdFood+=(long)food-previousFood;
+            if(occupied)residentFood[id]=food;
+            else if(wasOccupied)residentFood.Remove(id);
+            Summary.households=residentFood.Count;
             if(session.City.development.enabled&&h!=null&&h.resident&&h.goodsInitialized&&h.consumptionPeople>0)
             {
                 if(h.goods.food==0)next|=1;else if(session.Simulation.Consumption.Need(h,ProductKind.Food)>0)next|=2;
@@ -127,7 +132,7 @@ namespace HarborCity
             if(disposed)return;disposed=true;
             session.Entities.ShoppingFamilyFactsChanged-=Family;session.Entities.MemberStructureChanged-=Member;session.Entities.ResidentStateChanged-=Resident;session.Entities.BusinessStructureChanged-=Structure;session.Entities.BusinessFundingBoundaryChanged-=Business;
             session.Simulation.Utilities.SuppliesRebuilt-=Supplies;session.Simulation.Waste.WaitingChanged-=Business;
-            entries.Clear();residentFamilies.Clear();Summary.households=0;familyFlags.Clear();familyHomes.Clear();buildingFlags.Clear();emptyAccounts.Clear();dirtyFamilies.Clear();dirtyBuildings.Clear();
+            entries.Clear();residentFood.Clear();Summary.households=0;Summary.householdFood=0;familyFlags.Clear();familyHomes.Clear();buildingFlags.Clear();emptyAccounts.Clear();dirtyFamilies.Clear();dirtyBuildings.Clear();
         }
     }
 }

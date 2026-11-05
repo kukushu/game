@@ -1396,6 +1396,14 @@
     {
       "key": "ui.hud.calendar_clock",
       "text": "第 {0} 天 {1}"
+    },
+    {
+      "key": "ui.feedback.household_food",
+      "text": "家庭食物库存 {0} 份"
+    },
+    {
+      "key": "ui.feedback.stock_title",
+      "text": "城市提醒 · 家庭食物库存 {0} 份"
     }
   ]
 }
