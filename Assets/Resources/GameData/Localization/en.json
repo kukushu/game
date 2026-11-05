@@ -1372,6 +1372,10 @@
     {
       "key": "ui.feedback.person_location",
       "text": "Current location: {0} · carried goods {1}"
+    },
+    {
+      "key": "ui.feedback.capture_no_save",
+      "text": "City save was not generated: save validation rejected the state or writing failed. Available issue details and screenshot are retained. Simulation remains paused.\n{0}"
     }
   ]
 }

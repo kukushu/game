@@ -1372,6 +1372,10 @@
     {
       "key": "ui.feedback.person_location",
       "text": "当前位置：{0} · 携带商品 {1}"
+    },
+    {
+      "key": "ui.feedback.capture_no_save",
+      "text": "存档未生成：保存边界拒绝或写入失败。已尽可能保留问题说明和截图，模拟保持暂停。\n{0}"
     }
   ]
 }

@@ -67,7 +67,7 @@ namespace HarborCity
         void BeginFeedbackCapture()
         {
             if(feedbackCapturing||session==null)return;
-            float previous=speed;ScenarioRate(0);feedbackCapturing=true;
+            float previous=speed;ScenarioRate(0);feedbackCapturing=true;feedbackLastCapture="";feedbackCaptureResult="";
             StartCoroutine(CaptureFeedback(previous));
         }
         static string FeedbackSaveHash(byte[] bytes)
@@ -105,7 +105,7 @@ namespace HarborCity
                 try{screenshot=ScreenCapture.CaptureScreenshotAsTexture();File.WriteAllBytes(Path.Combine(directory,"window.png"),screenshot.EncodeToPNG());capture.screenshotWritten=true;}catch(Exception e){capture.screenshotError=e.ToString();}finally{if(screenshot!=null)Destroy(screenshot);}
                 bool metadataWritten=true;try{File.WriteAllText(Path.Combine(directory,"scene.json"),JsonUtility.ToJson(capture,true));}catch(Exception e){metadataWritten=false;feedbackCaptureResult=localization.Get("ui.feedback.capture_failed",e.Message);}
                 feedbackLastCapture=directory;
-                if(metadataWritten)feedbackCaptureResult=localization.Get(capture.saveWritten&&capture.screenshotWritten?"ui.feedback.capture_ok":"ui.feedback.capture_partial",directory);
+                if(metadataWritten)feedbackCaptureResult=localization.Get(!capture.saveWritten?"ui.feedback.capture_no_save":capture.screenshotWritten?"ui.feedback.capture_ok":"ui.feedback.capture_partial",directory);
             }
             feedbackCapturing=false;notice=feedbackCaptureResult;
         }
