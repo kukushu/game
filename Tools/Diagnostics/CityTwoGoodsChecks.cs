@@ -51,6 +51,31 @@ static class CityTwoGoodsChecks
         session.Validate();Console.WriteLine("ZERO-KIT bought="+session.City.consumption.Bought.food+"/"+session.City.consumption.Bought.dailyGoods);
         Check(session.City.consumption.Bought.food>0&&session.City.consumption.Bought.dailyGoods>0,"Two-kind actual retail missing in zero-opening-inventory stress fixture");
     }
+    static void InvestmentChecks()
+    {
+        var s=CityCoreIndustrySession.Create();var growth=s.Simulation.Growth;var worker=s.City.Citizens.First();s.City.ReleaseJob(worker);
+        Check(growth.HasWorker(2),"Qualified unemployed worker not available for investment");
+        worker.sick=true;Check(!growth.HasWorker(0),"Sick resident counted as eligible investment worker");
+        worker.sick=false;worker.skill=0;Check(growth.HasWorker(0)&&!growth.HasWorker(1),"Investment skill notification stale");
+        worker.skill=2;worker.tripId=123;Check(!growth.HasWorker(0),"Travelling worker counted for new business");worker.tripId=0;
+        worker.canWork=false;Check(!growth.HasWorker(0),"Ineligible worker counted for investment");worker.canWork=true;
+        var farShop=new CommercialBuilding{id=s.City.nextBuildingId,x=120,z=-7};s.Entities.AddBuilding(farShop);
+        int a=s.Transport.AddJunction(new Point(100,0,0)),b=s.Transport.AddJunction(new Point(150,0,0));
+        int road=s.Transport.AddRoad(a,b,new[]{s.Transport.JunctionPosition(a),s.Transport.JunctionPosition(b)});
+        s.Transport.RegisterAccess(farShop.id,Network.LaneId(road,false),20);
+        s.City.development.enabled=true;
+        foreach(var shop in s.Entities.Shops)shop.Account.Capital=shop.Account.Cash=2000;
+        var factory=s.Entities.Factories.Single();factory.Products=GoodsAmounts.Of(ProductKind.DailyGoods,8);
+        // Isolate the investment selector with declared procurement inputs. These
+        // are test-only derived demand entries, not injected production or money
+        // during a normal simulated city. The two stores are on disjoint networks.
+        var demands=(System.Collections.Generic.Dictionary<int,GoodsAmounts>)typeof(CityCoreConsumption).GetField("shopDemand",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance).GetValue(s.Simulation.Consumption);
+        demands.Clear();demands[2]=GoodsAmounts.Of(ProductKind.DailyGoods,8);demands[farShop.id]=GoodsAmounts.Of(ProductKind.DailyGoods,6);
+        bool opportunity=growth.InvestmentOpportunity(LandUse.Industrial,out var kind,out int reserve,out var focus);
+        Check(opportunity&&kind==ProductKind.DailyGoods&&reserve==6&&focus.id==farShop.id,"Covered largest store hid uncovered second-region investment: opportunity="+opportunity+" kind="+kind+" reserve="+reserve+" focus="+focus?.id+" worker="+growth.HasWorker(1)+" access="+s.City.BuildingAccess(farShop.id)+" cash="+farShop.Account.Cash);
+        demands[2]=GoodsAmounts.Of(ProductKind.Food,6);demands[farShop.id]=GoodsAmounts.Of(ProductKind.DailyGoods,6);
+        Check(growth.InvestmentOpportunity(LandUse.Industrial,out kind,out reserve,out focus)&&kind==ProductKind.Food&&reserve==6&&focus.id==2,"Equal investment gaps did not prefer food");
+    }
     static void Main()
     {
         var catalog=new CityGameDesign(new GameDesignData()).Products;
@@ -67,6 +92,6 @@ static class CityTwoGoodsChecks
         var raw=new Shipment{remaining=8};raw.kind=CargoKind.RawMaterial;Check(raw.remaining==8&&raw.Products.Total==0,"Raw admission amount");var waste=new Shipment{kind=CargoKind.Waste,remaining=7};Check(waste.Copy().remaining==7,"Waste copy");
         var building=BuildingSaveData.FromBuilding(new CommercialBuilding{Products=a});Check(((CommercialBuilding)building.ToBuilding()).Products.Equals(a),"Building mixed inventory persistence");
         var old=(byte[])bytes.Clone();Buffer.BlockCopy(BitConverter.GetBytes(15),0,old,4,4);bool refused=false;try{SaveCodec.Read(old);}catch(System.IO.InvalidDataException){refused=true;}Check(refused,"Old traffic format accepted");
-        ScheduleChecks();MixedPurchaseChecks();Console.WriteLine("PASS "+checks+" two-product checks");
+        InvestmentChecks();ScheduleChecks();MixedPurchaseChecks();Console.WriteLine("PASS "+checks+" two-product checks");
     }
 }

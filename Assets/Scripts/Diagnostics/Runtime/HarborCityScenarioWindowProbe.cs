@@ -312,6 +312,7 @@ namespace HarborCity
         IEnumerator FixedWork(int steps)
         {
             if(steps<1||steps>4000)throw new ArgumentOutOfRangeException(nameof(steps));var city=host.ScenarioSession;
+            var memoryRows=new List<string>{"phase,drivables,renderers,vertices,triangles,mesh_runtime_bytes,managed_gc_bytes,unity_allocated_bytes"};RoadMemory(memoryRows,"start");
             var rows=new List<string>{"index,tick,step_ms,allocated_bytes,active_vehicles"};var states=new List<string>{"tick,sha256"};
             long allocation=GC.GetAllocatedBytesForCurrentThread();GC.KeepAlive(new byte[4096]);bool supported=GC.GetAllocatedBytesForCurrentThread()>allocation;
             File.WriteAllBytes(Path.Combine(output,"fixed-start.hcity"),CityCoreSave.Write(city));
@@ -339,6 +340,8 @@ namespace HarborCity
             finally{if(queryTick>0)HarborCity.RoadCore.CityCoreProfile.QueryObserver=null;if(profile)HarborCity.RoadCore.CityCoreProfile.Enabled=false;}
             if(queryTick>0){File.WriteAllLines(Path.Combine(output,"fixed-queries.csv"),new[]{"tick,kind,result,origin,destination,both_directions,context,count"}.Concat(queries.OrderBy(q=>q.Key.kind).ThenBy(q=>q.Key.result).ThenBy(q=>q.Key.origin).ThenBy(q=>q.Key.destination).ThenBy(q=>q.Key.both).ThenBy(q=>q.Key.context).Select(q=>string.Join(",",queryTick,q.Key.kind,q.Key.result,q.Key.origin,q.Key.destination,q.Key.both,q.Key.context,q.Value))));File.WriteAllText(Path.Combine(output,"fixed-query-overflow.txt"),overflow.ToString(CultureInfo.InvariantCulture));}
             if(profile){HarborCity.RoadCore.CityCoreProfile.Enabled=false;File.WriteAllLines(Path.Combine(output,"fixed-core-cumulative.csv"),coreRows);}
+            RoadMemory(memoryRows,"end");File.WriteAllLines(Path.Combine(output,"road-memory.csv"),memoryRows);
+            File.WriteAllText(Path.Combine(output,"fixed-gc.csv"),"gen0,gen1,gen2,note\n"+string.Join(",",GC.CollectionCount(0)-gc0,GC.CollectionCount(1)-gc1,GC.CollectionCount(2)-gc2,"runtime collection counters; zero alone does not prove support or zero pauses"));
             WriteShoppingStats(output,shoppingBefore,city);WriteResidentStats(output,residentBefore,city);WriteOccupancyStats(output,occupancyBefore,city);var pointAfter=RouteStats(city.Transport.Network,city.Transport);
             File.WriteAllLines(Path.Combine(output,"fixed-point-routing.csv"),new[]{"metric,start,end,delta,same_network"}.Concat(pointBefore.Select(p=>string.Join(",",p.Key,p.Value,pointAfter[p.Key],pointAfter[p.Key]-p.Value,ReferenceEquals(pointNetwork,city.Transport.Network)))));
             if(queryTick>0)
