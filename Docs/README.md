@@ -1,5 +1,7 @@
 # HarborCity 工程导航
 
+[游戏数值与资金循环](Gameplay/EconomyNumbers.md)记录小城贸易、工资、税和交易账的算法、带进口的复跑命令与长期结果。
+
 首轮[反馈试玩说明与手动验收](Gameplay/FeedbackPlaytest-20261105.md)、[构建交付记录](Gameplay/FeedbackPlaytest-Build-20261106.md)、[反馈与现场记录所有权](Architecture/PlayerFeedback-20261105.md)。本轮按用户要求只检查代码、编译构建和产物，不运行游戏测试；独立试玩包与日常 test 存档隔离。
 
 当前两类商品实验分支的入口：[玩法规则](Gameplay/CoreLoop.md)、[两类商品实施与所有权](Architecture/TwoGoods-20261104.md)、[2026-11-05验证报告](Performance/TwoGoods-20261105/Report.md)。这批改动位于codex/gameplay-two-goods-20261104，未合入develop；报告明确区分模型、真实Player、平衡异常与未验证项目。
