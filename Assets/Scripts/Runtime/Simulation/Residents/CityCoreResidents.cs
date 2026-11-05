@@ -231,7 +231,7 @@ namespace HarborCity
             if(v.purpose==TransportPurpose.Home&&v.destination!=h.home)return false;
             p.tripId=0;p.location=v.destination;p.atWork=v.purpose==TransportPurpose.Work&&city.Workplace(p)==v.destination&&city.CanAttendWork(p)&&city.JobFunded(city.ResidentJob(p));
             if(v.purpose==TransportPurpose.Shopping)Consumption.BeginVisit(v,member);
-            if(v.purpose==TransportPurpose.Home)Consumption.ReturnHome(member,v.products);
+            if(v.purpose==TransportPurpose.Home)Consumption.ReturnHome(member,v.products,v.arrivedAt);
             if(p.atWork){double seconds=city.society.settings.secondsPerDay,absolute=calendarOffset+v.arrivedAt;p.arrivedDay=1+(int)Math.Floor(absolute/seconds);p.lastCommute=(float)Math.Max(0,(v.arrivedAt-v.departedAt)*1440/seconds);p.lastDelay=(float)Math.Max(0,(p.arrivedDay-p.departureDay)*1440+absolute%seconds*1440/seconds-entities.Employment.ShiftStart(p.id,city.development.enabled&&city.GetBuilding(v.destination) is CommercialBuilding));p.observedHome=h.home;p.observedWork=v.destination;p.observedRevision=transport.NetworkGeneration;}
             return true;
         }

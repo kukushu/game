@@ -1404,6 +1404,10 @@
     {
       "key": "ui.feedback.stock_title",
       "text": "City alerts · Home food: {0} units"
+    },
+    {
+      "key": "ui.feedback.shopping_today",
+      "text": "Shopping time today (since load): {0}"
     }
   ]
 }

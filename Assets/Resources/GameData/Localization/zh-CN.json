@@ -1404,6 +1404,10 @@
     {
       "key": "ui.feedback.stock_title",
       "text": "城市提醒 · 家庭食物库存 {0} 份"
+    },
+    {
+      "key": "ui.feedback.shopping_today",
+      "text": "今日购物耗时（本次载入后）：{0}"
     }
   ]
 }

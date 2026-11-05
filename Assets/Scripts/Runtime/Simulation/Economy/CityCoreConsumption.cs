@@ -162,8 +162,17 @@ namespace HarborCity
                 shop.Products-=bought;shop.retailSold+=bought.Total;shop.retailSoldToday+=bought.Total;shop.Account.Cash+=payment;shop.Account.RetailRevenue+=payment;h.savings-=payment;h.retailPaid+=payment;person.carriedProducts=bought;city.consumption.Bought+=bought;city.consumption.RetailPayments+=payment;UpdateDemand(slots[h.id]);}
             person.visitUntil=a.arrivedAt+rules.VisitSeconds;person.retryAt=(float)person.visitUntil;
         }
-        internal void ReturnHome(CityMember m,GoodsAmounts goods)
-        {m.Family.goods+=goods;if(m.Family.shoppingMember==m.Person.id)m.Family.shoppingMember=0;UpdateDemand(slots[m.Family.id]);Mark(m.Family,false);}
+        internal event Action<int,double> ShoppingReturned;
+        internal void ReturnHome(CityMember m,GoodsAmounts goods,double arrivedAt)
+        {
+            var family=m.Family;
+            family.goods+=goods;
+            bool finishedShopping=family.shoppingMember==m.Person.id;
+            if(finishedShopping)family.shoppingMember=0;
+            UpdateDemand(slots[family.id]);
+            Mark(family,false);
+            if(finishedShopping)ShoppingReturned?.Invoke(family.id,arrivedAt);
+        }
         public void Validate()
         {
             var state=city.consumption;state.Consumed.Validate();state.Initial.Validate();state.Lost.Validate();state.Bought.Validate();state.Unmet.Validate();if(state.NextTick<0||state.RetailPayments<0||double.IsNaN(state.RetailPayments)||double.IsInfinity(state.RetailPayments))throw new InvalidOperationException("Invalid consumption state");

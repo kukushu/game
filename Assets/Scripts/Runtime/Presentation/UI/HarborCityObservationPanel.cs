@@ -36,8 +36,8 @@ namespace HarborCity
         public HarborCityObservationPanel(CityLocalization text){this.text=text;}
         public bool BlocksInput(Vector2 screen)=> (selected!=0||showIssues)&&Bounds.Contains(new Vector2(screen.x,Screen.height-screen.y));
         public void Bind(CityCoreIndustrySession current)
-        {if(ReferenceEquals(session,current))return;feedback?.Dispose();session=current;query=current==null?null:new CityCoreObservation(current);feedback=current==null?null:new CityPlayerFeedback(current,query);selected=family=issuePage=locatedTask=0;group=-1;showIssues=false;scroll=Vector2.zero;shown=null;feedbackEntries=null;refreshed=-1;entityRevision=roadRevision=-1;feedbackDeadline=0;FeedbackError="";}
-        public void Dispose(){feedback?.Dispose();feedback=null;session=null;query=null;}
+        {if(ReferenceEquals(session,current))return;feedback?.Dispose();query?.Dispose();session=current;query=current==null?null:new CityCoreObservation(current);query?.ObserveShoppingTime();feedback=current==null?null:new CityPlayerFeedback(current,query);selected=family=issuePage=locatedTask=0;group=-1;showIssues=false;scroll=Vector2.zero;shown=null;feedbackEntries=null;refreshed=-1;entityRevision=roadRevision=-1;feedbackDeadline=0;FeedbackError="";}
+        public void Dispose(){query?.Dispose();feedback?.Dispose();feedback=null;session=null;query=null;}
         public void PollFeedback(bool force=false)
         {
             if(feedback==null||!force&&Time.realtimeSinceStartupAsDouble<feedbackDeadline)return;
@@ -59,7 +59,7 @@ namespace HarborCity
             try{shown=selected==0?null:query.Read(selected);if(selected!=0&&shown==null)selected=family=0;}catch(Exception e){shown=null;FeedbackError=e.ToString();}
             refreshDeadline=Time.realtimeSinceStartupAsDouble+.5;refreshed=tick;entityRevision=session.Entities.Revision;roadRevision=session.Transport.NetworkGeneration;
         }
-        string CommuteDuration(double minutes)
+        string FormatDuration(double minutes)
         {
             long roundedMinutes=(long)Math.Round(minutes);
             return text.Get("ui.inspect.commute_duration",roundedMinutes/60,(roundedMinutes%60).ToString("D2"));
@@ -120,11 +120,12 @@ namespace HarborCity
                     if(GUILayout.Button(text.Get("ui.feedback.family",h.unit+1,h.members.Count)))family=family==h.id?0:h.id;
                     if(h.id!=family)continue;
                     GUILayout.Label(text.Get("ui.inspect.savings",h.savings));GUILayout.Label(h.stockKnown?text.Get("ui.goods.household",h.products.food,h.foodDays.ToString("F1"),h.products.dailyGoods,h.dailyDays.ToString("F1")):text.Get("ui.feedback.reason.preparing"));
+                    GUILayout.Label(text.Get("ui.feedback.shopping_today",FormatDuration(h.shoppingMinutes)));
                     GUILayout.Label(text.Get("ui.feedback.need",h.needFood,h.needDaily));GUILayout.Label(text.Get("ui.feedback.adults",h.healthyAdults,h.availableAdults,h.workingAdults,h.travellingAdults));
                     if(!string.IsNullOrEmpty(h.goodsProblem))GUILayout.Label(text.Get(h.goodsProblem));
                     if(h.supplier>0&&session.Entities.Building(h.supplier)!=null&&GUILayout.Button(text.Get("ui.feedback.locate_supplier")))Locate(h.supplier);
                     GUILayout.Label(text.Get("ui.feedback.advice.family"));
-                    GUILayout.Label(h.commuteSamples==0?text.Get("ui.inspect.no_commute"):text.Get("ui.inspect.commute",CommuteDuration(h.averageCommute),CommuteDuration(h.longestCommute),h.commuteSamples));
+                    GUILayout.Label(h.commuteSamples==0?text.Get("ui.inspect.no_commute"):text.Get("ui.inspect.commute",FormatDuration(h.averageCommute),FormatDuration(h.longestCommute),h.commuteSamples));
                     foreach(var p in h.members)
                     {
                         GUILayout.Label(text.Get("ui.feedback.person",p.name,p.age,Yes(p.workforce)));

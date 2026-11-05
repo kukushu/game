@@ -11,7 +11,7 @@ namespace HarborCity
     }
     [Serializable] public sealed class FamilyInspection
     {
-        public GoodsAmounts products;public double foodDays,dailyDays;public string goodsProblem;
+        public GoodsAmounts products;public double foodDays,dailyDays,shoppingMinutes;public string goodsProblem;
         public int id,unit,savings,employed,workforce,commuteSamples;public double averageCommute,longestCommute;
         [NonSerialized] public IReadOnlyList<ResidentInspection> members;
         public bool stockKnown;public int needFood,needDaily,healthyAdults,availableAdults,workingAdults,travellingAdults,supplier,shoppingMember;
@@ -31,14 +31,17 @@ namespace HarborCity
         public readonly int id;public readonly CityObservedProblem problems;
         public BuildingIssue(int id,CityObservedProblem problems){this.id=id;this.problems=problems;}
     }
-    // Cold, read-only projections; no subscriptions, simulation writes, or saved UI state.
+    // Read-only projections with optional session-local shopping observations.
     // Detail reads selected-home members and indexed staff plus jobs/tasks; explicit Issues is O(B).
-    public sealed class CityCoreObservation
+    public sealed class CityCoreObservation : IDisposable
     {
         readonly CityCoreIndustrySession session;readonly long boundTick;
         readonly List<Household> homeFamilies=new List<Household>();readonly List<CityMember> staff=new List<CityMember>();
         public bool PayrollKnown=>session.Simulation.Tick>boundTick;
         public CityCoreObservation(CityCoreIndustrySession session){this.session=session??throw new ArgumentNullException(nameof(session));boundTick=session.Simulation.Tick;}
+        CityShoppingTime shoppingTime;
+        internal void ObserveShoppingTime()=>shoppingTime??=new CityShoppingTime(session);
+        public void Dispose(){shoppingTime?.Dispose();shoppingTime=null;}
         internal CityObservedProblem Problems(CityBuilding b)
         {
             var mask=CityObservedProblem.None;var access=session.Transport.GetAccess(b.id);if(access==null||!access.valid)mask|=CityObservedProblem.Road;
@@ -58,7 +61,7 @@ namespace HarborCity
             foreach(var h in homeFamilies)if(h.resident)
             {
                 bool known=h.goodsInitialized&&h.consumptionPeople>0;
-                var family=new FamilyInspection{id=h.id,unit=h.unit,savings=h.savings,products=h.goods,stockKnown=known,foodDays=known?session.Simulation.Consumption.DaysAvailable(h,ProductKind.Food):0,dailyDays=known?session.Simulation.Consumption.DaysAvailable(h,ProductKind.DailyGoods):0,needFood=session.Simulation.Consumption.Need(h,ProductKind.Food),needDaily=session.Simulation.Consumption.Need(h,ProductKind.DailyGoods),supplier=h.goodsSupplier,shoppingMember=h.shoppingMember};var members=new List<ResidentInspection>();double sum=0;
+                var family=new FamilyInspection{id=h.id,unit=h.unit,savings=h.savings,products=h.goods,stockKnown=known,foodDays=known?session.Simulation.Consumption.DaysAvailable(h,ProductKind.Food):0,dailyDays=known?session.Simulation.Consumption.DaysAvailable(h,ProductKind.DailyGoods):0,needFood=session.Simulation.Consumption.Need(h,ProductKind.Food),needDaily=session.Simulation.Consumption.Need(h,ProductKind.DailyGoods),supplier=h.goodsSupplier,shoppingMember=h.shoppingMember,shoppingMinutes=shoppingTime?.TodayMinutes(h.id)??0};var members=new List<ResidentInspection>();double sum=0;
                 foreach(var p in h.people)if(!p.dead)
                 {
                     var job=session.City.ResidentJob(p);var car=p.tripId==0?null:session.Transport.FindTaskVehicle(p.tripId);
@@ -117,4 +120,73 @@ namespace HarborCity
             return "ui.feedback.reason.waiting";
         }
     }
+
+    // One interval per household. Split at city midnight and count only time
+    // observed in this session, including unfinished trips and visits.
+    sealed class CityShoppingTime : IDisposable
+    {
+        sealed class Entry
+        {
+            internal int Shopper,Day;
+            internal double StartedAt,CompletedSeconds;
+        }
+        readonly CityCoreIndustrySession session;
+        readonly Dictionary<int,Entry> entries=new Dictionary<int,Entry>();
+        double DaySeconds=>session.City.society.settings.secondsPerDay;
+        double Offset=>session.Simulation.CalendarOffset;
+
+        internal CityShoppingTime(CityCoreIndustrySession session)
+        {
+            this.session=session;
+            foreach(var family in session.City.society.families)
+                if(family.shoppingMember!=0)Begin(family.id,family.shoppingMember,session.Transport.Clock);
+            session.Transport.TaskCommitted+=Departed;
+            session.Simulation.Consumption.ShoppingReturned+=Finished;
+            session.Entities.MemberStructureChanged+=MemberChanged;
+        }
+        void Begin(int family,int shopper,double time)
+        {
+            if(!entries.TryGetValue(family,out var entry))entries.Add(family,entry=new Entry());
+            entry.Shopper=shopper;
+            entry.StartedAt=time;
+        }
+        void Departed(TripTask task)
+        {
+            if(task.purpose!=TransportPurpose.Shopping)return;
+            var member=session.Entities.Member(task.citizenId);
+            if(member!=null)Begin(member.Family.id,task.citizenId,task.departedAt);
+        }
+        void MemberChanged(CityMember member,bool added)
+        {
+            if(!added&&entries.TryGetValue(member.Family.id,out var entry)&&entry.Shopper==member.Person.id)
+                Finished(member.Family.id,session.Transport.Clock);
+        }
+        int DayAt(double seconds)=>1+(int)Math.Floor((Offset+seconds)/DaySeconds);
+        double SecondsToday(double startedAt,double now,int day)
+            =>Math.Max(0,now-Math.Max(startedAt,(day-1)*DaySeconds-Offset));
+        void Finished(int family,double time)
+        {
+            if(!entries.TryGetValue(family,out var entry)||entry.Shopper==0)return;
+            int day=DayAt(time);
+            if(entry.Day!=day){entry.Day=day;entry.CompletedSeconds=0;}
+            entry.CompletedSeconds+=SecondsToday(entry.StartedAt,time,day);
+            entry.Shopper=0;
+        }
+        internal double TodayMinutes(int family)
+        {
+            if(!entries.TryGetValue(family,out var entry))return 0;
+            double now=session.Transport.Clock;
+            int day=DayAt(now);
+            double seconds=entry.Day==day?entry.CompletedSeconds:0;
+            if(entry.Shopper!=0)seconds+=SecondsToday(entry.StartedAt,now,day);
+            return seconds*1440/DaySeconds;
+        }
+        public void Dispose()
+        {
+            session.Transport.TaskCommitted-=Departed;
+            session.Simulation.Consumption.ShoppingReturned-=Finished;
+            session.Entities.MemberStructureChanged-=MemberChanged;
+        }
+    }
+
 }
