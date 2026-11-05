@@ -131,6 +131,7 @@ namespace HarborCity
         }
         internal void MarkFundingDirty(int building,object account)
         {
+            BusinessFundingBoundaryChanged?.Invoke(building);
             if(fundingChanged==null)return;
             if(!funding.TryGetValue(building,out var state)||!ReferenceEquals(state.Account,account))throw new InvalidOperationException("Funding changed outside account ownership");
             dirtyFunding.Add(building);
@@ -289,6 +290,8 @@ namespace HarborCity
         }
         static bool Available(CityBuilding b)=>!b.abandoned&&!b.burned;
         internal event Action<CityBuilding> ProductsChanged;
+        // Read-only presentation observers only mark dirty identities here.
+        internal event Action<int> BusinessFundingBoundaryChanged;
         internal event Action<CityBuilding,bool> BusinessStructureChanged;
         internal void ProductInventoryChanged(CityBuilding b)=>ProductsChanged?.Invoke(b);
         void IndexType(CityBuilding b){b.EntityOwner=this;BindFunding(b);if(b is IndustrialBuilding f)factories.Add(f);if(b is CommercialBuilding s){shops.Add(s);ShopRevision++;}BusinessStructureChanged?.Invoke(b,true);}
@@ -337,6 +340,8 @@ namespace HarborCity
         }
         public CityMember Member(int id)=>people.TryGetValue(id,out var m)?m:null;
         public Household Family(int id)=>families.TryGetValue(id,out var h)?h:null;
+        internal void CollectHomeFamilies(int home,List<Household> result)
+        {result.Clear();if(householdsByHome.TryGetValue(home,out var atHome))foreach(var h in atHome)result.Add(h);result.Sort((a,b)=>a.id.CompareTo(b.id));}
         public void AddBuilding(CityBuilding b)
         {StructuralBoundary();if(b==null||b.id<city.nextBuildingId||b.id>=int.MaxValue||buildings.ContainsKey(b.id))throw new ArgumentException("Building ID must be new and monotonic");if(b is IndustrialBuilding factory&&(factory.factory==null||factory.factory.FundingOwner!=null)||b is CommercialBuilding shop&&(shop.Account==null||shop.Account.FundingOwner!=null))throw new ArgumentException("New building requires its own unbound account");city.buildings.Add(b);buildings.Add(b.id,b);IndexType(b);city.nextBuildingId=b.id+1;transport.SetEndpointAvailable(b.id,Available(b));Revision++;BuildingRevision++;displayJournal?.Mark(b.id);city.SyncJobs();}
         public void ReplaceBuilding(CityBuilding b)

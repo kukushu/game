@@ -28,6 +28,14 @@ namespace HarborCity
             var report=BuildPipeline.BuildPlayer(new BuildPlayerOptions{scenes=new[]{"Assets/Scenes/SampleScene.unity"},locationPathName=Environment.GetEnvironmentVariable("HARBOR_TRAFFIC_VALIDATION_PLAYER"),target=BuildTarget.StandaloneWindows64,options=Environment.GetEnvironmentVariable("HARBOR_PLAYER_RELEASE")=="1"?BuildOptions.None:BuildOptions.Development,extraScriptingDefines=defines.ToArray()});
             if(report.summary.result!=UnityEditor.Build.Reporting.BuildResult.Succeeded)throw new Exception("Research validation build failed");
         }
+        public static void BuildFeedbackPlaytest()
+        {
+            if(!Application.isBatchMode)throw new Exception("Feedback build requires an isolated project");
+            PlayerSettings.productName="HarborCity Feedback Playtest";
+            PlayerSettings.bundleVersion="0.1.0-feedback";
+            Environment.SetEnvironmentVariable("HARBOR_PLAYER_RELEASE","1");
+            BuildResearchValidation();
+        }
         public static void Export()
         {
             string directory=Environment.GetEnvironmentVariable("HARBOR_BENCHMARK_RESULTS");

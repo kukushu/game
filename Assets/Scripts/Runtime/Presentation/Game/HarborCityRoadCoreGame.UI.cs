@@ -18,11 +18,11 @@ namespace HarborCity
         Rect StatusBounds=>new Rect(8,8,Math.Min(408,(Screen.width-24)*.51f),78);
         Rect TimeBounds=>new Rect(Screen.width-Math.Min(352,(Screen.width-24)*.46f)-8,8,Math.Min(352,(Screen.width-24)*.46f),64);
         Rect NoticeBounds=>Time.realtimeSinceStartupAsDouble<hudNoticeUntil?new Rect(Math.Max(8,(Screen.width-480)/2),96,Math.Min(480,Screen.width-16),30):new Rect();
-        Rect ToolPanelBounds=>toolPage==ToolPage.None?new Rect():new Rect(8,96,Math.Min(280,Screen.width-16),Math.Min(256,Screen.height-152));
+        Rect ToolPanelBounds=>toolPage==ToolPage.None?new Rect():new Rect(8,FeedbackBounds.yMax>90?126:96,Math.Min(280,Screen.width-16),Math.Min(360,Screen.height-180));
         bool BlocksHudInput(Vector2 point)
         {
             var p=new Vector2(point.x,Screen.height-point.y);
-            return TimeBounds.Contains(p)||ToolbarBounds.Contains(p)||StatusBounds.Contains(p)||ToolPanelBounds.Contains(p)||NoticeBounds.Contains(p);
+            return TimeBounds.Contains(p)||ToolbarBounds.Contains(p)||StatusBounds.Contains(p)||ToolPanelBounds.Contains(p)||NoticeBounds.Contains(p)||FeedbackBounds.Contains(p);
         }
         void SelectPage(ToolPage page)
         {
@@ -92,7 +92,7 @@ namespace HarborCity
             foreach(float rate in new[]{0f,1f,3f,20f,50f})
             {
                 var old=GUI.backgroundColor;GUI.backgroundColor=speed==rate?new Color(.12f,.51f,.63f):new Color(.11f,.18f,.24f);
-                if(GUI.Button(new Rect(x,b.y+6,width-3,28),rate==0?localization.Get("ui.hud.pause"):rate+"×",rateButton))ScenarioRate(rate);GUI.backgroundColor=old;x+=width;
+                if(GUI.Button(new Rect(x,b.y+6,width-3,28),rate==0?localization.Get("ui.hud.pause"):rate+"×",rateButton)){if(session?.Simulation.Fault!=null&&rate>0)notice=localization.Get("ui.feedback.simulation_fault");else ScenarioRate(rate);}GUI.backgroundColor=old;x+=width;
             }
             GUI.Label(new Rect(b.x+8,b.y+42,b.width-16,18),new GUIContent(localization.Get("ui.design.rate_compact",speed,double.IsNaN(actualRate)?"…":actualRate.ToString("F1")),localization.Get("ui.hud.rate",speed,double.IsNaN(actualRate)?"…":actualRate.ToString("F1"))),small);
         }
@@ -105,13 +105,15 @@ namespace HarborCity
                 if(localization!=null)GUI.Box(new Rect(8,8,Math.Min(Screen.width-16,760),80),localization.Get("ui.build.restart_play"));return;
             }
             EnsureCitySkin();
-            if(Event.current.type==EventType.KeyDown&&Event.current.keyCode==KeyCode.Escape){CancelTool();toolPage=ToolPage.None;observation.Close();financePanel.IsOpen=false;Event.current.Use();}
-            var oldSkin=GUI.skin;var oldContent=GUI.contentColor;var oldBackground=GUI.backgroundColor;
+            if(!feedbackCapturing&&Event.current.type==EventType.KeyDown&&Event.current.keyCode==KeyCode.Escape){CancelTool();toolPage=ToolPage.None;observation.Close();financePanel.IsOpen=false;Event.current.Use();}
+            var oldSkin=GUI.skin;var oldContent=GUI.contentColor;var oldBackground=GUI.backgroundColor;bool oldEnabled=GUI.enabled;
             try
             {
                 GUI.skin=citySkin;GUI.contentColor=Color.white;GUI.backgroundColor=new Color(.16f,.24f,.30f);
+                GUI.enabled=oldEnabled&&!feedbackCapturing;
                 outsideViews?.Draw(cameraView,MenuBounds);
-                DrawCityStatus();DrawToolDock();DrawTimeControls();
+                observation.Top=FeedbackBounds.yMax>90?126:96;DrawCityStatus();DrawToolDock();DrawTimeControls();DrawFeedbackBar();
+                if(FeedbackBuild.playtest)GUI.Label(new Rect(8,Screen.height-74,Math.Min(520,Screen.width-16),18),localization.Get("ui.feedback.version",FeedbackBuild.label),small);
                 if(hudNoticeSeen!=notice){if(hudNoticeSeen!=null&&!string.IsNullOrEmpty(notice))hudNoticeUntil=Time.realtimeSinceStartupAsDouble+4;hudNoticeSeen=notice;}
                 if(NoticeBounds.width>0){HudBox(NoticeBounds);GUI.Label(new Rect(NoticeBounds.x+8,NoticeBounds.y+7,NoticeBounds.width-16,20),new GUIContent(notice,notice),small);}
                 if(toolPage!=ToolPage.None)DrawToolPage();
@@ -119,7 +121,7 @@ namespace HarborCity
                 if(Event.current.type==EventType.Repaint&&!string.IsNullOrEmpty(GUI.tooltip))
                 {var m=Event.current.mousePosition;var r=new Rect(Mathf.Clamp(m.x-90,8,Screen.width-228),Mathf.Clamp(m.y-42,8,Screen.height-48),220,34);HudBox(r);GUI.Label(new Rect(r.x+10,r.y+8,200,22),GUI.tooltip,small);}
             }
-            finally{GUI.skin=oldSkin;GUI.contentColor=oldContent;GUI.backgroundColor=oldBackground;}
+            finally{GUI.skin=oldSkin;GUI.contentColor=oldContent;GUI.backgroundColor=oldBackground;GUI.enabled=oldEnabled;}
         }
         void DrawCityStatus()
         {
@@ -234,6 +236,7 @@ namespace HarborCity
         }
         void DrawGameOptions()
         {
+            DrawFeedbackOptions();
             if(GUILayout.Button(localization.Get("ui.hud.save"),GUILayout.Height(28)))Save();if(GUILayout.Button(localization.Get("ui.hud.load"),GUILayout.Height(28)))Load();
             if(session!=null)session.Simulation.Finance.UnlimitedFunds=GUILayout.Toggle(session.Simulation.Finance.UnlimitedFunds,localization.Get("ui.finance.unlimited"));
             GUILayout.Label(localization.Get("ui.hud.controls"),wrapped);

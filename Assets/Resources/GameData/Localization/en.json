@@ -1020,6 +1020,334 @@
     {
       "key": "ui.goods.investment",
       "text": "External business capital {0}"
+    },
+    {
+      "key": "ui.feedback.title",
+      "text": "City alerts · click to locate"
+    },
+    {
+      "key": "ui.feedback.bar_help",
+      "text": "Inspect currently affected households and businesses; one entity can have several issues."
+    },
+    {
+      "key": "ui.feedback.bar_short",
+      "text": "Alerts · food empty {0} / daily goods empty {1} / cash empty {2}"
+    },
+    {
+      "key": "ui.feedback.food_short",
+      "text": "Food · empty {0} / low {1} households"
+    },
+    {
+      "key": "ui.feedback.daily_short",
+      "text": "Daily goods · empty {0} / low {1} households"
+    },
+    {
+      "key": "ui.feedback.business_short",
+      "text": "Cash empty {0} · infrastructure {1}"
+    },
+    {
+      "key": "ui.feedback.business_long",
+      "text": "Cash empty: {0} shops / {1} factories · {2} infrastructure issues"
+    },
+    {
+      "key": "ui.feedback.no_issues_short",
+      "text": "No current inventory, cash or infrastructure alerts"
+    },
+    {
+      "key": "ui.feedback.no_issues",
+      "text": "No current alerts. Select a building to inspect households, inventory and business details."
+    },
+    {
+      "key": "ui.feedback.basic_clear",
+      "text": "Roads and utilities: no issue currently observed"
+    },
+    {
+      "key": "ui.feedback.issues_title",
+      "text": "Current city issues · choose a category to locate"
+    },
+    {
+      "key": "ui.feedback.back_groups",
+      "text": "Back to city issue categories"
+    },
+    {
+      "key": "ui.feedback.location",
+      "text": "{0} #{1}"
+    },
+    {
+      "key": "ui.feedback.households",
+      "text": "{0} households affected"
+    },
+    {
+      "key": "ui.feedback.unavailable",
+      "text": "Observation unavailable. Record the scene; unknown is not healthy."
+    },
+    {
+      "key": "ui.feedback.staff",
+      "text": "On site {0} · paid this step {1}"
+    },
+    {
+      "key": "ui.feedback.cash",
+      "text": "Current business cash: {0}"
+    },
+    {
+      "key": "ui.feedback.ledger",
+      "text": "Since opening (not today's profit)\nStarting capital {0} · revenue {1}\nWages {2} · prepaid purchases {3}\nProcessing {4} · taxes {5}\nPrepaid purchases include transit and unsold inventory, not only cost of goods sold."
+    },
+    {
+      "key": "ui.feedback.raw_incoming",
+      "text": "Raw materials in transit: {0}"
+    },
+    {
+      "key": "ui.feedback.goods_incoming",
+      "text": "Goods in transit: food {0} / daily goods {1}"
+    },
+    {
+      "key": "ui.feedback.need",
+      "text": "Current refill need: food {0} / daily goods {1}"
+    },
+    {
+      "key": "ui.feedback.adults",
+      "text": "Healthy adults {0} · available at home {1} · working {2} · travelling {3}"
+    },
+    {
+      "key": "ui.feedback.locate_supplier",
+      "text": "Locate household's selected shop"
+    },
+    {
+      "key": "ui.feedback.advice.family",
+      "text": "Locate the selected shop or workplace and compare shopping availability with shop staffing. Record the scene if a purchase still cannot proceed."
+    },
+    {
+      "key": "ui.feedback.advice.business",
+      "text": "Inspect roads, utilities and households. More zoning does not guarantee recovery from cash or shift constraints. Pause and record the scene."
+    },
+    {
+      "key": "ui.feedback.capture",
+      "text": "Pause and record scene"
+    },
+    {
+      "key": "ui.feedback.capturing",
+      "text": "Recording; simulation remains paused…"
+    },
+    {
+      "key": "ui.feedback.capture_ok",
+      "text": "Scene saved; simulation remains paused.\n{0}"
+    },
+    {
+      "key": "ui.feedback.capture_partial",
+      "text": "Scene recorded with a missing save or screenshot. See scene.json; simulation remains paused.\n{0}"
+    },
+    {
+      "key": "ui.feedback.capture_failed",
+      "text": "Recording failed: {0}. Simulation remains paused."
+    },
+    {
+      "key": "ui.feedback.open_folder",
+      "text": "Open scene folder"
+    },
+    {
+      "key": "ui.feedback.copy_path",
+      "text": "Copy scene path"
+    },
+    {
+      "key": "ui.feedback.version",
+      "text": "Playtest version: {0}"
+    },
+    {
+      "key": "ui.feedback.cases_help",
+      "text": "Optional issue scenes (load paused; original cases are never overwritten)"
+    },
+    {
+      "key": "ui.feedback.case_cash",
+      "text": "Issue scene: shop cash exhausted"
+    },
+    {
+      "key": "ui.feedback.case_supply",
+      "text": "Issue scene: city supply stalled"
+    },
+    {
+      "key": "ui.feedback.case_confirm",
+      "text": "Loading replaces the current city. Save this playtest first, or explicitly discard unsaved progress."
+    },
+    {
+      "key": "ui.feedback.case_save_load",
+      "text": "Save current playtest and load"
+    },
+    {
+      "key": "ui.feedback.case_load",
+      "text": "Discard unsaved progress and load"
+    },
+    {
+      "key": "ui.feedback.cancel",
+      "text": "Cancel"
+    },
+    {
+      "key": "ui.feedback.case_loaded",
+      "text": "Issue scene loaded and paused. Open city alerts to inspect."
+    },
+    {
+      "key": "ui.feedback.case_failed",
+      "text": "Unable to load issue scene: {0}"
+    },
+    {
+      "key": "ui.feedback.save_view_missing",
+      "text": "This playtest save is missing its view description; not loaded."
+    },
+    {
+      "key": "ui.feedback.save_view_mismatch",
+      "text": "Playtest save and view description do not match; not loaded."
+    },
+    {
+      "key": "ui.feedback.saved",
+      "text": "Current city saved."
+    },
+    {
+      "key": "ui.feedback.loaded",
+      "text": "Current city loaded."
+    },
+    {
+      "key": "ui.feedback.load_failed",
+      "text": "Load failed: {0}"
+    },
+    {
+      "key": "ui.feedback.simulation_fault",
+      "text": "Simulation fault; paused. Record the scene or load a valid save."
+    },
+    {
+      "key": "ui.feedback.kind.foodempty",
+      "text": "Food inventory empty · {0} households"
+    },
+    {
+      "key": "ui.feedback.kind.dailyempty",
+      "text": "Daily goods empty · {0} households"
+    },
+    {
+      "key": "ui.feedback.kind.cash",
+      "text": "Business cash exhausted · {0} businesses"
+    },
+    {
+      "key": "ui.feedback.kind.road",
+      "text": "Road access issue · {0} buildings"
+    },
+    {
+      "key": "ui.feedback.kind.electricity",
+      "text": "Electricity issue · {0} buildings"
+    },
+    {
+      "key": "ui.feedback.kind.water",
+      "text": "Water issue · {0} buildings"
+    },
+    {
+      "key": "ui.feedback.kind.sewage",
+      "text": "Sewage issue · {0} buildings"
+    },
+    {
+      "key": "ui.feedback.kind.garbage",
+      "text": "Garbage accumulating · {0} buildings"
+    },
+    {
+      "key": "ui.feedback.kind.abandoned",
+      "text": "Abandoned or burned · {0} buildings"
+    },
+    {
+      "key": "ui.feedback.kind.foodlow",
+      "text": "Food reserves low · {0} households"
+    },
+    {
+      "key": "ui.feedback.kind.dailylow",
+      "text": "Daily goods reserves low · {0} households"
+    },
+    {
+      "key": "ui.feedback.reason.retired",
+      "text": "Building is abandoned or burned."
+    },
+    {
+      "key": "ui.feedback.reason.road",
+      "text": "A road entrance is unavailable. Inspect road access."
+    },
+    {
+      "key": "ui.feedback.reason.supply",
+      "text": "Utilities are incomplete, affecting production or sales. Inspect water, electricity and sewage."
+    },
+    {
+      "key": "ui.feedback.reason.cash",
+      "text": "Business cash is exhausted and cannot fund wages. Inventory does not turn into cash automatically; operations are blocked."
+    },
+    {
+      "key": "ui.feedback.reason.pending",
+      "text": "Paid staffing and sales eligibility await a simulation update; a paused loaded city is not classified as closed on this basis."
+    },
+    {
+      "key": "ui.feedback.reason.staff",
+      "text": "No employees are currently paid on site. The shop may be off hours or awaiting staff; this alone is not a city-wide alert."
+    },
+    {
+      "key": "ui.feedback.reason.full",
+      "text": "Factory finished-goods inventory is full; awaiting delivery or export."
+    },
+    {
+      "key": "ui.feedback.reason.raw_incoming",
+      "text": "Factory lacks raw materials, with an incoming shipment."
+    },
+    {
+      "key": "ui.feedback.reason.raw",
+      "text": "Factory has no raw materials available. Inspect shipments and cash."
+    },
+    {
+      "key": "ui.feedback.reason.operating",
+      "text": "Employees are paid on site and checked operating conditions are available; this does not imply long-term profitability."
+    },
+    {
+      "key": "ui.feedback.reason.preparing",
+      "text": "Household inventory awaits simulation initialization; not classified as a shortage."
+    },
+    {
+      "key": "ui.feedback.reason.enough",
+      "text": "No refill is currently required."
+    },
+    {
+      "key": "ui.feedback.reason.transport",
+      "text": "Shopping-related transport is blocked or awaiting road recovery. Inspect the vehicle and roads."
+    },
+    {
+      "key": "ui.feedback.reason.returning",
+      "text": "Purchased goods are being transported home; they enter household inventory on arrival."
+    },
+    {
+      "key": "ui.feedback.reason.purchased",
+      "text": "A household member holds purchased goods and is awaiting the trip home."
+    },
+    {
+      "key": "ui.feedback.reason.shopping",
+      "text": "A household shopping cycle is in progress; goods are not yet guaranteed."
+    },
+    {
+      "key": "ui.feedback.reason.money",
+      "text": "Household cash cannot afford one unit of the priority product."
+    },
+    {
+      "key": "ui.feedback.reason.member",
+      "text": "No eligible adult is currently free at home to shop. Compare work and shop operating times."
+    },
+    {
+      "key": "ui.feedback.reason.unassigned",
+      "text": "No valid supplier is selected yet; this does not prove there is no reachable shop."
+    },
+    {
+      "key": "ui.feedback.reason.supplier_cash",
+      "text": "The selected shop has exhausted its cash and cannot fund staff; this is different from empty inventory."
+    },
+    {
+      "key": "ui.feedback.reason.supplier_staff",
+      "text": "The selected shop has no paid staff on site, so sales are unavailable even if stock exists."
+    },
+    {
+      "key": "ui.feedback.reason.supplier_stock",
+      "text": "The selected shop lacks the product currently needed first."
+    },
+    {
+      "key": "ui.feedback.reason.waiting",
+      "text": "Checked cash, household and shop conditions are available; awaiting a decision or transport entry. The exact blocker is not confirmed."
     }
   ]
 }

@@ -36,6 +36,7 @@ namespace HarborCity
         public long Lost=>state.totals.lost;
         public int Vehicles=>byVehicle.Count;
         public CityWasteDiagnostics Diagnostics {get;set;}
+        internal event Action<int> WaitingChanged;
         public long Waiting=>Generated-Collected; // Derived from the conserved transfer ledger, not a second editable stock.
         long WaitingInBuildings {get{long sum=0;foreach(var b in entities.Buildings)sum+=b.garbage;foreach(var b in entities.RetiredBuildings)sum+=b.garbage;return sum;}}
         public long Stored {get{RefreshPlants();long sum=0;foreach(var b in plants)sum+=b.stored;foreach(var b in entities.RetiredBuildings)if(b is LandfillBuilding p)sum+=p.stored;return sum;}}
@@ -75,7 +76,7 @@ namespace HarborCity
             {
                 int amount=0;if(b is ResidentialBuilding){counts.TryGetValue(b.id,out int count);amount=count*rules.ResidentialRate;}
                 else if(b is IndustrialBuilding||b is CommercialBuilding){work.TryGetValue(b.id,out double minutes);amount=(int)Math.Min(int.MaxValue,Math.Floor(minutes/rules.WorkMinutesPerUnit));}
-                amount=Math.Min(amount,100000-b.garbage);b.garbage+=amount;state.totals.generated+=amount;
+                amount=Math.Min(amount,100000-b.garbage);b.garbage+=amount;state.totals.generated+=amount;if(amount!=0)WaitingChanged?.Invoke(b.id);
             }
             state.lastGenerationDay=city.day;
         }
@@ -129,7 +130,7 @@ namespace HarborCity
             {
                 var pickup=entities.Building(m.pickup);int amount=Math.Min(rules.Payload,pickup.garbage);
                 var next=world.PrepareServiceReturn(arrival,m.station,amount);if(next==null){var blocked=Diagnostics?.Dispatch(m.station);if(blocked!=null)blocked.returnContinuationRejected++;return;}
-                world.CheckContinuation(next);pickup.garbage-=amount;state.totals.collected+=amount;world.CommitContinuation(next);m.phase=WastePhase.Return;m.task=next.task.id;
+                world.CheckContinuation(next);pickup.garbage-=amount;state.totals.collected+=amount;if(amount!=0)WaitingChanged?.Invoke(pickup.id);world.CommitContinuation(next);m.phase=WastePhase.Return;m.task=next.task.id;
                 if(Diagnostics!=null){Diagnostics.Complete(m.station,oldTask,arrival.arrivedAt,amount,false);Diagnostics.Start(world,m,world.FindVehicle(m.vehicle),0,state.missions.Count);}
             }
             else
@@ -162,7 +163,7 @@ namespace HarborCity
                     // Cancellation leaves every unit at the building. No pickup
                     // or loss is booked unless the complete collection fits.
                     accepted=amount<=free?amount:0;
-                    pickup.garbage-=accepted;state.totals.collected+=accepted;
+                    pickup.garbage-=accepted;state.totals.collected+=accepted;if(accepted!=0)WaitingChanged?.Invoke(pickup.id);
                 }
                 else
                 {
