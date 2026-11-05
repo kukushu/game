@@ -1,0 +1,3 @@
+tick,day,minute,id,type,product,cash,capital,revenue,raw_cost,wages,processing,tax,stock_food,stock_daily,raw,produced,sold,shipped,attendance,productive,employed,paid_workers,customers,retail_units,wholesale_funded,supply,access,status,reason
+13440,6,864,14,shop,both,485.611665853013,2000,260,0,1150.38833414717,0,114,21,0,0,0,0,0,0,0,4,4,2,13,510,True,True,,sample
+14160,6,1296,14,shop,both,103.102158101566,2000,260,0,1532.89784189847,0,114,21,0,0,0,0,0,0,0,4,0,2,13,510,True,True,,sample

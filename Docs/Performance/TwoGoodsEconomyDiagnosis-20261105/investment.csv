@@ -1,0 +1,8 @@
+tick,day,minute,project,home,food_need,daily_need,existing_shops,reachable_shops,reachable_positive_cash,home_is_focus
+7921,4,432.6,9,7,9,0,0,0,0,True
+10441,5,504.6,15,9,7,0,1,1,1,True
+10801,5,720.6,17,9,7,0,2,2,2,True
+13321,6,792.6,22,11,5,0,3,3,3,True
+17641,8,504.6,26,17,7,0,4,4,3,True
+20521,9,792.6,31,19,5,0,5,5,4,True
+24841,11,504.6,35,26,7,0,6,6,3,True

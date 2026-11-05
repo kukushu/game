@@ -1,0 +1,5 @@
+tick,day,minute,household,need_food,cash,shopping_member,healthy_adults,available_at_home,at_work,travelling,supplier,problem,adult_jobs
+13440,6,864,1,9,1098,0,2,0,2,0,14,goods.status.no_member,10:14:Commercial;11:14:Commercial
+13440,6,864,2,12,1184,0,2,0,2,0,14,goods.status.no_member,13:14:Commercial;14:14:Commercial
+14160,6,1296,1,9,1098,0,2,2,0,0,14,goods.status.no_stock,10:14:Commercial;11:14:Commercial
+14160,6,1296,2,12,1184,0,2,1,0,1,14,goods.status.no_stock,13:14:Commercial;14:14:Commercial

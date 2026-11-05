@@ -1,0 +1,2 @@
+tick,population,initial_food,bought_food,produced_food,consumed_food,unmet_food,export_food,export_daily,raw_dispatched,raw_delivered,external_investment,household_cash,company_cash
+40000,88,264,85,820,333,422,640,0,891,891,17600,36193,0
