@@ -1071,7 +1071,7 @@
     },
     {
       "key": "ui.feedback.location",
-      "text": "{0} #{1}"
+      "text": "{0} · ({1}, {2})"
     },
     {
       "key": "ui.feedback.households",
@@ -1348,6 +1348,30 @@
     {
       "key": "ui.feedback.reason.waiting",
       "text": "Checked cash, household and shop conditions are available; awaiting a decision or transport entry. The exact blocker is not confirmed."
+    },
+    {
+      "key": "ui.feedback.unknown_location",
+      "text": "Unknown location / outside city"
+    },
+    {
+      "key": "ui.feedback.family",
+      "text": "Household in unit {0} · {1} people"
+    },
+    {
+      "key": "ui.feedback.person",
+      "text": "{0} · age {1} · workforce {2}"
+    },
+    {
+      "key": "ui.feedback.work",
+      "text": "Workplace: {0}\nJob daily wage {1} · currently attending {2}"
+    },
+    {
+      "key": "ui.feedback.journey",
+      "text": "{0} → {1}\n{2} · travel blocked {3}"
+    },
+    {
+      "key": "ui.feedback.person_location",
+      "text": "Current location: {0} · carried goods {1}"
     }
   ]
 }

@@ -13,6 +13,7 @@ namespace HarborCity
     [Serializable] sealed class HarborFeedbackCapture
     {
         public int schema=1;public string utc,unity,simulationFault,observationError,saveError,screenshotError;
+        public string cityOrigin;public int cityDay,population,households,buildings;public double cityClock;
         public HarborFeedbackBuildInfo build;public long tick;public double pendingSeconds;public float previousRate;
         public int selectedBuilding,selectedFamily;public bool paused,flatFixture,saveWritten,screenshotWritten;
         public CityFeedbackSummary summary;public CityFeedbackEntry[] issues;
@@ -21,6 +22,7 @@ namespace HarborCity
     public sealed partial class HarborCityRoadCoreGame
     {
         HarborFeedbackBuildInfo feedbackBuild;bool feedbackCapturing,feedbackFlatFixture;
+        string feedbackCityOrigin="normal-new-town";
         int feedbackPendingCase=-1;string feedbackLastCapture="",feedbackCaptureResult="",feedbackFault="";
         string FeedbackCaseRoot=>Path.Combine(Application.dataPath,"StreamingAssets","FeedbackCases");
         HarborFeedbackBuildInfo FeedbackBuild
@@ -83,7 +85,7 @@ namespace HarborCity
         IEnumerator CaptureFeedback(float previousRate)
         {
             string directory=Path.Combine(Application.persistentDataPath,"IssueSnapshots",DateTime.UtcNow.ToString("yyyyMMdd-HHmmss-fff")+"-"+Guid.NewGuid().ToString("N").Substring(0,8));
-            var capture=new HarborFeedbackCapture{utc=DateTime.UtcNow.ToString("o"),unity=Application.unityVersion,build=FeedbackBuild,tick=session.Simulation.Tick,pendingSeconds=session.Simulation.PendingSeconds,previousRate=previousRate,paused=true,flatFixture=feedbackFlatFixture,selectedBuilding=observation.Selected,selectedFamily=observation.SelectedFamily,simulationFault=session.Simulation.Fault?.ToString()??feedbackFault};
+            var capture=new HarborFeedbackCapture{cityOrigin=feedbackCityOrigin,cityDay=session.City.day,population=session.City.population,households=session.City.society.families.Count,buildings=session.Entities.Buildings.Count,cityClock=session.Transport.Clock,utc=DateTime.UtcNow.ToString("o"),unity=Application.unityVersion,build=FeedbackBuild,tick=session.Simulation.Tick,pendingSeconds=session.Simulation.PendingSeconds,previousRate=previousRate,paused=true,flatFixture=feedbackFlatFixture,selectedBuilding=observation.Selected,selectedFamily=observation.SelectedFamily,simulationFault=session.Simulation.Fault?.ToString()??feedbackFault};
             bool created=true;
             try{Directory.CreateDirectory(directory);}catch(Exception e){created=false;feedbackCaptureResult=localization.Get("ui.feedback.capture_failed",e.Message);}
             if(created)
@@ -124,7 +126,7 @@ namespace HarborCity
                 ScenarioRate(0);CancelTool();vehicleViews?.Clear();session=restored;world=restored.Transport;feedbackFault="";
                 session.Simulation.Finance.UnlimitedFunds=unlimited;world.DepotLaneRoutingEnabled=true;BindFeedbackLandscape(true);
                 observation.Bind(session);roadEditor.Bind(session);shownBuildings=shownZones=shownNetwork=-1;RenderRoads();RenderBuildings();RenderZones();RenderUtilities();
-                constructionCamera.Focus(-95,0);feedbackPendingCase=-1;notice=localization.Get("ui.feedback.case_loaded");
+                constructionCamera.Focus(-95,0);feedbackPendingCase=-1;feedbackCityOrigin=Path.GetFileName(path);notice=localization.Get("ui.feedback.case_loaded");
             }catch(Exception e){notice=localization.Get("ui.feedback.case_failed",e.Message);}
         }
         void DrawFeedbackOptions()

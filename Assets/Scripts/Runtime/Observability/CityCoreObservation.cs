@@ -32,7 +32,7 @@ namespace HarborCity
         public BuildingIssue(int id,CityObservedProblem problems){this.id=id;this.problems=problems;}
     }
     // Cold, read-only projections; no subscriptions, simulation writes, or saved UI state.
-    // Building detail O(P+J+T), explicit problem refresh O(B); never called per vehicle.
+    // Detail reads selected-home members and indexed staff plus jobs/tasks; explicit Issues is O(B).
     public sealed class CityCoreObservation
     {
         readonly CityCoreIndustrySession session;readonly long boundTick;

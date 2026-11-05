@@ -49,6 +49,8 @@ namespace HarborCity
         string Yes(bool value)=>text.Get(value?"ui.inspect.yes":"ui.inspect.no");
         string Problems(CityObservedProblem flags)
         {if(flags==0)return text.Get("ui.feedback.basic_clear");var parts=new System.Collections.Generic.List<string>();foreach(CityObservedProblem p in Enum.GetValues(typeof(CityObservedProblem)))if(p!=0&&(flags&p)!=0)parts.Add(text.Get("ui.inspect.problem."+p.ToString().ToLowerInvariant()));return string.Join(" / ",parts);}
+        string Location(int id)
+        {var b=session.Entities.Building(id);return b==null?text.Get("ui.feedback.unknown_location"):text.Get("ui.feedback.location",text.Get("ui.inspect.use."+b.Use.ToString().ToLowerInvariant()),b.x.ToString("F0"),b.z.ToString("F0"));}
         void Locate(int id,int household=0)
         {Select(id);family=household;showIssues=false;scroll=Vector2.zero;var b=session.Entities.Building(id);if(b!=null)Focus?.Invoke(b.x,b.z);}
         void DrawIssues()
@@ -68,7 +70,7 @@ namespace HarborCity
             int pages=Math.Max(1,(total+19)/20);issuePage=Math.Min(issuePage,pages-1);
             GUILayout.BeginHorizontal();if(GUILayout.Button("←"))issuePage=Math.Max(0,issuePage-1);GUILayout.Label(text.Get("ui.inspect.page",issuePage+1,pages));if(GUILayout.Button("→"))issuePage=Math.Min(pages-1,issuePage+1);GUILayout.EndHorizontal();
             int at=0;foreach(var e in feedbackEntries)if((int)e.kind==group)
-            {if(at++<issuePage*20||at>issuePage*20+20)continue;var b=session.Entities.Building(e.building);if(b==null)continue;string label=text.Get("ui.feedback.location",text.Get("ui.inspect.use."+b.Use.ToString().ToLowerInvariant()),b.id);if(e.family>0)label+=" · "+text.Get("ui.feedback.households",e.affected);if(GUILayout.Button(label))Locate(e.building,e.family);}
+            {if(at++<issuePage*20||at>issuePage*20+20)continue;var b=session.Entities.Building(e.building);if(b==null)continue;string label=Location(b.id);if(e.family>0)label+=" · "+text.Get("ui.feedback.households",e.affected);if(GUILayout.Button(label))Locate(e.building,e.family);}
         }
         public void Draw()
         {
@@ -81,7 +83,7 @@ namespace HarborCity
             if(shown!=null&&shown.id==selected)
             {
                 if(GUILayout.Button(text.Get("ui.feedback.back_groups"))){selected=family=0;showIssues=true;group=-1;feedbackDeadline=0;}
-                GUILayout.Label(text.Get("ui.feedback.location",text.Get("ui.inspect.use."+shown.use.ToString().ToLowerInvariant()),shown.id));GUILayout.Label(Problems(shown.problems));
+                GUILayout.Label(Location(shown.id));GUILayout.Label(Problems(shown.problems));
                 GUILayout.Label(text.Get("ui.inspect.garbage",shown.garbage,shown.stored));GUILayout.Label(text.Get("ui.inspect.jobs",shown.filledJobs,shown.jobs,shown.attending));GUILayout.Label(text.Get("ui.inspect.transport",shown.transportCount,shown.strandedCount));
                 if(shown.use==LandUse.Industrial||shown.use==LandUse.Commercial)GUILayout.Label(text.Get("ui.inspect.inventory",shown.raw,shown.goods,shown.cash.ToString("F0"),shown.workedMinutes.ToString("F1")));
                 if(shown.use==LandUse.Industrial||shown.use==LandUse.Commercial){GUILayout.Label(text.Get("ui.goods.inventory",shown.products.food,shown.products.dailyGoods,shown.externalCapital.ToString("F0")));if(shown.use==LandUse.Industrial)GUILayout.Label(text.Get("ui.goods.output",text.Get(shown.product==ProductKind.Food?"goods.food":"goods.daily")));}
@@ -97,7 +99,7 @@ namespace HarborCity
                 if(shown.units>0){GUILayout.Label(text.Get("ui.inspect.housing",shown.occupied,shown.units,shown.residents));GUILayout.Label(text.Get("ui.inspect.workforce",shown.employed,shown.workforce));}
                 foreach(var h in shown.families)
                 {
-                    if(GUILayout.Button(text.Get("ui.inspect.family",h.id,h.unit+1,h.members.Count)))family=family==h.id?0:h.id;
+                    if(GUILayout.Button(text.Get("ui.feedback.family",h.unit+1,h.members.Count)))family=family==h.id?0:h.id;
                     if(h.id!=family)continue;
                     GUILayout.Label(text.Get("ui.inspect.savings",h.savings));GUILayout.Label(h.stockKnown?text.Get("ui.goods.household",h.products.food,h.foodDays.ToString("F1"),h.products.dailyGoods,h.dailyDays.ToString("F1")):text.Get("ui.feedback.reason.preparing"));
                     GUILayout.Label(text.Get("ui.feedback.need",h.needFood,h.needDaily));GUILayout.Label(text.Get("ui.feedback.adults",h.healthyAdults,h.availableAdults,h.workingAdults,h.travellingAdults));
@@ -107,10 +109,10 @@ namespace HarborCity
                     GUILayout.Label(h.commuteSamples==0?text.Get("ui.inspect.no_commute"):text.Get("ui.inspect.commute",h.averageCommute.ToString("F1"),h.longestCommute.ToString("F1"),h.commuteSamples));
                     foreach(var p in h.members)
                     {
-                        GUILayout.Label(text.Get("ui.inspect.person",p.id,p.name,p.age,Yes(p.workforce)));
-                        GUILayout.Label(p.job<0?text.Get(p.workforce?"ui.inspect.unemployed":"ui.inspect.not_workforce"):text.Get("ui.inspect.work",p.job,p.workplace,p.wage,Yes(p.atWork)));
-                        if(p.workplace>0&&GUILayout.Button(text.Get("ui.inspect.locate_work"))){var b=query.Read(p.workplace);if(b!=null){Select(b.id);Focus?.Invoke((float)b.x,(float)b.z);}}
-                        GUILayout.Label(p.vehicle>0?text.Get("ui.inspect.journey",p.vehicle,p.task,p.origin,p.destination,text.Get("ui.inspect.trip."+p.purpose.ToString().ToLowerInvariant()),Yes(p.stranded)):text.Get("ui.inspect.location",p.location,p.carriedGoods));
+                        GUILayout.Label(text.Get("ui.feedback.person",p.name,p.age,Yes(p.workforce)));
+                        GUILayout.Label(p.job<0?text.Get(p.workforce?"ui.inspect.unemployed":"ui.inspect.not_workforce"):text.Get("ui.feedback.work",Location(p.workplace),p.wage,Yes(p.atWork)));
+                        if(p.workplace>0&&GUILayout.Button(text.Get("ui.inspect.locate_work"))){Locate(p.workplace);}
+                        GUILayout.Label(p.vehicle>0?text.Get("ui.feedback.journey",Location(p.origin),Location(p.destination),text.Get("ui.inspect.trip."+p.purpose.ToString().ToLowerInvariant()),Yes(p.stranded)):text.Get("ui.feedback.person_location",Location(p.location),p.carriedGoods));
                     }
                 }
             }

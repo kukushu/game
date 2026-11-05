@@ -1071,7 +1071,7 @@
     },
     {
       "key": "ui.feedback.location",
-      "text": "{0} #{1}"
+      "text": "{0} · ({1}, {2})"
     },
     {
       "key": "ui.feedback.households",
@@ -1348,6 +1348,30 @@
     {
       "key": "ui.feedback.reason.waiting",
       "text": "已检查的资金、成员与商店条件可用，等待采购决定或运输入场；具体阻塞尚未确认。"
+    },
+    {
+      "key": "ui.feedback.unknown_location",
+      "text": "位置未知 / 城外"
+    },
+    {
+      "key": "ui.feedback.family",
+      "text": "第 {0} 套家庭 · {1} 人"
+    },
+    {
+      "key": "ui.feedback.person",
+      "text": "{0} · {1} 岁 · 劳动力 {2}"
+    },
+    {
+      "key": "ui.feedback.work",
+      "text": "工作地点：{0}\n岗位日工资 {1} · 当前在岗 {2}"
+    },
+    {
+      "key": "ui.feedback.journey",
+      "text": "{0} → {1}\n{2} · 出行受阻 {3}"
+    },
+    {
+      "key": "ui.feedback.person_location",
+      "text": "当前位置：{0} · 携带商品 {1}"
     }
   ]
 }
