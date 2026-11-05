@@ -1384,6 +1384,10 @@
     {
       "key": "ui.feedback.locate_vehicle",
       "text": "定位车辆"
+    },
+    {
+      "key": "ui.feedback.located_vehicle",
+      "text": "{0} 的车"
     }
   ]
 }

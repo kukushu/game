@@ -111,6 +111,25 @@ namespace HarborCity
             GUI.Label(new Rect(b.x+8,b.y+42,b.width-16,18),HudContent(new Rect(b.x+8,b.y+42,b.width-16,18),localization.Get("ui.design.rate_compact",speed,double.IsNaN(actualRate)?"…":actualRate.ToString("F1")),localization.Get("ui.hud.rate",speed,double.IsNaN(actualRate)?"…":actualRate.ToString("F1"))),small);
         }
         string ActiveTool=>gridTool.Enabled?localization.Get("ui.hud.active.grid"):building?localization.Get("ui.hud.active.road"):utilityTool.HasValue?localization.Get("ui.hud.active.pipe"):facilityTool!=LandUse.Empty?localization.Get("ui.hud.active.facility"):zoneTool!=LandUse.Empty?localization.Get("ui.hud.active.zone"):outsideTool?localization.Get("ui.hud.active.outside"):roadEditor.IsSelecting?localization.Get("ui.hud.active.edit"):localization.Get("ui.hud.active.inspect");
+        void DrawLocatedVehicle()
+        {
+            if(Event.current.type!=EventType.Repaint||cameraView==null||!observation.TryGetLocatedVehicle(out var position,out var resident))return;
+            var screen=cameraView.WorldToScreenPoint(position);
+            if(screen.z<=0||screen.x<0||screen.x>Screen.width||screen.y<0||screen.y>Screen.height)return;
+            var tip=new Vector2(screen.x,Screen.height-screen.y);
+            var label=new GUIContent(localization.Get("ui.feedback.located_vehicle",resident));
+            float width=Mathf.Min(small.CalcSize(label).x+20,Screen.width-16);
+            var bounds=new Rect(Mathf.Clamp(tip.x-width/2,8,Screen.width-width-8),tip.y-42,width,24);
+            var colour=new Color(1f,.83f,.24f);
+            IconLine(tip+new Vector2(0,-19),tip,colour,3);
+            IconLine(tip+new Vector2(-7,-8),tip,colour,3);
+            IconLine(tip+new Vector2(7,-8),tip,colour,3);
+            HudBox(bounds);
+            var previous=GUI.contentColor;
+            GUI.contentColor=colour;
+            GUI.Label(new Rect(bounds.x+10,bounds.y+4,bounds.width-20,16),label,small);
+            GUI.contentColor=previous;
+        }
         void DrawInterface()
         {
             if(world==null)
@@ -126,6 +145,7 @@ namespace HarborCity
                 GUI.skin=citySkin;GUI.contentColor=Color.white;GUI.backgroundColor=new Color(.16f,.24f,.30f);
                 GUI.enabled=oldEnabled&&!feedbackCapturing;
                 outsideViews?.Draw(cameraView,MenuBounds);
+                DrawLocatedVehicle();
                 observation.Top=FeedbackBounds.yMax>90?126:96;DrawCityStatus();DrawToolDock();DrawTimeControls();DrawFeedbackBar();
                 if(FeedbackBuild.playtest)GUI.Label(new Rect(8,Screen.height-74,Math.Min(520,Screen.width-16),18),localization.Get("ui.feedback.version",FeedbackBuild.label),small);
                 if(hudNoticeSeen!=notice){if(hudNoticeSeen!=null&&!string.IsNullOrEmpty(notice))hudNoticeUntil=Time.realtimeSinceStartupAsDouble+4;hudNoticeSeen=notice;}

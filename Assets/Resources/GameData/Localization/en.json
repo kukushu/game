@@ -1384,6 +1384,10 @@
     {
       "key": "ui.feedback.locate_vehicle",
       "text": "Locate vehicle"
+    },
+    {
+      "key": "ui.feedback.located_vehicle",
+      "text": "Vehicle: {0}"
     }
   ]
 }

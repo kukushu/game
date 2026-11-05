@@ -16,14 +16,27 @@ namespace HarborCity
         public int SelectedFamily=>family;
         public CityFeedbackSummary Summary {get{PollFeedback();return feedback?.Summary;}}
         int selected,family,issuePage;double refreshDeadline;long refreshed=-1;int entityRevision=-1,roadRevision=-1;Vector2 scroll;bool showIssues;
+        int locatedTask,locatedVehicle;
+        string locatedResident;
         public Action<float,float> Focus;
+        public bool TryGetLocatedVehicle(out Vector3 position,out string resident)
+        {
+            position=default;
+            resident=locatedResident;
+            if(selected==0||locatedTask==0||session==null)return false;
+            var vehicle=session.Transport.FindTaskVehicle(locatedTask);
+            if(vehicle==null||vehicle.id!=locatedVehicle||vehicle.status==RoadCore.VehicleStatus.Delivered||vehicle.status==RoadCore.VehicleStatus.AwaitingRestart)return false;
+            var point=session.Transport.Position(vehicle);
+            position=new Vector3((float)point.x,(float)point.y+.4f,(float)point.z);
+            return true;
+        }
         public int Selected=>selected;
         public float Top=96;
         Rect Bounds=>new Rect(Math.Max(8,Screen.width-380),Top,Math.Min(372,Screen.width-16),Math.Max(60,Screen.height-Top-56));
         public HarborCityObservationPanel(CityLocalization text){this.text=text;}
         public bool BlocksInput(Vector2 screen)=> (selected!=0||showIssues)&&Bounds.Contains(new Vector2(screen.x,Screen.height-screen.y));
         public void Bind(CityCoreIndustrySession current)
-        {if(ReferenceEquals(session,current))return;feedback?.Dispose();session=current;query=current==null?null:new CityCoreObservation(current);feedback=current==null?null:new CityPlayerFeedback(current,query);selected=family=issuePage=0;group=-1;showIssues=false;scroll=Vector2.zero;shown=null;feedbackEntries=null;refreshed=-1;entityRevision=roadRevision=-1;feedbackDeadline=0;FeedbackError="";}
+        {if(ReferenceEquals(session,current))return;feedback?.Dispose();session=current;query=current==null?null:new CityCoreObservation(current);feedback=current==null?null:new CityPlayerFeedback(current,query);selected=family=issuePage=locatedTask=0;group=-1;showIssues=false;scroll=Vector2.zero;shown=null;feedbackEntries=null;refreshed=-1;entityRevision=roadRevision=-1;feedbackDeadline=0;FeedbackError="";}
         public void Dispose(){feedback?.Dispose();feedback=null;session=null;query=null;}
         public void PollFeedback(bool force=false)
         {
@@ -34,10 +47,10 @@ namespace HarborCity
         public CityFeedbackEntry[] CaptureEntries(){PollFeedback(true);return feedbackEntries==null?new CityFeedbackEntry[0]:new List<CityFeedbackEntry>(feedbackEntries).ToArray();}
         public BuildingInspection CaptureSelected(){return selected==0?null:query?.Read(selected);}
         public void Close(){selected=family=0;showIssues=false;}
-        public void Select(int id){selected=id;family=0;refreshed=-1;}
+        public void Select(int id){locatedTask=0;selected=id;family=0;refreshed=-1;}
         public void SelectFamily(int id){family=id;}
         public void Pick(float x,float z){if(query!=null)Select(query.Pick(x,z));}
-        public void ToggleIssues(){showIssues=!showIssues;selected=family=issuePage=0;group=-1;refreshed=-1;feedbackDeadline=0;}
+        public void ToggleIssues(){showIssues=!showIssues;selected=family=issuePage=locatedTask=0;group=-1;refreshed=-1;feedbackDeadline=0;}
         void Refresh()
         {
             if(query==null||selected==0&&!showIssues)return;long tick=session.Simulation.Tick;
@@ -118,6 +131,9 @@ namespace HarborCity
                             var vehicle=session.Transport.FindTaskVehicle(p.task);
                             if(vehicle!=null&&vehicle.id==p.vehicle)
                             {
+                                locatedTask=p.task;
+                                locatedVehicle=vehicle.id;
+                                locatedResident=p.name;
                                 var position=session.Transport.Position(vehicle);
                                 Focus?.Invoke((float)position.x,(float)position.z);
                             }
