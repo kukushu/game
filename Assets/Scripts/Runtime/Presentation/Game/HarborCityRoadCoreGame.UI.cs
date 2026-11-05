@@ -138,6 +138,7 @@ namespace HarborCity
                 if(localization!=null)GUI.Box(new Rect(8,8,Math.Min(Screen.width-16,760),80),localization.Get("ui.build.restart_play"));return;
             }
             hudTooltip=null;EnsureCitySkin();
+            if(Event.current.isKey&&Event.current.keyCode==KeyCode.Space)Event.current.Use();
             if(!feedbackCapturing&&Event.current.type==EventType.KeyDown&&Event.current.keyCode==KeyCode.Escape){CancelTool();toolPage=ToolPage.None;observation.Close();financePanel.IsOpen=false;Event.current.Use();}
             var oldSkin=GUI.skin;var oldContent=GUI.contentColor;var oldBackground=GUI.backgroundColor;bool oldEnabled=GUI.enabled;
             try

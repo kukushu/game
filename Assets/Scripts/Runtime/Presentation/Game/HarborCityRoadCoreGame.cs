@@ -75,7 +75,7 @@ namespace HarborCity
         HarborCityVehicleViews vehicleViews;
         HarborCityRoadViews roadViews;
         HarborCityBuildingViews buildingViews;
-        bool hasStart;Point startPoint;bool building,oneWay,wide;int origin,destination;float speed=1;
+        bool hasStart;Point startPoint;bool building,oneWay,wide;int origin,destination;float speed=1,lastRunningRate=1;
         long previousTick;int lastSteps;
         CityPlayerStepBudget playerStepBudget=new CityPlayerStepBudget(InteractiveMaximumSteps);
         // Scheduling bounds, not simulation rules. At 60 FPS, 20x needs 6.67
@@ -118,7 +118,7 @@ namespace HarborCity
         internal bool ScenarioMeasuring;
         internal double ScenarioAdvanceMs,ScenarioVehicleMs,ScenarioStructureMs;
         internal double ScenarioRequestedSeconds;
-        internal void ScenarioRate(float rate){playerStepBudget.Reset();speed=rate;previousTick=System.Diagnostics.Stopwatch.GetTimestamp();actualRate=rate==0?0:double.NaN;rateWallSeconds=rateSimulationSeconds=0;}
+        internal void ScenarioRate(float rate){playerStepBudget.Reset();if(rate>0)lastRunningRate=rate;speed=rate;previousTick=System.Diagnostics.Stopwatch.GetTimestamp();actualRate=rate==0?0:double.NaN;rateWallSeconds=rateSimulationSeconds=0;}
         internal void ScenarioWorkBudget(int maximumSteps,double milliseconds)
         {
             if(!ScenarioMeasuring||speed!=0||maximumSteps<1||maximumSteps>128||!(milliseconds>=1&&milliseconds<=64))throw new InvalidOperationException("Work-budget overrides require a paused diagnostic window");
@@ -201,7 +201,14 @@ namespace HarborCity
         void Update()
         {
             observation?.Bind(session);roadEditor?.Bind(session);roadEditor?.Sync();
-            if(world==null)return;long now=System.Diagnostics.Stopwatch.GetTimestamp();double elapsed=(now-previousTick)/(double)System.Diagnostics.Stopwatch.Frequency,seconds=elapsed*speed;
+            if(world==null)return;
+            if(Application.isFocused&&!ScenarioMeasuring&&!feedbackCapturing&&Keyboard.current?.spaceKey.wasPressedThisFrame==true)
+            {
+                if(speed>0)ScenarioRate(0);
+                else if(session?.Simulation.Fault==null)ScenarioRate(lastRunningRate);
+                else notice=localization.Get("ui.feedback.simulation_fault");
+            }
+            long now=System.Diagnostics.Stopwatch.GetTimestamp();double elapsed=(now-previousTick)/(double)System.Diagnostics.Stopwatch.Frequency,seconds=elapsed*speed;
             if(ScenarioMeasuring)ScenarioRequestedSeconds=seconds;
             double clockBefore=world.Clock;
             try{using(simulationSample.Auto())
