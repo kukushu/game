@@ -8,6 +8,7 @@ namespace HarborCity
     // the JSON boundary implicitly; unsupported formats are rejected explicitly.
     [Serializable] public sealed class BuildingPoseData
     {
+        public double externalCapital;
         public int id,level,outageDays,abandonedDay,garbage,upgradeDays,lastUpgradeDay;
         public bool abandoned;
         public bool burning,burned;
@@ -37,7 +38,7 @@ namespace HarborCity
         public LandfillSaveData[] landfill=Array.Empty<LandfillSaveData>();
         public static BuildingSaveData FromBuilding(CityBuilding b)
         {
-            var d=new BuildingSaveData {type=b.Use,pose=new BuildingPoseData {id=b.id,level=b.level,outageDays=b.outageDays,abandonedDay=b.abandonedDay,abandoned=b.abandoned,garbage=b.garbage,x=b.x,z=b.z,yaw=b.yaw,width=b.width,depth=b.depth,entranceX=b.entranceX,entranceZ=b.entranceZ}};
+            var d=new BuildingSaveData {type=b.Use,pose=new BuildingPoseData {id=b.id,externalCapital=b.externalCapital,level=b.level,outageDays=b.outageDays,abandonedDay=b.abandonedDay,abandoned=b.abandoned,garbage=b.garbage,x=b.x,z=b.z,yaw=b.yaw,width=b.width,depth=b.depth,entranceX=b.entranceX,entranceZ=b.entranceZ}};
             d.pose.upgradeDays=b.upgradeDays;d.pose.lastUpgradeDay=b.lastUpgradeDay;d.pose.burning=b.burning;d.pose.burned=b.burned;d.pose.fireDamage=b.fireDamage;d.pose.fireIntensity=b.fireIntensity;d.pose.crime=b.crime;
             d.pose.groundY=b.groundY;d.pose.entranceY=b.entranceY;
             if(b is ResidentialBuilding r) d.residential=new[] {new ResidentialSaveData {housing=r.housing,housingUnits=r.housingUnits,askingRent=r.askingRent,vacantDays=r.vacantDays,applications=r.applications,heavyTraffic=r.heavyTraffic,interestedFamilies=r.interestedFamilies}};
@@ -54,7 +55,7 @@ namespace HarborCity
                 || residential.Any(r=>r==null) || industrial.Any(f=>f==null)
                 || type!=LandUse.Commercial && type!=LandUse.Industrial && products.Total!=0) throw new ArgumentException("建筑存档类型与专属数据不匹配");
             var b=CityModel.NewBuilding(type);
-            b.id=pose.id;b.level=pose.level;b.outageDays=pose.outageDays;b.abandonedDay=pose.abandonedDay;b.abandoned=pose.abandoned;b.garbage=pose.garbage;b.x=pose.x;b.z=pose.z;b.yaw=pose.yaw;b.width=pose.width;b.depth=pose.depth;b.entranceX=pose.entranceX;b.entranceZ=pose.entranceZ;
+            b.id=pose.id;b.externalCapital=pose.externalCapital;b.level=pose.level;b.outageDays=pose.outageDays;b.abandonedDay=pose.abandonedDay;b.abandoned=pose.abandoned;b.garbage=pose.garbage;b.x=pose.x;b.z=pose.z;b.yaw=pose.yaw;b.width=pose.width;b.depth=pose.depth;b.entranceX=pose.entranceX;b.entranceZ=pose.entranceZ;
             b.upgradeDays=pose.upgradeDays;b.lastUpgradeDay=pose.lastUpgradeDay;b.burning=pose.burning;b.burned=pose.burned;b.fireDamage=pose.fireDamage;b.fireIntensity=pose.fireIntensity;b.crime=pose.crime;
             b.groundY=pose.groundY;b.entranceY=pose.entranceY;
             if(b is ResidentialBuilding r) {var data=residential[0];r.housing=data.housing;r.housingUnits=data.housingUnits;r.askingRent=data.askingRent;r.vacantDays=data.vacantDays;r.applications=data.applications;r.heavyTraffic=data.heavyTraffic;r.interestedFamilies=data.interestedFamilies;}

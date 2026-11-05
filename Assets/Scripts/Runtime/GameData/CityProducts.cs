@@ -20,25 +20,34 @@ namespace HarborCity
         public override int GetHashCode()=>food*397^dailyGoods;
         public void Validate(){if(food<0||dailyGoods<0)throw new InvalidOperationException("Negative product inventory");_=Total;}
     }
+    [Serializable] public struct GoodsTotals
+    {
+        public long food,dailyGoods;
+        public long Total=>checked(food+dailyGoods);
+        public long this[ProductKind k]=>k==ProductKind.Food?food:k==ProductKind.DailyGoods?dailyGoods:throw new ArgumentOutOfRangeException(nameof(k));
+        public GoodsTotals Add(ProductKind k,long amount){var n=this;if(k==ProductKind.Food)n.food=checked(food+amount);else if(k==ProductKind.DailyGoods)n.dailyGoods=checked(dailyGoods+amount);else throw new ArgumentOutOfRangeException(nameof(k));n.Validate();return n;}
+        public static GoodsTotals operator +(GoodsTotals a,GoodsAmounts b)=>a.Add(ProductKind.Food,b.food).Add(ProductKind.DailyGoods,b.dailyGoods);
+        public void Validate(){if(food<0||dailyGoods<0)throw new InvalidOperationException("Invalid product totals");_=Total;}
+    }
     [Serializable] public sealed class ProductDefinition
     {
         public ProductKind kind;
         public int retailPrice,wholesalePrice;
-        public double rawPrice=8,processingCost=2;
+        public double processingCost=2;
         public int labourMinutes,consumptionDays,refillBelowDays,targetDays;
     }
     public sealed class ProductRules
     {
         public ProductKind Kind {get;}
         public int RetailPrice {get;} public int WholesalePrice {get;}
-        public double RawPrice {get;} public double ProcessingCost {get;}
+        public double ProcessingCost {get;}
         public int LabourMinutes {get;} public int ConsumptionDays {get;} public int RefillBelowDays {get;} public int TargetDays {get;}
         internal ProductRules(ProductDefinition d)
         {
-            if(d==null||d.kind<ProductKind.Food||d.kind>ProductKind.DailyGoods||d.retailPrice<1||d.wholesalePrice<1||d.labourMinutes<1||d.consumptionDays<1||d.refillBelowDays<1||d.targetDays<d.refillBelowDays||double.IsNaN(d.rawPrice)||double.IsInfinity(d.rawPrice)||d.rawPrice<0||double.IsNaN(d.processingCost)||double.IsInfinity(d.processingCost)||d.processingCost<0)throw new ArgumentException("Invalid product rules");
-            Kind=d.kind;RetailPrice=d.retailPrice;WholesalePrice=d.wholesalePrice;RawPrice=d.rawPrice;ProcessingCost=d.processingCost;LabourMinutes=d.labourMinutes;ConsumptionDays=d.consumptionDays;RefillBelowDays=d.refillBelowDays;TargetDays=d.targetDays;
+            if(d==null||d.kind<ProductKind.Food||d.kind>ProductKind.DailyGoods||d.retailPrice<1||d.wholesalePrice<1||d.labourMinutes<1||d.consumptionDays<1||d.refillBelowDays<1||d.targetDays<d.refillBelowDays||double.IsNaN(d.processingCost)||double.IsInfinity(d.processingCost)||d.processingCost<0)throw new ArgumentException("Invalid product rules");
+            Kind=d.kind;RetailPrice=d.retailPrice;WholesalePrice=d.wholesalePrice;ProcessingCost=d.processingCost;LabourMinutes=d.labourMinutes;ConsumptionDays=d.consumptionDays;RefillBelowDays=d.refillBelowDays;TargetDays=d.targetDays;
         }
-        internal ProductDefinition Snapshot()=>new ProductDefinition{kind=Kind,retailPrice=RetailPrice,wholesalePrice=WholesalePrice,rawPrice=RawPrice,processingCost=ProcessingCost,labourMinutes=LabourMinutes,consumptionDays=ConsumptionDays,refillBelowDays=RefillBelowDays,targetDays=TargetDays};
+        internal ProductDefinition Snapshot()=>new ProductDefinition{kind=Kind,retailPrice=RetailPrice,wholesalePrice=WholesalePrice,processingCost=ProcessingCost,labourMinutes=LabourMinutes,consumptionDays=ConsumptionDays,refillBelowDays=RefillBelowDays,targetDays=TargetDays};
     }
     public sealed class ProductCatalog
     {

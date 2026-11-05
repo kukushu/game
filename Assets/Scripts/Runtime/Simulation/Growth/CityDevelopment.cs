@@ -10,6 +10,7 @@ namespace HarborCity
     [Serializable] public sealed class DevelopmentProject
     {
         public int id;
+        public GoodsAmounts supplyReserved;
         public float started,completeAt;
         public BuildingSaveData building;
         public List<string> cells=new List<string>();
@@ -19,6 +20,7 @@ namespace HarborCity
         // Separate rulesets prevent the prototype's government rent economy from
         // silently combining with privately grown zoning. Rates/formulae are provisional.
         public bool enabled;
+        public double externalInvestment;
         // Trigger delay is an exposed provisional parameter, not a verified CS1 constant.
         public int provisionalOutageDays=3;
         public int nextProjectId=1,residentialTax=9,commercialTax=9,industrialTax=9;
@@ -37,7 +39,7 @@ namespace HarborCity
 #if UNITY_5_3_OR_NEWER
         static readonly ProfilerMarker demandSample=new ProfilerMarker("City.Growth.Demand"),housingDemandSample=new ProfilerMarker("City.Growth.Demand.Housing"),jobsDemandSample=new ProfilerMarker("City.Growth.Demand.Jobs"),workersDemandSample=new ProfilerMarker("City.Growth.Demand.Workers"),commerceDemandSample=new ProfilerMarker("City.Growth.Demand.Commerce");
 #endif
-        public void DevelopmentDemand()
+        public void DevelopmentDemand(bool includeBusiness=true)
         {
 #if UNITY_5_3_OR_NEWER
             using var demandScope=demandSample.Auto();
@@ -58,7 +60,7 @@ namespace HarborCity
 #if UNITY_5_3_OR_NEWER
             using(commerceDemandSample.Auto())
 #endif
-            commercialCapacity=DevelopmentCommercialCapacity();
+            commercialCapacity=includeBusiness?DevelopmentCommercialCapacity():0;
             // Observable demand estimates, not a claim to CS1's undisclosed formula.
             residentialDemand=Math.Clamp(70-vacant*12+vacantJobs*2-unemployed*4,0,100);
             commercialDemand=Math.Clamp(30+population*3-commercialCapacity*6,0,100);

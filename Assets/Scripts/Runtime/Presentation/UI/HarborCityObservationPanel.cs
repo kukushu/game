@@ -50,12 +50,13 @@ namespace HarborCity
                 GUILayout.Label(text.Get("ui.inspect.building",selected,text.Get("ui.inspect.use."+shown.use.ToString().ToLowerInvariant()),shown.tick));GUILayout.Label(Problems(shown.problems));
                 GUILayout.Label(text.Get("ui.inspect.garbage",shown.garbage,shown.stored));GUILayout.Label(text.Get("ui.inspect.jobs",shown.filledJobs,shown.jobs,shown.attending));GUILayout.Label(text.Get("ui.inspect.transport",shown.transportCount,shown.strandedCount));
                 if(shown.use==LandUse.Industrial||shown.use==LandUse.Commercial)GUILayout.Label(text.Get("ui.inspect.inventory",shown.raw,shown.goods,shown.cash.ToString("F0"),shown.workedMinutes.ToString("F1")));
+                if(shown.use==LandUse.Industrial||shown.use==LandUse.Commercial){GUILayout.Label(text.Get("ui.goods.inventory",shown.products.food,shown.products.dailyGoods,shown.externalCapital.ToString("F0")));if(shown.use==LandUse.Industrial)GUILayout.Label(text.Get("ui.goods.output",text.Get(shown.product==ProductKind.Food?"goods.food":"goods.daily")));}
                 if(shown.units>0){GUILayout.Label(text.Get("ui.inspect.housing",shown.occupied,shown.units,shown.residents));GUILayout.Label(text.Get("ui.inspect.workforce",shown.employed,shown.workforce));}
                 foreach(var h in shown.families)
                 {
                     if(GUILayout.Button(text.Get("ui.inspect.family",h.id,h.unit+1,h.members.Count)))family=family==h.id?0:h.id;
                     if(h.id!=family)continue;
-                    GUILayout.Label(text.Get("ui.inspect.savings",h.savings));GUILayout.Label(h.commuteSamples==0?text.Get("ui.inspect.no_commute"):text.Get("ui.inspect.commute",h.averageCommute.ToString("F1"),h.longestCommute.ToString("F1"),h.commuteSamples));
+                    GUILayout.Label(text.Get("ui.inspect.savings",h.savings));GUILayout.Label(text.Get("ui.goods.household",h.products.food,h.foodDays.ToString("F1"),h.products.dailyGoods,h.dailyDays.ToString("F1")));if(!string.IsNullOrEmpty(h.goodsProblem))GUILayout.Label(text.Get(h.goodsProblem));GUILayout.Label(h.commuteSamples==0?text.Get("ui.inspect.no_commute"):text.Get("ui.inspect.commute",h.averageCommute.ToString("F1"),h.longestCommute.ToString("F1"),h.commuteSamples));
                     foreach(var p in h.members)
                     {
                         GUILayout.Label(text.Get("ui.inspect.person",p.id,p.name,p.age,Yes(p.workforce)));

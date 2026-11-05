@@ -8,6 +8,7 @@ namespace HarborCity
     public abstract class CityBuilding
     {
         public int id;
+        public double externalCapital;
         internal CityEntities EntityOwner;
         public float x, z, yaw, entranceX, entranceZ;
         public float groundY,entranceY;

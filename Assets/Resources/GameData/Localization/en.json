@@ -960,6 +960,66 @@
     {
       "key": "ui.design.rate_compact",
       "text": "Target {0}x · Actual {1}x (0.5s average)"
+    },
+    {
+      "key": "goods.food",
+      "text": "Food"
+    },
+    {
+      "key": "goods.daily",
+      "text": "Daily goods"
+    },
+    {
+      "key": "goods.status.returning",
+      "text": "Waiting for shopping return"
+    },
+    {
+      "key": "goods.status.no_money",
+      "text": "Insufficient shopping funds"
+    },
+    {
+      "key": "goods.status.no_member",
+      "text": "No adult available to shop"
+    },
+    {
+      "key": "goods.status.no_home",
+      "text": "Home unavailable"
+    },
+    {
+      "key": "goods.status.no_stock",
+      "text": "Reachable stores lack stock or are closed"
+    },
+    {
+      "key": "goods.status.no_store",
+      "text": "No reachable store"
+    },
+    {
+      "key": "goods.status.blocked",
+      "text": "Departure blocked; will retry"
+    },
+    {
+      "key": "goods.status.shopping",
+      "text": "Shopping in progress"
+    },
+    {
+      "key": "ui.goods.inventory",
+      "text": "Food {0} · Daily goods {1} · Outside capital {2}"
+    },
+    {
+      "key": "ui.goods.output",
+      "text": "Produces: {0}"
+    },
+    {
+      "key": "ui.goods.household",
+      "text": "Food {0} (~{1} days) · Daily goods {2} (~{3} days)"
+    },
+    {
+      "key": "ui.goods.summary",
+      "text": "Consumed food/daily {0}/{1} · Bought {2}/{3} · Requested {4}/{5}"
+    },
+    {
+      "key": "ui.goods.investment",
+      "text": "External business capital {0}"
     }
   ]
 }

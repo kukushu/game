@@ -19,15 +19,18 @@ static class CityTwoGoodsChecks
     static void ScheduleChecks()
     {
         var live=CityGrowingGridFixture.Create();var cold=CityCoreSave.Read(CityCoreSave.Write(live));cold.Simulation.Growth.Zoning.SetSurface((x,z)=>2);cold.Simulation.Consumption.ReferencePolling=true;
-        for(int t=0;t<12000;t++)
+        for(int t=0;t<40000;t++)
         {
-            foreach(var session in new[]{live,cold})if(!session.Entities.Factories.Any(f=>f.factory.product==ProductKind.Food)){var first=session.Entities.Factories.FirstOrDefault(f=>f.factory.produced==0&&!f.factory.processing&&f.Stock==0);if(first!=null)first.factory.product=ProductKind.Food;}
+            if(t==12000||t==15000){int budget=t==12000?50:100;live.Simulation.Utilities.SetBudget(CityServiceKind.Water,budget);cold.Simulation.Utilities.SetBudget(CityServiceKind.Water,budget);}
             live.Advance(.05);cold.Advance(.05);
             string da=string.Join(";",live.Simulation.Consumption.ShopDemand.OrderBy(x=>x.Key).Select(x=>x.Key+":"+x.Value.food+":"+x.Value.dailyGoods)),db=string.Join(";",cold.Simulation.Consumption.ShopDemand.OrderBy(x=>x.Key).Select(x=>x.Key+":"+x.Value.food+":"+x.Value.dailyGoods));
             if(da!=db){Console.WriteLine("DEMAND "+live.Simulation.Tick+" "+da+" vs "+db);foreach(var h in live.City.society.families)Console.WriteLine("H "+h.id+" supplier "+h.goodsSupplier+" store "+h.goods.food+"/"+h.goods.dailyGoods+" incoming actor "+h.shoppingMember+" needs "+live.Simulation.Consumption.Need(h,ProductKind.Food)+"/"+live.Simulation.Consumption.Need(h,ProductKind.DailyGoods));throw new Exception("Derived demand mismatch");}
             if(t%100==99){if(!CityCoreSave.Write(live).SequenceEqual(CityCoreSave.Write(cold))){GoodsDiff(live.SnapshotBusiness(),cold.SnapshotBusiness(),"city");GoodsDiff(live.Transport.Snapshot(),cold.Transport.Snapshot(),"world");Console.WriteLine("event visits="+live.Simulation.Consumption.FamilyVisits+" oracle="+cold.Simulation.Consumption.FamilyVisits);}Check(CityCoreSave.Write(live).SequenceEqual(CityCoreSave.Write(cold)),"Reference scheduling differs at "+live.Simulation.Tick);}
         }
+        Check(live.City.development.externalInvestment>0&&live.Entities.Factories.Any(f=>f.externalCapital>0&&f.factory.firstDelivery),"Autonomous investment did not deliver goods");
         Check(live.Simulation.Consumption.FamilyVisits<cold.Simulation.Consumption.FamilyVisits,"No candidate reduction");
+        Console.WriteLine("ECONOMY bought="+live.City.consumption.Bought.food+"/"+live.City.consumption.Bought.dailyGoods+" consumed="+live.City.consumption.Consumed.food+"/"+live.City.consumption.Consumed.dailyGoods+" external="+live.City.development.externalInvestment+" visits="+live.Simulation.Consumption.FamilyVisits+"/"+cold.Simulation.Consumption.FamilyVisits);
+        foreach(var f in live.Entities.Factories)Console.WriteLine("F "+f.id+" "+f.factory.product+" cash="+f.factory.cash+" raw="+f.factory.raw+" stock="+f.Stock+" delivered="+f.factory.firstDelivery+" state="+f.factory.status+" jobs="+live.City.EmployedAt(f.id));foreach(var pair in live.Simulation.Consumption.ShopDemand)Console.WriteLine("D "+pair.Key+" "+pair.Value.food+"/"+pair.Value.dailyGoods);
         Check(live.City.consumption.Consumed.food>0&&live.City.consumption.Consumed.dailyGoods>0,"Both products must actually be consumed");
         var after=CityCoreSave.Read(CityCoreSave.Write(live));after.Simulation.Growth.Zoning.SetSurface((x,z)=>2);for(int i=0;i<600;i++){live.Advance(.05);after.Advance(.05);}Check(CityCoreSave.Write(live).SequenceEqual(CityCoreSave.Write(after)),"Sparse cold restore diverged");
         var negative=CityCoreIndustrySession.Create(true);negative.City.society.families[0].openingSavings=negative.City.society.families[0].savings;negative.City.development.enabled=true;negative.Advance(.15);
@@ -36,6 +39,17 @@ static class CityTwoGoodsChecks
         field.SetValue(negative.City.society.families[0],default(GoodsAmounts));field.SetValue(baseline.City.society.families[0],default(GoodsAmounts));
         for(int i=0;i<20;i++){negative.Advance(.05);baseline.Advance(.05);}
         Check(negative.Simulation.Consumption.UnservedDemand.Values.Sum(n=>n.Total)!=baseline.Simulation.Consumption.UnservedDemand.Values.Sum(n=>n.Total),"Negative control failed to detect bypassed pantry notification");
+    }
+    static void MixedPurchaseChecks()
+    {
+        // Declared zero-opening-inventory stress fixture, no free goods or cash
+        // injected during play. Normal migration's three/fourteen-day kit is
+        // separately exercised by ScheduleChecks.
+        var session=CityGrowingGridFixture.Create();
+        session.Entities.MemberStructureChanged+=(m,added)=>{if(added&&!m.Family.goodsInitialized){m.Family.goodsInitialized=true;m.Family.consumptionEpoch=session.Simulation.Tick;}};
+        for(int i=0;i<36000&&(session.City.consumption.Bought.food==0||session.City.consumption.Bought.dailyGoods==0);i++)session.Advance(.05);
+        session.Validate();Console.WriteLine("ZERO-KIT bought="+session.City.consumption.Bought.food+"/"+session.City.consumption.Bought.dailyGoods);
+        Check(session.City.consumption.Bought.food>0&&session.City.consumption.Bought.dailyGoods>0,"Two-kind actual retail missing in zero-opening-inventory stress fixture");
     }
     static void Main()
     {
@@ -53,6 +67,6 @@ static class CityTwoGoodsChecks
         var raw=new Shipment{remaining=8};raw.kind=CargoKind.RawMaterial;Check(raw.remaining==8&&raw.Products.Total==0,"Raw admission amount");var waste=new Shipment{kind=CargoKind.Waste,remaining=7};Check(waste.Copy().remaining==7,"Waste copy");
         var building=BuildingSaveData.FromBuilding(new CommercialBuilding{Products=a});Check(((CommercialBuilding)building.ToBuilding()).Products.Equals(a),"Building mixed inventory persistence");
         var old=(byte[])bytes.Clone();Buffer.BlockCopy(BitConverter.GetBytes(15),0,old,4,4);bool refused=false;try{SaveCodec.Read(old);}catch(System.IO.InvalidDataException){refused=true;}Check(refused,"Old traffic format accepted");
-        ScheduleChecks();Console.WriteLine("PASS "+checks+" two-product checks");
+        ScheduleChecks();MixedPurchaseChecks();Console.WriteLine("PASS "+checks+" two-product checks");
     }
 }

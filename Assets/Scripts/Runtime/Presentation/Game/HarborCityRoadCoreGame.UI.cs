@@ -226,6 +226,8 @@ namespace HarborCity
                 GUILayout.Label(localization.Get("ui.hud.projects",session.City.society.jobEntities.Count,session.City.development.projects.Count),wrapped);
                 GUILayout.Label((employmentReadout??(employmentReadout=new HarborCityEmploymentReadout(localization))).Read(session,Time.realtimeSinceStartupAsDouble),wrapped);
             }
+            GUILayout.Label(localization.Get("ui.goods.summary",session.City.consumption.Consumed.food,session.City.consumption.Consumed.dailyGoods,session.City.consumption.Bought.food,session.City.consumption.Bought.dailyGoods,session.Simulation.Consumption.Requested.food,session.Simulation.Consumption.Requested.dailyGoods),wrapped);
+            GUILayout.Label(localization.Get("ui.goods.investment",session.City.development.externalInvestment.ToString("F0")),wrapped);
             GUILayout.Label(localization.Get("ui.retail.summary",session.City.consumption.ConsumedGoods,session.City.consumption.RetailPayments.ToString("F0")),wrapped);
             GUILayout.Label(localization.Get("ui.time.pending",session.Simulation.PendingSeconds.ToString("F2")),wrapped);
             if(!GrowingCity)GUILayout.Label(localization.Get("ui.hud.factory",session.City.Factory(1)?.raw,session.City.Goods(2)),wrapped);

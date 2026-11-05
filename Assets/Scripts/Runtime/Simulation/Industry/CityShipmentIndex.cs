@@ -22,5 +22,16 @@ namespace HarborCity
         internal GoodsAmounts Goods(int id)=>goods.TryGetValue(id,out var n)?n:default;
         internal int Raw(int id)=>raw.TryGetValue(id,out int n)?n:0;
         internal int Trucks(int id)=>trucks.TryGetValue(id,out int n)?n:0;
+        internal void Validate(World world)
+        {
+            var checkGoods=new Dictionary<int,GoodsAmounts>();var checkRaw=new Dictionary<int,int>();var checkTrucks=new Dictionary<int,int>();int count=0;
+            foreach(var t in world.Tasks)if(t.purpose==TransportPurpose.Freight&&t.state==TripState.InTransit)
+            {count++;if(!entries.TryGetValue(t.id,out var e)||e.from!=t.origin||e.to!=t.destination||!e.goods.Equals(t.Shipment.Products)||e.raw!=(t.Shipment.kind==CargoKind.RawMaterial?t.Cargo:0))throw new InvalidOperationException("Stale freight index entry");checkGoods.TryGetValue(t.destination,out var n);checkGoods[t.destination]=n+t.Shipment.Products;Add(checkRaw,t.destination,e.raw);Add(checkTrucks,t.origin,1);Add(checkTrucks,t.destination,1);}
+            if(count!=entries.Count||raw.Count!=checkRaw.Count||trucks.Count!=checkTrucks.Count)throw new InvalidOperationException("Freight index count mismatch");
+            foreach(var p in checkGoods)if(!Goods(p.Key).Equals(p.Value))throw new InvalidOperationException("Freight goods aggregate mismatch");
+            foreach(var p in goods)if(!checkGoods.TryGetValue(p.Key,out var n)||!n.Equals(p.Value))throw new InvalidOperationException("Orphan freight goods");
+            foreach(var p in checkRaw)if(Raw(p.Key)!=p.Value)throw new InvalidOperationException("Freight raw aggregate mismatch");
+            foreach(var p in checkTrucks)if(Trucks(p.Key)!=p.Value)throw new InvalidOperationException("Freight truck aggregate mismatch");
+        }
     }
 }

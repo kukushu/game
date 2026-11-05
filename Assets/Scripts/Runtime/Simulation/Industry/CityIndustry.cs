@@ -9,7 +9,9 @@ namespace HarborCity
         public const int RawCapacity=24, GoodsCapacity=24;
         public const float LabourPerItem=60;
         public const int StartingCash=1200, RawPrice=8, SalePrice=45, ProcessingCost=2;
-        public ProductKind product=ProductKind.DailyGoods;
+        ProductKind output=ProductKind.DailyGoods;
+        [CitySavedFact] public ProductKind product {get=>output;internal set{if((uint)value>=ProductCatalog.Count||FundingOwner!=null&&value!=output)throw new InvalidOperationException("Product is fixed at factory opening");output=value;}}
+        public bool firstDelivery;
         public double capital, salesRevenue, rawCosts, wageCosts, productionCosts, unpaidWages,taxCosts;
         double balance;
         internal CityEntities FundingOwner;internal int FundingBuilding=-1;

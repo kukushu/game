@@ -14,7 +14,7 @@ static class CityProgressProbe
     {
         var s=CityCoreSave.Read(File.ReadAllBytes(args[0]));s.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);s.Validate();
         var tracked=s.Transport.Vehicles.Where(v=>v.status==VehicleStatus.Active).Select(v=>new Tracked{id=v.id,task=v.Task.id,point=s.Transport.Position(v),purpose=v.Task.purpose.ToString()}).ToArray();
-        long start=s.Simulation.Tick;long generated=s.Simulation.Waste.Generated,processed=s.Simulation.Waste.Processed;int consumed=s.City.consumption.ConsumedGoods;
+        long start=s.Simulation.Tick;long generated=s.Simulation.Waste.Generated,processed=s.Simulation.Waste.Processed;long consumed=s.City.consumption.ConsumedGoods;
         for(int i=0;i<1200;i++)
         {
             if(s.Advance(.05)!=1)throw new Exception("Skipped step in progress probe");

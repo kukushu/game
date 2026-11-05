@@ -62,7 +62,7 @@ namespace HarborCity
             if(source==null||target==null||target.Stock+v.cargo>32)return false;
             // Called after physics has committed every vehicle; successful receipt is
             // acknowledged and retired in the same city boundary, never saved mid-step.
-            target.Products+=v.products;target.wholesaleCosts+=v.cargo*v.price;
+            source.factory.firstDelivery=true;city.entities.ProductInventoryChanged(source);target.Products+=v.products;target.wholesaleCosts+=v.cargo*v.price;
             city.RecordFactorySale(v.origin,v.cargo,v.taskId,v.destination,notify:false,unitPrice:v.price);return true;
         }
     }
@@ -107,7 +107,7 @@ namespace HarborCity
         {
             if(City.utilities==null||!City.utilities.Valid(City.map?.buildHalfSize??CityMapState.BuildHalfSize)||float.IsNaN(City.development.nextEmployment)||float.IsInfinity(City.development.nextEmployment)||City.development.nextEmployment<0)throw new InvalidOperationException("Invalid utilities/population schedule");
             if(City.map==null||!City.map.Valid()||City.zoning==null||!City.zoning.Valid(City.map.buildHalfSize)||City.development==null)throw new InvalidOperationException("Invalid map/zoning/development facts");
-            Simulation.AssertSaveBoundary();Simulation.Finance.Validate();Simulation.Waste.Validate();Simulation.Trade.Validate();Simulation.Consumption.Validate();Entities.Validate();Transport.Validate();Transport.AssertSafety();Residents.Validate();if(!City.ValidIndustry())throw new InvalidOperationException("Industrial financial/labour invariants failed");
+            Simulation.AssertSaveBoundary();Simulation.Shipments.Validate(Transport);Simulation.Growth.ValidateInvestment();Simulation.Finance.Validate();Simulation.Waste.Validate();Simulation.Trade.Validate();Simulation.Consumption.Validate();Entities.Validate();Transport.Validate();Transport.AssertSafety();Residents.Validate();if(!City.ValidIndustry())throw new InvalidOperationException("Industrial financial/labour invariants failed");
             foreach(var shop in City.buildings.OfType<CommercialBuilding>())if(shop.Stock<0||shop.Stock>32||shop.wholesaleCosts<0)throw new InvalidOperationException("Commercial inventory invalid");
             foreach(var factory in Entities.RetiredBuildings.OfType<IndustrialBuilding>())if(Math.Abs(factory.factory.CashError)>1e-6)throw new InvalidOperationException("Retired account mismatch");
         }

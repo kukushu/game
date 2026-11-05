@@ -84,7 +84,7 @@ namespace HarborCity
             };
             for(int i=0;i<capacitySets;i++){facility(LandUse.Power);facility(LandUse.Water);facility(LandUse.Sewage);}
             for(int i=0;i<wastePlants;i++)facility(LandUse.Landfill);
-            Func<LandUse,CityBuilding> building=use=>
+            int productOrdinal=0;Func<LandUse,CityBuilding> building=use=>
             {
                 for(;cursor<lots.Length;cursor++)
                 {
@@ -93,7 +93,7 @@ namespace HarborCity
                     if(!zoning.CanPlace(b))continue;var access=zoning.Entrance(b);if(!access.HasValue)continue;
                     b.id=city.nextBuildingId;
                     if(b is ResidentialBuilding home){home.housingUnits=settings.householdsPerResidentialBuilding;home.askingRent=0;}
-                    if(b is IndustrialBuilding f){f.factory.capital=s.Simulation.Design.Production.InitialFactoryCash;f.factory.cash=f.factory.capital;}
+                    if(b is IndustrialBuilding f){f.factory.product=productOrdinal++%3<2?ProductKind.Food:ProductKind.DailyGoods;f.factory.capital=s.Simulation.Design.Production.InitialFactoryCash;f.factory.cash=f.factory.capital;}
                     if(b is CommercialBuilding shop){shop.Account.Capital=s.Simulation.Design.Retail.InitialShopCash;shop.Account.Cash=shop.Account.Capital;}
                     s.Transport.CheckNewAccess(b.id,access.Value.drivable,access.Value.distance);s.Entities.AddBuilding(b);s.Transport.RegisterAccess(b.id,access.Value.drivable,access.Value.distance);cursor++;if(s.Entities.Buildings.Count%25==0)progress?.Invoke("business-and-housing",s);return b;
                 }

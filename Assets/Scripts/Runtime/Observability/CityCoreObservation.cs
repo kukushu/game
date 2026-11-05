@@ -11,11 +11,13 @@ namespace HarborCity
     }
     public sealed class FamilyInspection
     {
+        public GoodsAmounts products;public double foodDays,dailyDays;public string goodsProblem;
         public int id,unit,savings,employed,workforce,commuteSamples;public double averageCommute,longestCommute;
         public IReadOnlyList<ResidentInspection> members;
     }
     public sealed class BuildingInspection
     {
+        public GoodsAmounts products;public ProductKind product;public double externalCapital;
         public int id,units,occupied,residents,workforce,employed,jobs,filledJobs,attending,raw,goods,garbage,stored,transportCount,strandedCount;
         public double x,z,cash,workedMinutes;public LandUse use;public CityObservedProblem problems;public long tick;
         public IReadOnlyList<FamilyInspection> families;
@@ -44,11 +46,11 @@ namespace HarborCity
         public BuildingInspection Read(int id)
         {
             var b=session.Entities.Building(id);if(b==null)return null;
-            var result=new BuildingInspection{id=id,use=b.Use,x=b.x,z=b.z,garbage=b.garbage,problems=Problems(b),tick=session.Simulation.Tick};
+            var result=new BuildingInspection{externalCapital=b.externalCapital,products=(b as IGoodsBuilding)?.Products??default,product=(b as IndustrialBuilding)?.factory.product??ProductKind.Food,id=id,use=b.Use,x=b.x,z=b.z,garbage=b.garbage,problems=Problems(b),tick=session.Simulation.Tick};
             var families=new List<FamilyInspection>();
             foreach(var h in session.City.society.families)if(h.resident&&h.home==id)
             {
-                var family=new FamilyInspection{id=h.id,unit=h.unit,savings=h.savings};var members=new List<ResidentInspection>();double sum=0;
+                var family=new FamilyInspection{id=h.id,unit=h.unit,savings=h.savings,products=h.goods,foodDays=session.Simulation.Consumption.DaysAvailable(h,ProductKind.Food),dailyDays=session.Simulation.Consumption.DaysAvailable(h,ProductKind.DailyGoods),goodsProblem=h.goodsProblem};var members=new List<ResidentInspection>();double sum=0;
                 foreach(var p in h.people)if(!p.dead)
                 {
                     var job=session.City.ResidentJob(p);var car=p.tripId==0?null:session.Transport.FindTaskVehicle(p.tripId);

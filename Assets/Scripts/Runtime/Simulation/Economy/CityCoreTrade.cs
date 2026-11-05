@@ -165,7 +165,7 @@ namespace HarborCity
             {
                 var destination=entities.Connection(arrival.destination);var source=entities.Building(arrival.origin) as IndustrialBuilding;
                 if(destination==null||!destination.active||destination.flow!=OutsideFlow.Export||source==null||source.abandoned||source.burned)return false;
-                city.RecordFactorySale(arrival.origin,arrival.cargo,arrival.taskId,arrival.destination,notify:false,unitPrice:arrival.price);city.trade.goodsExported+=arrival.cargo;city.trade.ExportedProducts+=arrival.products;city.trade.exportPayments+=arrival.cargo*arrival.price;return true;
+                source.factory.firstDelivery=true;entities.ProductInventoryChanged(source);city.RecordFactorySale(arrival.origin,arrival.cargo,arrival.taskId,arrival.destination,notify:false,unitPrice:arrival.price);city.trade.goodsExported+=arrival.cargo;city.trade.ExportedProducts+=arrival.products;city.trade.exportPayments+=arrival.cargo*arrival.price;return true;
             }
             var gate=entities.Connection(arrival.origin);
             var factory=entities.Building(arrival.destination) as IndustrialBuilding;

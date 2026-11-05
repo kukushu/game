@@ -80,6 +80,7 @@ static class CityScenarioRun
             if(resumePopulation)Console.WriteLine("Resume actual population "+s.Entities.Members.Count+"; declared fixture population "+settings.population);
             Write(Path.Combine(output,"effective-design.json"),s.Simulation.Design.Snapshot());
             byte[] initial=CityCoreSave.Write(s);File.WriteAllBytes(Path.Combine(output,"initial.hcity"),initial);
+            if(args.Contains("author-only")){var cold=Restore(initial);Require(initial.SequenceEqual(CityCoreSave.Write(cold)),"Authored cold state differs");Write(Path.Combine(output,"authoring.json"),new{authoringOnly=true,population=s.Entities.Members.Count,initialHash=Hash(initial),note="Validated initial city only; not a full simulation or performance pass"});Console.WriteLine("AUTHORED initial city, no simulation/performance claim");return 0;}
             if(!loading){var repeated=CityCoreSave.Write(CityScenarioBuilder.Create(settings,design,construction.Observe));Require(initial.SequenceEqual(repeated),"Same seed/settings did not reproduce initial city");}
             // All timed runs start from the same saved facts and cold derived caches,
             // whether constructed just now or supplied by --Load.

@@ -1,15 +1,15 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Collections.Generic;
 using HarborCity.RoadCore;
 namespace HarborCity
 {
-    public sealed class CityCoreGrowth
+    public sealed partial class CityCoreGrowth
     {
         readonly CityModel city;readonly CityEntities entities;readonly World world;
         readonly ProductionRules production;readonly RetailRules retail;
         public CityCoreZoning Zoning {get;}
-        public CityCoreGrowth(CityModel city,CityEntities entities,World world,ProductionRules production=null,RetailRules retail=null){this.city=city;this.entities=entities;this.world=world;this.production=production??new ProductionRules(new ProductionDefinition());this.retail=retail??new RetailRules(new RetailDefinition());Zoning=new CityCoreZoning(city,entities,world);if(city.development.enabled)RefreshStatistics();}
+        public CityCoreGrowth(CityModel city,CityEntities entities,World world,ProductionRules production=null,RetailRules retail=null){this.city=city;this.entities=entities;this.world=world;this.production=production??new ProductionRules(new ProductionDefinition());this.retail=retail??new RetailRules(new RetailDefinition());Zoning=new CityCoreZoning(city,entities,world);BindInvestment();if(city.development.enabled)RefreshStatistics();}
         void RefreshStatistics(){city.population=entities.Members.Count(m=>m.Family.resident&&!m.Person.dead);city.jobs=city.society.jobEntities.Count;}
         // Called by the city at the healthy step boundary, before actor/business
         // phases. Public structure edits remain forbidden inside physics.
@@ -23,18 +23,20 @@ namespace HarborCity
         // gate must not allocate a display class even when growth is disabled.
         void AdvanceGrowth(TimeContext time)
         {
+            bool completed=false;
             foreach(var project in city.development.projects.Where(p=>time.Start>=p.completeAt).ToArray())
             {
                 var lot=project.building.ToBuilding();var cells=Zoning.Cells();if(!Zoning.CanPlace(lot,true,project.id)||project.cells.Any(key=>!cells.Any(c=>c.key==key&&c.use==lot.Use))){city.development.projects.Remove(project);city.development.revision++;continue;}
                 var access=Zoning.Entrance(lot);if(!access.HasValue){city.development.projects.Remove(project);city.development.revision++;continue;}lot.id=city.nextBuildingId;
                 if(lot is ResidentialBuilding home){home.housing=HousingKind.Villa;home.housingUnits=1;home.askingRent=0;}
-                if(lot is IndustrialBuilding factory){factory.factory.capital=production.InitialFactoryCash;factory.factory.cash=production.InitialFactoryCash;}
-                if(lot is CommercialBuilding shop){shop.Account.Capital=retail.InitialShopCash;shop.Account.Cash=retail.InitialShopCash;}
-                world.CheckNewAccess(lot.id,access.Value.drivable,access.Value.distance);entities.AddBuilding(lot);world.RegisterAccess(lot.id,access.Value.drivable,access.Value.distance);city.development.projects.Remove(project);city.development.revision++;
+                if(lot is IndustrialBuilding factory){factory.factory.capital=production.InitialFactoryCash;factory.factory.cash=production.InitialFactoryCash;lot.externalCapital=production.InitialFactoryCash;}
+                if(lot is CommercialBuilding shop){shop.Account.Capital=retail.InitialShopCash;shop.Account.Cash=retail.InitialShopCash;lot.externalCapital=retail.InitialShopCash;}
+                world.CheckNewAccess(lot.id,access.Value.drivable,access.Value.distance);entities.AddBuilding(lot);city.development.externalInvestment+=lot.externalCapital;completed=true;world.RegisterAccess(lot.id,access.Value.drivable,access.Value.distance);city.development.projects.Remove(project);city.development.revision++;
             }
+            if(completed){city.development.nextGrowth=(float)(time.Start+6);return;}
             if(time.Start<city.development.nextGrowth)return;city.development.nextGrowth=(float)(time.Start+6);
             RefreshStatistics();
-            city.DevelopmentDemand();var candidates=Zoning.Cells();
+            city.DevelopmentDemand(includeBusiness:false);var candidates=Zoning.Cells();
 #if CITY_CORE_ATTRIBUTION
             using var searchObservation=CityCoreProfile.Measure(CityCoreProfile.Part.GrowthSearch);
 #endif
@@ -45,13 +47,17 @@ namespace HarborCity
             Dictionary<LandUse,List<ZoneCell>> startsByUse=null;
             foreach(var use in new[]{LandUse.Residential,LandUse.Commercial,LandUse.Industrial})
             {
+                ProductKind chosen=ProductKind.Food;int reserved=0;CityBuilding focus=null;
+                bool opportunity=use==LandUse.Residential||InvestmentOpportunity(use,out chosen,out reserved,out focus);
+                if(use==LandUse.Commercial)city.commercialDemand=opportunity?Math.Min(100,reserved):0;if(use==LandUse.Industrial)city.industrialDemand=opportunity?Math.Min(100,reserved):0;
+                if(!opportunity)continue;
                 int demand=use==LandUse.Residential?city.residentialDemand:use==LandUse.Commercial?city.commercialDemand:city.industrialDemand;if(demand<=0||city.development.projects.Any(p=>p.building.type==use))continue;bool planned=false;
                 if(startsByUse==null)
                 {
                     startsByUse=new Dictionary<LandUse,List<ZoneCell>>{{LandUse.Residential,new List<ZoneCell>()},{LandUse.Commercial,new List<ZoneCell>()},{LandUse.Industrial,new List<ZoneCell>()}};
                     foreach(var cell in candidates)if(cell.row==0&&cell.available&&startsByUse.TryGetValue(cell.use,out var group))group.Add(cell);
                 }
-                var starts=startsByUse[use];if(starts.Count==0)continue;
+                var starts=startsByUse[use];if(starts.Count==0)continue;if(focus!=null)starts.Sort((a,b)=>{double ax=a.pose.x-focus.x,az=a.pose.z-focus.z,bx=b.pose.x-focus.x,bz=b.pose.z-focus.z;int c=(ax*ax+az*az).CompareTo(bx*bx+bz*bz);return c!=0?c:string.CompareOrdinal(a.key,b.key);});
                 for(int i=0;i<CityModel.GrowthFootprints.Length&&!planned;i++)
                 {
                     var size=CityModel.GrowthFootprints[(city.development.nextProjectId-1+i)%CityModel.GrowthFootprints.Length];
@@ -61,7 +67,8 @@ namespace HarborCity
                         var lot=CityModel.NewBuilding(use);lot.x=footprint.Average(c=>c.pose.x);lot.z=footprint.Average(c=>c.pose.z);lot.yaw=first.pose.yaw;lot.width=CityZoningState.CellSize*size.width-.1f;lot.depth=CityZoningState.CellSize*size.depth-.1f;
                         if(footprint.Any(c=>!lot.Contains(c.pose.x,c.pose.z))||Zoning.OverlapsOtherPlot(lot,footprint)||!Zoning.CanPlace(lot)||!Zoning.Entrance(lot).HasValue)continue;
                         if(lot is ResidentialBuilding home){home.housingUnits=1;home.askingRent=0;}
-                        city.development.projects.Add(new DevelopmentProject{id=city.development.nextProjectId++,started=(float)time.Start,completeAt=(float)(time.Start+12),building=BuildingSaveData.FromBuilding(lot),cells=footprint.Select(c=>c.key).ToList()});city.development.revision++;planned=true;break;
+                        if(lot is IndustrialBuilding producer)producer.factory.product=chosen;
+                        city.development.projects.Add(new DevelopmentProject{supplyReserved=use==LandUse.Industrial?GoodsAmounts.Of(chosen,reserved):default,id=city.development.nextProjectId++,started=(float)time.Start,completeAt=(float)(time.Start+12),building=BuildingSaveData.FromBuilding(lot),cells=footprint.Select(c=>c.key).ToList()});city.development.revision++;planned=true;break;
                     }
                 }
             }

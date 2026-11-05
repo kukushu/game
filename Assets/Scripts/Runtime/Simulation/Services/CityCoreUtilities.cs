@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using HarborCity.RoadCore;
 namespace HarborCity
 {
@@ -12,6 +12,7 @@ namespace HarborCity
         bool dirty=true;
         bool roadConduits;
         internal CityCoreFinance Finance;
+        internal event Action SuppliesRebuilt;
         public CityCoreUtilities(CityModel city,CityEntities entities,World world){this.city=city;this.entities=entities;this.world=world;city.RoadUtilitySource=()=>world.Network;}
         public void Invalidate(){dirty=true;}
         public void Refresh()
@@ -21,7 +22,7 @@ namespace HarborCity
 #if CITY_CORE_ATTRIBUTION
             using var rebuildObservation=CityCoreProfile.Measure(CityCoreProfile.Part.UtilityRebuild);
 #endif
-            city.RecalculateUtilities();dirty=false;roadConduits=city.utilities.roadConduits;entityVersion=entities.Revision;roadVersion=world.NetworkGeneration;power=city.utilities.electricity;water=city.utilities.water;powerVersion=power.revision;waterVersion=water.revision;
+            city.RecalculateUtilities();dirty=false;roadConduits=city.utilities.roadConduits;entityVersion=entities.Revision;roadVersion=world.NetworkGeneration;power=city.utilities.electricity;water=city.utilities.water;powerVersion=power.revision;waterVersion=water.revision;SuppliesRebuilt?.Invoke();
         }
         public void SetBudget(CityServiceKind kind,int percent)
         {

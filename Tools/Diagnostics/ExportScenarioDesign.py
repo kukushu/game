@@ -8,5 +8,5 @@ source = Path(sys.argv[1]).read_text(encoding="utf-8-sig")
 # The sole tagged Unity object is a ScriptableObject wrapper; its definition is plain YAML.
 plain = "\n".join(line for line in source.splitlines() if not line.startswith(("%", "---")))
 definition = yaml.safe_load(plain)["MonoBehaviour"]["definition"]
-assert definition["schemaVersion"] == 4
+assert definition["schemaVersion"] == 5
 Path(sys.argv[2]).write_text(json.dumps(definition, ensure_ascii=False, indent=2), encoding="utf-8")

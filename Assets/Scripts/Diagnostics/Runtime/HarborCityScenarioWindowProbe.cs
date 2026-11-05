@@ -15,10 +15,7 @@ namespace HarborCity
         struct Sample {public double buildingIndexMs;public long indexPoseSamples;public double indexMs;public long poseSamples;public int represented,summaryVehicles,batchedVehicles,buildingSummary,buildingBatch,buildingRepresented;public double seconds,ms,advance,vehicles,structure,pending,gpu,requested,rate;public long bytes,tick,mainNs,renderNs,gcNs,uiNs,batches,drawCalls,setPass,triangles;public int steps,active,views;}
         static Dictionary<string,long> ShoppingStats(CityCoreIndustrySession city)
         {
-            var result=new Dictionary<string,long>();var flags=System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic;
-            var value=city.Simulation.Consumption;var field=value.GetType().GetField("Schedule",flags);var schedule=field?.GetValue(value);
-            result["compiled"]=field==null?0:1;if(schedule==null)return result;
-            foreach(string name in new[]{"Rebuilds","Notifications","Classifications","Candidates","Passes","LogicalBytes"}){var type=schedule.GetType();var f=type.GetField(name,flags);var p=type.GetProperty(name,flags);result[name]=f!=null?Convert.ToInt64(f.GetValue(schedule)):Convert.ToInt64(p.GetValue(schedule));}return result;
+            var v=city.Simulation.Consumption;return new Dictionary<string,long>{{"compiled",1},{"FamilyVisits",v.FamilyVisits},{"ConsumptionVisits",v.ConsumptionVisits},{"Notifications",v.Notifications},{"StoreUpdates",v.StoreUpdates},{"SearchCandidates",v.SearchCandidates},{"QueueBytes",v.QueueBytes},{"PendingConsumption",v.PendingConsumption},{"PendingShopping",v.PendingShopping},{"BoughtFood",city.City.consumption.Bought.food},{"BoughtDaily",city.City.consumption.Bought.dailyGoods},{"ConsumedFood",city.City.consumption.Consumed.food},{"ConsumedDaily",city.City.consumption.Consumed.dailyGoods},{"UnmetFood",city.City.consumption.Unmet.food},{"UnmetDaily",city.City.consumption.Unmet.dailyGoods}};
         }
         static void WriteShoppingStats(string output,Dictionary<string,long> before,CityCoreIndustrySession city)
         {var after=ShoppingStats(city);File.WriteAllLines(Path.Combine(output,"household-schedule.csv"),new[]{"metric,start,end,delta"}.Concat(after.Select(p=>string.Join(",",p.Key,before[p.Key],p.Value,p.Value-before[p.Key]))));}
@@ -80,7 +77,7 @@ namespace HarborCity
             var featureArgs=Environment.GetCommandLineArgs();int expectedMode=Array.IndexOf(featureArgs,"-harbor-resident-schedule-expect");
             if(expectedMode>=0&&featureArgs[expectedMode+1]!=residentMode)throw new InvalidOperationException("Resident schedule binary does not match requested experiment");
             File.WriteAllText(Path.Combine(output,"resident-mode.txt"),residentMode+"; development="+Debug.isDebugBuild+"; gpu="+SystemInfo.graphicsDeviceName+"; camera="+host.ScenarioSession.City.map.buildHalfSize);
-            string householdMode=CityCoreConsumption.DemandSchedulingCompiled?"scheduled":"polling";int expectedHousehold=Array.IndexOf(featureArgs,"-harbor-household-schedule-expect");
+            host.ScenarioSession.Simulation.Consumption.ReferencePolling=Array.IndexOf(featureArgs,"-harbor-goods-polling-reference")>=0;string householdMode=host.ScenarioSession.Simulation.Consumption.ReferencePolling?"polling":"scheduled";int expectedHousehold=Array.IndexOf(featureArgs,"-harbor-household-schedule-expect");
             if(expectedHousehold>=0&&featureArgs[expectedHousehold+1]!=householdMode)throw new InvalidOperationException("Household schedule binary does not match request");
             File.WriteAllText(Path.Combine(output,"household-mode.txt"),householdMode);
             QualitySettings.vSyncCount=0;Application.targetFrameRate=60;

@@ -20,7 +20,9 @@ namespace HarborCity
         [CitySavedFact] public bool dead {get=>deceased;set{if(deceased==value)return;deceased=value;EntityOwner?.StateChanged(this,CityResidentStateChange.Death);}}
         [CitySavedFact] public bool sick {get=>ill;set{if(ill==value)return;ill=value;EntityOwner?.StateChanged(this,CityResidentStateChange.Sickness);}}
         [CitySavedFact] public int location {get=>currentLocation;set{if(currentLocation==value)return;currentLocation=value;EntityOwner?.StateChanged(this,CityResidentStateChange.Location);}}
-        public int householdId, skill, wagePaid;
+        public int householdId,wagePaid;
+        int qualification;
+        [CitySavedFact] public int skill {get=>qualification;set{if(qualification==value)return;qualification=value;EntityOwner?.StateChanged(this,CityResidentStateChange.Ability);}}
         int departedDay=-1,reachedDay=-1,seenHome=-1,seenWork=-1,seenRevision=-1;float commute=-1;
         [CitySavedFact] public int departureDay {get=>departedDay;set{if(departedDay==value)return;departedDay=value;EntityOwner?.StateChanged(this,CityResidentStateChange.TripDay);}}
         [CitySavedFact] public int arrivedDay {get=>reachedDay;set{if(reachedDay==value)return;reachedDay=value;EntityOwner?.StateChanged(this,CityResidentStateChange.TripDay);}}

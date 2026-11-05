@@ -20,7 +20,6 @@ MonoBehaviour:
     - kind: 0
       retailPrice: 20
       wholesalePrice: 15
-      rawPrice: 8
       processingCost: 2
       labourMinutes: 15
       consumptionDays: 1
@@ -29,7 +28,6 @@ MonoBehaviour:
     - kind: 1
       retailPrice: 60
       wholesalePrice: 45
-      rawPrice: 8
       processingCost: 2
       labourMinutes: 60
       consumptionDays: 7
