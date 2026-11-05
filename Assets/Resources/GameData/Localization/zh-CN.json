@@ -247,7 +247,7 @@
     },
     {
       "key": "ui.inspect.commute",
-      "text": "实际通勤平均 {0} · 最长 {1} 分钟 · {2} 样本"
+      "text": "实际通勤（游戏时间）平均 {0} · 最长 {1} · {2} 个样本"
     },
     {
       "key": "ui.inspect.person",
@@ -1388,6 +1388,14 @@
     {
       "key": "ui.feedback.located_vehicle",
       "text": "{0} 的车"
+    },
+    {
+      "key": "ui.inspect.commute_duration",
+      "text": "{0} 小时 {1} 分"
+    },
+    {
+      "key": "ui.hud.calendar_clock",
+      "text": "第 {0} 天 {1}"
     }
   ]
 }

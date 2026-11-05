@@ -101,8 +101,21 @@ namespace HarborCity
         void DrawTimeControls()
         {
             var b=TimeBounds;HudBox(b);
-            GUI.Label(new Rect(b.x+8,b.y+12,76,20),world.Clock.ToString("F1")+" s",small);
-            float width=(b.width-94)/5,x=b.x+86;
+            string clockLabel;
+            if(session!=null)
+            {
+                double daySeconds=session.City.society.settings.secondsPerDay;
+                double calendarSeconds=session.Simulation.CalendarOffset+session.Simulation.Seconds;
+                int minuteOfDay=(int)(calendarSeconds%daySeconds*1440/daySeconds);
+                clockLabel=localization.Get("ui.hud.calendar_clock",session.City.day,$"{minuteOfDay/60:D2}:{minuteOfDay%60:D2}");
+            }
+            else
+            {
+                long elapsed=(long)world.Clock;
+                clockLabel=$"{elapsed/3600:D2}:{elapsed/60%60:D2}:{elapsed%60:D2}";
+            }
+            GUI.Label(new Rect(b.x+8,b.y+12,96,20),clockLabel,small);
+            float width=(b.width-114)/5,x=b.x+106;
             foreach(float rate in new[]{0f,1f,3f,20f,50f})
             {
                 var old=GUI.backgroundColor;GUI.backgroundColor=speed==rate?new Color(.12f,.51f,.63f):new Color(.11f,.18f,.24f);

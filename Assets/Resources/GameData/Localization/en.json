@@ -247,7 +247,7 @@
     },
     {
       "key": "ui.inspect.commute",
-      "text": "Observed commute: mean {0} · max {1} min · {2} samples"
+      "text": "Observed commute (game time): mean {0} · max {1} · {2} samples"
     },
     {
       "key": "ui.inspect.person",
@@ -1388,6 +1388,14 @@
     {
       "key": "ui.feedback.located_vehicle",
       "text": "Vehicle: {0}"
+    },
+    {
+      "key": "ui.inspect.commute_duration",
+      "text": "{0} h {1} min"
+    },
+    {
+      "key": "ui.hud.calendar_clock",
+      "text": "Day {0} {1}"
     }
   ]
 }

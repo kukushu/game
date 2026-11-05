@@ -59,6 +59,11 @@ namespace HarborCity
             try{shown=selected==0?null:query.Read(selected);if(selected!=0&&shown==null)selected=family=0;}catch(Exception e){shown=null;FeedbackError=e.ToString();}
             refreshDeadline=Time.realtimeSinceStartupAsDouble+.5;refreshed=tick;entityRevision=session.Entities.Revision;roadRevision=session.Transport.NetworkGeneration;
         }
+        string CommuteDuration(double minutes)
+        {
+            long roundedMinutes=(long)Math.Round(minutes);
+            return text.Get("ui.inspect.commute_duration",roundedMinutes/60,(roundedMinutes%60).ToString("D2"));
+        }
         string Yes(bool value)=>text.Get(value?"ui.inspect.yes":"ui.inspect.no");
         string Problems(CityObservedProblem flags)
         {if(flags==0)return text.Get("ui.feedback.basic_clear");var parts=new System.Collections.Generic.List<string>();foreach(CityObservedProblem p in Enum.GetValues(typeof(CityObservedProblem)))if(p!=0&&(flags&p)!=0)parts.Add(text.Get("ui.inspect.problem."+p.ToString().ToLowerInvariant()));return string.Join(" / ",parts);}
@@ -119,7 +124,7 @@ namespace HarborCity
                     if(!string.IsNullOrEmpty(h.goodsProblem))GUILayout.Label(text.Get(h.goodsProblem));
                     if(h.supplier>0&&session.Entities.Building(h.supplier)!=null&&GUILayout.Button(text.Get("ui.feedback.locate_supplier")))Locate(h.supplier);
                     GUILayout.Label(text.Get("ui.feedback.advice.family"));
-                    GUILayout.Label(h.commuteSamples==0?text.Get("ui.inspect.no_commute"):text.Get("ui.inspect.commute",h.averageCommute.ToString("F1"),h.longestCommute.ToString("F1"),h.commuteSamples));
+                    GUILayout.Label(h.commuteSamples==0?text.Get("ui.inspect.no_commute"):text.Get("ui.inspect.commute",CommuteDuration(h.averageCommute),CommuteDuration(h.longestCommute),h.commuteSamples));
                     foreach(var p in h.members)
                     {
                         GUILayout.Label(text.Get("ui.feedback.person",p.name,p.age,Yes(p.workforce)));
