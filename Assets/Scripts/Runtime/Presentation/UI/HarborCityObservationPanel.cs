@@ -113,6 +113,16 @@ namespace HarborCity
                         GUILayout.Label(p.job<0?text.Get(p.workforce?"ui.inspect.unemployed":"ui.inspect.not_workforce"):text.Get("ui.feedback.work",Location(p.workplace),p.wage,Yes(p.atWork)));
                         if(p.workplace>0&&GUILayout.Button(text.Get("ui.inspect.locate_work"))){Locate(p.workplace);}
                         GUILayout.Label(p.vehicle>0?text.Get("ui.feedback.journey",Location(p.origin),Location(p.destination),text.Get("ui.inspect.trip."+p.purpose.ToString().ToLowerInvariant()),Yes(p.stranded)):text.Get("ui.feedback.person_location",Location(p.location),p.carriedGoods));
+                        if(p.vehicle>0&&GUILayout.Button(text.Get("ui.feedback.locate_vehicle")))
+                        {
+                            var vehicle=session.Transport.FindTaskVehicle(p.task);
+                            if(vehicle!=null&&vehicle.id==p.vehicle)
+                            {
+                                var position=session.Transport.Position(vehicle);
+                                Focus?.Invoke((float)position.x,(float)position.z);
+                            }
+                            refreshed=-1;
+                        }
                     }
                 }
             }

@@ -1380,6 +1380,10 @@
     {
       "key": "ui.feedback.population_households",
       "text": "人口 {0} · {1} 户"
+    },
+    {
+      "key": "ui.feedback.locate_vehicle",
+      "text": "定位车辆"
     }
   ]
 }

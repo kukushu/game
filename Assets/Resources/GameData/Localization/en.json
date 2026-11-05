@@ -1380,6 +1380,10 @@
     {
       "key": "ui.feedback.population_households",
       "text": "People {0} · Homes {1}"
+    },
+    {
+      "key": "ui.feedback.locate_vehicle",
+      "text": "Locate vehicle"
     }
   ]
 }
