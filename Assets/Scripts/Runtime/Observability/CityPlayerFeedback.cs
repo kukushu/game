@@ -6,6 +6,7 @@ namespace HarborCity
     [Serializable] public sealed class CityFeedbackSummary
     {
         public long tick;
+        public int households;
         public int foodEmpty,foodLow,dailyEmpty,dailyLow,cashShops,cashFactories,infrastructure;
         public bool Critical=>foodEmpty+dailyEmpty+cashShops+cashFactories+infrastructure>0;
         public int Count=>foodEmpty+foodLow+dailyEmpty+dailyLow+cashShops+cashFactories+infrastructure;
@@ -22,6 +23,7 @@ namespace HarborCity
     {
         readonly CityCoreIndustrySession session;readonly CityCoreObservation query;
         readonly HashSet<int> dirtyFamilies=new HashSet<int>(),dirtyBuildings=new HashSet<int>();
+        readonly HashSet<int> residentFamilies=new HashSet<int>();
         readonly Dictionary<int,int> familyFlags=new Dictionary<int,int>();
         readonly Dictionary<int,int> familyHomes=new Dictionary<int,int>();
         readonly Dictionary<int,CityObservedProblem> buildingFlags=new Dictionary<int,CityObservedProblem>();
@@ -53,7 +55,9 @@ namespace HarborCity
         {if((mask&1)!=0)Summary.foodEmpty+=sign;if((mask&2)!=0)Summary.foodLow+=sign;if((mask&4)!=0)Summary.dailyEmpty+=sign;if((mask&8)!=0)Summary.dailyLow+=sign;}
         void ReadFamily(int id)
         {
-            int next=0;var h=session.Entities.Family(id);
+            int next=0;var h=session.Entities.Family(id);bool occupied=false;
+            if(h!=null&&h.resident&&h.home>=0)foreach(var person in h.people)if(!person.dead){occupied=true;break;}
+            if(occupied){if(residentFamilies.Add(id))Summary.households++;}else if(residentFamilies.Remove(id))Summary.households--;
             if(session.City.development.enabled&&h!=null&&h.resident&&h.goodsInitialized&&h.consumptionPeople>0)
             {
                 if(h.goods.food==0)next|=1;else if(session.Simulation.Consumption.Need(h,ProductKind.Food)>0)next|=2;
@@ -123,7 +127,7 @@ namespace HarborCity
             if(disposed)return;disposed=true;
             session.Entities.ShoppingFamilyFactsChanged-=Family;session.Entities.MemberStructureChanged-=Member;session.Entities.ResidentStateChanged-=Resident;session.Entities.BusinessStructureChanged-=Structure;session.Entities.BusinessFundingBoundaryChanged-=Business;
             session.Simulation.Utilities.SuppliesRebuilt-=Supplies;session.Simulation.Waste.WaitingChanged-=Business;
-            entries.Clear();familyFlags.Clear();familyHomes.Clear();buildingFlags.Clear();emptyAccounts.Clear();dirtyFamilies.Clear();dirtyBuildings.Clear();
+            entries.Clear();residentFamilies.Clear();Summary.households=0;familyFlags.Clear();familyHomes.Clear();buildingFlags.Clear();emptyAccounts.Clear();dirtyFamilies.Clear();dirtyBuildings.Clear();
         }
     }
 }

@@ -45,7 +45,7 @@ namespace HarborCity
             HudBox(r);var previous=GUI.contentColor;
             bool unavailable=!string.IsNullOrEmpty(observation.FeedbackError);
             GUI.contentColor=unavailable?Muted:summary!=null&&summary.Critical?new Color(1,.55f,.48f):summary!=null&&summary.Count>0?new Color(1,.82f,.38f):Muted;
-            if(GUI.Button(r,new GUIContent("",localization.Get("ui.feedback.bar_help")),GUIStyle.none))OpenFeedbackIssues();
+            if(GUI.Button(r,HudContent(r,"",localization.Get("ui.feedback.bar_help")),GUIStyle.none))OpenFeedbackIssues();
             if(unavailable||summary==null)GUI.Label(new Rect(r.x+8,r.y+5,r.width-16,r.height-8),localization.Get("ui.feedback.unavailable"),wrapped);
             else if(r.height<40)GUI.Label(new Rect(r.x+8,r.y+6,r.width-16,20),localization.Get("ui.feedback.bar_short",summary.foodEmpty,summary.dailyEmpty,summary.cashShops+summary.cashFactories),small);
             else if(r.width<420)

@@ -1376,6 +1376,10 @@
     {
       "key": "ui.feedback.capture_no_save",
       "text": "存档未生成：保存边界拒绝或写入失败。已尽可能保留问题说明和截图，模拟保持暂停。\n{0}"
+    },
+    {
+      "key": "ui.feedback.population_households",
+      "text": "人口 {0} · {1} 户"
     }
   ]
 }

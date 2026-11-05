@@ -14,6 +14,20 @@ namespace HarborCity
         static readonly Color[] CategoryColours={new Color(.37f,.76f,.96f),new Color(.43f,.86f,.57f),new Color(.98f,.77f,.36f),new Color(.69f,.59f,.95f),new Color(.39f,.81f,.78f),new Color(.70f,.77f,.83f)};
         string hudNoticeSeen;double hudNoticeUntil;
         GUIStyle rateButton;
+        string hudTooltip;
+        GUIContent HudContent(Rect bounds,string label,string tip)
+        {
+            if(GUI.enabled&&bounds.Contains(Event.current.mousePosition))hudTooltip=tip;
+            return new GUIContent(label);
+        }
+        void DrawHudTooltip()
+        {
+            if(Event.current.type!=EventType.Repaint||string.IsNullOrEmpty(hudTooltip))return;
+            float width=Mathf.Min(360,Screen.width-16),height=small.CalcHeight(new GUIContent(hudTooltip),width-20)+16;
+            var mouse=Event.current.mousePosition;
+            var bounds=new Rect(Mathf.Clamp(mouse.x+16,8,Screen.width-width-8),Mathf.Clamp(mouse.y+20,8,Screen.height-height-8),width,height);
+            HudBox(bounds);GUI.Label(new Rect(bounds.x+10,bounds.y+8,width-20,height-16),new GUIContent(hudTooltip),small);
+        }
         Rect ToolbarBounds=>new Rect(Math.Max(8,(Screen.width-736)/2),Screen.height-48,Math.Min(736,Screen.width-16),40);
         Rect StatusBounds=>new Rect(8,8,Math.Min(408,(Screen.width-24)*.51f),78);
         Rect TimeBounds=>new Rect(Screen.width-Math.Min(352,(Screen.width-24)*.46f)-8,8,Math.Min(352,(Screen.width-24)*.46f),64);
@@ -77,12 +91,12 @@ namespace HarborCity
             {
                 var r=new Rect(b.x+4+i*width,b.y+4,width-3,32);bool selected=toolPage==(ToolPage)(i+1),hover=r.Contains(Event.current.mousePosition);
                 if(selected||hover)Fill(r,selected?new Color(.12f,.27f,.34f):new Color(.1f,.16f,.20f));
-                if(GUI.Button(r,new GUIContent("",localization.Get(PageTitles[i])),GUIStyle.none))SelectPage((ToolPage)(i+1));
+                if(GUI.Button(r,HudContent(r,"",localization.Get(PageTitles[i])),GUIStyle.none))SelectPage((ToolPage)(i+1));
                 var p=new Vector2(r.x+17,r.center.y);var matrix=GUI.matrix;GUIUtility.ScaleAroundPivot(new Vector2(.65f,.65f),p);DrawCategoryIcon(i,p,CategoryColours[i]);GUI.matrix=matrix;
                 GUI.Label(new Rect(r.x+32,r.y,r.width-34,r.height),localization.Get(PageTitles[i]),tabText);
                 if(selected)Fill(new Rect(r.x+6,r.yMax-2,r.width-12,2),CategoryColours[i]);
             }
-            if(GUI.Button(new Rect(b.xMax-89,b.y+5,82,30),new GUIContent(localization.Get("ui.hud.cancel"),ActiveTool),rateButton))CancelTool();
+            if(GUI.Button(new Rect(b.xMax-89,b.y+5,82,30),HudContent(new Rect(b.xMax-89,b.y+5,82,30),localization.Get("ui.hud.cancel"),ActiveTool),rateButton))CancelTool();
         }
         void DrawTimeControls()
         {
@@ -94,7 +108,7 @@ namespace HarborCity
                 var old=GUI.backgroundColor;GUI.backgroundColor=speed==rate?new Color(.12f,.51f,.63f):new Color(.11f,.18f,.24f);
                 if(GUI.Button(new Rect(x,b.y+6,width-3,28),rate==0?localization.Get("ui.hud.pause"):rate+"×",rateButton)){if(session?.Simulation.Fault!=null&&rate>0)notice=localization.Get("ui.feedback.simulation_fault");else ScenarioRate(rate);}GUI.backgroundColor=old;x+=width;
             }
-            GUI.Label(new Rect(b.x+8,b.y+42,b.width-16,18),new GUIContent(localization.Get("ui.design.rate_compact",speed,double.IsNaN(actualRate)?"…":actualRate.ToString("F1")),localization.Get("ui.hud.rate",speed,double.IsNaN(actualRate)?"…":actualRate.ToString("F1"))),small);
+            GUI.Label(new Rect(b.x+8,b.y+42,b.width-16,18),HudContent(new Rect(b.x+8,b.y+42,b.width-16,18),localization.Get("ui.design.rate_compact",speed,double.IsNaN(actualRate)?"…":actualRate.ToString("F1")),localization.Get("ui.hud.rate",speed,double.IsNaN(actualRate)?"…":actualRate.ToString("F1"))),small);
         }
         string ActiveTool=>gridTool.Enabled?localization.Get("ui.hud.active.grid"):building?localization.Get("ui.hud.active.road"):utilityTool.HasValue?localization.Get("ui.hud.active.pipe"):facilityTool!=LandUse.Empty?localization.Get("ui.hud.active.facility"):zoneTool!=LandUse.Empty?localization.Get("ui.hud.active.zone"):outsideTool?localization.Get("ui.hud.active.outside"):roadEditor.IsSelecting?localization.Get("ui.hud.active.edit"):localization.Get("ui.hud.active.inspect");
         void DrawInterface()
@@ -104,7 +118,7 @@ namespace HarborCity
                 if(localization==null){var language=Resources.Load<TextAsset>("GameData/Localization/zh-CN");if(language!=null)localization=new CityLocalization(JsonUtility.FromJson<TranslationData>(language.text));}
                 if(localization!=null)GUI.Box(new Rect(8,8,Math.Min(Screen.width-16,760),80),localization.Get("ui.build.restart_play"));return;
             }
-            EnsureCitySkin();
+            hudTooltip=null;EnsureCitySkin();
             if(!feedbackCapturing&&Event.current.type==EventType.KeyDown&&Event.current.keyCode==KeyCode.Escape){CancelTool();toolPage=ToolPage.None;observation.Close();financePanel.IsOpen=false;Event.current.Use();}
             var oldSkin=GUI.skin;var oldContent=GUI.contentColor;var oldBackground=GUI.backgroundColor;bool oldEnabled=GUI.enabled;
             try
@@ -115,20 +129,19 @@ namespace HarborCity
                 observation.Top=FeedbackBounds.yMax>90?126:96;DrawCityStatus();DrawToolDock();DrawTimeControls();DrawFeedbackBar();
                 if(FeedbackBuild.playtest)GUI.Label(new Rect(8,Screen.height-74,Math.Min(520,Screen.width-16),18),localization.Get("ui.feedback.version",FeedbackBuild.label),small);
                 if(hudNoticeSeen!=notice){if(hudNoticeSeen!=null&&!string.IsNullOrEmpty(notice))hudNoticeUntil=Time.realtimeSinceStartupAsDouble+4;hudNoticeSeen=notice;}
-                if(NoticeBounds.width>0){HudBox(NoticeBounds);GUI.Label(new Rect(NoticeBounds.x+8,NoticeBounds.y+7,NoticeBounds.width-16,20),new GUIContent(notice,notice),small);}
+                if(NoticeBounds.width>0){HudBox(NoticeBounds);GUI.Label(new Rect(NoticeBounds.x+8,NoticeBounds.y+7,NoticeBounds.width-16,20),HudContent(NoticeBounds,notice,notice),small);}
                 if(toolPage!=ToolPage.None)DrawToolPage();
                 roadEditor?.Bind(session);roadEditor?.Draw();observation?.Bind(session);observation?.Draw();financePanel?.Draw(session?.Simulation);
-                if(Event.current.type==EventType.Repaint&&!string.IsNullOrEmpty(GUI.tooltip))
-                {var m=Event.current.mousePosition;var r=new Rect(Mathf.Clamp(m.x-90,8,Screen.width-228),Mathf.Clamp(m.y-42,8,Screen.height-48),220,34);HudBox(r);GUI.Label(new Rect(r.x+10,r.y+8,200,22),GUI.tooltip,small);}
+                DrawHudTooltip();
             }
             finally{GUI.skin=oldSkin;GUI.contentColor=oldContent;GUI.backgroundColor=oldBackground;GUI.enabled=oldEnabled;}
         }
         void DrawCityStatus()
         {
-            var b=StatusBounds;HudBox(b);float cell=(b.width-16)/3;
-            string[] labels={localization.Get("ui.design.people"),localization.Get("ui.design.vehicles"),localization.Get("ui.design.funds")};
-            string[] values={(session?.Entities.Members.Count??0).ToString("N0"),world.ActiveCount.ToString("N0"),session==null?"—":session.Simulation.Finance.UnlimitedFunds?"∞":session.Simulation.Finance.Money.ToString("N0")};
-            for(int i=0;i<3;i++)GUI.Label(new Rect(b.x+8+i*cell,b.y+8,cell,20),labels[i]+"  "+values[i],small);
+            var b=StatusBounds;HudBox(b);float available=b.width-16,peopleWidth=available*.55f,cell=(available-peopleWidth)/2;
+            GUI.Label(new Rect(b.x+8,b.y+8,peopleWidth,20),localization.Get("ui.feedback.population_households",(session?.Entities.Members.Count??0).ToString("N0"),(observation.Summary?.households??0).ToString("N0")),small);
+            GUI.Label(new Rect(b.x+8+peopleWidth,b.y+8,cell,20),localization.Get("ui.design.vehicles")+" "+world.ActiveCount.ToString("N0"),small);
+            GUI.Label(new Rect(b.x+8+peopleWidth+cell,b.y+8,cell,20),localization.Get("ui.design.funds")+" "+(session==null?"—":session.Simulation.Finance.UnlimitedFunds?"∞":session.Simulation.Finance.Money.ToString("N0")),small);
             if(session!=null)
             {
                 SupplyRow(new Rect(b.x+8,b.y+30,b.width-16,18),localization.Get("ui.design.power"),session.City.demand,session.City.PowerSupplied,session.City.power,new Color(.97f,.77f,.35f));

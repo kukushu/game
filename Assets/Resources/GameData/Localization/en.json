@@ -1376,6 +1376,10 @@
     {
       "key": "ui.feedback.capture_no_save",
       "text": "City save was not generated: save validation rejected the state or writing failed. Available issue details and screenshot are retained. Simulation remains paused.\n{0}"
+    },
+    {
+      "key": "ui.feedback.population_households",
+      "text": "People {0} · Homes {1}"
     }
   ]
 }
