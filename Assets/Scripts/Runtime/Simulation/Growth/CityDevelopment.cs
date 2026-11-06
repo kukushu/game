@@ -11,6 +11,7 @@ namespace HarborCity
     {
         public int id;
         public GoodsAmounts supplyReserved;
+        public bool servesOutside;
         public float started,completeAt;
         public BuildingSaveData building;
         public List<string> cells=new List<string>();
@@ -68,7 +69,7 @@ namespace HarborCity
         }
         // Query-local derived counts only: no second mutable occupancy truth or
         // invalidation protocol. Preserve Occupancy's resident/unit/abandoned filters.
-        int DevelopmentHousingVacancies()
+        internal int DevelopmentHousingVacancies()
         {
             var occupied=new Dictionary<int,int>();
             foreach(var family in society.families)

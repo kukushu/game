@@ -27,7 +27,7 @@ namespace HarborCity
             foreach(var project in city.development.projects.Where(p=>time.Start>=p.completeAt).ToArray())
             {
                 var lot=project.building.ToBuilding();var cells=Zoning.Cells();if(!Zoning.CanPlace(lot,true,project.id)||project.cells.Any(key=>!cells.Any(c=>c.key==key&&c.use==lot.Use))){city.development.projects.Remove(project);city.development.revision++;continue;}
-                var access=Zoning.Entrance(lot);if(!access.HasValue||lot is IndustrialBuilding&&!CanImportAt(access.Value)){city.development.projects.Remove(project);city.development.revision++;continue;}lot.id=city.nextBuildingId;
+                var access=Zoning.Entrance(lot);if(!access.HasValue||lot is IndustrialBuilding&&(!CanImportAt(access.Value)||project.servesOutside&&!CanExportAt(access.Value))){city.development.projects.Remove(project);city.development.revision++;continue;}lot.id=city.nextBuildingId;
                 if(lot is ResidentialBuilding home){home.housing=HousingKind.Villa;home.housingUnits=1;home.askingRent=0;}
                 if(lot is IndustrialBuilding factory){factory.factory.capital=production.InitialFactoryCash;factory.factory.cash=production.InitialFactoryCash;lot.externalCapital=production.InitialFactoryCash;}
                 if(lot is CommercialBuilding shop){shop.Account.Capital=retail.InitialShopCash;shop.Account.Cash=retail.InitialShopCash;lot.externalCapital=retail.InitialShopCash;}
@@ -47,8 +47,8 @@ namespace HarborCity
             Dictionary<LandUse,List<ZoneCell>> startsByUse=null;
             foreach(var use in new[]{LandUse.Residential,LandUse.Commercial,LandUse.Industrial})
             {
-                ProductKind chosen=ProductKind.Food;int reserved=0;CityBuilding focus=null;
-                bool opportunity=use==LandUse.Residential||InvestmentOpportunity(use,out chosen,out reserved,out focus);
+                ProductKind chosen=ProductKind.Food;int reserved=0;CityBuilding focus=null;bool exportProject=false;
+                bool opportunity=use==LandUse.Residential||InvestmentOpportunity(use,out chosen,out reserved,out focus,out exportProject);
                 if(use==LandUse.Commercial)city.commercialDemand=opportunity?Math.Min(100,reserved):0;if(use==LandUse.Industrial)city.industrialDemand=opportunity?Math.Min(100,reserved):0;
                 if(!opportunity)continue;
                 int demand=use==LandUse.Residential?city.residentialDemand:use==LandUse.Commercial?city.commercialDemand:city.industrialDemand;if(demand<=0||city.development.projects.Any(p=>p.building.type==use))continue;bool planned=false;
@@ -67,10 +67,10 @@ namespace HarborCity
                         var lot=CityModel.NewBuilding(use);lot.x=footprint.Average(c=>c.pose.x);lot.z=footprint.Average(c=>c.pose.z);lot.yaw=first.pose.yaw;lot.width=CityZoningState.CellSize*size.width-.1f;lot.depth=CityZoningState.CellSize*size.depth-.1f;
                         if(footprint.Any(c=>!lot.Contains(c.pose.x,c.pose.z))||Zoning.OverlapsOtherPlot(lot,footprint)||!Zoning.CanPlace(lot))continue;
                         var entrance=Zoning.Entrance(lot);
-                        if(!entrance.HasValue||use==LandUse.Industrial&&!CanImportAt(entrance.Value))continue;
+                        if(!entrance.HasValue||use==LandUse.Industrial&&(!CanImportAt(entrance.Value)||exportProject&&!CanExportAt(entrance.Value)))continue;
                         if(lot is ResidentialBuilding home){home.housingUnits=1;home.askingRent=0;}
                         if(lot is IndustrialBuilding producer)producer.factory.product=chosen;
-                        city.development.projects.Add(new DevelopmentProject{supplyReserved=use==LandUse.Industrial?GoodsAmounts.Of(chosen,reserved):default,id=city.development.nextProjectId++,started=(float)time.Start,completeAt=(float)(time.Start+12),building=BuildingSaveData.FromBuilding(lot),cells=footprint.Select(c=>c.key).ToList()});city.development.revision++;planned=true;break;
+                        city.development.projects.Add(new DevelopmentProject{servesOutside=exportProject,supplyReserved=use==LandUse.Industrial?GoodsAmounts.Of(chosen,reserved):default,id=city.development.nextProjectId++,started=(float)time.Start,completeAt=(float)(time.Start+12),building=BuildingSaveData.FromBuilding(lot),cells=footprint.Select(c=>c.key).ToList()});city.development.revision++;planned=true;break;
                     }
                 }
             }

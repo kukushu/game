@@ -13,43 +13,46 @@ MonoBehaviour:
   m_Name: DefaultEconomy
   m_EditorClassIdentifier:
   definition:
-    schemaVersion: 5
-    contentVersion: 5
-    profile: core-economy
+    schemaVersion: 6
+    contentVersion: 6
+    profile: open-town
     products:
     - kind: 0
-      retailPrice: 20
-      wholesalePrice: 15
+      retailPrice: 32
+      wholesalePrice: 22
       processingCost: 2
-      labourMinutes: 15
+      labourMinutes: 8
       consumptionDays: 1
       refillBelowDays: 1
       targetDays: 3
     - kind: 1
       retailPrice: 60
-      wholesalePrice: 45
+      wholesalePrice: 48
       processingCost: 2
-      labourMinutes: 60
+      labourMinutes: 24
       consumptionDays: 7
       refillBelowDays: 2
       targetDays: 14
     economy:
       rawUnitPrice: 8
       goodsWholesalePrice: 45
-      outsideOpeningCash: 100000
+      outsideFoodOrdersPerDay: 128
+      outsideDailyGoodsOrdersPerDay: 128
       freightBatch: 8
       rawReorderTarget: 24
       exportThreshold: 16
       maxGateTrucks: 4
       tradeIntervalSeconds: 1
     employment:
-      baseWage: 95
-      wageStep: 12
+      baseWage: 180
+      wageStep: 0
       wageVariants: 5
-      industrialBonus: 20
+      industrialBonus: 10
       slotsPerLevel: 4
+      startupWorkers: 4
+      newCityDaySeconds: 360
       shiftStartMinute: 480
-      commercialShiftStartMinute: 660
+      commercialShiftStartMinute: 840
       shiftMinutes: 480
       staggerMinutes: 30
       staggerGroups: 3

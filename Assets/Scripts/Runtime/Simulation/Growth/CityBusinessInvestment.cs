@@ -32,8 +32,14 @@ namespace HarborCity
         bool Reachable(int source,int destination)
         {var a=world.GetAccess(source);var b=world.GetAccess(destination);return a!=null&&b!=null&&a.valid&&b.valid&&world.Network.CanReach(a,b);}
         internal bool InvestmentOpportunity(LandUse use,out ProductKind product,out int reserve,out CityBuilding focus)
+            =>InvestmentOpportunity(use,out product,out reserve,out focus,out _);
+        internal bool InvestmentOpportunity(LandUse use,out ProductKind product,out int reserve,out CityBuilding focus,out bool exportProject)
         {
-            product=ProductKind.Food;reserve=0;focus=null;var simulation=entities.Simulation;if(simulation==null||!HasWorker(use==LandUse.Industrial?1:0))return false;
+            exportProject=false;product=ProductKind.Food;reserve=0;focus=null;var simulation=entities.Simulation;if(simulation==null)return false;
+            // A funded business may advertise jobs before qualified migration.
+            // Requiring both a job before migration and an unemployed local worker
+            // before investment otherwise deadlocks the first specialist factory.
+            if(!HasWorker(use==LandUse.Industrial?1:0)&&city.DevelopmentHousingVacancies()==0)return false;
             var market=simulation.Consumption;
             if(use==LandUse.Commercial)
             {
@@ -45,7 +51,14 @@ namespace HarborCity
             // Reuse query scratch; do not maintain a factory/store matrix.
             for(int p=0;p<ProductCatalog.Count;p++)
             {
-                var k=(ProductKind)p;bool pending=false;foreach(int id in firstDeliveryPending)if((entities.Building(id) as IndustrialBuilding)?.factory.product==k){pending=true;break;}if(pending)continue;
+                var k=(ProductKind)p;bool pending=false;
+                foreach(int id in firstDeliveryPending)
+                {
+                    var f=entities.Building(id) as IndustrialBuilding;if(f==null||f.factory.product!=k)continue;
+                    bool canStaff=city.EmployedAt(id)>0&&f.factory.cash>0||f.factory.cash>=simulation.Design.Employment.Wage(id,true);
+                    if(canStaff||f.Stock>0||simulation.Shipments.Trucks(id)>0){pending=true;break;}
+                }
+                if(pending)continue;
                 procurement.Clear();
                 foreach(var pair in market.ShopDemand)
                 {
@@ -69,6 +82,29 @@ namespace HarborCity
                     foreach(var project in city.development.projects)gap-=project.supplyReserved[k];
                     if(gap>reserve||gap>0&&gap==reserve&&product==k&&focus!=null&&shop.id<focus.id){reserve=gap;product=k;focus=shop;}
                 }
+            }
+            if(reserve>0)return true;
+            // External demand is a configured daily order book, not an infinite
+            // incentive to create factories. Existing staffed capacity gets credit
+            // before a new project can reserve any remaining order volume.
+            bool hasExport=false;foreach(var port in city.trade.connections)if(port.active&&port.flow==OutsideFlow.Export&&world.GetAccess(port.id)?.valid==true){hasExport=true;break;}
+            if(!hasExport)return false;
+            for(int p=0;p<ProductCatalog.Count;p++)
+            {
+                var kind=(ProductKind)p;var rule=simulation.Design.Products[kind];
+                double wage=simulation.Design.Employment.Wage(city.nextBuildingId,true);
+                double cost=simulation.Design.Economy.RawUnitPrice+rule.ProcessingCost+wage*rule.LabourMinutes/simulation.Design.Employment.ShiftMinutes;
+                if(rule.WholesalePrice<=cost)continue;
+                int gap=simulation.Design.Economy.DailyExportOrders[kind];
+                foreach(var factory in entities.Factories)
+                {
+                    if(factory.factory.product!=kind||factory.factory.cash<=0||factory.abandoned||factory.burned)continue;
+                    bool reachable=false;foreach(var port in city.trade.connections)
+                        if(port.active&&port.flow==OutsideFlow.Export&&Reachable(factory.id,port.id)){reachable=true;break;}
+                    if(reachable)gap-=(int)Math.Floor(factory.level*simulation.Design.Employment.SlotsPerLevel*(double)simulation.Design.Employment.ShiftMinutes*city.FactoryProcessingRate(factory.id)/rule.LabourMinutes);
+                }
+                foreach(var project in city.development.projects)gap-=project.supplyReserved[kind];
+                if(gap>reserve){reserve=gap;product=kind;exportProject=true;}
             }
             return reserve>0;
         }
@@ -97,6 +133,15 @@ namespace HarborCity
                 if(!port.active||port.flow!=OutsideFlow.Import)continue;
                 var access=world.GetAccess(port.id);
                 if(access!=null&&access.valid&&world.Network.CanReach(access.lane,access.distance,entrance.drivable,entrance.distance))return true;
+            }
+            return false;
+        }
+        bool CanExportAt(SpatialHit entrance)
+        {
+            foreach(var port in city.trade.connections)
+            {
+                if(!port.active||port.flow!=OutsideFlow.Export)continue;var access=world.GetAccess(port.id);
+                if(access!=null&&access.valid&&world.Network.CanReach(entrance.drivable,entrance.distance,access.lane,access.distance))return true;
             }
             return false;
         }

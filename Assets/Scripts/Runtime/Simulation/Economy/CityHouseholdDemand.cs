@@ -37,6 +37,12 @@ namespace HarborCity
         internal IReadOnlyDictionary<int,GoodsAmounts> UnservedDemand=>homelessDemand;
         internal IReadOnlyDictionary<int,GoodsAmounts> ShopDemand=>shopDemand;
         internal GoodsAmounts DemandAt(int shop)=>shopDemand.TryGetValue(shop,out var n)?n:default;
+        internal int CustomerPeopleAt(int shop)
+        {
+            int people=0;if(supplierMembers.TryGetValue(shop,out var members))
+                foreach(int slot in members)if(families[slot].resident)people+=families[slot].consumptionPeople;
+            return people;
+        }
         static void Add(Dictionary<int,GoodsAmounts> map,int id,GoodsAmounts amount,bool subtract)
         {map.TryGetValue(id,out var old);var next=subtract?old-amount:old+amount;if(next.Total==0)map.Remove(id);else map[id]=next;}
         void AccountDemand(int slot,GoodsAmounts amount,bool subtract)

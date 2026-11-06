@@ -28,6 +28,7 @@ static class CityRoadUtilitiesChecks
         var edgePlan=s.Transport.PlanConnectedRoad(new[]{new Point(620,2,620),new Point(650,2,620)},lanes:2);
         s.Construction.CheckRoadPlacement(edgePlan);Check(s.Construction.Commit(edgePlan,out _),"Road in newly available area failed");
         Check(empty.City.buildings.Count==0&&empty.Transport.Network.RoadCount==0,"Template changed the empty-session API or diagnostic fixtures");
+        Check(s.City.trade.connections.Count==2&&s.City.trade.connections.Any(p=>p.active&&p.flow==OutsideFlow.Import)&&s.City.trade.connections.Any(p=>p.active&&p.flow==OutsideFlow.Export)&&s.City.trade.connections.All(p=>s.Transport.GetAccess(p.id)?.valid==true),"New town lacks a registered import/export boundary road");
         Check(s.City.buildings.Count==CityNewTownTemplate.TotalFacilities&&new[]{LandUse.Power,LandUse.Water,LandUse.Sewage}.All(use=>s.City.buildings.Count(b=>b.Use==use)==CityNewTownTemplate.FacilitiesPerService)&&s.City.buildings.Count(b=>b.Use==LandUse.Landfill)==CityNewTownTemplate.GarbageFacilities,"New-town service counts incorrect");
         Func<CityBuilding,int,bool> edge=(b,side)=>side==0?b.x<=-666:side==1?b.z<=-666:side==2?b.x>=666:b.z>=666;
         Check(s.City.buildings.All(b=>s.Simulation.Growth.Zoning.CanPlace(b,false)&&s.Transport.GetAccess(b.id).valid),"Invalid template terrain, clearance or access");
@@ -99,7 +100,7 @@ static class CityRoadUtilitiesChecks
         CheckSupplyTotals(s.City);
         Check(s.City.utilities.electricity.edges.Count==0&&s.City.utilities.water.edges.Count==0,"Automatic roads wrote duplicate manual networks");
         s.Simulation.Utilities.SetBudget(CityServiceKind.Water,50);Check(s.City.water==80&&s.City.SewageCapacity==80,"Road utilities bypassed service capacity/budget");CheckSupplyTotals(s.City);s.Simulation.Utilities.SetBudget(CityServiceKind.Water,100);
-        var bytes=CityCoreSave.Write(s);Check(BitConverter.ToInt32(bytes,4)==19,"Current save requires explicit city format 19");var restored=CityCoreSave.Read(bytes);restored.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);
+        var bytes=CityCoreSave.Write(s);Check(BitConverter.ToInt32(bytes,4)==20,"Current save requires explicit city format 20");var restored=CityCoreSave.Read(bytes);restored.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);
         Check(restored.City.utilities.roadConduits&&Supplies(s)==Supplies(restored)&&bytes.SequenceEqual(CityCoreSave.Write(restored)),"Road conduit rule or supply topology lost on cold restore");
         CheckSupplyTotals(restored.City);
         var repaired=CityCoreSave.Read(bytes);repaired.Simulation.Growth.Zoning.SetSurface(CityScenarioBuilder.Flat);

@@ -7,7 +7,7 @@ namespace HarborCity
 {
     [Serializable] public sealed class CityCoreBusinessData
     {
-        public int version=10,money,day,nextBuilding;
+        public int version=11,money,day,nextBuilding;
         public int[] memberOrder; // Saved execution order, references existing residents only.
         public CityUtilityState utilities;
         public CityTradeData trade;
@@ -87,7 +87,7 @@ namespace HarborCity
         }
         public int Advance(double seconds)=>Simulation.Advance(seconds);
         public static CityCoreIndustrySession CreateEmpty(GameDesignData design=null,NetworkData initialRoads=null)
-        {var rules=new CityGameDesign(design??new GameDesignData());var city=new CityModel{money=rules.Finance.StartingTreasury};city.trade=new CityTradeState(rules.Economy.OutsideOpeningCash);city.development.enabled=true;city.development.residentialTax=rules.Finance.DefaultResidentialTax;city.development.commercialTax=rules.Finance.DefaultCommercialTax;city.development.industrialTax=rules.Finance.DefaultIndustrialTax;city.development.electricityBudget=rules.Finance.DefaultElectricityBudget;city.development.waterBudget=rules.Finance.DefaultWaterBudget;return new CityCoreIndustrySession(city,calendarOffset:0,transport:initialRoads==null?null:new WorldData{externalBusiness=true,network=initialRoads},design:rules.Snapshot());}
+        {var rules=new CityGameDesign(design??new GameDesignData());var city=new CityModel{money=rules.Finance.StartingTreasury};city.trade=new CityTradeState();city.society.settings.secondsPerDay=rules.Employment.NewCityDaySeconds;city.development.enabled=true;city.development.residentialTax=rules.Finance.DefaultResidentialTax;city.development.commercialTax=rules.Finance.DefaultCommercialTax;city.development.industrialTax=rules.Finance.DefaultIndustrialTax;city.development.electricityBudget=rules.Finance.DefaultElectricityBudget;city.development.waterBudget=rules.Finance.DefaultWaterBudget;return new CityCoreIndustrySession(city,calendarOffset:0,transport:initialRoads==null?null:new WorldData{externalBusiness=true,network=initialRoads},design:rules.Snapshot());}
         public string AccessIssue(int building)
         {var access=Transport.GetAccess(building);return access==null?"缺少道路入口":!access.valid?"入口道路已拆除":(access.use&AccessUse.Freight)==0?"入口不允许货运":"";}
         public void CloseBuilding(int id)

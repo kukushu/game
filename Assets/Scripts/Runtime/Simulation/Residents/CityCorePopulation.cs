@@ -45,11 +45,26 @@ namespace HarborCity
                 for(int unit=0;unit<home.housingUnits;unit++)
                 {
                     if(arrivals>=city.society.settings.applicantsPerDay||city.society.families.Count>=HouseholdState.MaximumFamilies)return;if(units.Contains(unit))continue;
+                    if(!MigrationHasWork(home.id,city.society.nextId))continue;
                     var family=new Household{id=city.society.nextId,home=home.id,unit=unit,resident=true,rent=0,reason="迁入分区住宅；个人寻找实际岗位"};family.savings=450+family.id%7*100;family.openingSavings=family.savings;entities.AddFamily(family);
                     int count=2+family.id%3;for(int slot=0;slot<count;slot++){int age=slot==0?25+family.id%30:slot==1?24+family.id%30:6+(family.id+slot)%12;var person=new CityResident{id=city.society.nextCitizenId,age=age,canWork=age>=18,skill=(family.id+slot)%3,location=home.id,name="居民 "+city.society.nextCitizenId};entities.AddResident(family.id,person);}
                     units.Add(unit);arrivals++;
+                    if(FindJobs())utilities.Invalidate();
                 }
             }
+        }
+        bool MigrationHasWork(int home,int familyId)
+        {
+            int adults=0;foreach(var member in entities.Members)if(member.Family.resident&&!member.Person.dead&&member.Person.canWork&&member.Person.age>=18)adults++;
+            if(adults<entities.Employment.StartupWorkers)return true;
+            int skill=Math.Max(familyId%3,(familyId+1)%3);
+            var payroll=new Dictionary<int,int>();var occupied=new Dictionary<int,int>();
+            foreach(var job in city.society.jobEntities)if(job.occupiedCitizenId>=0)
+            {payroll.TryGetValue(job.buildingId,out int cost);payroll[job.buildingId]=cost+job.wage;occupied.TryGetValue(job.buildingId,out int count);occupied[job.buildingId]=count+1;}
+            foreach(var job in city.society.jobEntities)
+                if(job.occupiedCitizenId<0&&job.requiredSkill<=skill&&city.JobFunded(job)&&city.BuildingAccess(job.buildingId)&&
+                    CanRecruit(job,payroll,occupied)&&!double.IsInfinity(world.EstimateResidentSeconds(home,job.buildingId)))return true;
+            return false;
         }
         internal bool FindJobs()
         {
@@ -58,6 +73,9 @@ namespace HarborCity
             var vacant=new Dictionary<int,List<CityJob>>();foreach(var job in city.society.jobEntities)if(job.occupiedCitizenId<0&&city.JobFunded(job)&&city.BuildingAccess(job.buildingId)){if(!vacant.TryGetValue(job.buildingId,out var slots))vacant.Add(job.buildingId,slots=new List<CityJob>());slots.Add(job);}
             var distances=new Dictionary<(int,int),double>();bool assigned=false;
             if(vacant.Count==0)return false;
+            var payroll=new Dictionary<int,int>();var occupied=new Dictionary<int,int>();
+            foreach(var job in city.society.jobEntities)if(job.occupiedCitizenId>=0)
+            {payroll.TryGetValue(job.buildingId,out int cost);payroll[job.buildingId]=cost+job.wage;occupied.TryGetValue(job.buildingId,out int count);occupied[job.buildingId]=count+1;}
             var bounds=new ResidentRouteBounds(world);var candidates=new List<JobCandidate>(vacant.Count);
             var fundedFamilies=new HashSet<int>();
             foreach(var member in entities.Members)
@@ -72,7 +90,7 @@ namespace HarborCity
                 candidates.Clear();
                 foreach(var pair in vacant)
                 {
-                    CityJob candidate=null;foreach(var job in pair.Value)if(job.occupiedCitizenId<0&&job.requiredSkill<=p.skill&&(candidate==null||job.id<candidate.id))candidate=job;if(candidate==null)continue;
+                    CityJob candidate=null;foreach(var job in pair.Value)if(job.occupiedCitizenId<0&&job.requiredSkill<=p.skill&&CanRecruit(job,payroll,occupied)&&(candidate==null||job.id<candidate.id))candidate=job;if(candidate==null)continue;
                     candidates.Add(new JobCandidate{job=candidate,bound=bounds.Seconds(h.home,pair.Key)});
                 }
                 candidates.Sort(JobCandidate.Compare);
@@ -82,9 +100,24 @@ namespace HarborCity
                     var candidate=option.job;var key=(h.home,candidate.buildingId);if(!distances.TryGetValue(key,out double seconds)){seconds=world.EstimateResidentSeconds(h.home,candidate.buildingId);distances.Add(key,seconds);}if(double.IsInfinity(seconds))continue;
                     if(seconds<nearest||seconds==nearest&&(best==null||candidate.id<best.id)){nearest=seconds;best=candidate;}
                 }
-                if(best!=null&&city.AssignJob(p,best.id)){assigned=true;fundedFamilies.Add(h.id);}
+                if(best!=null&&city.AssignJob(p,best.id))
+                {assigned=true;fundedFamilies.Add(h.id);payroll.TryGetValue(best.buildingId,out int cost);payroll[best.buildingId]=cost+best.wage;occupied.TryGetValue(best.buildingId,out int count);occupied[best.buildingId]=count+1;}
             }
             return assigned;
+        }
+        bool CanRecruit(CityJob job,Dictionary<int,int> payroll,Dictionary<int,int> occupied)
+        {
+            var business=entities.Building(job.buildingId);payroll.TryGetValue(job.buildingId,out int cost);occupied.TryGetValue(job.buildingId,out int count);
+            double cash=business is IndustrialBuilding factory?factory.factory.cash:((CommercialBuilding)business).Account.Cash;
+            if(cash<cost+job.wage)return false;
+            if(!(business is CommercialBuilding)||count==0)return true;
+            // One startup clerk can open the store. Additional recruitment must be
+            // supported by the normal consumption of its actual customer base,
+            // rather than the temporary three/fourteen-day refill batch.
+            var simulation=entities.Simulation;int people=simulation.Consumption.CustomerPeopleAt(job.buildingId);double margin=0;
+            for(int i=0;i<ProductCatalog.Count;i++){var product=simulation.Design.Products[(ProductKind)i];margin+=people*(double)(product.RetailPrice-product.WholesalePrice)/product.ConsumptionDays;}
+            double tax=(count+1)*simulation.Design.Finance.CommercialBase*city.development.commercialTax/100.0;
+            return margin>=cost+job.wage+tax;
         }
         struct JobCandidate
         {

@@ -1,4 +1,4 @@
-param([string]$OutputDirectory='',[int]$TimeoutSeconds=900)
+param([string]$OutputDirectory='',[int]$TimeoutSeconds=900,[string]$CaseDirectory='Temp/EconomyOpen-20261106-cases')
 $ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot -Parent
 . (Join-Path $PSScriptRoot 'ProjectLayout.ps1')
@@ -17,13 +17,15 @@ $files=@(foreach($folder in @('Assets','Packages','ProjectSettings')){Get-ChildI
 $hashInput=($files|ForEach-Object {$_.path+' '+$_.sha256}) -join "`n"
 $sha=[Security.Cryptography.SHA256]::Create()
 try{$fingerprint=[Convert]::ToHexString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($hashInput))).ToLowerInvariant()}finally{$sha.Dispose()}
-$build=@{playtest=$true;dirty=$dirty;label=('反馈试玩 v1 · '+$commit.Substring(0,8)+$(if($dirty){' + local'}else{''}));commit=$commit;branch=$branch;sourceFingerprint=$fingerprint;builtUtc=[DateTime]::UtcNow.ToString('o')}
+$build=@{playtest=$true;dirty=$dirty;label=('反馈试玩 v2 · 开放市场 · '+$commit.Substring(0,8)+$(if($dirty){' + local'}else{''}));commit=$commit;branch=$branch;sourceFingerprint=$fingerprint;builtUtc=[DateTime]::UtcNow.ToString('o')}
 [IO.File]::WriteAllText((Join-Path $project 'Assets/Resources/FeedbackBuildInfo.json'),($build|ConvertTo-Json))
 $cases=Join-Path $project 'Assets/StreamingAssets/FeedbackCases'
 New-Item -ItemType Directory -Force -Path $cases|Out-Null
 $caseManifest=@()
-foreach($case in @(@{source='zero-14.hcity';target='shop-cash.hcity';description='Existing first shop cash exhausted snapshot'},@{source='final.hcity';target='supply-stopped.hcity';description='Existing city supply stalled snapshot'})){
-    $source=Join-Path $root ('Temp/TwoGoodsDiagnosis-20261105/wrapper-verified/'+$case.source)
+foreach($case in @(@{source='shop-cash.hcity';target='shop-cash.hcity';description='Overbuilt 120-person current-profile shop failure'},@{source='supply-stopped.hcity';target='supply-stopped.hcity';description='Legacy-price reference with open-market order accounting'})){
+    $source=Join-Path (Join-Path $root $CaseDirectory) $case.source
+    $caseBytes=[IO.File]::ReadAllBytes($source)
+    if($caseBytes.Length -lt 8 -or [BitConverter]::ToInt32($caseBytes,4) -ne 20){throw 'Feedback cases must use the current city format 20'}
     $target=Join-Path $cases $case.target
     Copy-Item -LiteralPath $source -Destination $target
     $sourceHash=(Get-FileHash -LiteralPath $source).Hash

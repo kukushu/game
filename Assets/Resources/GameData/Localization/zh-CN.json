@@ -1,6 +1,7 @@
 {
   "language": "zh-CN",
   "entries": [
+    {"key": "ui.trade.orders", "text": "今日城外订单剩余：食物 {0}/{1} · 日用品 {2}/{3}。实际运出后占用订单，到达城外后收款。"},
     {
       "key": "ui.trade.connect",
       "text": "标记对外道路连接"
@@ -27,7 +28,7 @@
     },
     {
       "key": "ui.trade.summary",
-      "text": "原料实际交付 {0} · 商品实际出口 {1} · 城外现金 {2}"
+      "text": "原料实际交付 {0} · 商品实际出口 {1} · 累计贸易净流入 {2}"
     },
     {
       "key": "ui.stage.current",

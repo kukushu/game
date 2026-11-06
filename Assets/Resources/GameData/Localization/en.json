@@ -1,6 +1,7 @@
 {
   "language": "en",
   "entries": [
+    {"key": "ui.trade.orders", "text": "External orders remaining today: food {0}/{1}, daily goods {2}/{3}. Departure reserves an order; arrival pays the factory."},
     {
       "key": "ui.trade.connect",
       "text": "Mark outside road connection"
@@ -27,7 +28,7 @@
     },
     {
       "key": "ui.trade.summary",
-      "text": "Delivered materials {0} · Exported goods {1} · Outside cash {2}"
+      "text": "Delivered materials {0} · Exported goods {1} · Cumulative net trade inflow {2}"
     },
     {
       "key": "ui.stage.current",

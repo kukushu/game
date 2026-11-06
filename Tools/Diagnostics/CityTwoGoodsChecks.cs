@@ -97,6 +97,9 @@ static class CityTwoGoodsChecks
         nearShop.Account.Capital=nearShop.Account.Cash=2000;
         demands.Clear();demands[2]=GoodsAmounts.Of(ProductKind.DailyGoods,8);demands[nearShop.id]=GoodsAmounts.Of(ProductKind.DailyGoods,6);
         Check(growth.InvestmentOpportunity(LandUse.Industrial,out kind,out reserve,out focus)&&kind==ProductKind.DailyGoods&&reserve==6&&focus.id==nearShop.id,"The same eight goods covered two separate store orders");
+        factory.Products=default;factory.externalCapital=1200;factory.factory.firstDelivery=false;factory.factory.cash=0;
+        s.Entities.ProductInventoryChanged(factory);demands.Clear();demands[2]=GoodsAmounts.Of(ProductKind.DailyGoods,8);
+        Check(growth.InvestmentOpportunity(LandUse.Industrial,out kind,out reserve,out focus)&&kind==ProductKind.DailyGoods&&reserve==8,"Insolvent factory with no first delivery blocked replacement forever");
     }
     static void ImportBeforeFactoryOpening()
     {
@@ -178,6 +181,47 @@ static class CityTwoGoodsChecks
         s.Simulation.Population.FindJobs();
         Check(ill.jobId<0,"Sick resident recruited ahead of available workers");
     }
+    static void OpenMarketChecks()
+    {
+        var design=GameDesignData.OpenTown();design.economy.outsideFoodOrdersPerDay=8;design.economy.outsideDailyGoodsOrdersPerDay=5;
+        var city=CityGrowingGridFixture.Create(design:design);
+        var orders=new System.Collections.Generic.Dictionary<(int,ProductKind),int>();
+        bool exceeded=false;double expectedFunded=0;bool savedTransit=false;
+        city.Transport.TaskCommitted+=task=>
+        {
+            if(task.purpose!=TransportPurpose.Freight||city.Entities.Connection(task.destination)?.flow!=OutsideFlow.Export)return;
+            var kind=((IndustrialBuilding)city.Entities.Building(task.origin)).factory.product;var key=(city.City.day,kind);
+            orders.TryGetValue(key,out int amount);amount+=task.Cargo;orders[key]=amount;
+            exceeded|=amount>city.Simulation.Design.Economy.DailyExportOrders[kind];expectedFunded+=task.Cargo*task.Price;
+        };
+        int dayTicks=city.Simulation.Design.Employment.NewCityDaySeconds*20;
+        for(int i=0;i<dayTicks*20;i++)
+        {
+            city.Advance(.05);
+            if(!savedTransit&&city.Transport.Tasks.Any(t=>city.Entities.Connection(t.destination)?.flow==OutsideFlow.Export))
+            {
+                var bytes=CityCoreSave.Write(city);var restored=CityCoreSave.Read(bytes);
+                Check(BitConverter.ToInt32(bytes,4)==20&&CityCoreSave.Write(restored).SequenceEqual(bytes),"Open-market active export did not restore exactly");
+                Check(restored.City.trade.AcceptedExportOrders.Equals(city.City.trade.AcceptedExportOrders)&&restored.City.trade.exportFunded==city.City.trade.exportFunded,"Cold export lost booked orders or external prepayment");
+                var old=(byte[])bytes.Clone();Buffer.BlockCopy(BitConverter.GetBytes(19),0,old,4,4);bool refused=false;
+                try{CityCoreSave.Read(old);}catch(System.IO.InvalidDataException){refused=true;}Check(refused,"Old finite-market save header was accepted");
+                restored.Simulation.Growth.Zoning.SetSurface((x,z)=>2);
+                for(int tick=0;tick<dayTicks+600;tick++){city.Advance(.05);restored.Advance(.05);}
+                i+=dayTicks+600;
+                Check(CityCoreSave.Write(city).SequenceEqual(CityCoreSave.Write(restored)),"Export cold continuation changed day-order accounting");
+                savedTransit=true;
+            }
+        }
+        city.Validate();
+        Check(savedTransit&&!exceeded&&orders.Count>2,"Daily external order cap or physical export control failed");
+        Check(city.City.trade.exportFunded==expectedFunded,"External prepayment differs from committed shipments");
+        Check(city.City.trade.ExportedProducts.food>0&&city.City.trade.ExportedProducts.dailyGoods>0,"Both product kinds did not reach external customers");
+        var zero=GameDesignData.OpenTown();zero.economy.outsideFoodOrdersPerDay=zero.economy.outsideDailyGoodsOrdersPerDay=0;
+        var closed=CityGrowingGridFixture.Create(design:zero);
+        for(int i=0;i<dayTicks*8;i++)closed.Advance(.05);
+        closed.Validate();Check(closed.City.trade.rawDelivered>0&&closed.City.trade.exportFunded==0&&closed.City.trade.goodsExported==0,"Zero external orders still funded or exported goods");
+        var invalid=GameDesignData.OpenTown();invalid.economy.outsideFoodOrdersPerDay=-1;Reject(()=>new CityGameDesign(invalid));
+    }
     static void Main()
     {
         var catalog=new CityGameDesign(new GameDesignData()).Products;
@@ -194,6 +238,6 @@ static class CityTwoGoodsChecks
         var raw=new Shipment{remaining=8};raw.kind=CargoKind.RawMaterial;Check(raw.remaining==8&&raw.Products.Total==0,"Raw admission amount");var waste=new Shipment{kind=CargoKind.Waste,remaining=7};Check(waste.Copy().remaining==7,"Waste copy");
         var building=BuildingSaveData.FromBuilding(new CommercialBuilding{Products=a});Check(((CommercialBuilding)building.ToBuilding()).Products.Equals(a),"Building mixed inventory persistence");
         var old=(byte[])bytes.Clone();Buffer.BlockCopy(BitConverter.GetBytes(15),0,old,4,4);bool refused=false;try{SaveCodec.Read(old);}catch(System.IO.InvalidDataException){refused=true;}Check(refused,"Old traffic format accepted");
-        HouseholdJobPriorityChecks();RecoveryChecks();InvestmentChecks();ImportBeforeFactoryOpening();ScheduleChecks(false);ScheduleChecks(true);MixedPurchaseChecks();Console.WriteLine("PASS "+checks+" two-product checks");
+        OpenMarketChecks();HouseholdJobPriorityChecks();RecoveryChecks();InvestmentChecks();ImportBeforeFactoryOpening();ScheduleChecks(false);ScheduleChecks(true);MixedPurchaseChecks();Console.WriteLine("PASS "+checks+" two-product checks");
     }
 }

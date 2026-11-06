@@ -255,7 +255,8 @@ namespace HarborCity
         {
             if(GrowingCity)
             {
-                GUILayout.Label(localization.Get("ui.trade.summary",session.City.trade.rawDelivered,session.City.trade.goodsExported,session.City.trade.cash.ToString("F0")),wrapped);
+                GUILayout.Label(localization.Get("ui.trade.summary",session.City.trade.rawDelivered,session.City.trade.goodsExported,(session.City.trade.exportPayments-session.City.trade.rawReceipts).ToString("F0")),wrapped);
+                GUILayout.Label(localization.Get("ui.trade.orders",session.Simulation.Trade.RemainingExportOrders(ProductKind.Food),session.Simulation.Design.Economy.DailyExportOrders.food,session.Simulation.Trade.RemainingExportOrders(ProductKind.DailyGoods),session.Simulation.Design.Economy.DailyExportOrders.dailyGoods),wrapped);
                 if(GUILayout.Button(localization.Get("ui.trade.connect"))){CancelTool();outsideTool=true;notice=localization.Get("ui.trade.choose");}
                 if(GUILayout.Button(localization.Get("ui.trade.focus_import")))FocusOutside(OutsideFlow.Import);
                 if(GUILayout.Button(localization.Get("ui.trade.focus_export")))FocusOutside(OutsideFlow.Export);

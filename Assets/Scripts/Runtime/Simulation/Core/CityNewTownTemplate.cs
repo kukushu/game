@@ -69,6 +69,11 @@ namespace HarborCity
                     session.Construction.PlaceFacility(LandUse.Landfill,bank*7.5f,sign*along,bank<0?270:90,zoning);
                 }
             }
+            // The perimeter is inside the playable boundary. Extend the clear
+            // western central corridor to that boundary and register real freight
+            // endpoints, so a new player cannot omit the raw-material connection.
+            BuildRoad(session,new Point(-660,2,0),new Point(-672,2,0));
+            session.Simulation.Trade.ConnectBorder(new Point(-671,2,0));
             session.Simulation.Utilities.Refresh();session.Validate();
             return session;
         }

@@ -31,8 +31,16 @@ namespace HarborCity
         public static void BuildFeedbackPlaytest()
         {
             if(!Application.isBatchMode)throw new Exception("Feedback build requires an isolated project");
+            var configured=HarborCityEconomyAsset.Load();
+            if(JsonUtility.ToJson(configured)!=JsonUtility.ToJson(new CityGameDesign(GameDesignData.OpenTown()).Snapshot()))
+                throw new Exception("Player economy asset differs from the tested OpenTown profile");
+            foreach(string file in Directory.GetFiles(Path.Combine(Application.streamingAssetsPath,"FeedbackCases"),"*.hcity"))
+            {
+                var snapshot=CityCoreSave.Read(File.ReadAllBytes(file));snapshot.Validate();
+                Debug.Log("Validated feedback case without advancing: "+Path.GetFileName(file)+", population "+snapshot.City.population);
+            }
             PlayerSettings.productName="HarborCity Feedback Playtest";
-            PlayerSettings.bundleVersion="0.1.0-feedback";
+            PlayerSettings.bundleVersion="0.2.0-open-town";
             Environment.SetEnvironmentVariable("HARBOR_PLAYER_RELEASE","1");
             BuildResearchValidation();
         }

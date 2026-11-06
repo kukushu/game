@@ -6,7 +6,7 @@ namespace HarborCity
     public sealed class EconomyDefinition
     {
         public double rawUnitPrice=8,goodsWholesalePrice=45;
-        public double outsideOpeningCash=100000;
+        public int outsideFoodOrdersPerDay=128,outsideDailyGoodsOrdersPerDay=128;
         public int freightBatch=8,rawReorderTarget=24,exportThreshold=16,maxGateTrucks=4;
         public double tradeIntervalSeconds=1;
     }
@@ -14,7 +14,7 @@ namespace HarborCity
     [Serializable]
     public sealed class GameDesignData
     {
-        public int schemaVersion=5,contentVersion=5;
+        public int schemaVersion=6,contentVersion=6;
         public string profile="core-economy";
         public EconomyDefinition economy=new EconomyDefinition();
         public ProductDefinition[] products=ProductCatalog.Defaults();
@@ -23,6 +23,17 @@ namespace HarborCity
         public ProductionDefinition production=new ProductionDefinition();
         public FinanceDefinition finance=new FinanceDefinition();
         public WasteDefinition waste=new WasteDefinition();
+        // The small-town authoring profile also used by the Player asset. The
+        // default DTO remains the explicitly tested original numeric reference.
+        public static GameDesignData OpenTown()
+        {
+            var d=new GameDesignData{profile="open-town"};
+            d.products[0].retailPrice=32;d.products[0].wholesalePrice=22;d.products[0].labourMinutes=8;
+            d.products[1].retailPrice=60;d.products[1].wholesalePrice=48;d.products[1].labourMinutes=24;
+            d.employment.baseWage=180;d.employment.wageStep=0;d.employment.industrialBonus=10;
+            d.employment.commercialShiftStartMinute=840;d.employment.newCityDaySeconds=360;
+            return d;
+        }
     }
 
     // Authoring DTOs never become mutable live rules. The running city owns this
@@ -32,7 +43,7 @@ namespace HarborCity
     {
         public double RawUnitPrice {get;}
         public double GoodsWholesalePrice {get;}
-        public double OutsideOpeningCash {get;}
+        public GoodsAmounts DailyExportOrders {get;}
         public int FreightBatch {get;}
         public int RawReorderTarget {get;}
         public int ExportThreshold {get;}
@@ -40,14 +51,14 @@ namespace HarborCity
         public long TradeIntervalTicks {get;}
         internal EconomyRules(EconomyDefinition definition)
         {
-            if(definition==null||!Positive(definition.rawUnitPrice)||!Positive(definition.goodsWholesalePrice)||!Positive(definition.outsideOpeningCash)||definition.freightBatch<1||definition.freightBatch>FactoryState.RawCapacity||definition.rawReorderTarget<1||definition.rawReorderTarget>FactoryState.RawCapacity||definition.exportThreshold<definition.freightBatch||definition.exportThreshold>FactoryState.GoodsCapacity||definition.maxGateTrucks<1||definition.maxGateTrucks>10000||!Positive(definition.tradeIntervalSeconds)||definition.tradeIntervalSeconds>3600)
+            if(definition==null||!Positive(definition.rawUnitPrice)||!Positive(definition.goodsWholesalePrice)||definition.outsideFoodOrdersPerDay<0||definition.outsideFoodOrdersPerDay>1000000||definition.outsideDailyGoodsOrdersPerDay<0||definition.outsideDailyGoodsOrdersPerDay>1000000||definition.freightBatch<1||definition.freightBatch>FactoryState.RawCapacity||definition.rawReorderTarget<1||definition.rawReorderTarget>FactoryState.RawCapacity||definition.exportThreshold<definition.freightBatch||definition.exportThreshold>FactoryState.GoodsCapacity||definition.maxGateTrucks<1||definition.maxGateTrucks>10000||!Positive(definition.tradeIntervalSeconds)||definition.tradeIntervalSeconds>3600)
                 throw new ArgumentException("Invalid economy design data");
-            RawUnitPrice=definition.rawUnitPrice;GoodsWholesalePrice=definition.goodsWholesalePrice;OutsideOpeningCash=definition.outsideOpeningCash;
+            RawUnitPrice=definition.rawUnitPrice;GoodsWholesalePrice=definition.goodsWholesalePrice;DailyExportOrders=new GoodsAmounts{food=definition.outsideFoodOrdersPerDay,dailyGoods=definition.outsideDailyGoodsOrdersPerDay};
             FreightBatch=definition.freightBatch;RawReorderTarget=definition.rawReorderTarget;ExportThreshold=definition.exportThreshold;MaxGateTrucks=definition.maxGateTrucks;
             TradeIntervalTicks=Math.Max(1,(long)Math.Ceiling(definition.tradeIntervalSeconds/RoadCore.SimulationClock.StepSeconds-1e-9));
         }
         static bool Positive(double n)=>n>0&&!double.IsNaN(n)&&!double.IsInfinity(n);
-        internal EconomyDefinition Snapshot()=>new EconomyDefinition{rawUnitPrice=RawUnitPrice,goodsWholesalePrice=GoodsWholesalePrice,outsideOpeningCash=OutsideOpeningCash,freightBatch=FreightBatch,rawReorderTarget=RawReorderTarget,exportThreshold=ExportThreshold,maxGateTrucks=MaxGateTrucks,tradeIntervalSeconds=TradeIntervalTicks*RoadCore.SimulationClock.StepSeconds};
+        internal EconomyDefinition Snapshot()=>new EconomyDefinition{rawUnitPrice=RawUnitPrice,goodsWholesalePrice=GoodsWholesalePrice,outsideFoodOrdersPerDay=DailyExportOrders.food,outsideDailyGoodsOrdersPerDay=DailyExportOrders.dailyGoods,freightBatch=FreightBatch,rawReorderTarget=RawReorderTarget,exportThreshold=ExportThreshold,maxGateTrucks=MaxGateTrucks,tradeIntervalSeconds=TradeIntervalTicks*RoadCore.SimulationClock.StepSeconds};
     }
 
     public sealed class CityGameDesign
@@ -63,11 +74,11 @@ namespace HarborCity
         public WasteRules Waste {get;}
         public CityGameDesign(GameDesignData definition)
         {
-            if(definition==null||definition.schemaVersion!=5||definition.contentVersion<1||string.IsNullOrWhiteSpace(definition.profile))throw new ArgumentException("Unsupported design profile");
+            if(definition==null||definition.schemaVersion!=6||definition.contentVersion<1||string.IsNullOrWhiteSpace(definition.profile))throw new ArgumentException("Unsupported design profile");
             Products=new ProductCatalog(definition.products);contentVersion=definition.contentVersion;profile=definition.profile;Economy=new EconomyRules(definition.economy);
             Employment=new EmploymentRules(definition.employment);Retail=new RetailRules(definition.retail);Production=new ProductionRules(definition.production);Finance=new FinanceRules(definition.finance);Waste=new WasteRules(definition.waste);
         }
-        public GameDesignData Snapshot()=>new GameDesignData{schemaVersion=5,products=Products.Snapshot(),contentVersion=contentVersion,profile=profile,economy=Economy.Snapshot(),employment=Employment.Snapshot(),retail=Retail.Snapshot(),production=Production.Snapshot(),finance=Finance.Snapshot(),waste=Waste.Snapshot()};
+        public GameDesignData Snapshot()=>new GameDesignData{schemaVersion=6,products=Products.Snapshot(),contentVersion=contentVersion,profile=profile,economy=Economy.Snapshot(),employment=Employment.Snapshot(),retail=Retail.Snapshot(),production=Production.Snapshot(),finance=Finance.Snapshot(),waste=Waste.Snapshot()};
     }
 
     public sealed class CityRuleException:InvalidOperationException
