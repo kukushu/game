@@ -82,7 +82,7 @@ MonoBehaviour:
       waterMaintenance: 65
       sewageMaintenance: 65
       wasteMaintenance: 160
-      roadMaintenancePerLaneUnit: 0.030476190476190476
+      roadMaintenancePerLaneUnit: 0.03047619047619048
       utilityMaintenancePerUnit: 0.03333333333333333
       loans:
       - id: 0

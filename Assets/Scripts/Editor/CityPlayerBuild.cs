@@ -33,7 +33,7 @@ namespace HarborCity
             if(!Application.isBatchMode)throw new Exception("Feedback build requires an isolated project");
             var configured=HarborCityEconomyAsset.Load();
             if(JsonUtility.ToJson(configured)!=JsonUtility.ToJson(new CityGameDesign(GameDesignData.OpenTown()).Snapshot()))
-                throw new Exception("Player economy asset differs from the tested OpenTown profile");
+                throw new Exception("Player economy asset differs from the tested OpenTown profile\nACTUAL "+JsonUtility.ToJson(configured)+"\nEXPECTED "+JsonUtility.ToJson(new CityGameDesign(GameDesignData.OpenTown()).Snapshot()));
             foreach(string file in Directory.GetFiles(Path.Combine(Application.streamingAssetsPath,"FeedbackCases"),"*.hcity"))
             {
                 var snapshot=CityCoreSave.Read(File.ReadAllBytes(file));snapshot.Validate();
