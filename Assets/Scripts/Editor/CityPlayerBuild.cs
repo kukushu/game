@@ -18,7 +18,7 @@ namespace HarborCity
             if(!Application.isBatchMode)throw new Exception("Research validation requires an isolated project");
             // Match the existing validation build's camera/input fixture resolution.
             PlayerSettings.SetScriptingBackend(UnityEditor.Build.NamedBuildTarget.Standalone,UnityEditor.ScriptingImplementation.Mono2x);
-            PlayerSettings.defaultScreenWidth=1440;PlayerSettings.defaultScreenHeight=900;PlayerSettings.fullScreenMode=FullScreenMode.Windowed;
+            PlayerSettings.defaultScreenWidth=1920;PlayerSettings.defaultScreenHeight=1080;PlayerSettings.fullScreenMode=FullScreenMode.Windowed;
             var defines=new System.Collections.Generic.List<string>();if(Environment.GetEnvironmentVariable("HARBOR_CORE_ATTRIBUTION")=="1")defines.Add("CITY_CORE_ATTRIBUTION");
             if(Environment.GetEnvironmentVariable("HARBOR_RESIDENT_TIME_SCHEDULE")=="1"||Environment.GetEnvironmentVariable("HARBOR_RESIDENT_GUARD_SCHEDULE")=="1"||Environment.GetEnvironmentVariable("HARBOR_RESIDENT_FUNDING_SCHEDULE")=="1")defines.Add("CITY_RESIDENT_GUARD_SCHEDULE");
             if(Environment.GetEnvironmentVariable("HARBOR_RESIDENT_TIME_SCHEDULE")=="1")defines.Add("CITY_RESIDENT_TIME_SCHEDULE");
