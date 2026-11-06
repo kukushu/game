@@ -18,6 +18,13 @@ namespace HarborCity
         CityFeedbackKind selectedIssueKind;
         Action pendingLayout;
         void OnNextLayout(Action change)=>pendingLayout+=change;
+        double nextList;
+        int listPage=-1;
+        readonly List<CityBuilding> buildingRows=new List<CityBuilding>();
+        readonly Dictionary<int,int> occupants=new Dictionary<int,int>(), jobs=new Dictionary<int,int>();
+        List<CityFeedbackEntry> issueRows=new List<CityFeedbackEntry>();
+        string listSearch="";
+        int listCategory, listSeverity;
         string search="";
         double nextHistory, nextHistoryWall;
         struct MoneyPoint
@@ -29,7 +36,7 @@ namespace HarborCity
         string D(string key,params object[] args)=>text.Get("ui.dashboard."+key,args);
         void Navigate(int target)
         {
-            page=target; rowPage=0; scroll=Vector2.zero;
+            page=target; rowPage=0; scroll=Vector2.zero;listPage=-1;
         }
         internal void Observe(CityCoreIndustrySession city)
         {
@@ -37,6 +44,7 @@ namespace HarborCity
             if(tracked!=null)tracked.City.EmploymentObserved-=RecordDecision;
             tracked=city;
             history.Clear();decisions.Clear();nextHistory=nextHistoryWall=0;
+            buildingRows.Clear();occupants.Clear();jobs.Clear();issueRows.Clear();
             selectedDecision=-1;selectedIssueBuilding=selectedIssueFamily=0;
             pendingLayout=null;
             category=-1;severity=0;search="";Navigate(0);
@@ -134,6 +142,18 @@ namespace HarborCity
             GUILayout.Label(D("unavailable"));
             GUILayout.EndVertical();
         }
+        void EmptyTable(string label,params string[] columns)
+        {
+            Header(label);
+            GUILayout.BeginHorizontal(GUI.skin.box);
+            foreach(string column in columns)GUILayout.Label(D(column),GUILayout.ExpandWidth(true));
+            GUILayout.EndHorizontal();
+            GUILayout.BeginVertical(GUI.skin.box);
+            GUILayout.Space(8);
+            GUILayout.Label(D("unavailable"));
+            GUILayout.Space(8);
+            GUILayout.EndVertical();
+        }
         void Dashboard()
         {
             switch(page)
@@ -155,11 +175,19 @@ namespace HarborCity
                 "ui.economy.factory_cash_empty",alerts?.cashFactories,factories);
             StockRow();
             if(GUILayout.Button(D("diagnose"),GUILayout.Height(32)))OnNextLayout(()=>Navigate(1));
+            bool wide=Bounds.width>=960;
+            if(wide)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.BeginVertical(GUI.skin.box,GUILayout.Width(Bounds.width*.51f));
+            }
             Header(D("chain"));
             for(int i=0;i<Nodes.Length;i++)
                 if(GUILayout.Button(NodeLine(i),GUILayout.Height(34))){int target=i;OnNextLayout(()=>{node=target;Navigate(3);});}
+            if(wide){GUILayout.EndVertical();GUILayout.BeginVertical(GUI.skin.box);}
             Header(D("trend"));
             Trend();
+            if(wide){GUILayout.EndVertical();GUILayout.EndHorizontal();}
             Missing(D("health"));
         }
         string NodeLine(int i)
@@ -194,7 +222,7 @@ namespace HarborCity
             foreach(var issue in rows)GUILayout.Label(text.Get(issue.Key)+"  ·  "+ObjectName(issue.building));
             if(GUILayout.Button(D("diagnose")))OnNextLayout(()=>Navigate(1));
             GUILayout.EndVertical();
-            Missing(D("forecast"));
+            EmptyTable(D("forecast"),"evidence_column","impact_column");
         }
         bool NodeIssue(int index,CityFeedbackEntry issue)
         {
@@ -233,10 +261,15 @@ namespace HarborCity
             var issues=Observation?.EconomyIssues??Array.Empty<CityFeedbackEntry>();
             if(Observation==null||!string.IsNullOrEmpty(Observation.FeedbackError)){Missing(D("status"));return;}
             string term=search.Trim();
-            var matches=issues.Where(e=>(category<0||(int)e.kind==category)&&(severity==0||e.severity==(severity==1?2:1))&&
-                (term.Length==0||ObjectName(e.building).IndexOf(term,StringComparison.OrdinalIgnoreCase)>=0||
-                e.family.ToString().IndexOf(term,StringComparison.OrdinalIgnoreCase)>=0||
-                text.Get(e.Key).IndexOf(term,StringComparison.OrdinalIgnoreCase)>=0)).ToList();
+            if(Event.current.type==EventType.Layout&&(listPage!=page||listSearch!=term||listCategory!=category||listSeverity!=severity||Time.realtimeSinceStartupAsDouble>=nextList))
+            {
+                issueRows=issues.Where(e=>(category<0||(int)e.kind==category)&&(severity==0||e.severity==(severity==1?2:1))&&
+                    (term.Length==0||ObjectName(e.building).IndexOf(term,StringComparison.OrdinalIgnoreCase)>=0||
+                    (e.family>0&&e.family.ToString().IndexOf(term,StringComparison.OrdinalIgnoreCase)>=0)||
+                    text.Get(e.Key).IndexOf(term,StringComparison.OrdinalIgnoreCase)>=0)).ToList();
+                listPage=page;listSearch=term;listCategory=category;listSeverity=severity;nextList=Time.realtimeSinceStartupAsDouble+1;
+            }
+            var matches=issueRows;
             if(matches.Count==0)GUILayout.Label(D("no_issues"));
             PageControls(matches.Count);
             foreach(var issue in matches.Skip(rowPage*RowsPerPage).Take(RowsPerPage))
@@ -257,7 +290,7 @@ namespace HarborCity
                     if(issue.kind==CityFeedbackKind.Cash)GUILayout.Label(D("cash_value",issue.cash));
                 }
             }
-            Missing(D("causes"));
+            EmptyTable(D("causes"),"evidence_column","impact_column","event_column");
         }
         void PageControls(int count)
         {
@@ -308,7 +341,7 @@ namespace HarborCity
             GUILayout.EndVertical();
             Header(D("trend"));
             Trend();
-            Missing(D("transactions"));
+            EmptyTable(D("transactions"),"event_column","object_column","amount_column");
         }
         void FlowLine(string key,double amount)
         {
@@ -379,9 +412,9 @@ namespace HarborCity
             Header(D(Pages[page]));
             switch(page)
             {
-                case 5: Buildings<ResidentialBuilding>();Missing(D("housing_candidates"));break;
-                case 6: Buildings<IndustrialBuilding>();Missing(D("factory_candidates"));break;
-                case 7: Buildings<CommercialBuilding>();Missing(D("retail_candidates"));break;
+                case 5: Buildings<ResidentialBuilding>();CandidateTable("housing_candidates");break;
+                case 6: Buildings<IndustrialBuilding>();CandidateTable("factory_candidates");break;
+                case 7: Buildings<CommercialBuilding>();CandidateTable("retail_candidates");break;
                 case 8:
                     var member=session.Entities.Member(selectedDecision);
                     if(member!=null)
@@ -393,28 +426,46 @@ namespace HarborCity
                         LocateButton(job?.buildingId??0);
                     }
                     Decisions(true);
-                    Missing(D("job_candidates"));
+                    CandidateTable("job_candidates");
                     break;
             }
         }
+        void CandidateTable(string title)=>EmptyTable(D(title),"object_column","score_column","reason_column");
         void Buildings<T>() where T:CityBuilding
         {
-            var buildings=session.Entities.Buildings.OfType<T>().Where(b=>!b.abandoned&&!b.burned).ToList();
-            PageControls(buildings.Count);
-            foreach(var b in buildings.Skip(rowPage*RowsPerPage).Take(RowsPerPage))
+            if(Event.current.type==EventType.Layout&&(listPage!=page||Time.realtimeSinceStartupAsDouble>=nextList))
             {
-                GUILayout.BeginHorizontal(GUI.skin.box);
+                buildingRows.Clear();occupants.Clear();jobs.Clear();
+                foreach(var building in session.Entities.Buildings)
+                    if(building is T&&!building.abandoned&&!building.burned)buildingRows.Add(building);
+                if(page==5)
+                    foreach(var household in session.City.society.families)
+                        if(household.resident){occupants.TryGetValue(household.home,out int count);occupants[household.home]=count+1;}
+                if(page==7)
+                    foreach(var job in session.City.society.jobEntities)
+                    {jobs.TryGetValue(job.buildingId,out int count);jobs[job.buildingId]=count+1;}
+                listPage=page;nextList=Time.realtimeSinceStartupAsDouble+1;
+            }
+            PageControls(buildingRows.Count);
+            foreach(var b in buildingRows.Skip(rowPage*RowsPerPage).Take(RowsPerPage))
+            {
+                bool wide=Bounds.width>=760;
+                if(wide)GUILayout.BeginHorizontal(GUI.skin.box);else GUILayout.BeginVertical(GUI.skin.box);
                 GUILayout.Label(ObjectName(b.id));
                 if(b is IndustrialBuilding factory)GUILayout.Label(D("factory_row",D(factory.factory.product==ProductKind.Food?"food":"daily"),factory.factory.cash,factory.factory.raw,factory.Stock));
-                if(b is CommercialBuilding shop)GUILayout.Label(D("shop_row",shop.Account.Cash,shop.Products.food,shop.Products.dailyGoods,session.City.society.jobEntities.Count(j=>j.buildingId==b.id)));
+                if(b is CommercialBuilding shop)
+                {
+                    jobs.TryGetValue(b.id,out int count);
+                    GUILayout.Label(D("shop_row",shop.Account.Cash,shop.Products.food,shop.Products.dailyGoods,count));
+                }
                 if(b is ResidentialBuilding home)
                 {
-                    var local=session.City.society.families.Where(h=>h.home==b.id&&h.resident).Select(h=>h.id).ToList();
-                    GUILayout.Label(D("housing_row",Math.Max(0,home.housingUnits-local.Count),local.Count));
-                    LocateButton(b.id,local.Count>0?local[0]:0);
+                    occupants.TryGetValue(b.id,out int count);
+                    GUILayout.Label(D("housing_row",Math.Max(0,home.housingUnits-count),count));
+                    if(Observation!=null)GUILayout.Label(Observation.FacilityStatus(b));
                 }
-                else LocateButton(b.id);
-                GUILayout.EndHorizontal();
+                LocateButton(b.id);
+                if(wide)GUILayout.EndHorizontal();else GUILayout.EndVertical();
             }
         }
     }

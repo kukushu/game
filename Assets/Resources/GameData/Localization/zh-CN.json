@@ -1,6 +1,13 @@
 {
   "language": "zh-CN",
   "entries": [
+    {"key":"ui.dashboard.evidence_column","text":"证据"},
+    {"key":"ui.dashboard.impact_column","text":"影响"},
+    {"key":"ui.dashboard.event_column","text":"事件"},
+    {"key":"ui.dashboard.object_column","text":"对象"},
+    {"key":"ui.dashboard.amount_column","text":"金额"},
+    {"key":"ui.dashboard.score_column","text":"评分"},
+    {"key":"ui.dashboard.reason_column","text":"原因"},
     {"key":"ui.dashboard.overview","text":"总览"},
     {"key":"ui.dashboard.diagnosis","text":"问题诊断"},
     {"key":"ui.dashboard.cashflow","text":"资金流"},

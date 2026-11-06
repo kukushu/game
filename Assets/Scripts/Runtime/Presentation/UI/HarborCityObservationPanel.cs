@@ -19,6 +19,8 @@ namespace HarborCity
         {
             get{PollFeedback();return feedback?.Entries()??Array.Empty<CityFeedbackEntry>();}
         }
+        internal string FacilityStatus(CityBuilding building)
+            =>query==null?text.Get("ui.feedback.unavailable"):Problems(query.Problems(building));
         int selected,family,issuePage;double refreshDeadline;long refreshed=-1;int entityRevision=-1,roadRevision=-1;Vector2 scroll;bool showIssues;
         int locatedTask,locatedVehicle;
         string locatedResident;

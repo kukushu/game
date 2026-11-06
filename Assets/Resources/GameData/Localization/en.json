@@ -1,6 +1,13 @@
 {
   "language": "en",
   "entries": [
+    {"key":"ui.dashboard.evidence_column","text":"Evidence"},
+    {"key":"ui.dashboard.impact_column","text":"Impact"},
+    {"key":"ui.dashboard.event_column","text":"Event"},
+    {"key":"ui.dashboard.object_column","text":"Object"},
+    {"key":"ui.dashboard.amount_column","text":"Amount"},
+    {"key":"ui.dashboard.score_column","text":"Score"},
+    {"key":"ui.dashboard.reason_column","text":"Reason"},
     {"key":"ui.dashboard.overview","text":"Overview"},
     {"key":"ui.dashboard.diagnosis","text":"Diagnosis"},
     {"key":"ui.dashboard.cashflow","text":"Cash flow"},
