@@ -13,7 +13,7 @@ static class CitySmallEconomyStudy
         string output=args[0], profile=args[1];
         int population=int.Parse(args[2]), days=int.Parse(args[3]);
         var design=new GameDesignData();
-        if(profile=="Pilot"||profile=="PilotShortDay")
+        if(profile=="Pilot"||profile=="PilotShortDay"||profile=="SmallBusiness")
         {
             design.products[0].retailPrice=40;
             design.products[0].wholesalePrice=22;
@@ -23,12 +23,13 @@ static class CitySmallEconomyStudy
             design.products[1].labourMinutes=24;
             design.employment.commercialShiftStartMinute=840;
         }
+        if(profile=="SmallBusiness")design.employment.slotsPerLevel=1;
         var session=population==0?CityGrowingGridFixture.Create(design:design):
             CityScenarioBuilder.Create(new CityScenarioSettings
             {
                 population=population,gridRadius=3,householdsPerResidentialBuilding=4,seedRoadNetwork=true
             },design);
-        int daySeconds=profile=="Pilot"?360:120;
+        int daySeconds=profile=="Pilot"||profile=="SmallBusiness"?360:120;
         session.City.society.settings.secondsPerDay=daySeconds;
         var imports=session.City.trade.connections.Where(p=>p.active&&p.flow==OutsideFlow.Import).ToArray();
         if(!imports.Any(p=>session.Transport.GetAccess(p.id)?.valid==true))
@@ -52,6 +53,12 @@ static class CitySmallEconomyStudy
         }
         session.Validate();
         File.WriteAllBytes(Path.Combine(output,"final.hcity"),CityCoreSave.Write(session));
+        using(var households=new StreamWriter(Path.Combine(output,"households.csv")))
+        {
+            households.WriteLine("household,people,food,daily_goods,savings,income,retail,tax,supplier,shopping_member,reason,employed,unfunded_jobs,wage_credit");
+            foreach(var h in session.City.society.families.Where(h=>h.resident))
+                households.WriteLine(string.Join(",",new object[]{h.id,h.people.Count,h.goods.food,h.goods.dailyGoods,h.savings,h.incomeReceived,h.retailPaid,h.taxPaid,h.goodsSupplier,h.shoppingMember,h.goodsProblem,h.people.Count(p=>session.City.ResidentJob(p)!=null),h.people.Count(p=>session.City.ResidentJob(p)!=null&&!session.City.JobFunded(session.City.ResidentJob(p))),h.people.Sum(p=>p.wageCredit)}.Select(x=>Convert.ToString(x,CultureInfo.InvariantCulture))));
+        }
         Console.WriteLine($"Validated tick {session.Simulation.Tick}, population {session.City.population}, raw delivered {session.City.trade.rawDelivered}");
     }
 

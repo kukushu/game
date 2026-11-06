@@ -92,6 +92,11 @@ static class CityTwoGoodsChecks
         Check(opportunity&&kind==ProductKind.DailyGoods&&reserve==6&&focus.id==farShop.id,"Covered largest store hid uncovered second-region investment: opportunity="+opportunity+" kind="+kind+" reserve="+reserve+" focus="+focus?.id+" worker="+growth.HasWorker(1)+" access="+s.City.BuildingAccess(farShop.id)+" cash="+farShop.Account.Cash);
         demands[2]=GoodsAmounts.Of(ProductKind.Food,6);demands[farShop.id]=GoodsAmounts.Of(ProductKind.DailyGoods,6);
         Check(growth.InvestmentOpportunity(LandUse.Industrial,out kind,out reserve,out focus)&&kind==ProductKind.Food&&reserve==6&&focus.id==2,"Equal investment gaps did not prefer food");
+        var nearShop=new CommercialBuilding{id=s.City.nextBuildingId,x=27,z=-7};s.Entities.AddBuilding(nearShop);
+        var access=s.Transport.GetAccess(2);s.Transport.RegisterAccess(nearShop.id,access.lane,access.distance);
+        nearShop.Account.Capital=nearShop.Account.Cash=2000;
+        demands.Clear();demands[2]=GoodsAmounts.Of(ProductKind.DailyGoods,8);demands[nearShop.id]=GoodsAmounts.Of(ProductKind.DailyGoods,6);
+        Check(growth.InvestmentOpportunity(LandUse.Industrial,out kind,out reserve,out focus)&&kind==ProductKind.DailyGoods&&reserve==6&&focus.id==nearShop.id,"The same eight goods covered two separate store orders");
     }
     static void ImportBeforeFactoryOpening()
     {
@@ -104,6 +109,74 @@ static class CityTwoGoodsChecks
         for(int i=0;i<9600;i++)city.Advance(.05);
         Check(city.Entities.Factories.Any(f=>f.factory.imported>0),"Connecting a reachable import did not enable industrial production");
         city.Validate();
+    }
+    static void RecoveryChecks()
+    {
+        var s=CityCoreIndustrySession.Create();s.City.development.enabled=true;
+        var worker=s.City.Citizens.First();var family=s.City.society.families.First();
+        var factory=s.Entities.Factories.Single();
+        int job=worker.jobId;
+        Check(s.Simulation.Growth.NearTermProduction(factory)==0,"Factory without utilities counted as productive capacity");
+        var growing=CityGrowingGridFixture.Create();IndustrialBuilding productive=null;
+        for(int i=0;i<12000&&productive==null;i++)
+        {growing.Advance(.05);productive=growing.Entities.Factories.FirstOrDefault(f=>growing.Simulation.Growth.NearTermProduction(f)>0);}
+        Check(productive!=null,"Owned material and funded labour not counted as near-term supply");
+        int before=productive.factory.raw;productive.factory.raw=0;productive.factory.processing=false;
+        int forecast=growing.Simulation.Growth.NearTermProduction(productive);
+        Check(forecast<=growing.Simulation.Shipments.Raw(productive.id),"Forecast invented raw material");
+        productive.factory.raw=before;productive.factory.cash=0;
+        Check(growing.Simulation.Growth.NearTermProduction(productive)==0,"Unfunded factory counted as productive capacity");
+        factory.factory.cash=0;
+        worker.wageCredit=7.25;worker.location=family.home;worker.atWork=false;
+        worker.tripId=123;
+        s.Simulation.Population.ReleaseUnfundedJobs();
+        Check(worker.jobId==job,"Recovery changed a travelling resident's job");
+        worker.tripId=0;worker.atWork=true;
+        s.Simulation.Population.ReleaseUnfundedJobs();
+        Check(worker.jobId==job,"Recovery changed a resident's active shift");
+        worker.atWork=false;worker.location=factory.id;
+        s.Simulation.Population.ReleaseUnfundedJobs();
+        Check(worker.jobId==job,"Recovery reassigned a resident away from home");
+        worker.location=family.home;worker.carriedProducts=GoodsAmounts.Of(ProductKind.Food,1);
+        s.Simulation.Population.ReleaseUnfundedJobs();
+        Check(worker.jobId==job,"Recovery changed employment before carried goods were settled");
+        worker.carriedProducts=default;
+        // Declared transport fixture: a factory receivable is still in transit.
+        factory.Products=GoodsAmounts.Of(ProductKind.DailyGoods,1);
+        var shop=s.Entities.Shops.Single();shop.Account.Capital=shop.Account.Cash=2000;
+        var shipment=s.Simulation.RequestFreight(factory.id,shop.id,1);
+        Check(shipment!=null,"Recovery receivable fixture did not depart");
+        s.Simulation.Population.ReleaseUnfundedJobs();
+        Check(worker.jobId==job,"Recovery dismissed an employee while freight settlement was pending");
+        // A separate no-freight fixture isolates the recovery boundary.
+        var home=CityCoreIndustrySession.Create();home.City.development.enabled=true;
+        var resident=home.City.Citizens.First();var household=home.City.society.families.First();
+        var employer=home.Entities.Factories.Single();employer.factory.cash=0;
+        resident.location=household.home;resident.atWork=false;resident.wageCredit=7.25;
+        int previous=resident.jobId;
+        Check(home.Simulation.Population.ReleaseUnfundedJobs()&&resident.jobId<0&&home.City.Job(previous).occupiedCitizenId<0,"Unfunded employee was not released at home");
+        Check(resident.wageCredit==7.25,"Job recovery discarded earned wages");
+        Check(!home.Simulation.Population.ReleaseUnfundedJobs(),"Repeated recovery changed an already released job");
+    }
+    static void HouseholdJobPriorityChecks()
+    {
+        var s=CityCoreIndustrySession.Create();s.City.development.enabled=true;
+        var original=s.City.society.families.First();
+        s.City.ReleaseJob(original.people[0]);s.City.ReleaseJob(original.people[1]);
+        ((ResidentialBuilding)s.Entities.Building(original.home)).housingUnits=3;
+        for(int i=0;i<2;i++)
+        {
+            var h=new Household{id=s.City.society.nextId,home=original.home,unit=i+1,resident=true,savings=500,openingSavings=500};
+            s.Entities.AddFamily(h);
+            s.Entities.AddResident(h.id,new CityResident{id=s.City.society.nextCitizenId,age=30,canWork=true,skill=2,location=original.home});
+        }
+        var newcomers=s.City.society.families.Skip(1).ToArray();
+        Check(s.Simulation.Population.FindJobs(),"Priority fixture assigned no jobs");
+        Check(newcomers.All(h=>h.people.Single().jobId>=0),"Additional earners displaced households without a funded job");
+        Check(original.people[0].jobId<0&&original.people[1].jobId<0&&original.people[2].jobId>=0,"Priority displaced an existing contract");
+        var ill=newcomers[0].people.Single();s.City.ReleaseJob(ill);ill.sick=true;
+        s.Simulation.Population.FindJobs();
+        Check(ill.jobId<0,"Sick resident recruited ahead of available workers");
     }
     static void Main()
     {
@@ -121,6 +194,6 @@ static class CityTwoGoodsChecks
         var raw=new Shipment{remaining=8};raw.kind=CargoKind.RawMaterial;Check(raw.remaining==8&&raw.Products.Total==0,"Raw admission amount");var waste=new Shipment{kind=CargoKind.Waste,remaining=7};Check(waste.Copy().remaining==7,"Waste copy");
         var building=BuildingSaveData.FromBuilding(new CommercialBuilding{Products=a});Check(((CommercialBuilding)building.ToBuilding()).Products.Equals(a),"Building mixed inventory persistence");
         var old=(byte[])bytes.Clone();Buffer.BlockCopy(BitConverter.GetBytes(15),0,old,4,4);bool refused=false;try{SaveCodec.Read(old);}catch(System.IO.InvalidDataException){refused=true;}Check(refused,"Old traffic format accepted");
-        InvestmentChecks();ImportBeforeFactoryOpening();ScheduleChecks(false);ScheduleChecks(true);MixedPurchaseChecks();Console.WriteLine("PASS "+checks+" two-product checks");
+        HouseholdJobPriorityChecks();RecoveryChecks();InvestmentChecks();ImportBeforeFactoryOpening();ScheduleChecks(false);ScheduleChecks(true);MixedPurchaseChecks();Console.WriteLine("PASS "+checks+" two-product checks");
     }
 }

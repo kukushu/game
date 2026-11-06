@@ -7,8 +7,10 @@ namespace HarborCity
     {
         readonly Dictionary<int,int> availableWorkers=new Dictionary<int,int>();
         readonly SortedDictionary<int,int> skills=new SortedDictionary<int,int>();
-        readonly HashSet<int> firstDeliveryPending=new HashSet<int>(),stockedFactories=new HashSet<int>();
+        readonly HashSet<int> firstDeliveryPending=new HashSet<int>();
         readonly List<(CommercialBuilding shop,int gap)> procurement=new List<(CommercialBuilding,int)>();
+        readonly Dictionary<int,int> plannedSupply=new Dictionary<int,int>();
+        readonly List<CityMember> forecastWorkers=new List<CityMember>();
         void BindInvestment()
         {
             foreach(var m in entities.Members)Worker(m);foreach(var f in entities.Factories)Factory(f,true);
@@ -26,7 +28,7 @@ namespace HarborCity
         }
         internal bool HasWorker(int required){foreach(var pair in skills)if(pair.Key>=required&&pair.Value>0)return true;return false;}
         void Factory(IndustrialBuilding f,bool added)
-        {if(added&&f.Stock>0)stockedFactories.Add(f.id);else stockedFactories.Remove(f.id);if(added&&f.externalCapital>0&&!f.factory.firstDelivery)firstDeliveryPending.Add(f.id);else firstDeliveryPending.Remove(f.id);}
+        {if(added&&f.externalCapital>0&&!f.factory.firstDelivery)firstDeliveryPending.Add(f.id);else firstDeliveryPending.Remove(f.id);}
         bool Reachable(int source,int destination)
         {var a=world.GetAccess(source);var b=world.GetAccess(destination);return a!=null&&b!=null&&a.valid&&b.valid&&world.Network.CanReach(a,b);}
         internal bool InvestmentOpportunity(LandUse use,out ProductKind product,out int reserve,out CityBuilding focus)
@@ -53,15 +55,40 @@ namespace HarborCity
                     if(n>0)procurement.Add((candidate,n));
                 }
                 procurement.Sort((a,b)=>{int c=b.gap.CompareTo(a.gap);return c!=0?c:a.shop.id.CompareTo(b.shop.id);});
+                plannedSupply.Clear();
+                foreach(var factory in entities.Factories)
+                    if(!factory.abandoned&&!factory.burned&&factory.factory.product==k)
+                        plannedSupply[factory.id]=factory.Stock+NearTermProduction(factory);
                 foreach(var entry in procurement)
                 {
                     if(entry.gap<reserve)break;int gap=entry.gap;var shop=entry.shop;
-                    foreach(int id in stockedFactories){var f=entities.Building(id) as IndustrialBuilding;if(f!=null&&!f.abandoned&&!f.burned&&f.factory.product==k&&Reachable(id,shop.id)){gap-=f.Stock;if(gap<=0)break;}}
+                    // Allocate each unit only once across shops in stable order.
+                    foreach(var factory in entities.Factories)
+                        if(plannedSupply.TryGetValue(factory.id,out int available)&&available>0&&Reachable(factory.id,shop.id))
+                        {int covered=Math.Min(gap,available);plannedSupply[factory.id]=available-covered;gap-=covered;if(gap<=0)break;}
                     foreach(var project in city.development.projects)gap-=project.supplyReserved[k];
                     if(gap>reserve||gap>0&&gap==reserve&&product==k&&focus!=null&&shop.id<focus.id){reserve=gap;product=k;focus=shop;}
                 }
             }
             return reserve>0;
+        }
+        internal int NearTermProduction(IndustrialBuilding factory)
+        {
+            var simulation=entities.Simulation;var state=factory.factory;
+            if(state.cash<=0||factory.abandoned||factory.burning||factory.burned||!city.BuildingAccess(factory.id)||!city.Supply(factory.id).Complete)return 0;
+            var product=simulation.Design.Products[state.product];
+            int workers=0;double wages=0;entities.CollectEmployees(factory.id,forecastWorkers);
+            foreach(var member in forecastWorkers)
+                if(member.Family.resident&&city.CanAttendWork(member.Person))
+                {workers++;wages+=city.ResidentWage(member.Person);}
+            if(workers==0)return 0;
+            // A one-shift upper bound, limited to material already owned and cash
+            // already available. This forecast neither creates goods nor pays wages.
+            int material=state.raw+simulation.Shipments.Raw(factory.id)+(state.processing?1:0);
+            double labour=simulation.Design.Employment.ShiftMinutes*workers*city.FactoryProcessingRate(factory.id);
+            double unitCost=product.ProcessingCost+wages*product.LabourMinutes/labour;
+            int affordable=unitCost>0?(int)Math.Min(material,Math.Floor(state.cash/unitCost)):material;
+            return Math.Min(FactoryState.GoodsCapacity-factory.Stock,Math.Min(affordable,(int)Math.Floor(labour/product.LabourMinutes)));
         }
         bool CanImportAt(SpatialHit entrance)
         {

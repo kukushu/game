@@ -16,7 +16,23 @@ namespace HarborCity
             bool dayDue=city.day>city.society.lastSettledDay;
             if(!dayDue&&time.Start<city.development.nextEmployment)return;
             if(dayDue){Migrate();city.society.lastSettledDay=city.day;}
-            if(FindJobs())utilities.Invalidate();city.development.nextEmployment=(float)(time.Start+6);utilities.Refresh();UpdateStatistics();
+            bool released=ReleaseUnfundedJobs();
+            if(FindJobs()||released)utilities.Invalidate();city.development.nextEmployment=(float)(time.Start+6);utilities.Refresh();UpdateStatistics();
+        }
+        // Recover only at a legal boundary. Freight can still restore an employer's
+        // liquidity; trips, carried purchases and accrued wages keep their owners.
+        internal bool ReleaseUnfundedJobs()
+        {
+            bool changed=false;
+            foreach(var member in entities.Members)
+            {
+                var person=member.Person;var job=city.ResidentJob(person);
+                if(job==null||!member.Family.resident||person.dead||person.tripId!=0||person.atWork||
+                    person.location!=member.Family.home||person.carriedGoods!=0||city.JobFunded(job)||
+                    entities.Simulation.Shipments.Trucks(job.buildingId)>0)continue;
+                city.ReleaseJob(person);changed=true;
+            }
+            return changed;
         }
         void Migrate()
         {
@@ -35,7 +51,7 @@ namespace HarborCity
                 }
             }
         }
-        bool FindJobs()
+        internal bool FindJobs()
         {
             // One bucket per actual workplace; estimate once per home/work pair,
             // not once per job and not in the fixed vehicle loop.
@@ -43,9 +59,16 @@ namespace HarborCity
             var distances=new Dictionary<(int,int),double>();bool assigned=false;
             if(vacant.Count==0)return false;
             var bounds=new ResidentRouteBounds(world);var candidates=new List<JobCandidate>(vacant.Count);
+            var fundedFamilies=new HashSet<int>();
+            foreach(var member in entities.Members)
+                if(member.Family.resident&&city.JobFunded(city.ResidentJob(member.Person)))fundedFamilies.Add(member.Family.id);
+            // Give a household without a funded job a first opportunity before
+            // assigning additional earners to other households. Existing contracts
+            // remain intact; route/skill ranking still chooses the actual vacancy.
+            for(int pass=0;pass<2;pass++)
             foreach(var member in entities.Members)
             {
-                var p=member.Person;var h=member.Family;if(!h.resident||p.dead||!p.canWork||p.jobId>=0||p.tripId!=0||p.atWork)continue;CityJob best=null;double nearest=double.PositiveInfinity;
+                var p=member.Person;var h=member.Family;if(!h.resident||p.dead||p.sick||!p.canWork||p.jobId>=0||p.tripId!=0||p.atWork||pass==0&&fundedFamilies.Contains(h.id))continue;CityJob best=null;double nearest=double.PositiveInfinity;
                 candidates.Clear();
                 foreach(var pair in vacant)
                 {
@@ -59,7 +82,7 @@ namespace HarborCity
                     var candidate=option.job;var key=(h.home,candidate.buildingId);if(!distances.TryGetValue(key,out double seconds)){seconds=world.EstimateResidentSeconds(h.home,candidate.buildingId);distances.Add(key,seconds);}if(double.IsInfinity(seconds))continue;
                     if(seconds<nearest||seconds==nearest&&(best==null||candidate.id<best.id)){nearest=seconds;best=candidate;}
                 }
-                if(best!=null)assigned|=city.AssignJob(p,best.id);
+                if(best!=null&&city.AssignJob(p,best.id)){assigned=true;fundedFamilies.Add(h.id);}
             }
             return assigned;
         }

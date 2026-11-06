@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory=$true)][string]$Results,
-    [ValidateSet('Current','Pilot','PilotShortDay')][string]$Profile='Current',
+    [ValidateSet('Current','Pilot','PilotShortDay','SmallBusiness')][string]$Profile='Current',
     [ValidateSet(0,120,500)][int]$Population=0,
     [ValidateRange(1,120)][int]$Days=45,
     [ValidateRange(10,900)][int]$TimeoutSeconds=180
