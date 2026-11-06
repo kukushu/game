@@ -165,7 +165,7 @@ namespace HarborCity
                 if(hudNoticeSeen!=notice){if(hudNoticeSeen!=null&&!string.IsNullOrEmpty(notice))hudNoticeUntil=Time.realtimeSinceStartupAsDouble+4;hudNoticeSeen=notice;}
                 if(NoticeBounds.width>0){HudBox(NoticeBounds);GUI.Label(new Rect(NoticeBounds.x+8,NoticeBounds.y+7,NoticeBounds.width-16,20),HudContent(NoticeBounds,notice,notice),small);}
                 if(toolPage!=ToolPage.None)DrawToolPage();
-                roadEditor?.Bind(session);roadEditor?.Draw();observation?.Bind(session);observation?.Draw();financePanel?.Draw(session?.Simulation);
+                roadEditor?.Bind(session);roadEditor?.Draw();observation?.Bind(session);observation?.Draw();financePanel?.Draw(session,financePanel.IsOpen?observation.Summary:null);
                 DrawHudTooltip();
             }
             finally{GUI.skin=oldSkin;GUI.contentColor=oldContent;GUI.backgroundColor=oldBackground;GUI.enabled=oldEnabled;}
@@ -269,7 +269,7 @@ namespace HarborCity
         {
             if(session==null)return;
             if(GUILayout.Button(localization.Get("ui.inspect.open"))){CancelTool();observation.Bind(session);observation.ToggleIssues();toolPage=ToolPage.None;}
-            if(GUILayout.Button(localization.Get("ui.finance.open"))){financePanel.IsOpen=true;toolPage=ToolPage.None;}
+            if(GUILayout.Button(localization.Get("ui.economy.title"))){CancelTool();observation.Close();financePanel.Open();toolPage=ToolPage.None;}
             GUILayout.Label(localization.Get("ui.hud.network",world.Network.RoadCount,world.Network.JunctionCount),wrapped);
             if(GrowingCity)
             {

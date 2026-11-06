@@ -1,6 +1,17 @@
 {
   "language": "en",
   "entries": [
+    {"key":"ui.economy.title","text":"Economy"},
+    {"key":"ui.economy.overview","text":"Economy overview"},
+    {"key":"ui.economy.stock","text":"Current cash and stock (updated about once per second)"},
+    {"key":"ui.economy.households","text":"Household cash {0:N0}"},
+    {"key":"ui.economy.shortage","text":"Household food {0:N0} · Out of food {1:N0} households · Out of daily goods {2:N0} households"},
+    {"key":"ui.economy.shops","text":"Shops {0:N0} · Cash {1:N0} · Food {2:N0} · Daily goods {3:N0} · Out of cash {4:N0}"},
+    {"key":"ui.economy.factories","text":"Factories {0:N0} · Cash {1:N0} · Raw materials {2:N0} · Food {3:N0} · Daily goods {4:N0} · Out of cash {5:N0}"},
+    {"key":"ui.economy.since_open","text":"Since opening ({0:N1} in-game hours elapsed)"},
+    {"key":"ui.economy.cumulative","text":"City lifetime totals (saved with the city)"},
+    {"key":"ui.economy.flows","text":"Household purchases {0:N0} · Import payments {1:N0} · Export receipts {2:N0}"},
+    {"key":"ui.economy.volume","text":"Household purchases: food {0:N0} / daily goods {1:N0} · Raw materials delivered {2:N0} · Exports delivered: food {3:N0} / daily goods {4:N0}"},
     {"key": "ui.trade.orders", "text": "External orders remaining today: food {0}/{1}, daily goods {2}/{3}. Departure reserves an order; arrival pays the factory."},
     {
       "key": "ui.trade.connect",

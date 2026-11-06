@@ -1,6 +1,17 @@
 {
   "language": "zh-CN",
   "entries": [
+    {"key":"ui.economy.title","text":"经济面板"},
+    {"key":"ui.economy.overview","text":"经济概览"},
+    {"key":"ui.economy.stock","text":"当前资金与库存（约每秒刷新）"},
+    {"key":"ui.economy.households","text":"住户资金合计 {0:N0}"},
+    {"key":"ui.economy.shortage","text":"住户食物库存 {0:N0} 份 · 食物用尽 {1:N0} 户 · 日用品用尽 {2:N0} 户"},
+    {"key":"ui.economy.shops","text":"商店 {0:N0} 家 · 现金 {1:N0} · 食物 {2:N0} · 日用品 {3:N0} · 资金耗尽 {4:N0} 家"},
+    {"key":"ui.economy.factories","text":"工厂 {0:N0} 家 · 现金 {1:N0} · 原料 {2:N0} · 食物 {3:N0} · 日用品 {4:N0} · 资金耗尽 {5:N0} 家"},
+    {"key":"ui.economy.since_open","text":"打开面板后（已过 {0:N1} 游戏小时）"},
+    {"key":"ui.economy.cumulative","text":"自建城累计（随存档保留）"},
+    {"key":"ui.economy.flows","text":"住户购物付款 {0:N0} · 原料进口付款 {1:N0} · 已到账出口收入 {2:N0}"},
+    {"key":"ui.economy.volume","text":"住户买到食物 {0:N0} / 日用品 {1:N0} · 到货原料 {2:N0} · 已交付出口食物 {3:N0} / 日用品 {4:N0}"},
     {"key": "ui.trade.orders", "text": "今日城外订单剩余：食物 {0}/{1} · 日用品 {2}/{3}。实际运出后占用订单，到达城外后收款。"},
     {
       "key": "ui.trade.connect",
