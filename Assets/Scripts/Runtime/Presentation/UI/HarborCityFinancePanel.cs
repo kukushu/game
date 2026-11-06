@@ -98,6 +98,14 @@ namespace HarborCity
         }
         void Contents(int window)
         {
+            // IMGUI windows have their own GUI state. Apply the HUD tint inside the window.
+            var background=GUI.backgroundColor;
+            GUI.backgroundColor=new Color(.16f,.24f,.30f);
+            try{DrawContents();}
+            finally{GUI.backgroundColor=background;}
+        }
+        void DrawContents()
+        {
             if(GUILayout.Button(text.Get("ui.finance.close"))){IsOpen=false;return;}
             GUILayout.BeginHorizontal();
             if(GUILayout.Button(text.Get("ui.economy.overview"))&&treasury){treasury=false;scroll=Vector2.zero;nextSample=0;}
