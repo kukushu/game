@@ -132,6 +132,10 @@ namespace HarborCity
             =>argument.StartsWith("-harbor-",StringComparison.Ordinal)&&argument!="-harbor-legacy-views";
         void Start()
         {
+            // Existing playtest installations can retain an older window size in
+            // Unity's player preferences; apply the requested size on launch.
+            if(!Application.isEditor&&!Application.isBatchMode&&FeedbackBuild.playtest)
+                Screen.SetResolution(1920,1080,FullScreenMode.Windowed);
             if(Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-legacy-views")>=0)displaySettings.layered=false;
             Application.targetFrameRate=60;
             var language=Resources.Load<TextAsset>("GameData/Localization/zh-CN");if(language==null)throw new InvalidOperationException("Missing localization resource");localization=new CityLocalization(JsonUtility.FromJson<TranslationData>(language.text));notice=localization.Get("ui.hud.welcome");financePanel=new HarborCityFinancePanel(localization);observation=new HarborCityObservationPanel(localization);observation.Focus=(x,z)=>{if(constructionCamera!=null)constructionCamera.Focus(x,z);else{cameraView.transform.position=new Vector3(x,90,z-65);cameraView.transform.LookAt(new Vector3(x,0,z));}};
