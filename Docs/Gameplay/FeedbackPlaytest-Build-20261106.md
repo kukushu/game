@@ -1,6 +1,12 @@
 # 反馈试玩交付记录
 
-## 当前交付：开放市场 v2（2026-11-06）
+## 当前显示调整包：1920×1080（2026-11-06）
+
+入口 `Temp/FeedbackPlaytest-20261106-1920x1080-v2/Player/HarborCity.exe`，需保留整个 Player 目录。源码 `7f57a2bcd66fc424befdd3dd2e0b1f2e24aaa07f`，构建时业务工作区无修改。Player 默认窗口设为 1920×1080，启动时也为反馈试玩包应用该尺寸，避免旧 Player 偏好保留先前窗口大小。地图初始镜头距离从 110 调到 85，滚轮缩放保留；没有改变经济或迁入规则。
+
+Unity Release 构建日志为 `Build Finished, Result: Success`，退出码0。构建时间 2026-11-06 11:30:15 UTC，输入指纹 `882333c4e19ca03e7e80c4048af057d8820512904b14f7c7ad9f81175dbc79e6`；包内206个文件，程序集 SHA256 `f735bd0cdd8eac2e86d7eb59105db77d63f6c8667e35ff5ae7ab62b851c16ed9`。精确清单见输出目录的 `build-manifest.json` 与 `artifact-files.json`。未启动 Player，窗口尺寸、实际地图可见面积及界面布局仍待玩家试玩核对。
+
+## 历史交付：开放市场 v2（2026-11-06）
 
 入口 `Temp/FeedbackPlaytest-20261106-open-market-v2/Player/HarborCity.exe`，保留整个 Player 目录。源码 `c48f08efd18035a3e15e8293ce252bdd432e4b4f`，构建时无相关未提交修改，显示“反馈试玩 v2 · 开放市场 · c48f08ef”。构建时间为北京时间 2026-11-06 13:54:16；输出为 Windows64 Mono Release，无诊断宏，未启动 Player。
 
