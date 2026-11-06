@@ -1,6 +1,18 @@
 {
   "language": "en",
   "entries": [
+    {"key":"ui.economy.food_empty","text":"Households out of food"},
+    {"key":"ui.economy.daily_empty","text":"Households out of daily goods"},
+    {"key":"ui.economy.shop_cash_empty","text":"Shops out of cash"},
+    {"key":"ui.economy.factory_cash_empty","text":"Factories out of cash"},
+    {"key":"ui.economy.shop_food","text":"Food on shop shelves"},
+    {"key":"ui.economy.shop_daily","text":"Daily goods on shop shelves"},
+    {"key":"ui.economy.open_issues","text":"View and locate city problems"},
+    {"key":"ui.economy.retail_flow","text":"Household purchases"},
+    {"key":"ui.economy.import_flow","text":"Raw material import payments"},
+    {"key":"ui.economy.export_flow","text":"Export receipts"},
+    {"key":"ui.economy.show_details","text":"Show stock and lifetime totals"},
+    {"key":"ui.economy.hide_details","text":"Hide stock and lifetime totals"},
     {"key":"ui.economy.title","text":"Economy"},
     {"key":"ui.economy.overview","text":"Economy overview"},
     {"key":"ui.economy.stock","text":"Current cash and stock (updated about once per second)"},

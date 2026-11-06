@@ -1,6 +1,18 @@
 {
   "language": "zh-CN",
   "entries": [
+    {"key":"ui.economy.food_empty","text":"食物用尽的家庭"},
+    {"key":"ui.economy.daily_empty","text":"日用品用尽的家庭"},
+    {"key":"ui.economy.shop_cash_empty","text":"资金耗尽的商店"},
+    {"key":"ui.economy.factory_cash_empty","text":"资金耗尽的工厂"},
+    {"key":"ui.economy.shop_food","text":"商店食物库存（份）"},
+    {"key":"ui.economy.shop_daily","text":"商店日用品库存（份）"},
+    {"key":"ui.economy.open_issues","text":"查看并定位城市问题"},
+    {"key":"ui.economy.retail_flow","text":"居民购物付款"},
+    {"key":"ui.economy.import_flow","text":"原料进口付款"},
+    {"key":"ui.economy.export_flow","text":"出口实际到账"},
+    {"key":"ui.economy.show_details","text":"展开库存与累计账目"},
+    {"key":"ui.economy.hide_details","text":"收起库存与累计账目"},
     {"key":"ui.economy.title","text":"经济面板"},
     {"key":"ui.economy.overview","text":"经济概览"},
     {"key":"ui.economy.stock","text":"当前资金与库存（约每秒刷新）"},

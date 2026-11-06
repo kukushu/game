@@ -2,14 +2,19 @@ using System;
 using UnityEngine;
 namespace HarborCity
 {
-    // UI owns only open/scroll/error state. All changes go through fiscal commands.
+    // The overview samples existing accounts. All writes go through fiscal commands.
     public sealed class HarborCityFinancePanel
     {
         readonly CityLocalization text;CityCoreFinance finance;CityCoreUtilities services;Vector2 scroll;string message="";
         public bool IsOpen {get;set;}
         CityCoreIndustrySession session;
         CityFeedbackSummary alerts;
-        bool treasury;
+        bool treasury, details;
+        GUIStyle metricValue;
+        public Action OpenIssues {get;set;}
+        static readonly Color Alert=new Color(1f,.52f,.45f);
+        static readonly Color Stable=new Color(.45f,.85f,.77f);
+        static readonly Color Track=new Color(.19f,.27f,.33f);
         double nextSample, openedAt, retailAtOpen, importsAtOpen, exportsAtOpen;
         double shopCash, factoryCash;
         long householdCash, shopFood, shopDaily, factoryFood, factoryDaily, factoryRaw;
@@ -35,6 +40,7 @@ namespace HarborCity
             {
                 session=current;
                 scroll=Vector2.zero;
+                details=false;
                 message="";
                 openedAt=current.Simulation.Seconds;
                 retailAtOpen=current.City.consumption.RetailPayments;
@@ -76,20 +82,88 @@ namespace HarborCity
                 }
             }
         }
+        static void Fill(Rect rect,Color color)
+        {
+            var previous=GUI.color;
+            GUI.color=color;
+            GUI.DrawTexture(rect,Texture2D.whiteTexture);
+            GUI.color=previous;
+        }
+        void Metric(Rect rect,string label,string value,Color color,float fraction=-1)
+        {
+            Fill(rect,new Color(.10f,.16f,.20f));
+            Fill(new Rect(rect.x,rect.y,3,rect.height),color);
+            GUI.Label(new Rect(rect.x+10,rect.y+5,rect.width-20,32),label);
+            metricValue??=new GUIStyle(GUI.skin.label){fontSize=24,fontStyle=FontStyle.Bold,wordWrap=false};
+            metricValue.normal.textColor=color;
+            GUI.Label(new Rect(rect.x+10,rect.y+37,rect.width-20,30),value,metricValue);
+            if(fraction<0)return;
+            var bar=new Rect(rect.x+10,rect.yMax-9,Math.Max(0,rect.width-20),4);
+            Fill(bar,Track);
+            bar.width*=Mathf.Clamp01(fraction);
+            Fill(bar,color);
+        }
+        void ImpactRow(string left,int? affected,int total,string right,int? otherAffected,int otherTotal)
+        {
+            var row=GUILayoutUtility.GetRect(0,76,GUILayout.ExpandWidth(true));
+            float width=(row.width-6)/2;
+            Impact(new Rect(row.x,row.y,width,row.height),left,affected,total);
+            Impact(new Rect(row.x+width+6,row.y,width,row.height),right,otherAffected,otherTotal);
+            GUILayout.Space(5);
+        }
+        void Impact(Rect rect,string label,int? affected,int total)
+        {
+            Metric(rect,text.Get(label),affected.HasValue?$"{affected.Value:N0} / {total:N0}":"—",
+                affected>0?Alert:affected.HasValue?Stable:Track,
+                affected.HasValue&&total>0?(float)affected.Value/total:-1);
+        }
+        void StockRow()
+        {
+            var row=GUILayoutUtility.GetRect(0,72,GUILayout.ExpandWidth(true));
+            float width=(row.width-6)/2;
+            Metric(new Rect(row.x,row.y,width,row.height),text.Get("ui.economy.shop_food"),
+                shops>0?shopFood.ToString("N0"):"—",shops>0?(shopFood==0?Alert:Stable):Track);
+            Metric(new Rect(row.x+width+6,row.y,width,row.height),text.Get("ui.economy.shop_daily"),
+                shops>0?shopDaily.ToString("N0"):"—",shops>0?(shopDaily==0?Alert:Stable):Track);
+        }
+        void Flow(string key,double amount,double scale,Color color)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(text.Get(key));
+            GUILayout.Label(amount.ToString("N0"),GUILayout.ExpandWidth(false));
+            GUILayout.EndHorizontal();
+            var bar=GUILayoutUtility.GetRect(0,5,GUILayout.ExpandWidth(true));
+            Fill(bar,Track);
+            bar.width*=(float)(amount/scale);
+            Fill(bar,color);
+        }
         void Economy()
         {
             var city=session.City;
             var trade=city.trade;
             var consumption=city.consumption;
             var simulation=session.Simulation;
+            ImpactRow("ui.economy.food_empty",alerts?.foodEmpty,alerts?.households??0,
+                "ui.economy.daily_empty",alerts?.dailyEmpty,alerts?.households??0);
+            ImpactRow("ui.economy.shop_cash_empty",alerts?.cashShops,shops,
+                "ui.economy.factory_cash_empty",alerts?.cashFactories,factories);
+            StockRow();
+            if(OpenIssues!=null&&GUILayout.Button(text.Get("ui.economy.open_issues"),GUILayout.Height(28)))OpenIssues();
+            GUILayout.Space(8);
+            GUILayout.Label(text.Get("ui.economy.since_open",(simulation.Seconds-openedAt)*24/city.society.settings.secondsPerDay));
+            double retail=consumption.RetailPayments-retailAtOpen, imports=trade.rawReceipts-importsAtOpen, exports=trade.exportPayments-exportsAtOpen;
+            double scale=Math.Max(1,Math.Max(retail,Math.Max(imports,exports)));
+            Flow("ui.economy.retail_flow",retail,scale,new Color(.38f,.72f,1f));
+            Flow("ui.economy.import_flow",imports,scale,new Color(1f,.74f,.38f));
+            Flow("ui.economy.export_flow",exports,scale,Stable);
+            GUILayout.Space(8);
+            if(GUILayout.Button(text.Get(details?"ui.economy.hide_details":"ui.economy.show_details")))details=!details;
+            if(!details)return;
             GUILayout.Label(text.Get("ui.economy.stock"));
             GUILayout.Label(text.Get("ui.economy.households",householdCash));
             if(alerts!=null)GUILayout.Label(text.Get("ui.economy.shortage",alerts.householdFood,alerts.foodEmpty,alerts.dailyEmpty));
             GUILayout.Label(text.Get("ui.economy.shops",shops,shopCash,shopFood,shopDaily,alerts?.cashShops??0));
             GUILayout.Label(text.Get("ui.economy.factories",factories,factoryCash,factoryRaw,factoryFood,factoryDaily,alerts?.cashFactories??0));
-            GUILayout.Space(12);
-            GUILayout.Label(text.Get("ui.economy.since_open",(simulation.Seconds-openedAt)*24/city.society.settings.secondsPerDay));
-            GUILayout.Label(text.Get("ui.economy.flows",consumption.RetailPayments-retailAtOpen,trade.rawReceipts-importsAtOpen,trade.exportPayments-exportsAtOpen));
             GUILayout.Space(12);
             GUILayout.Label(text.Get("ui.economy.cumulative"));
             GUILayout.Label(text.Get("ui.economy.flows",consumption.RetailPayments,trade.rawReceipts,trade.exportPayments));
