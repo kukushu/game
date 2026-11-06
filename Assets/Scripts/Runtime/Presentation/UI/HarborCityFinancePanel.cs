@@ -3,23 +3,30 @@ using UnityEngine;
 namespace HarborCity
 {
     // The overview samples existing accounts. All writes go through fiscal commands.
-    public sealed class HarborCityFinancePanel
+    public sealed partial class HarborCityFinancePanel
     {
         readonly CityLocalization text;CityCoreFinance finance;CityCoreUtilities services;Vector2 scroll;string message="";
         public bool IsOpen {get;set;}
         CityCoreIndustrySession session;
         CityFeedbackSummary alerts;
-        bool treasury, details;
+        bool treasury;
         GUIStyle metricValue;
-        public Action OpenIssues {get;set;}
+        internal bool IsEditingSearch {get;private set;}
         static readonly Color Alert=new Color(1f,.52f,.45f);
         static readonly Color Stable=new Color(.45f,.85f,.77f);
         static readonly Color Track=new Color(.19f,.27f,.33f);
-        double nextSample, openedAt, retailAtOpen, importsAtOpen, exportsAtOpen;
+        double nextSample;
         double shopCash, factoryCash;
         long householdCash, shopFood, shopDaily, factoryFood, factoryDaily, factoryRaw;
         int shops, factories;
-        Rect Bounds=>new Rect(Math.Max(10,(Screen.width-620)/2),96,Math.Min(620,Screen.width-20),Math.Max(160,Math.Min(650,Screen.height-152)));
+        Rect Bounds
+        {
+            get
+            {
+                float width=Math.Min(1440,Screen.width-24);
+                return new Rect((Screen.width-width)/2,24,width,Screen.height-48);
+            }
+        }
         public HarborCityFinancePanel(CityLocalization text){this.text=text;}
         public bool BlocksInput(Vector2 screen)=>IsOpen; // A modal blocks map editing even outside its rectangle.
         enum Command {Tax,Budget,Borrow,Repay,Grant}
@@ -29,23 +36,19 @@ namespace HarborCity
             IsOpen=true;
             session=null;
             treasury=showTreasury;
+            Navigate(0);
         }
         public void Draw(CityCoreIndustrySession current,CityFeedbackSummary summary)
         {
             finance=current?.Simulation.Finance;
             services=current?.Simulation.Utilities;
-            if(!IsOpen||current==null){IsOpen=false;session=null;alerts=null;return;}
+            if(!IsOpen||current==null){IsOpen=false;IsEditingSearch=false;session=null;alerts=null;pendingLayout=null;return;}
             alerts=summary;
             if(session!=current)
             {
                 session=current;
                 scroll=Vector2.zero;
-                details=false;
                 message="";
-                openedAt=current.Simulation.Seconds;
-                retailAtOpen=current.City.consumption.RetailPayments;
-                importsAtOpen=current.City.trade.rawReceipts;
-                exportsAtOpen=current.City.trade.exportPayments;
                 nextSample=0;
             }
             if(!treasury&&Time.realtimeSinceStartupAsDouble>=nextSample)
@@ -126,67 +129,38 @@ namespace HarborCity
             Metric(new Rect(row.x+width+6,row.y,width,row.height),text.Get("ui.economy.shop_daily"),
                 shops>0?shopDaily.ToString("N0"):"—",shops>0?(shopDaily==0?Alert:Stable):Track);
         }
-        void Flow(string key,double amount,double scale,Color color)
-        {
-            GUILayout.BeginHorizontal();
-            GUILayout.Label(text.Get(key));
-            GUILayout.Label(amount.ToString("N0"),GUILayout.ExpandWidth(false));
-            GUILayout.EndHorizontal();
-            var bar=GUILayoutUtility.GetRect(0,5,GUILayout.ExpandWidth(true));
-            Fill(bar,Track);
-            bar.width*=(float)(amount/scale);
-            Fill(bar,color);
-        }
-        void Economy()
-        {
-            var city=session.City;
-            var trade=city.trade;
-            var consumption=city.consumption;
-            var simulation=session.Simulation;
-            ImpactRow("ui.economy.food_empty",alerts?.foodEmpty,alerts?.households??0,
-                "ui.economy.daily_empty",alerts?.dailyEmpty,alerts?.households??0);
-            ImpactRow("ui.economy.shop_cash_empty",alerts?.cashShops,shops,
-                "ui.economy.factory_cash_empty",alerts?.cashFactories,factories);
-            StockRow();
-            if(OpenIssues!=null&&GUILayout.Button(text.Get("ui.economy.open_issues"),GUILayout.Height(28)))OpenIssues();
-            GUILayout.Space(8);
-            GUILayout.Label(text.Get("ui.economy.since_open",(simulation.Seconds-openedAt)*24/city.society.settings.secondsPerDay));
-            double retail=consumption.RetailPayments-retailAtOpen, imports=trade.rawReceipts-importsAtOpen, exports=trade.exportPayments-exportsAtOpen;
-            double scale=Math.Max(1,Math.Max(retail,Math.Max(imports,exports)));
-            Flow("ui.economy.retail_flow",retail,scale,new Color(.38f,.72f,1f));
-            Flow("ui.economy.import_flow",imports,scale,new Color(1f,.74f,.38f));
-            Flow("ui.economy.export_flow",exports,scale,Stable);
-            GUILayout.Space(8);
-            if(GUILayout.Button(text.Get(details?"ui.economy.hide_details":"ui.economy.show_details")))details=!details;
-            if(!details)return;
-            GUILayout.Label(text.Get("ui.economy.stock"));
-            GUILayout.Label(text.Get("ui.economy.households",householdCash));
-            if(alerts!=null)GUILayout.Label(text.Get("ui.economy.shortage",alerts.householdFood,alerts.foodEmpty,alerts.dailyEmpty));
-            GUILayout.Label(text.Get("ui.economy.shops",shops,shopCash,shopFood,shopDaily,alerts?.cashShops??0));
-            GUILayout.Label(text.Get("ui.economy.factories",factories,factoryCash,factoryRaw,factoryFood,factoryDaily,alerts?.cashFactories??0));
-            GUILayout.Space(12);
-            GUILayout.Label(text.Get("ui.economy.cumulative"));
-            GUILayout.Label(text.Get("ui.economy.flows",consumption.RetailPayments,trade.rawReceipts,trade.exportPayments));
-            GUILayout.Label(text.Get("ui.economy.volume",consumption.Bought.food,consumption.Bought.dailyGoods,trade.rawDelivered,trade.ExportedProducts.food,trade.ExportedProducts.dailyGoods));
-            GUILayout.Label(text.Get("ui.trade.orders",simulation.Trade.RemainingExportOrders(ProductKind.Food),simulation.Design.Economy.DailyExportOrders.food,simulation.Trade.RemainingExportOrders(ProductKind.DailyGoods),simulation.Design.Economy.DailyExportOrders.dailyGoods));
-        }
         void Contents(int window)
         {
             // IMGUI windows have their own GUI state. Apply the HUD tint inside the window.
             var background=GUI.backgroundColor;
             GUI.backgroundColor=new Color(.16f,.24f,.30f);
-            try{DrawContents();}
+            try{DrawContents();IsEditingSearch=IsOpen&&!treasury&&page==1&&GUI.GetNameOfFocusedControl()=="EconomyIssueSearch";}
             finally{GUI.backgroundColor=background;}
         }
         void DrawContents()
         {
+            if(Event.current.type==EventType.Layout)
+            {
+                var change=pendingLayout;
+                pendingLayout=null;
+                change?.Invoke();
+            }
             if(GUILayout.Button(text.Get("ui.finance.close"))){IsOpen=false;return;}
             GUILayout.BeginHorizontal();
-            if(GUILayout.Button(text.Get("ui.economy.overview"))&&treasury){treasury=false;scroll=Vector2.zero;nextSample=0;}
-            if(GUILayout.Button(text.Get("ui.finance.title"))&&!treasury){treasury=true;scroll=Vector2.zero;}
+            if(GUILayout.Button(text.Get("ui.economy.overview"))&&treasury)OnNextLayout(()=>{treasury=false;Navigate(0);nextSample=0;});
+            if(GUILayout.Button(text.Get("ui.finance.title"))&&!treasury)OnNextLayout(()=>{treasury=true;scroll=Vector2.zero;});
             GUILayout.EndHorizontal();
+            if(!treasury)
+            {
+                Nav(0,5);
+                if(page>=4)Nav(5,4);
+                GUILayout.BeginHorizontal();
+                if(NavButton(D("one_day"),windowDays==1))OnNextLayout(()=>{windowDays=1;rowPage=0;});
+                if(NavButton(D("seven_days"),windowDays==7))OnNextLayout(()=>{windowDays=7;rowPage=0;});
+                GUILayout.EndHorizontal();
+            }
             scroll=GUILayout.BeginScrollView(scroll);
-            if(!treasury){Economy();GUILayout.EndScrollView();return;}
+            if(!treasury){Dashboard();GUILayout.EndScrollView();return;}
             GUILayout.Label(text.Get("ui.finance.summary",finance.UnlimitedFunds?"∞":finance.Money.ToString(),finance.LastTax,finance.LastMaintenance,finance.LastLoanPayment,finance.Debt));
             GUILayout.Label(text.Get("ui.finance.upkeep_rate",finance.MaintenanceRate,finance.MaintenanceAccrued.ToString("F1")));
             GUILayout.Label(text.Get("ui.finance.assessment_note",finance.UncollectedAssessment));

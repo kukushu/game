@@ -138,7 +138,7 @@ namespace HarborCity
                 Screen.SetResolution(1920,1080,FullScreenMode.Windowed);
             if(Array.IndexOf(Environment.GetCommandLineArgs(),"-harbor-legacy-views")>=0)displaySettings.layered=false;
             Application.targetFrameRate=60;
-            var language=Resources.Load<TextAsset>("GameData/Localization/zh-CN");if(language==null)throw new InvalidOperationException("Missing localization resource");localization=new CityLocalization(JsonUtility.FromJson<TranslationData>(language.text));notice=localization.Get("ui.hud.welcome");financePanel=new HarborCityFinancePanel(localization){OpenIssues=OpenFeedbackIssues};observation=new HarborCityObservationPanel(localization);observation.Focus=(x,z)=>{if(constructionCamera!=null)constructionCamera.Focus(x,z);else{cameraView.transform.position=new Vector3(x,90,z-65);cameraView.transform.LookAt(new Vector3(x,0,z));}};
+            var language=Resources.Load<TextAsset>("GameData/Localization/zh-CN");if(language==null)throw new InvalidOperationException("Missing localization resource");localization=new CityLocalization(JsonUtility.FromJson<TranslationData>(language.text));notice=localization.Get("ui.hud.welcome");financePanel=new HarborCityFinancePanel(localization);observation=new HarborCityObservationPanel(localization);financePanel.Observation=observation;observation.Focus=(x,z)=>{if(constructionCamera!=null)constructionCamera.Focus(x,z);else{cameraView.transform.position=new Vector3(x,90,z-65);cameraView.transform.LookAt(new Vector3(x,0,z));}};
             foreach(var c in FindObjectsByType<Camera>(FindObjectsSortMode.None))c.gameObject.SetActive(false);
             cameraView=new GameObject("Road core camera").AddComponent<Camera>();cameraView.transform.position=new Vector3(0,90,-65);cameraView.transform.LookAt(Vector3.zero);cameraView.backgroundColor=new Color(.12f,.18f,.16f);cameraView.farClipPlane=3000;
             var shader=Resources.Load<Shader>("RoadCore");roadMaterial=new Material(shader){color=new Color(.25f,.29f,.32f)};carMaterial=new Material(shader){color=Color.yellow};roadEditor=new HarborCityRoadEditor(localization,roadMaterial);roadEditor.Changed=RenderRoads; // Zones observe NetworkGeneration once in Update; buildings did not move.
@@ -204,9 +204,9 @@ namespace HarborCity
 #endif
         void Update()
         {
-            observation?.Bind(session);roadEditor?.Bind(session);roadEditor?.Sync();
+            observation?.Bind(session);roadEditor?.Bind(session);roadEditor?.Sync();financePanel?.Observe(session);
             if(world==null)return;
-            if(Application.isFocused&&!ScenarioMeasuring&&!feedbackCapturing&&Keyboard.current?.spaceKey.wasPressedThisFrame==true)
+            if(Application.isFocused&&!ScenarioMeasuring&&!feedbackCapturing&&financePanel?.IsEditingSearch!=true&&Keyboard.current?.spaceKey.wasPressedThisFrame==true)
             {
                 if(speed>0)ScenarioRate(0);
                 else if(session?.Simulation.Fault==null)ScenarioRate(lastRunningRate);
@@ -228,6 +228,7 @@ namespace HarborCity
                 }
             }}catch(Exception error){if(!FeedbackBuild.playtest||ScenarioMeasuring)throw;feedbackFault=error.ToString();ScenarioRate(0);notice=localization.Get("ui.feedback.simulation_fault");}
             observation?.PollFeedback();
+            if(!ScenarioMeasuring)financePanel?.SampleHistory();
             previousTick=now;
             // Measure committed simulation time, never requested time or debt.
             // Real elapsed time includes rendering, construction and long frames.
@@ -568,6 +569,6 @@ namespace HarborCity
             observation.Close();Exception roadFault=null;yield return HarborCityRoadEditingValidation.Run(session,roadEditor,landscape.Height,path,e=>roadFault=e);if(roadFault!=null){File.AppendAllText(Path.Combine(path,"TradeResult.txt"),"\nFAIL road editor "+roadFault);Application.Quit(1);yield break;}File.AppendAllText(Path.Combine(path,"TradeResult.txt"),"\n"+File.ReadAllText(Path.Combine(path,"RoadEditingResult.txt")));
             session.Validate();yield return new WaitForEndOfFrame();ScreenCapture.CaptureScreenshot(Path.Combine(path,"Trade.png"));yield return null;Application.Quit(0);
         }
-        void OnDestroy(){observation?.Dispose();if(citySkin!=null)Destroy(citySkin);zoneBoxTool?.Dispose();gridTool?.Dispose();vehicleViews?.Dispose();outsideViews?.Dispose();constructionPreview?.Dispose();roadEditor?.Dispose();buildingViews?.Dispose();roadViews?.Dispose();zoningViews?.Dispose();if(zoneMaterials!=null)foreach(var m in zoneMaterials)Destroy(m);if(roadMaterial!=null)Destroy(roadMaterial);if(carMaterial!=null)Destroy(carMaterial);if(waterLineMaterial!=null)Destroy(waterLineMaterial);foreach(var view in utilityViews)if(view!=null)Destroy(view);}
+        void OnDestroy(){financePanel?.Observe(null);observation?.Dispose();if(citySkin!=null)Destroy(citySkin);zoneBoxTool?.Dispose();gridTool?.Dispose();vehicleViews?.Dispose();outsideViews?.Dispose();constructionPreview?.Dispose();roadEditor?.Dispose();buildingViews?.Dispose();roadViews?.Dispose();zoningViews?.Dispose();if(zoneMaterials!=null)foreach(var m in zoneMaterials)Destroy(m);if(roadMaterial!=null)Destroy(roadMaterial);if(carMaterial!=null)Destroy(carMaterial);if(waterLineMaterial!=null)Destroy(waterLineMaterial);foreach(var view in utilityViews)if(view!=null)Destroy(view);}
     }
 }

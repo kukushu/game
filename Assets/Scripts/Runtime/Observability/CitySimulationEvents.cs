@@ -27,14 +27,17 @@ namespace HarborCity
     public sealed partial class CityModel
     {
         [NonSerialized] public Action<CityLogEvent> logSink;
+        [field: NonSerialized] internal event Action<CityLogEvent> EmploymentObserved;
         public void Trace(string type,string message,object data=null,int household=-1,int citizen=-1,int job=-1,int building=-1,int trip=-1,string level="info")
         {
-            if(logSink==null) return;
+            var employment=type=="job.assigned"||type=="job.released"?EmploymentObserved:null;
+            if(logSink==null&&employment==null) return;
             var entry=new CityLogEvent {type=type,message=message,data=data,householdId=household,citizenId=citizen,
                 jobId=job,buildingId=building,tripId=trip,level=level,day=day,minute=society==null?0:ResidentMinute,
                 tick=entities?.Simulation?.Tick??0,simulationSeconds=(float)(entities?.Simulation?.Seconds??0),roadRevision=entities?.RoadRevision??0};
             // Observability must never break a simulation transaction.
             try {logSink?.Invoke(entry);} catch { }
+            try {employment?.Invoke(entry);} catch { }
         }
     }
 }

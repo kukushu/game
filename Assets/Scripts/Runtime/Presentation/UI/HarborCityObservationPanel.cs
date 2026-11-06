@@ -15,6 +15,10 @@ namespace HarborCity
         public Action RecordScene;
         public int SelectedFamily=>family;
         public CityFeedbackSummary Summary {get{PollFeedback();return feedback?.Summary;}}
+        internal IReadOnlyList<CityFeedbackEntry> EconomyIssues
+        {
+            get{PollFeedback();return feedback?.Entries()??Array.Empty<CityFeedbackEntry>();}
+        }
         int selected,family,issuePage;double refreshDeadline;long refreshed=-1;int entityRevision=-1,roadRevision=-1;Vector2 scroll;bool showIssues;
         int locatedTask,locatedVehicle;
         string locatedResident;
@@ -69,7 +73,7 @@ namespace HarborCity
         {if(flags==0)return text.Get("ui.feedback.basic_clear");var parts=new System.Collections.Generic.List<string>();foreach(CityObservedProblem p in Enum.GetValues(typeof(CityObservedProblem)))if(p!=0&&(flags&p)!=0)parts.Add(text.Get("ui.inspect.problem."+p.ToString().ToLowerInvariant()));return string.Join(" / ",parts);}
         string Location(int id)
         {var b=session.Entities.Building(id);return b==null?text.Get("ui.feedback.unknown_location"):text.Get("ui.feedback.location",text.Get("ui.inspect.use."+b.Use.ToString().ToLowerInvariant()),b.x.ToString("F0"),b.z.ToString("F0"));}
-        void Locate(int id,int household=0)
+        internal void Locate(int id,int household=0)
         {Select(id);family=household;showIssues=false;scroll=Vector2.zero;var b=session.Entities.Building(id);if(b!=null)Focus?.Invoke(b.x,b.z);}
         void DrawIssues()
         {
